@@ -153,7 +153,7 @@ const CareerTable: FC<CareerTableProps> = ({ playerID }) => {
                             Total Career Stats
                         </td>
                         <td className="px-2 py-2 font-semibold">{totalFPts}</td>
-                        <td className="px-2 py-2 font-semibold">{averageFPG.toFixed(2)}</td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>

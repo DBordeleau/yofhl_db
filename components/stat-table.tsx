@@ -85,12 +85,14 @@ const StatTable: FC<StatTableProps> = ({
                         >
                             Fpts {sortField === 'FPts' && (sortDirection === 'asc' ? '↑' : '↓')}
                         </th>
-                        <th
-                            className="px-2 py-2 w-1/5 sm:w-1/5 cursor-pointer hover:underline"
-                            onClick={() => handleSort('FPG')}
-                        >
-                            FP/G {sortField === 'FPG' && (sortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
+                        {mode === 'single-season' && (
+                            <th
+                                className="px-2 py-2 w-1/5 sm:w-1/5 cursor-pointer hover:underline"
+                                onClick={() => handleSort('FPG')}
+                            >
+                                FP/G {sortField === 'FPG' && (sortDirection === 'asc' ? '↑' : '↓')}
+                            </th>
+                        )}
                         {mode === 'single-season' && (
                             <th className="px-2 py-2 w-1/5 sm:w-1/6">Year</th>
                         )}
@@ -131,7 +133,9 @@ const StatTable: FC<StatTableProps> = ({
                                     </td>
                                     <td className="px-2 py-2">{player.Position}</td>
                                     <td className="px-2 py-2 group-hover:font-semibold">{player.FPts}</td>
-                                    <td className="px-2 py-2 group-hover:font-semibold">{player.FPG}</td>
+                                    {mode === 'single-season' && ( // FP/G not displayed in all-time mode
+                                        <td className="px-2 py-2 group-hover:font-semibold">{player.FPG}</td>
+                                    )}
                                     {mode === 'single-season' && ( // year not displayed in all-time mode
                                         <td className="px-2 py-2">{player.Year}</td>
                                     )}
