@@ -18,7 +18,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ mode
 
     const playerQuery = url.searchParams.get('player');
     if (playerQuery) {
-        filter.Player = { contains: playerQuery };
+        filter.Player = {
+            contains: playerQuery,
+            mode: 'insensitive',
+        } as any;
     }
 
     filter.FPts = { gt: 0 }; // don't display stats if the player scored 0 points that year
