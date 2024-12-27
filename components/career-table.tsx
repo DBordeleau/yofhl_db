@@ -83,9 +83,6 @@ const CareerTable: FC<CareerTableProps> = ({ playerID }) => {
     }
 
     const totalFPts = careerStats?.reduce((acc, stat) => acc + stat.FPts, 0) || 0;
-    const averageFPG =
-        (careerStats?.reduce((acc, stat) => acc + parseFloat(stat.FPG), 0) || 0) /
-        (careerStats?.length || 1);
 
     return (
         <div className="flex flex-col items-center w-full max-w-7xl h-fit mb-8 overflow-y-scroll overflow-x-auto rounded-b-lg mx-auto">
