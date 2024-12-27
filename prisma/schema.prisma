@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model player_stats {
+  ID        String
+  Player    String
+  NHLTeam   String
+  Position  String
+  YOFHLTeam String
+  Age       Int
+  FPts      Float
+  FPG       Float
+  Year      Int
+  Champion  Boolean  @default(false)
+  awards    awards[]
+
+  @@id([ID, Year])
+}
+
+model team_stats {
+  ID            Int    @id @default(autoincrement())
+  Team          String
+  Abbreviation  String
+  Owner         String
+  Wins          Int
+  Losses        Int
+  FPF           Float
+  Championships String
+  Finals        String
+}
+
+model awards {
+  Award  String
+  Year   Int
+  Winner String
+  Team   String
+  player player_stats @relation(fields: [Winner, Year], references: [ID, Year])
+
+  @@id([Winner, Year, Award])
+}

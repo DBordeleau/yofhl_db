@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+/* globals.css */
+:root {
+  --bg-color: white;
+  /* Light mode background */
+  --text-color: black;
+  /* Light mode text color */
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* Dark mode */
+.dark-mode {
+  --bg-color: black;
+  --text-color: white;
+}
+
+.navbar-burger {
+  margin-left: auto;
+  /* Push hamburger menu to the right */
+}
+
+/* Remove arrows for number inputs on Webkit browsers (Chrome, Safari, Edge) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Override system dark mode preference */
+@media (prefers-color-scheme: dark) {
+  .system-dark-mode {
+    --bg-color: black;
+    --text-color: white;
+  }
+}
