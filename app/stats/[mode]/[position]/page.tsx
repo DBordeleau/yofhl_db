@@ -2,19 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import React from 'react';
+import { useRouter } from 'next/router';
 import StatTable from '@/components/stat-table';
 import SearchBar from '@/components/search-bar';
 import PaginationControls from '@/components/pagination-controls';
 import { motion } from 'framer-motion';
 
-// displays a fantasy point leaderboard for all players at /stats/[mode]/[position]
-// mode can either be all-time (aggregated stats grouped by player ID) or single-season (each data row is an individual player's stat line for that season)
-// [position] specifies the position filter if any for the leaderboard data
-export default function StatsPage({
-    params,
-}: {
-    params: Promise<{ mode: string; position: string }>;
-}) {
+export default function StatsPage() {
+    const router = useRouter();
+    const { mode: initialMode, position: initialPosition } = router.query;
+
     const [topPlayers, setTopPlayers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -24,16 +21,13 @@ export default function StatsPage({
     const [position, setPosition] = useState<string>('all');
 
     useEffect(() => {
-        const resolveParams = async () => {
-            const { mode, position } = await params;
-            setMode(mode);
-            setPosition(position);
-        };
+        // Update state based on URL parameters (if available)
+        if (initialMode && initialPosition) {
+            setMode(initialMode as string);
+            setPosition(initialPosition as string);
+        }
+    }, [initialMode, initialPosition]);
 
-        resolveParams();
-    }, [params]);
-
-    // fetch data from /api/stats/[mode]/[position]
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true); // Start loading
@@ -52,6 +46,14 @@ export default function StatsPage({
         }
     }, [mode, position, currentPage, searchQuery]); // re-fetch data whenever mode, position, page, or searchQuery changes
 
+    const handleModeChange = (newMode: string) => {
+        router.push(`/stats/${newMode}/${position}`);
+    };
+
+    const handlePositionChange = (newPosition: string) => {
+        router.push(`/stats/${mode}/${newPosition}`);
+    };
+
     return (
         <div className="flex flex-col items-center p-4 overflow-x-hidden">
             <h1 className="text-[1.25rem] lg:text-3xl -mt-2 font-semibold mb-4">
@@ -59,30 +61,30 @@ export default function StatsPage({
             </h1>
             <nav className="flex gap-x-4 items-center mb-4">
                 {['All-Time', 'Single-Season'].map((m) => (
-                    <a
+                    <button
                         key={m}
-                        href={`/stats/${m.toLowerCase()}/${position}`}
+                        onClick={() => handleModeChange(m.toLowerCase())}
                         className={`shadow-md items-center text-center text-[.85rem] lg:text-[1rem] px-4 py-2 rounded-full transition-all cursor-pointer border-black ${mode === m.toLowerCase()
                             ? 'bg-sky-300 hover:bg-sky-500 text-slate'
                             : 'bg-gray-200 hover:bg-gray-300 text-black'
                             }`}
                     >
                         {m}
-                    </a>
+                    </button>
                 ))}
             </nav>
             <nav className="flex gap-x-4 items-center mb-4">
                 {['All', 'C', 'LW', 'RW', 'D', 'G'].map((pos) => (
-                    <a
+                    <button
                         key={pos}
-                        href={`/stats/${mode}/${pos.toLowerCase()}`}
+                        onClick={() => handlePositionChange(pos.toLowerCase())}
                         className={`shadow-md items-center text-center text-[.75rem] lg:text-[1rem] px-4 py-2 rounded-full transition-all cursor-pointer border-black ${position === pos.toLowerCase()
                             ? 'bg-sky-300 hover:bg-sky-500 text-slate'
                             : 'bg-gray-200 hover:bg-gray-300 text-black'
                             }`}
                     >
                         {pos}
-                    </a>
+                    </button>
                 ))}
             </nav>
             <div className="flex justify-center mt-4 mb-4">
