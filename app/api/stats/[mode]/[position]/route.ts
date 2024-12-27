@@ -1,7 +1,15 @@
 import prisma from '@/lib/db';
 
+type Params = {
+    mode: string;
+    position: string;
+};
+
 // returns and filters player stats, award and championship info for all-time and single season modes at /stats/[mode]/[position]
-export async function GET(request: Request, { params }: { params: Promise<{ mode: string; position: string }> }) {
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<Params> }
+) {
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '1', 10); // default to page 1
     const itemsPerPage = 25; // hardcoded to 25 results per page, might make this dynamic and set by user
@@ -10,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ mode
     const { mode, position } = await params;
     console.log('Resolved Mode:', mode, 'Position:', position); // logs mode and position filters to console for debugging
 
-    const filter: { Position?: { contains: string }; Player?: { contains: string }; FPts?: { gt: number } } = {};
+    const filter: { Position?: { contains: string }; Player?: { contains: string; mode?: 'insensitive' }; FPts?: { gt: number } } = {};
 
     if (position !== 'all') {
         filter.Position = { contains: position.toUpperCase() };
@@ -20,8 +28,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ mode
     if (playerQuery) {
         filter.Player = {
             contains: playerQuery,
-            mode: 'insensitive',
-        } as any;
+            mode: 'insensitive', // explicitly set the mode to 'insensitive'
+        };
     }
 
     filter.FPts = { gt: 0 }; // don't display stats if the player scored 0 points that year
