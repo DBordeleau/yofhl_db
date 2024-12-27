@@ -17,7 +17,6 @@ export default function StatsPage({
 }) {
     const [topPlayers, setTopPlayers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [maxPages, setMaxPages] = useState(100);
 
@@ -26,20 +25,13 @@ export default function StatsPage({
     // get data from /api/stats/[mode]/[position]
     useEffect(() => {
         const fetchData = async () => {
-            setLoading(true);
             const query = searchQuery ? `&player=${searchQuery}` : '';
             const res = await fetch(`/api/stats/${mode}/${position}?page=${currentPage}${query}`);
             const data = await res.json();
             setTopPlayers(data.players);
 
             // pagination limit calculated by ID for all-time mode and by length of data for single season
-            if (mode === 'all-time') {
-                setMaxPages(data.maxPages);
-            } else {
-                setMaxPages(data.maxPages);
-            }
-
-            setLoading(false);
+            setMaxPages(data.maxPages);
         };
         fetchData();
     }, [mode, position, currentPage, searchQuery]);
@@ -78,7 +70,7 @@ export default function StatsPage({
                 ))}
             </nav>
             <div className="flex justify-center mt-4 mb-4">
-                <PaginationControls // consider refactoring to be apart of stat-table -- then we can move the dynamic page limit logic into the component or specific endpoints and have pagination controls enabled on all tables easily
+                <PaginationControls // consider refactoring to be apart of stat-table -- then we can move the dynamic page limit logic into the component or specific endpoints and have pagination controls enabled on all tables
                     currentPage={currentPage}
                     setCurrentPage={setCurrentPage}
                     maxPages={maxPages}
@@ -105,7 +97,6 @@ export default function StatsPage({
                             </p>
                         </div>
                     </div>
-
                 )}
                 <StatTable
                     mode={mode}
