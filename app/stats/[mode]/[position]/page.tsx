@@ -54,7 +54,10 @@ export default function StatsPage() {
                 {['All-Time', 'Single-Season'].map((m) => (
                     <Link
                         key={m}
-                        href={`/stats?mode=${m.toLowerCase()}&position=${position}`}
+                        href={{
+                            pathname: '/stats',
+                            query: { mode: m.toLowerCase(), position },
+                        }}
                         className={`shadow-md items-center text-center text-[.85rem] lg:text-[1rem] px-4 py-2 rounded-full transition-all cursor-pointer border-black ${mode === m.toLowerCase()
                             ? 'bg-sky-300 hover:bg-sky-500 text-slate'
                             : 'bg-gray-200 hover:bg-gray-300 text-black'
@@ -68,7 +71,10 @@ export default function StatsPage() {
                 {['All', 'C', 'LW', 'RW', 'D', 'G'].map((pos) => (
                     <Link
                         key={pos}
-                        href={`/stats?mode=${mode}&position=${pos.toLowerCase()}`}
+                        href={{
+                            pathname: '/stats',
+                            query: { mode, position: pos.toLowerCase() },
+                        }}
                         className={`shadow-md items-center text-center text-[.75rem] lg:text-[1rem] px-4 py-2 rounded-full transition-all cursor-pointer border-black ${position === pos.toLowerCase()
                             ? 'bg-sky-300 hover:bg-sky-500 text-slate'
                             : 'bg-gray-200 hover:bg-gray-300 text-black'
