@@ -2,30 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import React from 'react';
-import { useRouter } from 'next/router';
+import { useSearchParams } from 'next/navigation';  // Import useSearchParams
 import StatTable from '@/components/stat-table';
 import SearchBar from '@/components/search-bar';
 import PaginationControls from '@/components/pagination-controls';
 import { motion } from 'framer-motion';
+import Link from 'next/link';  // Use Link for client-side navigation
 
 export default function StatsPage() {
-    const router = useRouter();
-    const { mode: initialMode, position: initialPosition } = router.query;
+    const searchParams = useSearchParams();
+    const initialMode = searchParams.get('mode') || 'all-time';
+    const initialPosition = searchParams.get('position') || 'all';
 
     const [topPlayers, setTopPlayers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [maxPages, setMaxPages] = useState(100);
-    const [mode, setMode] = useState<string>('all-time');
-    const [position, setPosition] = useState<string>('all');
+    const [mode, setMode] = useState<string>(initialMode);
+    const [position, setPosition] = useState<string>(initialPosition);
 
     useEffect(() => {
-        // Update state based on URL parameters (if available)
-        if (initialMode && initialPosition) {
-            setMode(initialMode as string);
-            setPosition(initialPosition as string);
-        }
+        setMode(initialMode);
+        setPosition(initialPosition);
     }, [initialMode, initialPosition]);
 
     useEffect(() => {
@@ -46,14 +45,6 @@ export default function StatsPage() {
         }
     }, [mode, position, currentPage, searchQuery]); // re-fetch data whenever mode, position, page, or searchQuery changes
 
-    const handleModeChange = (newMode: string) => {
-        router.push(`/stats/${newMode}/${position}`);
-    };
-
-    const handlePositionChange = (newPosition: string) => {
-        router.push(`/stats/${mode}/${newPosition}`);
-    };
-
     return (
         <div className="flex flex-col items-center p-4 overflow-x-hidden">
             <h1 className="text-[1.25rem] lg:text-3xl -mt-2 font-semibold mb-4">
@@ -61,30 +52,30 @@ export default function StatsPage() {
             </h1>
             <nav className="flex gap-x-4 items-center mb-4">
                 {['All-Time', 'Single-Season'].map((m) => (
-                    <button
+                    <Link
                         key={m}
-                        onClick={() => handleModeChange(m.toLowerCase())}
+                        href={`/stats?mode=${m.toLowerCase()}&position=${position}`}
                         className={`shadow-md items-center text-center text-[.85rem] lg:text-[1rem] px-4 py-2 rounded-full transition-all cursor-pointer border-black ${mode === m.toLowerCase()
                             ? 'bg-sky-300 hover:bg-sky-500 text-slate'
                             : 'bg-gray-200 hover:bg-gray-300 text-black'
                             }`}
                     >
                         {m}
-                    </button>
+                    </Link>
                 ))}
             </nav>
             <nav className="flex gap-x-4 items-center mb-4">
                 {['All', 'C', 'LW', 'RW', 'D', 'G'].map((pos) => (
-                    <button
+                    <Link
                         key={pos}
-                        onClick={() => handlePositionChange(pos.toLowerCase())}
+                        href={`/stats?mode=${mode}&position=${pos.toLowerCase()}`}
                         className={`shadow-md items-center text-center text-[.75rem] lg:text-[1rem] px-4 py-2 rounded-full transition-all cursor-pointer border-black ${position === pos.toLowerCase()
                             ? 'bg-sky-300 hover:bg-sky-500 text-slate'
                             : 'bg-gray-200 hover:bg-gray-300 text-black'
                             }`}
                     >
                         {pos}
-                    </button>
+                    </Link>
                 ))}
             </nav>
             <div className="flex justify-center mt-4 mb-4">
