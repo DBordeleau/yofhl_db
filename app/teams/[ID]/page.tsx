@@ -3,6 +3,7 @@
 import React, { FC, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import StatTable from "@/components/stat-table";
+import Image from "next/image";
 
 interface PlayerStats {
     Player: string;
@@ -16,20 +17,17 @@ interface TeamPageProps {
     params: Promise<{ ID: string }>;
 }
 
-async function fetchTopPlayers(teamID: string): Promise<PlayerStats[] | null> {
+async function fetchTeamData(teamID: string): Promise<{ topPlayers: PlayerStats[]; teamName: string; logoUrl: string | null } | null> {
     const response = await fetch(`/api/teams/${teamID}`, { cache: "no-store" });
 
     if (!response.ok) return null;
     const data = await response.json();
-    return data.topPlayers || [];
-}
-
-async function fetchTeamName(teamID: string): Promise<string | null> {
-    const response = await fetch(`/api/teams/${teamID}`, { cache: "no-store" });
-
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.teamName || null;
+    if (!data.teamName || !Array.isArray(data.topPlayers)) return null;
+    return {
+        topPlayers: data.topPlayers,
+        teamName: data.teamName,
+        logoUrl: data.logoUrl,
+    };
 }
 
 // renders all-time fantasy point leaders in a table for a given team ID at /teams/[ID]
@@ -38,6 +36,7 @@ const TeamPage: FC<TeamPageProps> = ({ params }) => {
     const [loading, setLoading] = useState<boolean>(true);
     const [teamID, setTeamID] = useState<string>("");
     const [teamName, setTeamName] = useState<string>("");
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const getParams = async () => {
@@ -52,24 +51,20 @@ const TeamPage: FC<TeamPageProps> = ({ params }) => {
     useEffect(() => {
         if (teamID) {
             const fetchData = async () => {
-                const teamNameData = await fetchTeamName(teamID);
-                if (!teamNameData) {
+                const data = await fetchTeamData(teamID);
+                if (!data) {
                     notFound();
                 } else {
-                    setTeamName(teamNameData);
+                    setTeamName(data.teamName);
+                    setLogoUrl(data.logoUrl);
+                    setTopPlayers(data.topPlayers);
                 }
-
-                const data = await fetchTopPlayers(teamID);
-                if (!data || data.length === 0) {
-                    notFound();
-                }
-                setTopPlayers(data);
                 setLoading(false);
             };
 
             fetchData();
         }
-    }, [teamID]); // data is re-fetched if teamID changes
+    }, [teamID]);
 
     if (loading) {
         return <div>Loading...</div>;
@@ -80,7 +75,16 @@ const TeamPage: FC<TeamPageProps> = ({ params }) => {
             <h1 className="text-[1.25rem] lg:text-2xl font-bold text-center mb-4">
                 {`${teamName} All-Time Leaders`}
             </h1>
-            <StatTable mode="all-time" topPlayers={topPlayers} />
+            {logoUrl && (
+                <div className="flex justify-center mb-4">
+                    <Image src={logoUrl} alt={`${teamName} Logo`} width={175} height={175} />
+                </div>
+            )}
+            <StatTable
+                mode="all-time"
+                topPlayers={topPlayers} // Ensure this is defined and an array
+                currentPage={1}
+            />
         </div>
     );
 };

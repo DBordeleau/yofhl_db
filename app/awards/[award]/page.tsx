@@ -64,7 +64,7 @@ export default function AwardPage({
 
     return (
         <div className="flex flex-col items-center p-4">
-            <h1 className="text-[1rem] md:text-3xl -mt-2 font-semibold">
+            <h1 className="text-[1rem] md:text-3xl mb-2 -mt-2 font-semibold">
                 {formattedAward.toUpperCase()} RECIPIENTS
             </h1>
             <div className="flex justify-center">

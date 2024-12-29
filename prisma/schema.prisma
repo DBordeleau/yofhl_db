@@ -24,7 +24,7 @@ model player_stats {
 }
 
 model team_stats {
-  ID            Int    @id @default(autoincrement())
+  ID            Int     @id @default(autoincrement())
   Team          String
   Abbreviation  String
   Owner         String
@@ -33,6 +33,7 @@ model team_stats {
   FPF           Float
   Championships String
   Finals        String
+  LogoUrl       String?
 }
 
 model awards {

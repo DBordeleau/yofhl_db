@@ -37,6 +37,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ ID: 
             where: { ID: teamID },
             select: {
                 Team: true,
+                LogoUrl: true,
             },
         });
 
@@ -44,7 +45,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ ID: 
             return new Response(JSON.stringify({ error: "Team not found" }), { status: 404 });
         }
 
-        const teamName = teamInfo.Team;
+        const { Team: teamName, LogoUrl: logoUrl } = teamInfo;
 
         const topPlayers = await prisma.player_stats.groupBy({
             by: ['ID'],
@@ -107,7 +108,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ ID: 
         return new Response(
             JSON.stringify({
                 topPlayers: players,
-                teamName: teamName,
+                teamName,
+                logoUrl,
             }),
             { status: 200 }
         );

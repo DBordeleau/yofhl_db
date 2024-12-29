@@ -54,7 +54,7 @@ export default function PlayerPage({
                 initial={{ opacity: 0, y: 100 }}
                 animate={{ opacity: 1, y: 0 }}
             >
-                <h1 className="text-3xl font-semibold mb-0">{playerName}&apos;s Career Stats</h1>
+                <h1 className="text-3xl font-semibold mb-2">{playerName}&apos;s Career Stats</h1>
                 {loading ? (
                     <div>Loading...</div>
                 ) : (
