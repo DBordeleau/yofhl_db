@@ -14,7 +14,7 @@ export default function LotteryPage() {
     };
 
     const handleZipDownload = () => {
-        window.location.href = '/draftlottery.zip';
+        window.location.href = '/yofhl-draft-lottery.zip';
         setIsOpen(false);
     };
 
