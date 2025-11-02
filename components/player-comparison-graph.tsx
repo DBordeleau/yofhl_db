@@ -19,7 +19,7 @@ interface PlayerComparisonGraphProps {
 
 interface ChartDataPoint {
     year: string;
-    [key: string]: string | number;
+    [key: string]: string | number | null;
 }
 
 interface TooltipPayload {
@@ -57,16 +57,40 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
 
     const commonYears = getCommonYears();
 
+    // Find the first non-zero year for each player
+    const getFirstNonZeroYear = (playerID: string): number | null => {
+        const stats = playersData[playerID];
+        const sortedStats = [...stats].sort((a, b) => a.Year - b.Year);
+
+        const firstNonZero = sortedStats.find(s => s.FPts !== 0 || s.FPG !== 0);
+        return firstNonZero ? firstNonZero.Year : null;
+    };
+
+    const firstNonZeroYears: Record<string, number | null> = {};
+    Object.keys(playersData).forEach(playerID => {
+        firstNonZeroYears[playerID] = getFirstNonZeroYear(playerID);
+    });
+
     // Prepare chart data
     const chartData: ChartDataPoint[] = commonYears.map(year => {
         const dataPoint: ChartDataPoint = { year: year.toString() };
 
         Object.entries(playersData).forEach(([playerID, stats]) => {
             const yearStats = stats.find(s => s.Year === year);
+            const firstYear = firstNonZeroYears[playerID];
+
             if (yearStats) {
-                dataPoint[`${playerID}_fpts`] = yearStats.FPts;
-                dataPoint[`${playerID}_fpg`] = yearStats.FPG;
-                dataPoint[`${playerID}_team`] = yearStats.YOFHLTeam;
+                // Only include data if we've reached the first non-zero year
+                if (firstYear === null || year < firstYear) {
+                    // Before first non-zero year, set to null (won't render)
+                    dataPoint[`${playerID}_fpts`] = null;
+                    dataPoint[`${playerID}_fpg`] = null;
+                } else {
+                    // After first non-zero year, include all data (even zeros)
+                    dataPoint[`${playerID}_fpts`] = yearStats.FPts;
+                    dataPoint[`${playerID}_fpg`] = yearStats.FPG;
+                    dataPoint[`${playerID}_team`] = yearStats.YOFHLTeam;
+                }
             }
         });
 
@@ -76,19 +100,28 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
     // Custom tooltip
     const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
         if (active && payload && payload.length) {
+            // Filter out null entries and sort by value (descending)
+            const sortedPayload = payload
+                .filter(entry => entry.value !== null)
+                .sort((a, b) => (b.value || 0) - (a.value || 0));
+
+            if (sortedPayload.length === 0) return null;
+
             return (
                 <div className="bg-white p-3 border border-gray-300 rounded-lg shadow-lg">
-                    <p className="font-semibold mb-2">{`Season: ${payload[0].payload.year}`}</p>
-                    {payload.map((entry, index) => (
-                        <div key={index} className="mb-1">
-                            <p style={{ color: entry.color }} className="font-medium">
-                                {playerNames[entry.dataKey.split('_')[0]]}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                                {showFPG ? `FPG: ${entry.value}` : `FPts: ${entry.value.toFixed(2)}`}
-                            </p>
-                        </div>
-                    ))}
+                    <p className="font-semibold mb-2">{`Season: ${sortedPayload[0].payload.year}`}</p>
+                    {sortedPayload.map((entry, index) => {
+                        return (
+                            <div key={index} className="mb-1">
+                                <p style={{ color: entry.color }} className="font-medium">
+                                    {playerNames[entry.dataKey.split('_')[0]]}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                    {showFPG ? `FPG: ${entry.value}` : `FPts: ${entry.value.toFixed(2)}`}
+                                </p>
+                            </div>
+                        );
+                    })}
                 </div>
             );
         }
@@ -177,6 +210,7 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
                             dot={{ fill: COLORS[index % COLORS.length], r: 5 }}
                             activeDot={{ r: 8 }}
                             name={`${playerID}_${showFPG ? 'fpg' : 'fpts'}`}
+                            connectNulls={false}
                         />
                     ))}
                 </LineChart>

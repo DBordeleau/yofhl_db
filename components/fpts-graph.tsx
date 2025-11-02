@@ -37,8 +37,16 @@ const FPtsGraph: React.FC<FPtsGraphProps> = ({ playerStats, playerName }) => {
     // Sort data by year to ensure proper line progression
     const sortedData = [...playerStats].sort((a, b) => a.Year - b.Year);
 
+    // Find the first year with non-zero points
+    const firstNonZeroIndex = sortedData.findIndex(stat => stat.FPts !== 0 || stat.FPG !== 0);
+
+    // Filter out leading zeros - keep data from first non-zero point onwards
+    const filteredData = firstNonZeroIndex >= 0
+        ? sortedData.slice(firstNonZeroIndex)
+        : sortedData;
+
     // Format data for recharts
-    const chartData = sortedData.map(stat => ({
+    const chartData = filteredData.map(stat => ({
         year: stat.Year.toString(),
         fpts: stat.FPts,
         fpg: stat.FPG,
@@ -100,8 +108,8 @@ const FPtsGraph: React.FC<FPtsGraphProps> = ({ playerStats, playerName }) => {
                     <button
                         onClick={() => setShowFPG(false)}
                         className={`px-4 py-2 rounded-md transition-all ${!showFPG
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'bg-transparent text-gray-600 hover:bg-gray-200'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-transparent text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         FPts
@@ -109,8 +117,8 @@ const FPtsGraph: React.FC<FPtsGraphProps> = ({ playerStats, playerName }) => {
                     <button
                         onClick={() => setShowFPG(true)}
                         className={`px-4 py-2 rounded-md transition-all ${showFPG
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'bg-transparent text-gray-600 hover:bg-gray-200'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-transparent text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         FPG
