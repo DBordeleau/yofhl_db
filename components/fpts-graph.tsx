@@ -16,8 +16,23 @@ interface FPtsGraphProps {
     playerName: string;
 }
 
+interface TooltipPayload {
+    value: number;
+    payload: {
+        year: string;
+        fpts: number;
+        fpg: number;
+        team: string;
+    };
+}
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayload[];
+}
+
 const FPtsGraph: React.FC<FPtsGraphProps> = ({ playerStats, playerName }) => {
-    const [showFPG, setShowFPG] = useState(false); // Toggle state
+    const [showFPG, setShowFPG] = useState(false);
 
     // Sort data by year to ensure proper line progression
     const sortedData = [...playerStats].sort((a, b) => a.Year - b.Year);
@@ -31,7 +46,7 @@ const FPtsGraph: React.FC<FPtsGraphProps> = ({ playerStats, playerName }) => {
     }));
 
     // Custom tooltip to show more details
-    const CustomTooltip = ({ active, payload }: any) => {
+    const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white p-3 border border-gray-300 rounded-lg shadow-lg">

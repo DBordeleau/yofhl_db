@@ -17,6 +17,23 @@ interface PlayerComparisonGraphProps {
     playerNames: Record<string, string>;
 }
 
+interface ChartDataPoint {
+    year: string;
+    [key: string]: string | number;
+}
+
+interface TooltipPayload {
+    color: string;
+    value: number;
+    dataKey: string;
+    payload: ChartDataPoint;
+}
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayload[];
+}
+
 const COLORS = ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ec4899'];
 
 const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersData, playerNames }) => {
@@ -41,8 +58,8 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
     const commonYears = getCommonYears();
 
     // Prepare chart data
-    const chartData = commonYears.map(year => {
-        const dataPoint: any = { year: year.toString() };
+    const chartData: ChartDataPoint[] = commonYears.map(year => {
+        const dataPoint: ChartDataPoint = { year: year.toString() };
 
         Object.entries(playersData).forEach(([playerID, stats]) => {
             const yearStats = stats.find(s => s.Year === year);
@@ -57,12 +74,12 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
     });
 
     // Custom tooltip
-    const CustomTooltip = ({ active, payload }: any) => {
+    const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white p-3 border border-gray-300 rounded-lg shadow-lg">
                     <p className="font-semibold mb-2">{`Season: ${payload[0].payload.year}`}</p>
-                    {payload.map((entry: any, index: number) => (
+                    {payload.map((entry, index) => (
                         <div key={index} className="mb-1">
                             <p style={{ color: entry.color }} className="font-medium">
                                 {playerNames[entry.dataKey.split('_')[0]]}
