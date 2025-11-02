@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "DISABLE_ESLINT_PLUGIN=true && prisma generate && prisma db push && next build",
-    "start": "DISABLE_ESLINT_PLUGIN=true next start",
+    "build": "prisma generate && next build",
+    "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
@@ -19,8 +19,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-icons": "^5.4.0",
-    "recharts": "^3.3.0",
-    "sqlite3": "^5.1.7"
+    "recharts": "^3.3.0"
   },
   "devDependencies": {
     "@types/node": "^20",
