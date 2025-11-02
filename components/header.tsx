@@ -12,6 +12,7 @@ const Header: React.FC = () => {
 
     const navItems = [
         { name: "Player Stats", href: "/stats/all-time/all", isActive: pathname.startsWith("/stats/all-time/") || pathname.startsWith("/stats/single-season/") },
+        { name: "Compare Players", href: "/compare", isActive: pathname.startsWith("/compare") },
         { name: "Team Stats", href: "/teams/stats", isActive: pathname === "/teams/stats" },
         { name: "Champions", href: "/champions", isActive: pathname === "/champions" },
         { name: "Awards", href: "/awards", isActive: pathname.startsWith("/awards") },
