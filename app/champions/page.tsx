@@ -27,6 +27,18 @@ export default function ChampionPage() {
                             </thead>
                             <tbody>
                                 <tr className="bg-white border-t group border border-solid border-slate-300 border-black/10">
+                                    <td className="px-2 py-2">2024-2025</td>
+                                    <td className="px-2 py-2">Hamhung Hall Monitors</td>
+                                    <td className="px-2 py-2">Andrew Halstad</td>
+                                    <td className="p-0">
+                                        <Link href="/champions/2025">
+                                            <div className="flex items-center justify-center h-full">
+                                                <FaLink className="text-black" title="Link to Roster Table" />
+                                            </div>
+                                        </Link>
+                                    </td>
+                                </tr>
+                                <tr className="bg-white border-t group border border-solid border-slate-300 border-black/10">
                                     <td className="px-2 py-2">2023-2024</td>
                                     <td className="px-2 py-2">Varrock Dark Wizards</td>
                                     <td className="px-2 py-2">Dillon Bordeleau</td>
