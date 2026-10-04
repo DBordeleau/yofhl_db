@@ -22,6 +22,20 @@
       "when": 1791069741109,
       "tag": "0002_matchup_overrides",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791078248898,
+      "tag": "0003_draft_lotteries",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791081946908,
+      "tag": "0004_franchise_history",
+      "breakpoints": true
     }
   ]
 }

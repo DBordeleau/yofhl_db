@@ -8,6 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/migrate.ts",
+    "test:lottery": "node --import tsx --test lib/lottery/*.test.ts",
+    "test:history": "node --import tsx --test scripts/db/lib/history.test.ts",
+    "db:import:history": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import-history.ts",
+    "db:sync:logos": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/sync-logos.ts",
     "db:import": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import.ts",
     "db:verify": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/verify.ts"
   },

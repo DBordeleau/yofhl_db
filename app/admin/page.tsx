@@ -24,6 +24,10 @@ export default async function AdminHome() {
     return (
         <>
             <AdminHeader title="Seasons" />
+            <Link href="/admin/lottery" className="mb-6 flex items-center justify-between gap-4 rounded-2xl bg-ink p-5 text-white hover:bg-[#232C4A]">
+                <div><p className="font-wide text-lg font-extrabold">Draft lottery</p><p className="mt-1 text-sm text-slate-300">Schedule the live event, set odds and build the draft order.</p></div>
+                <span aria-hidden="true" className="text-2xl">→</span>
+            </Link>
             <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {seasons.map((s) => {
                     const playoffs = s.playoffStatus === 'complete';

@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AwardType } from "@/lib/data/league";
 import { awardSlug } from "@/lib/league";
+import LotteryNavLink from '@/components/lottery/nav-link';
 
 const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const pathname = usePathname();
@@ -65,7 +66,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
 
     return (
         <header className="relative z-50 border-b border-line bg-white">
-            <nav className="mx-auto flex min-h-16 max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl items-center gap-6 px-4 md:min-h-[76px] md:px-8" aria-label="Primary">
+            <nav className="mx-auto flex min-h-16 max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl items-center gap-2 px-4 md:min-h-[76px] md:px-8 lg:gap-4" aria-label="Primary">
                 <Link href="/" className="flex flex-none" aria-label="YOFHL Database home">
                     <Image // logo made by Nick Kavanagh
                         src="/yofhldblogo.png"
@@ -79,7 +80,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                 </Link>
 
                 {/* desktop/large display nav */}
-                <ul className="ml-auto hidden items-center gap-0.5 md:flex">
+                <ul className="ml-auto hidden items-center gap-0.5 lg:flex">
                     {navItems.map((item) => (
                         <li key={item.name}>
                             <Link href={item.href} className={linkClass(item.isActive)} aria-current={item.isActive ? "page" : undefined}>
@@ -123,10 +124,11 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                     </li>
                 </ul>
 
+                <div className="ml-auto lg:ml-0"><LotteryNavLink /></div>
                 <button // hamburger button
                     type="button"
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line text-ink md:hidden"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line text-ink lg:hidden"
                     aria-label={isMenuOpen ? "Close menu" : "Open menu"}
                     aria-expanded={isMenuOpen}
                 >
@@ -144,7 +146,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
-                        className="overflow-hidden border-t border-line-soft bg-white md:hidden"
+                        className="overflow-hidden border-t border-line-soft bg-white lg:hidden"
                     >
                         <ul className="flex flex-col px-4 pb-4 pt-2">
                             {navItems.map((item) => (

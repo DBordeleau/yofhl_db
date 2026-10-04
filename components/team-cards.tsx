@@ -11,7 +11,7 @@ interface TeamCardProps {
     index: number;
 }
 
-// one franchise's all-time record, linking to its leaders page at /teams/[ID]
+// one franchise's all-time record, linking to its profile at /teams/[ID]
 const TeamCard: FC<TeamCardProps> = ({ team, rank, index }) => {
     const cups = team.championships;
     const finals = team.finals;

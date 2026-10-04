@@ -1,26 +1,46 @@
 import {
     boolean,
+    date,
     index,
     integer,
+    jsonb,
     numeric,
     pgSchema,
     primaryKey,
     serial,
     smallint,
     text,
+    timestamp,
     unique,
+    uniqueIndex,
+    uuid,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import type { LotteryEntry } from '@/lib/lottery/model';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
 // Two kinds of tables:
 //  - imported: rebuilt from the Fantrax CSVs by scripts/db/import.ts (team_seasons standings,
-//    players, player_seasons, matchups)
+//    players, player_seasons, matchups, transaction_events, transaction_assets, draft_picks)
 //  - curated: hand-maintained, never overwritten by an import (franchises, owners and eras come
 //    from league/league.yml; championship_rosters and awards from the admin panel / legacy seed)
 
 // everything lives in its own "league" schema, so it can share a database with other tables
 export const league = pgSchema('league');
+
+// Event snapshots survive team renames and imports. Only one event is current at a time.
+export const draftLotteries = league.table('draft_lotteries', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    title: text('title').notNull(),
+    startsAt: timestamp('starts_at', { withTimezone: true, mode: 'string' }).notNull(),
+    entries: jsonb('entries').$type<LotteryEntry[]>().notNull(),
+    version: integer('version').notNull().default(1),
+    isCurrent: boolean('is_current').notNull().default(true),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true, mode: 'string' }),
+    winnerId: integer('winner_id').references(() => franchises.id),
+    drawnAt: timestamp('drawn_at', { withTimezone: true, mode: 'string' }),
+}, (t) => [uniqueIndex('one_current_draft_lottery').on(t.isCurrent).where(sql`${t.isCurrent} = true`)]);
 
 const fpts = (name: string) => numeric(name, { precision: 8, scale: 2, mode: 'number' });
 
@@ -73,6 +93,52 @@ export const players = league.table('players', {
     id: text('id').primaryKey(), // Fantrax player id, e.g. *02un4*
     name: text('name').notNull(),
 });
+
+// A trade can contain several players/picks and involve more than two franchises.
+// Stable source keys make imports repeatable; history references franchise ids, not mutable names.
+export const transactionEvents = league.table('transaction_events', {
+    id: text('id').primaryKey(),
+    seasonYear: integer('season_year').notNull().references(() => seasons.year),
+    kind: text('kind', { enum: ['trade', 'free_agent'] }).notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true, mode: 'string' }).notNull(),
+    occurredOn: date('occurred_on').notNull(),
+    sourceFile: text('source_file').notNull(),
+    sourceTime: text('source_time').notNull(),
+}, (t) => [index('transaction_events_date').on(t.occurredAt.desc()), index('transaction_events_season_kind').on(t.seasonYear, t.kind)]);
+
+export const transactionAssets = league.table('transaction_assets', {
+    id: text('id').primaryKey(),
+    eventId: text('event_id').notNull().references(() => transactionEvents.id, { onDelete: 'cascade' }),
+    playerId: text('player_id').references(() => players.id), // null for traded draft picks
+    label: text('label').notNull(),
+    assetKind: text('asset_kind', { enum: ['player', 'pick'] }).notNull(),
+    action: text('action', { enum: ['trade', 'claim', 'drop'] }).notNull(),
+    fromFranchiseId: integer('from_franchise_id').references(() => franchises.id),
+    toFranchiseId: integer('to_franchise_id').references(() => franchises.id),
+    fromName: text('from_name'),
+    toName: text('to_name'),
+    sourceRow: integer('source_row').notNull(),
+}, (t) => [
+    index('transaction_assets_event').on(t.eventId),
+    index('transaction_assets_player').on(t.playerId, t.eventId),
+    index('transaction_assets_from').on(t.fromFranchiseId, t.eventId),
+    index('transaction_assets_to').on(t.toFranchiseId, t.eventId),
+]);
+
+export const draftPicks = league.table('draft_picks', {
+    seasonYear: integer('season_year').notNull().references(() => seasons.year),
+    overall: integer('overall').notNull(),
+    round: integer('round').notNull(),
+    pick: integer('pick').notNull(),
+    franchiseId: integer('franchise_id').references(() => franchises.id), // a few empty slots have no team in the export
+    teamName: text('team_name'),
+    playerId: text('player_id').references(() => players.id), // empty selections remain in the draft ledger
+    playerName: text('player_name'),
+    positions: text('positions').notNull(),
+    draftedOn: date('drafted_on').notNull(),
+    sourceTime: text('source_time').notNull(), // the export omits AM/PM; don't invent an exact instant
+    sourceFile: text('source_file').notNull(),
+}, (t) => [primaryKey({ columns: [t.seasonYear, t.overall] }), index('draft_picks_player').on(t.playerId), index('draft_picks_franchise').on(t.franchiseId, t.seasonYear)]);
 
 // only seasons where the player scored or was rostered are imported
 export const playerSeasons = league.table(

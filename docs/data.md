@@ -86,3 +86,76 @@ All responses are JSON and served from the same cache as the pages.
 | `GET /api/franchises` / `GET /api/franchises/:id` | all-time records / one franchise's leaders and former names |
 | `GET /api/awards` / `GET /api/awards/:slug` | award list / every winner of one award |
 | `POST /api/revalidate` | clears the cache (needs `Authorization: Bearer <REVALIDATE_SECRET>`) |
+
+## Live draft lottery
+
+Open `/admin/lottery` (also linked from the admin home) to schedule a lottery. Set the date
+and time in Eastern Time, select participants, edit their odds, and arrange the full starting
+draft order with the up/down buttons. Defaults select the four lowest-record active teams
+with 40%, 30%, 20%, and 10% odds. Review those selections and the order before scheduling.
+Odds must total 100%, with at least two participants; each active franchise appears once.
+The presentation preview uses a sample winner and never saves or runs a draw.
+
+The schedule uses `America/Toronto`, including daylight saving changes. Nonexistent spring
+times and ambiguous fall times are rejected with an explanation. Scheduling requires at least
+one minute of lead time. The event can be edited or cancelled until its scheduled start;
+after that, its schedule, order and odds are locked.
+
+`league.draft_lotteries` stores event snapshots and the saved winner separately from season
+data. Apply migrations before deploying this feature:
+
+```sh
+npm run db:migrate
+```
+
+The migration command uses `DATABASE_URL_V2`, like the importer; it does not import or replace
+league data. Only one lottery is current. Scheduling another after the reveal finishes archives
+the previous event, whose results remain accessible at `/lottery?id=<event-id>`.
+
+The header checks `/api/lottery?summary=1` every 30 seconds and reveals the navigation link
+24 hours before the event. Open pages use server-synchronized time for the 24-hour and start
+boundaries. The badge becomes Live at the start, then Results after the winner celebration.
+The room at `/lottery` polls every second near the start and during the reveal, and every 15
+seconds otherwise. All dates shown to viewers are Eastern Time, regardless of device timezone.
+
+There is no cron/service to provision: the first request at or after the start draws a
+cryptographically random ticket out of 10,000, then conditionally saves one winner. Database
+time and a version check prevent early draws, conflicting edits, and rerolls from concurrent
+requests. If nobody is watching, the first later request settles the event. Refreshes and late
+arrivals see the same saved result, at the current point in the presentation.
+
+The winner immediately defines pick #1; all other teams retain their relative starting order.
+The draft order shows question marks for positions the lottery can change, with fixed positions
+visible below them. After a 12-second introduction, the public API releases only the unsettled
+picks from last to first every seven seconds. The final two appear together, followed by a
+15-second winner celebration. Unrevealed
+results are omitted from public responses. The complete order stays available after the event.
+An interrupted connection retries automatically and cannot change the saved draw. Reduced
+motion preferences disable decorative animation and confetti.
+
+Run `npm run test:lottery` for odds, timezone, disclosure, ordering, and database race/deadline
+checks. Database tests use in-memory PGlite and never connect to the league database.
+
+## Transaction and draft history
+
+Historical logos belong to the matching era in `league/league.yml`. After adding logo files under `public/logos` and mapping them there, run `npm run db:sync:logos` to update franchise and team-season logos without reimporting stats. If `SITE_URL` and `REVALIDATE_SECRET` are set, the command also clears the site's league cache. Normal season imports preserve these mappings too.
+
+`npm run db:import:history -- --dry-run` validates the history exports without connecting to the database. `npm run db:import:history` applies migrations and imports just history; the normal `db:import` also imports supplied history for its selected seasons. Supplied files are replaced atomically, so repeating an import does not duplicate events. Missing files do not delete archived history. Curated awards, championship rosters, standings and lottery snapshots are not modified by the history-only importer.
+
+Sources:
+- `data/transactions/YYYY-YYYY Trades.csv` and `YYYY-YYYY FA Claims.csv`
+- `data/drafts/YYYY-YYYY draft.csv`
+
+New tables are `league.transaction_events`, `league.transaction_assets`, and `league.draft_picks`. Each source row retains its source file/row or overall pick; traded picks retain their full original description. Trades and related claim/drop rows are grouped by exact exported timestamp and connected franchises. The CSVs have no trade IDs, so unrelated teams at the same timestamp stay separate, but multiple deals involving the same teams at the same timestamp cannot be distinguished. Assets at different timestamps are not guessed into a trade; incomplete returns are labeled in the UI. Lineup-only changes are excluded from acquisition history.
+
+Transactions contain no player IDs. Import matches normalized exact names against player-stat and draft exports, disambiguating with the season, NHL team and position. Unresolved or ambiguous identities stop the import before writes. Franchise rebrands resolve through the existing league configuration. A trade's `(Drop)` destination becomes a drop, not a franchise.
+
+Transaction timestamps honor the explicit EDT/EST column label; the original date and timestamp text are retained. Draft timestamps omit AM/PM, so the database stores the known calendar date and original text without fabricating an exact instant. Empty draft slots are preserved, including two 2019–20 slots without a recorded team. No 2018–19 draft file was supplied. There is no games-played field, so no GP values are estimated. Draft browsing uses full-season FPts and FP/G from `player_seasons`, not production only while rostered by the drafting team; absent season stats display a dash.
+
+`GET /api/history` takes exactly one of `franchise=<id>` or `player=<Fantrax id>`, plus optional `kind=all|trade|free_agent|draft`, `season=<end year>`, and `page=<positive integer>`. It returns ten events at a time, including all assets in a matching trade. On player profiles, free-agent events include only that player's claim/drop; team pages retain all paired moves. Team pages start on Trades. Drafts are also available in a separate searchable/sortable team section.
+
+Team trophy cases derive Prime Minister's Trophies from a strict league-wide regular-season FPts lead (ties do not invent a winner). Individual awards follow `awards.team_season_id`, the recorded award-team association, rather than a player's current team.
+
+At the league owner's request, the ambiguous `2019-2020 Trades.csv` batch stamped `Sun Oct 20, 2019, 11:05PM` is hidden from team/player history, counts, pagination, and season filters. The shared visibility rule is in `lib/history/visibility.ts`. The CSV and database records remain intact, and the separate 3:30 PM Josi trade and same-time FA claims are still visible. The exclusion uses source file/time so reimporting cannot restore the hidden batch accidentally.
+
+Run `npm run test:history` for timestamp parsing, player disambiguation, multi-team grouping, repeat imports, and transactional rollback checks.
