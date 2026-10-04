@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
 import Header from "@/components/header";
-import { GoldGradientDefs } from "@/components/trophy-icons";
 import { getAwardTypes } from "@/lib/data/league";
 import "./globals.css";
 
@@ -15,7 +14,7 @@ const archivo = Archivo({
 
 export const metadata: Metadata = {
   title: "YOFHL DB",
-  description: "An interactive webapp that lets you make queries to the YOFHL database.",
+  description: "An interactive database for YOFHL stats.",
 };
 
 export default async function RootLayout({
@@ -27,7 +26,6 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${archivo.variable} min-h-screen overflow-x-hidden bg-ice font-sans text-ink antialiased`}>
-        <GoldGradientDefs />
         <Header awards={awards} />
         {children}
       </body>

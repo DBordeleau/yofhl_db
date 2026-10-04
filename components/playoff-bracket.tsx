@@ -26,7 +26,7 @@ const TeamLine: FC<{ id: string; team: BracketTeam; won: boolean; decided: boole
         <Link href={`/teams/${team.franchiseId}`} className={`min-w-0 flex-1 truncate text-sm hover:text-rink-blue hover:underline ${won ? 'font-extrabold' : 'font-semibold'}`} title={team.name}>
             {team.name}
         </Link>
-        {champion && <JagrCupIcon className="h-[19px] w-[14px] flex-none" title="Jagr Cup champion" />}
+        {champion && <JagrCupIcon className="h-7 w-7 flex-none" title="Jagr Cup champion" />}
         <span className={`tabular flex-none text-sm ${won ? 'font-extrabold' : 'font-semibold'}`}>
             {formatFpts(team.score)}
             {mark && <sup className="ml-0.5 text-rink-red" title="Score adjusted, see note below">{mark}</sup>}

@@ -2,7 +2,10 @@
 
 import React, { FC, useEffect, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'framer-motion';
-import { AwardTrophyIcon, JagrCupIcon } from '@/components/trophy-icons';
+import Link from 'next/link';
+import { TrophyArt } from '@/components/trophy-icons';
+import TrophySparkles from '@/components/trophy-sparkles';
+import { awardHref, getAwardDefinition } from '@/lib/awards';
 
 export interface TrophyItem {
     kind: 'cup' | 'award';
@@ -20,26 +23,19 @@ const CARD = 230; // carousel card width
 const GAP = 16;
 const STEP = CARD + GAP;
 
-const TrophyArt: FC<{ item: TrophyItem; large?: boolean }> = ({ item, large }) =>
-    item.kind === 'cup' ? (
-        <JagrCupIcon detailed className={large ? 'h-[104px] w-[78px]' : 'h-[72px] w-[54px]'} />
-    ) : (
-        <AwardTrophyIcon className={large ? 'h-[104px] w-[92px]' : 'h-[72px] w-16'} />
-    );
-
-const TrophyTile: FC<{ item: TrophyItem; index: number; large?: boolean }> = ({ item, index, large }) => (
+const TrophyTile: FC<{ item: TrophyItem; index: number; large?: boolean; active?: boolean }> = ({ item, index, large, active = true }) => (
     <div
-        className={`trophy-tile group relative flex h-full flex-col items-center gap-1 overflow-hidden rounded-[20px] border px-3 pb-4 text-center text-white ${large ? 'pt-[30px]' : 'pt-[22px]'} ${item.kind === 'cup'
+        className={`trophy-tile group relative flex h-full flex-col items-center gap-1 overflow-hidden rounded-[20px] border px-3 pb-5 pt-3 text-center text-white ${item.kind === 'cup'
             ? 'border-gold-light/70 shadow-[0_0_0_1px_rgba(240,199,94,.25),0_18px_36px_-18px_rgba(184,134,11,.6)]'
             : 'border-gold-light/20'
             }`}
-        style={{ '--sheen-delay': `${(index * 0.7).toFixed(1)}s` } as React.CSSProperties}
     >
-        <span className={`trophy-pool absolute left-1/2 -translate-x-1/2 rounded-full ${large ? 'top-[112px] h-[26px] w-[150px]' : 'top-[84px] h-[26px] w-[110px]'}`} />
-        <span className={`relative flex items-end justify-center drop-shadow-[0_6px_12px_rgba(240,199,94,.35)] transition-transform duration-300 ease-[cubic-bezier(.3,1.4,.5,1)] group-hover:-translate-y-1 group-hover:scale-105 ${large ? 'h-[110px]' : 'h-[84px]'}`}>
-            <TrophyArt item={item} large={large} />
+        <span className={`trophy-pool absolute left-1/2 -translate-x-1/2 rounded-full ${large ? 'top-[150px] h-7 w-[150px]' : 'top-[112px] h-6 w-[110px]'}`} />
+        <span className="relative flex items-end justify-center drop-shadow-[0_6px_12px_rgba(240,199,94,.2)]">
+            <TrophyArt award={item.name} className={large ? 'h-44 w-44' : 'h-32 w-32'} sizes={large ? '176px' : '128px'} />
+            <TrophySparkles seed={`${item.name}-${item.season}-${index}`} />
         </span>
-        <span className={`font-wide mt-2 font-extrabold uppercase leading-tight ${large ? 'text-sm' : 'text-xs'}`}>{item.name}</span>
+        <Link href={awardHref(item.name)} tabIndex={active ? undefined : -1} className={`font-wide relative mt-2 font-extrabold uppercase leading-tight underline-offset-4 hover:text-gold-light hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-light ${large ? 'text-sm' : 'text-xs'}`}>{getAwardDefinition(item.name)?.label ?? item.name}</Link>
         <span className="text-xs text-[#AFC0D8]">{item.detail}</span>
         <span className="tabular text-[13px] font-extrabold text-gold-light">{item.season}</span>
     </div>
@@ -87,33 +83,34 @@ const TrophyCarousel: FC<TrophyCaseProps> = ({ items }) => {
                     {items.map((item, i) => (
                         <motion.div
                             key={`${item.name}-${item.season}-${i}`}
-                            className="min-h-[270px] flex-none"
+                            className="min-h-[320px] flex-none"
                             style={{ width: CARD }}
                             animate={{ scale: i === index ? 1 : 0.86, opacity: i === index ? 1 : 0.5 }}
                             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             onClick={() => { if (!dragged.current) go(i); }}
+                            onClickCapture={(event) => { if (dragged.current) event.preventDefault(); }}
                             aria-roledescription="slide"
-                            aria-label={`${i + 1} of ${items.length}: ${item.name}, ${item.season}`}
+                            aria-label={`${i + 1} of ${items.length}: ${getAwardDefinition(item.name)?.label ?? item.name}, ${item.season}`}
                             aria-hidden={i !== index}
                         >
-                            <TrophyTile item={item} index={i} large />
+                            <TrophyTile item={item} index={i} large active={i === index} />
                         </motion.div>
                     ))}
                 </motion.div>
             </div>
             {items.length > 1 && (
                 <div className="mt-3.5 flex items-center justify-between">
-                    <button type="button" onClick={() => go(index - 1)} disabled={index === 0} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line-strong bg-white text-ink disabled:opacity-35" aria-label="Previous trophy">
+                    <button type="button" onClick={() => go(index - 1)} disabled={index === 0} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-strong bg-white text-ink disabled:opacity-35" aria-label="Previous trophy">
                         {arrow('M15 6l-6 6 6 6')}
                     </button>
-                    <div className="flex">
+                    <div className="mx-2 flex min-w-0 flex-1 flex-wrap justify-center">
                         {items.map((item, i) => (
-                            <button key={i} type="button" onClick={() => go(i)} className="inline-flex h-11 w-7 items-center justify-center" aria-label={`Show ${item.name}, ${item.season}`} aria-current={i === index}>
+                            <button key={i} type="button" onClick={() => go(i)} className="inline-flex h-11 w-7 items-center justify-center" aria-label={`Show ${getAwardDefinition(item.name)?.label ?? item.name}, ${item.season}`} aria-current={i === index}>
                                 <i className={`block h-2 rounded-full transition-all duration-300 ${i === index ? 'w-[22px] bg-gold' : 'w-2 bg-line-strong'}`} />
                             </button>
                         ))}
                     </div>
-                    <button type="button" onClick={() => go(index + 1)} disabled={index === items.length - 1} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line-strong bg-white text-ink disabled:opacity-35" aria-label="Next trophy">
+                    <button type="button" onClick={() => go(index + 1)} disabled={index === items.length - 1} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-strong bg-white text-ink disabled:opacity-35" aria-label="Next trophy">
                         {arrow('M9 6l6 6-6 6')}
                     </button>
                 </div>

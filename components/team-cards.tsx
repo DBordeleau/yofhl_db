@@ -58,7 +58,7 @@ const TeamCard: FC<TeamCardProps> = ({ team, rank, index }) => {
                     </div>
                     <div>
                         <dt className="text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted">Jagr Cups</dt>
-                        <dd className="mt-1 flex min-h-6 items-center">{cups.length ? <CupRow count={cups.length} className="h-6 w-[18px]" /> : <span className="font-extrabold text-ink-faint">—</span>}</dd>
+                        <dd className="mt-1 flex min-h-6 items-center">{cups.length ? <CupRow count={cups.length} className="h-8 w-8" /> : <span className="font-extrabold text-ink-faint">—</span>}</dd>
                     </div>
                 </dl>
 
@@ -74,7 +74,7 @@ const TeamCard: FC<TeamCardProps> = ({ team, rank, index }) => {
                                         className={`tabular inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-extrabold ${won ? 'metal-gold text-[#2B1D00]' : 'border border-line-strong text-ink-soft'}`}
                                         title={won ? `${seasonLabel(year)} Jagr Cup champions` : `${seasonLabel(year)} finalist`}
                                     >
-                                        {won && <JagrCupIcon className="h-3.5 w-[11px]" />}
+                                        {won && <JagrCupIcon className="h-6 w-6" />}
                                         {seasonLabel(year)}
                                     </li>
                                 );

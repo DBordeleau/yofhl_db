@@ -55,7 +55,7 @@ const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships,
                         ))}
                         <span>{positions.map((p) => positionNames[p] ?? p).join(' / ')}</span>
                         <span className="ml-1.5">
-                            <CupRow count={championships} className="h-[27px] w-5 drop-shadow-[0_0_8px_rgba(240,199,94,.5)]" />
+                            <CupRow count={championships} className="h-10 w-10 drop-shadow-[0_0_8px_rgba(240,199,94,.5)]" />
                         </span>
                     </div>
                     {actions && <div className="mt-4">{actions}</div>}

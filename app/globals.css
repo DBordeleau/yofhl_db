@@ -107,18 +107,37 @@ input[type="number"]::-webkit-outer-spin-button {
     background: radial-gradient(120% 70% at 50% 0%, #33467A 0%, #12182E 62%);
   }
 
-  .trophy-tile::after {
+  .trophy-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 5px currentColor;
+    opacity: 0;
+    animation: trophy-sparkle 7s ease-in-out infinite;
+  }
+
+  .trophy-particle-glint {
+    background: radial-gradient(circle, currentColor 0 .6px, transparent 1.4px);
+    box-shadow: none;
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+
+  .trophy-particle-glint::before,
+  .trophy-particle-glint::after {
     content: '';
     position: absolute;
-    top: -60%;
-    left: -70%;
-    width: 45%;
-    height: 220%;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .28), rgba(255, 255, 255, 0));
-    transform: rotate(18deg);
-    animation: trophy-sheen 5s ease-in-out infinite;
-    animation-delay: var(--sheen-delay, 0s);
-    pointer-events: none;
+    inset: 0;
+    margin: auto;
+    background: linear-gradient(90deg, transparent, currentColor, transparent);
+  }
+
+  .trophy-particle-glint::before {
+    height: 1px;
+  }
+
+  .trophy-particle-glint::after {
+    width: 1px;
+    background: linear-gradient(transparent, currentColor, transparent);
   }
 
   .trophy-pool {
@@ -156,9 +175,10 @@ input[type="number"]::-webkit-outer-spin-button {
   to { opacity: 1; transform: none; }
 }
 
-@keyframes trophy-sheen {
-  0%, 62% { left: -70%; }
-  100% { left: 140%; }
+@keyframes trophy-sparkle {
+  0%, 68%, 100% { opacity: 0; transform: translateY(2px) scale(.35); }
+  79% { opacity: var(--sparkle-peak, .8); transform: translateY(0) scale(1); }
+  94% { opacity: 0; transform: translate(var(--sparkle-drift, 0px), -3px) scale(.55); }
 }
 
 @keyframes shimmer {
@@ -180,7 +200,11 @@ input[type="number"]::-webkit-outer-spin-button {
     animation: none;
   }
 
-  .trophy-tile::after {
+  .trophy-sparkles {
     display: none;
+  }
+
+  .trophy-particle {
+    animation: none;
   }
 }

@@ -39,7 +39,7 @@ const StandingsTable: FC<{ standings: StandingRow[]; championFranchiseId: number
                                     <span className="flex min-w-0 flex-col">
                                         <span className="flex items-center gap-1.5">
                                             <Link href={`/teams/${team.franchiseId}`} className="truncate text-[15px] font-bold text-ink hover:text-rink-blue hover:underline">{team.name}</Link>
-                                            {team.franchiseId === championFranchiseId && <JagrCupIcon className="h-[17px] w-[13px] flex-none" title="Jagr Cup champion" />}
+                                            {team.franchiseId === championFranchiseId && <JagrCupIcon className="h-7 w-7 flex-none" title="Jagr Cup champion" />}
                                             {playoffFranchiseIds.includes(team.franchiseId) && <span className="h-2 w-2 flex-none rounded-full bg-rink-line" title="Made the playoffs" />}
                                         </span>
                                         {team.owner && <span className="truncate text-xs font-semibold text-ink-faint">{team.owner}</span>}
