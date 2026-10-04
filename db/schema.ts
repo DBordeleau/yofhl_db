@@ -17,6 +17,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { LotteryEntry } from '@/lib/lottery/model';
+import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -80,6 +81,21 @@ export const ownerRateLimits = league.table('owner_rate_limits', {
     attempts: integer('attempts').notNull(),
     resetsAt: timestamp('resets_at', { withTimezone: true }).notNull(),
 });
+
+// Curated submission snapshots remain available after Fantrax roster rollover and CSV imports.
+export const keeperSubmissions = league.table('keeper_submissions', {
+    seasonYear: integer('season_year').notNull(),
+    franchiseId: integer('franchise_id').notNull().references(() => franchises.id),
+    roster: jsonb('roster').$type<KeeperPlayer[]>().notNull(),
+    keptIds: jsonb('kept_ids').$type<string[]>().notNull(),
+    rookieId: text('rookie_id'),
+    rookieDeclared: boolean('rookie_declared').notNull().default(false),
+    rookieSeason: integer('rookie_season'),
+    rookieReviews: jsonb('rookie_reviews').$type<Partial<Record<string, RookieReview>>>().notNull().default({}),
+    version: integer('version').notNull().default(1),
+    submittedAt: timestamp('submitted_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    submittedBy: text('submitted_by').notNull(),
+}, (t) => [primaryKey({ columns: [t.seasonYear, t.franchiseId] })]);
 
 // a franchise's identity and regular-season standings for one season
 export const teamSeasons = league.table(

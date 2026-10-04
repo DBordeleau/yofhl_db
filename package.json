@@ -12,6 +12,8 @@
     "test:lottery": "node --import tsx --test lib/lottery/*.test.ts",
     "test:history": "node --import tsx --test scripts/db/lib/history.test.ts",
     "test:owners": "node --import tsx --test lib/owner/*.test.ts",
+    "test:snapshot": "node --import tsx --test lib/fantrax/*.test.ts",
+    "test:keepers": "node --import tsx --test lib/keepers/*.test.ts",
     "db:import:history": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import-history.ts",
     "db:sync:logos": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/sync-logos.ts",
     "db:import": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import.ts",

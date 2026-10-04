@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import type { KeeperReminderState } from '@/components/keepers/reminder';
 
 const UPDATED = 'yofhl:owner-updated';
 export const refreshOwnerNavigation = () => window.dispatchEvent(new Event(UPDATED));
@@ -9,6 +10,7 @@ export const refreshOwnerNavigation = () => window.dispatchEvent(new Event(UPDAT
 interface OwnerNavigation {
     signedIn: boolean;
     team: { name: string; logo: string | null; abbreviation: string } | null;
+    keepers?: KeeperReminderState | null;
 }
 
 // Load the private session separately so public league pages can stay cached.

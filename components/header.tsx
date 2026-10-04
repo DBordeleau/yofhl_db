@@ -11,6 +11,7 @@ import { TrophyArt } from '@/components/trophy-icons';
 import LotteryNavLink from '@/components/lottery/nav-link';
 import TeamBadge from '@/components/team-badge';
 import { useOwnerNavigation } from '@/lib/owner/navigation';
+import KeeperReminder from '@/components/keepers/reminder';
 
 const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const pathname = usePathname();
@@ -21,6 +22,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const mobileDropdownRef = useRef<HTMLLIElement>(null);
 
     const navItems = [
+        { name: "Home", href: "/", isActive: pathname === "/" },
         { name: "Leaderboards", href: "/stats/all-time/all", isActive: pathname.startsWith("/stats") || pathname.startsWith("/player") },
         { name: "Compare", href: "/compare", isActive: pathname.startsWith("/compare") },
         { name: "Teams", href: "/teams/stats", isActive: pathname.startsWith("/teams") },
@@ -199,6 +201,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {owner.keepers && <KeeperReminder state={owner.keepers} />}
         </header>
     );
 };
