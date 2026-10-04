@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
 import { saveTeam, createTeamInvitation } from '@/app/owner/actions';
+import { refreshOwnerNavigation } from '@/lib/owner/navigation';
 
 export interface EditableTeam {
     id: number; name: string; logo: string | null; abbreviation: string; version: number;
@@ -24,7 +25,7 @@ export default function TeamEditor({ team, admin = false }: { team: EditableTeam
         try {
             const result = await saveTeam(new FormData(event.currentTarget));
             if (result.error) setError(result.error);
-            else { setMessage('Team updated.'); formRef.current?.reset(); router.refresh(); }
+            else { setMessage('Team updated.'); formRef.current?.reset(); refreshOwnerNavigation(); router.refresh(); }
         } catch { setError('Could not save. Reload the page and try again.'); }
         finally { setBusy(false); }
     }

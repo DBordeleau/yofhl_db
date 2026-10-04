@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath, revalidateTag } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { put, del } from '@vercel/blob';
 import sharp from 'sharp';
@@ -47,7 +46,6 @@ export async function claimTeam(idToken: string, code: string) {
 export async function signOutOwner() {
     await requireSameOrigin();
     await clearOwnerSession();
-    redirect('/owner');
 }
 
 export async function createTeamInvitation(id: number) {

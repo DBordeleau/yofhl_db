@@ -1,23 +1,17 @@
 # Team management
 
-## Release status
-
-This feature is under review on `codex/team-management`. Keep iteration local or in a preview environment with isolated test data. Do not merge or release it to production until Dillon explicitly approves a production release. The initial production merge was reverted on October 4, 2026; the Firebase/Blob configuration and unused database tables remain provisioned.
-
 Owners use `/owner` to claim a team, sign in, request a password reset, or edit their current name and logo. Commissioners use `/admin/teams` with the existing admin login.
 
 ## Invite the ten active owners
 
-After production release is approved:
-
 1. Open `/admin/teams` and select **Generate invitation code** for an unclaimed active team.
 2. Copy the code while it is displayed. Email it yourself with `https://yofhl-db.vercel.app/owner` and the team's name.
 3. The owner selects **Claim a team**, enters the code, and chooses an email and password of at least 12 characters.
-4. Later visits use **Sign in** with the same email and password. The invitation field can be left empty.
+4. Later visits use **Sign in** with the same email and password. Invitation codes only appear under **Claim a team**. Once signed in, the navigation shows **Manage Team** beside the current team logo.
 
 Each code expires after 14 days and can be used once. Generating a replacement invalidates the previous code. The database stores only a hash, so a lost code must be replaced. Claimed and defunct teams cannot receive new invitations. One account can claim one active team.
 
-If account creation succeeds but claiming fails, the account still exists. The owner can use **Sign in** with a replacement invitation code instead of creating another account. An unclaimed account cannot edit any team.
+If account creation succeeds but claiming fails, the account still exists. The owner can retry under **Claim a team** with a replacement invitation code and the same email and password. This tab also accepts existing accounts. An unclaimed account cannot edit any team.
 
 **Forgot password?** sends Firebase's password-reset email. The link opens Firebase's hosted reset page. Resetting the password invalidates existing owner sessions. The site does not store passwords or provide access to them.
 
