@@ -36,13 +36,6 @@
       "when": 1791081946908,
       "tag": "0004_franchise_history",
       "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1791131536796,
-      "tag": "0005_team_management",
-      "breakpoints": true
     }
   ]
 }

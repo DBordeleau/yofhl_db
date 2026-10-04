@@ -297,12 +297,11 @@ export const getChampionRoster = cached(async (year: number): Promise<ChampionRo
 export const getFranchiseCards = cached(
     () =>
         rows<FranchiseCard>(sql`
-            select f.id as "ID", coalesce(m.name, t.name) as "Team", t.abbreviation as "Abbreviation", o.name as "Owner",
+            select f.id as "ID", t.name as "Team", t.abbreviation as "Abbreviation", o.name as "Owner",
                    f.folded_after_season is not null as defunct,
                    fr.wins as "Wins", fr.losses as "Losses", fr.ties as "Ties", fr.fpts_for::float8 as "FPF",
-                   fr.championships, fr.finals, coalesce(m.logo_url, t.logo_url, f.logo_url) as "LogoUrl"
+                   fr.championships, fr.finals, coalesce(t.logo_url, f.logo_url) as "LogoUrl"
             from league.franchises f
-            left join league.team_management m on m.franchise_id = f.id
             join league.franchise_records fr on fr.franchise_id = f.id
             join lateral (
                 select * from league.team_seasons ts where ts.franchise_id = f.id order by ts.season_year desc limit 1
@@ -314,13 +313,12 @@ export const getFranchiseCards = cached(
 
 export const getFranchise = cached(async (id: number): Promise<FranchiseDetail | null> => {
     const [franchise] = await rows<Omit<FranchiseDetail, 'leaders' | 'seasons'>>(sql`
-        select f.id, coalesce(m.name, t.name) as name, t.abbreviation, coalesce(m.logo_url, t.logo_url, f.logo_url) as logo,
+        select f.id, t.name, t.abbreviation, coalesce(t.logo_url, f.logo_url) as logo,
                o.name as owner, f.first_season as "firstSeason", f.folded_after_season as "foldedAfterSeason",
                fr.wins, fr.losses, fr.ties, fr.fpts_for::float8 as "fptsFor", fr.fpts_against::float8 as "fptsAgainst",
                fr.championships, fr.finals,
-               array(select distinct ts.name from league.team_seasons ts where ts.franchise_id = f.id and ts.name <> coalesce(m.name, t.name)) as "formerNames"
+               array(select distinct ts.name from league.team_seasons ts where ts.franchise_id = f.id and ts.name <> t.name) as "formerNames"
         from league.franchises f
-        left join league.team_management m on m.franchise_id = f.id
         join league.franchise_records fr on fr.franchise_id = f.id
         join lateral (
             select * from league.team_seasons ts where ts.franchise_id = f.id order by ts.season_year desc limit 1

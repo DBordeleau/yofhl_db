@@ -63,24 +63,6 @@ export const franchises = league.table('franchises', {
     foldedAfterSeason: integer('folded_after_season'),
 });
 
-// Current owner-managed identity is separate from imported historical seasons.
-export const teamManagement = league.table('team_management', {
-    franchiseId: integer('franchise_id').primaryKey().references(() => franchises.id),
-    name: text('name'),
-    logoUrl: text('logo_url'),
-    ownerUid: text('owner_uid').unique(),
-    ownerEmail: text('owner_email'),
-    inviteHash: text('invite_hash').unique(),
-    inviteExpiresAt: timestamp('invite_expires_at', { withTimezone: true }),
-    version: integer('version').notNull().default(1),
-});
-
-export const ownerRateLimits = league.table('owner_rate_limits', {
-    key: text('key').primaryKey(),
-    attempts: integer('attempts').notNull(),
-    resetsAt: timestamp('resets_at', { withTimezone: true }).notNull(),
-});
-
 // a franchise's identity and regular-season standings for one season
 export const teamSeasons = league.table(
     'team_seasons',

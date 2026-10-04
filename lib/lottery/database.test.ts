@@ -54,7 +54,6 @@ test('lottery logos match team pages and repair saved snapshots without changing
     try {
         await db.exec(`create schema league;
             create table league.franchises (id integer primary key, logo_url text);
-            create table league.team_management (franchise_id integer primary key, logo_url text);
             create table league.team_seasons (franchise_id integer, season_year integer, logo_url text);
             insert into league.franchises values (1, '/franchise.png'), (2, '/fallback.png'), (3, null), (4, null);
             insert into league.team_seasons values (1, 2025, '/old.png'), (1, 2026, '/current.png'), (2, 2026, null);`);
@@ -63,9 +62,5 @@ test('lottery logos match team pages and repair saved snapshots without changing
         const result = (await db.query<LotteryEntry>(query, params)).rows;
         assert.deepEqual(result, entries.map((entry, index) => ({ ...entry, logo: ['/current.png', '/fallback.png', '/saved.png', null, '/saved.png'][index] })));
         assert.equal(entries[0].logo, null, 'saved entries are not mutated');
-        await db.exec("insert into league.team_management values (1, '/owner.webp')");
-        const updated = (await db.query<LotteryEntry>(query, params)).rows;
-        assert.equal(updated[0].logo, '/owner.webp');
-        assert.equal(updated[0].name, entries[0].name, 'saved event names are preserved');
     } finally { await db.close(); }
 });

@@ -5,10 +5,9 @@ import { pickWinner, publicLottery, type LotteryEntry, type LotteryRecord, type 
 import { drawQuery, lotteryColumns, lotteryLogosQuery } from './queries';
 
 export const getLotteryTeams = () => rows<LotteryTeam>(sql`
-    select f.id, coalesce(m.name, f.display_name) as name, coalesce(t.abbreviation, left(coalesce(m.name, f.display_name), 3)) as abbreviation,
-           coalesce(m.logo_url, t.logo_url, f.logo_url) as logo
+    select f.id, f.display_name as name, coalesce(t.abbreviation, left(f.display_name, 3)) as abbreviation,
+           coalesce(t.logo_url, f.logo_url) as logo
     from league.franchises f
-    left join league.team_management m on m.franchise_id = f.id
     left join lateral (select abbreviation, wins, fpts_for, logo_url from league.team_seasons
                       where franchise_id = f.id order by season_year desc limit 1) t on true
     where f.folded_after_season is null
