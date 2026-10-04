@@ -1,8 +1,14 @@
 # Team management
 
+## Release status
+
+This feature is under review on `codex/team-management`. Keep iteration local or in a preview environment with isolated test data. Do not merge or release it to production until Dillon explicitly approves a production release. The initial production merge was reverted on October 4, 2026; the Firebase/Blob configuration and unused database tables remain provisioned.
+
 Owners use `/owner` to claim a team, sign in, request a password reset, or edit their current name and logo. Commissioners use `/admin/teams` with the existing admin login.
 
 ## Invite the ten active owners
+
+After production release is approved:
 
 1. Open `/admin/teams` and select **Generate invitation code** for an unclaimed active team.
 2. Copy the code while it is displayed. Email it yourself with `https://yofhl-db.vercel.app/owner` and the team's name.
