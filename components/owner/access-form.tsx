@@ -70,7 +70,7 @@ export default function AccessForm({ initialEmail = '' }: { initialEmail?: strin
     return <section className="mx-auto max-w-lg rounded-3xl border border-line bg-white p-6 shadow-card md:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[.2em] text-rink-red">Owners’ room</p>
         <h1 className="mt-2 font-wide text-3xl font-extrabold">{mode === 'reset' ? 'Reset your password' : mode === 'claim' ? 'Claim your team' : 'Sign in'}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-ink-soft">{mode === 'claim' ? 'Enter the code from your commissioner and create your owner account. If you already have an account, use its email and password.' : mode === 'reset' ? 'Enter the email you used to claim your owner account.' : 'Sign in to update your team’s name and logo.'}</p>
+        <p className="mt-3 text-sm leading-relaxed text-ink-soft">{mode === 'claim' ? 'Enter the code from your commissioner and create your owner account. If you already have an account, use its email and password.' : mode === 'reset' ? 'Enter the email you used to claim your owner account.' : 'Sign in to manage your team and submit your keepers.'}</p>
         {mode !== 'reset' && <div className="mt-6 flex gap-2" aria-label="Account options">
             {(['sign-in', 'claim'] as const).map((tab) => <button key={tab} type="button" disabled={busy} aria-pressed={mode === tab} onClick={() => { setMode(tab); setError(''); setMessage(''); }} className={`min-h-11 flex-1 rounded-xl border px-3 text-sm font-bold ${mode === tab ? 'border-ink bg-ink text-white' : 'border-line text-ink-soft'}`}>{tab === 'sign-in' ? 'Sign in' : 'Claim a team'}</button>)}
         </div>}

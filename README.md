@@ -8,6 +8,7 @@ The YOFHL league archive and live draft lottery, built with Next.js and PostgreS
 
 | Page | Contents |
 | --- | --- |
+| `/` | Daily Fantrax league snapshot with scoring-period matchups, standings, rosters by position, and archive links |
 | `/stats/all-time/all` | Searchable career leaderboard, with position filters and 25 players per page |
 | `/stats/single-season/all` | Single-season leaderboard with the same filters |
 | `/player/<Fantrax ID>` | Career stats, awards, championships, points chart, and transaction history |
@@ -22,7 +23,13 @@ The YOFHL league archive and live draft lottery, built with Next.js and PostgreS
 | `/owner` | Owner sign-in, team claims, password resets, and current team editing |
 | `/admin/teams` | Team names, logos, claim status, and owner invitation codes |
 
-`/` and `/stats` redirect to the all-time leaderboard. The team listing is at `/teams/stats`; there is no `/teams` index route. Defunct franchises remain accessible and always appear after active teams in every team-card sort. Each group follows the selected statistic, with wins breaking ties.
+`/stats` redirects to the all-time leaderboard. The team listing is at `/teams/stats`; there is no `/teams` index route. Defunct franchises remain accessible and always appear after active teams in every team-card sort. Each group follows the selected statistic, with wins breaking ties.
+
+The home page reads the public Fantrax API for league `rf5o9cu2mutybszr`. Rosters, standings, schedules, player references, and requested matchup scores are cached for 24 hours and refreshed on a subsequent visit. The displayed timestamp is the actual snapshot fetch time. There is no cron job, automatic browser polling, or database write. Matchup and lineup periods follow Fantrax's separate calendars in Eastern Time. Scores are daily snapshots, not live. An initial API failure shows an unavailable state while keeping archive links accessible.
+
+Home-page rosters group active, benched, and injured players by assigned Fantrax position, with IR badges for injured players. Minors are separate. A team dropdown and previous/next controls switch rosters. The scoring-leaders panel reads imported player statistics for the current Fantrax season only; the documented API does not supply individual player scoring totals. It remains empty until that season's stats are imported. The home page does not display a playoff cutoff or infer a BYE from unassigned matchup slots.
+
+`lib/fantrax/data.ts` maps this season's Fantrax team IDs to the archive's permanent franchise IDs. Update the league ID and this mapping when moving to a new season. Names and logos follow the site's current team-management settings. Roster players link to existing archive profiles using their original IDs; players without archive records are shown without a profile link. The public reads do not use `FANTRAX_USER_SECRET`.
 
 Johnny Gaudreau's player profile has a memorial header and a historical rank note alongside his current career statistics.
 
@@ -60,6 +67,8 @@ npx tsc --noEmit
 npm run test:lottery
 npm run test:history
 npm run test:owners
+npm run test:snapshot
+npm run test:keepers
 ```
 
 The test suites use Node's test runner and in-memory PGlite for database cases. They do not connect to the league database. They cover lottery timing, odds, disclosure and concurrency, plus history parsing, identity matching and repeat imports. UI changes also need a browser check on the affected pages.
@@ -106,3 +115,7 @@ The build command is `next build`. Deployments do not run database migrations or
 For lottery setup, rehearsal, timing, and recovery behavior, use the [draft lottery guide](docs/lottery.md). Award artwork and stored-name mappings are documented in [public/trophies/README.md](public/trophies/README.md).
 
 For owner invitations, account setup, logo uploads, and historical identity behavior, use the [team management guide](docs/owners.md).
+
+## Keeper submissions
+
+Owners can submit 2026–27 keepers from **Manage Team**; commissioners review them at `/admin/keepers`. The deadline is October 9, 2026 at 7 p.m. Eastern. See [keeper rules, setup and validation](docs/keepers.md). Apply database migrations before deploying the feature.

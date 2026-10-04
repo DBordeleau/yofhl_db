@@ -274,6 +274,12 @@ export const getTopPlayerIds = cached(
     'top-player-ids',
 );
 
+// Preserve the CSV IDs (which can include asterisks) when linking current Fantrax rosters.
+export const getArchivedPlayerIds = cached(
+    () => rows<{ id: string }>(sql`select player_id as id from league.player_careers`),
+    'archived-player-ids',
+);
+
 export const getChampionRoster = cached(async (year: number): Promise<ChampionRoster | null> => {
     const [season] = await rows<Omit<ChampionRoster, 'rows'>>(sql`
         select s.year, s.label, t.name as team, t.abbreviation, t.logo_url as logo, o.name as owner
