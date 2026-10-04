@@ -44,6 +44,8 @@ Apply database migrations before deploying code that reads `team_management`. Ex
 
 ## Validation
 
+Keep Firebase Admin on the compatible 13.x release line while [the 14.x CommonJS/ESM dependency issue](https://github.com/firebase/firebase-admin-node/issues/3181) remains unresolved. The owner test suite checks that its Auth module loads with Node's experimental `require(ESM)` support disabled, matching the failing Vercel runtime.
+
 Run `npm run test:owners`, `npm run test:lottery`, `npm run test:history`, `npm run lint`, `npx tsc --noEmit` and `npm run build`. Owner tests use an isolated in-memory database and cover competing claims, code rotation and expiry, ownership enforcement, stale edits, admin access and import preservation.
 
 Browser checks should use a separate database and disposable Firebase account. Check claim, sign-in, sign-out, reset, owner/admin edits, upload replacement, stale edits and mobile layout. Do not use real owner invitations for tests. Verify email delivery to your own inbox before distributing invitations; generating and consuming a reset link alone does not test inbox delivery.
