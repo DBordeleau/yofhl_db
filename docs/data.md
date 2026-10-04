@@ -10,6 +10,7 @@ Seasons use the year they end in. `2026` means the 2025–26 season. Franchise I
 | --- | --- | --- |
 | Standings, player seasons, playoff games | Fantrax season CSVs | A season import replaces that season's imported data |
 | Franchises, identity eras, owners, logos, individual award definitions, playoff fixes | [league.yml](../league/league.yml) | Every season import syncs the league configuration |
+| Current team name/logo overrides, account claims and invitation codes | `/owner` and `/admin/teams` | Stored in `team_management`; preserved by imports and logo sync. See [team management](owners.md). |
 | Championship rosters and individual award winners | `/admin/seasons/<end year>` | Admin edits; legacy seeds fill historical seasons with no entries |
 | Bracket corrections | Admin bracket review | Saved corrections are reapplied during imports |
 | Trades, free-agent moves, and draft selections | Fantrax history CSVs | History imports replace supplied files or draft seasons |

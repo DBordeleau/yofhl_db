@@ -8,9 +8,10 @@ export const lotteryColumns = sql`id, title, starts_at as "startsAt", entries, v
 export const lotteryLogosQuery = (entries: LotteryEntry[]) => sql`
     select (entry->>'id')::int as id, entry->>'name' as name,
            entry->>'abbreviation' as abbreviation, (entry->>'odds')::float8 as odds,
-           coalesce(t.logo_url, f.logo_url, entry->>'logo') as logo
+           coalesce(m.logo_url, t.logo_url, f.logo_url, entry->>'logo') as logo
     from jsonb_array_elements(${JSON.stringify(entries)}::jsonb) with ordinality as draw(entry, position)
     left join league.franchises f on f.id = (entry->>'id')::int
+    left join league.team_management m on m.franchise_id = f.id
     left join lateral (select logo_url from league.team_seasons
                        where franchise_id = f.id order by season_year desc limit 1) t on true
     order by position`;
