@@ -9,9 +9,12 @@ import type { AwardType } from "@/lib/data/league";
 import { AWARDS, awardHref, getAwardDefinition } from "@/lib/awards";
 import { TrophyArt } from '@/components/trophy-icons';
 import LotteryNavLink from '@/components/lottery/nav-link';
+import TeamBadge from '@/components/team-badge';
+import { useOwnerNavigation } from '@/lib/owner/navigation';
 
 const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const pathname = usePathname();
+    const owner = useOwnerNavigation();
     const [isMenuOpen, setIsMenuOpen] = useState(false); // mobile menu state
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLLIElement>(null);
@@ -24,6 +27,15 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
         { name: "Champions", href: "/champions", isActive: pathname.startsWith("/champions") },
     ];
     const awardsActive = pathname.startsWith("/awards");
+    const ownerActive = pathname.startsWith('/owner');
+    const ownerLink = (
+        <Link href="/owner" onClick={() => setIsMenuOpen(false)} aria-current={ownerActive ? 'page' : undefined}
+            className={`inline-flex min-h-11 w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-xl border px-4 py-1.5 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rink-blue focus-visible:ring-offset-2 ${ownerActive ? 'border-ink bg-ink text-white' : 'border-line-strong bg-ice text-ink hover:border-rink-blue hover:bg-rink-wash'}`}>
+            {owner.team ? <TeamBadge logo={owner.team.logo} abbreviation={owner.team.abbreviation} teamName={owner.team.name} size={28} ring="none" />
+                : <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>}
+            {owner.signedIn ? 'Manage Team' : 'Sign in'}
+        </Link>
+    );
 
     // award dropdown links
     const awardItems = [
@@ -54,7 +66,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     }, [isDropdownOpen]);
 
     const linkClass = (active: boolean) =>
-        `relative inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-[15px] font-semibold transition-colors hover:bg-rink-wash hover:text-ink ${active
+        `relative inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-[15px] font-semibold transition-colors hover:bg-rink-wash hover:text-ink lg:px-2.5 xl:px-3.5 ${active
             ? "text-ink after:absolute after:inset-x-3.5 after:bottom-1 after:h-[3px] after:rounded-full after:bg-rink-red"
             : "text-ink-soft"
         }`;
@@ -67,7 +79,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
 
     return (
         <header className="relative z-50 border-b border-line bg-white">
-            <nav className="mx-auto flex min-h-16 max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl items-center gap-2 px-4 md:min-h-[76px] md:px-8 lg:gap-4" aria-label="Primary">
+            <nav className="mx-auto flex min-h-16 max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl items-center gap-2 px-4 md:min-h-[76px] md:px-8 lg:gap-2.5 xl:gap-4" aria-label="Primary">
                 <Link href="/" className="flex flex-none" aria-label="YOFHL Database home">
                     <Image // logo made by Nick Kavanagh
                         src="/yofhldblogo.png"
@@ -81,7 +93,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                 </Link>
 
                 {/* desktop/large display nav */}
-                <ul className="ml-auto hidden items-center gap-0.5 lg:flex">
+                <ul className="hidden items-center gap-0.5 lg:flex">
                     {navItems.map((item) => (
                         <li key={item.name}>
                             <Link href={item.href} className={linkClass(item.isActive)} aria-current={item.isActive ? "page" : undefined}>
@@ -126,7 +138,8 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                     </li>
                 </ul>
 
-                <div className="ml-auto lg:ml-0"><LotteryNavLink /></div>
+                <div className="ml-auto shrink-0 lg:ml-0"><LotteryNavLink /></div>
+                <div className="ml-auto hidden shrink-0 border-l border-line pl-4 lg:block">{ownerLink}</div>
                 <button // hamburger button
                     type="button"
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -181,6 +194,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                                     </ul>
                                 )}
                             </li>
+                            <li className="mt-3 border-t border-line pt-4">{ownerLink}</li>
                         </ul>
                     </motion.div>
                 )}

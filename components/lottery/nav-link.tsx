@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { formatEastern, navVisible, type PublicLottery } from '@/lib/lottery/model';
+import { easternInput, formatEastern, navVisible, type PublicLottery } from '@/lib/lottery/model';
 
 type Summary = Pick<PublicLottery, 'id' | 'startsAt' | 'endsAt' | 'phase'>;
 
@@ -36,12 +36,14 @@ export default function LotteryNavLink() {
     }, []);
     if (!event || !navVisible(event, now)) return null;
     const until = new Date(event.startsAt).getTime() - now;
-    const complete = event.phase === 'complete';
+    // Keep the 7:30 PM event live in navigation until 7:35 PM Eastern,
+    // independently of the shorter draw animation.
+    const complete = now >= new Date(event.startsAt).getTime() + 5 * 60_000;
     const live = !complete && until <= 0;
     const minutes = Math.max(1, Math.ceil(until / 60_000));
-    const badge = complete ? 'Results' : live ? 'Live' : minutes >= 60 ? `In ${Math.floor(minutes / 60)}h ${minutes % 60}m` : `In ${minutes}m`;
-    return <Link href="/lottery" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-2 text-[13px] font-bold text-ink hover:bg-rink-wash lg:px-3 lg:text-sm" title={formatEastern(event.startsAt)}>
-        Draft Lottery <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-extrabold ${live ? 'bg-rink-red text-white' : 'bg-gold-tint text-gold-deep'}`}>
+    const badge = complete ? 'Concluded' : live ? 'Live' : minutes >= 60 ? `In ${Math.floor(minutes / 60)}h ${minutes % 60}m` : `In ${minutes}m`;
+    return <Link href="/lottery" className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl text-xs font-bold text-ink hover:bg-rink-wash sm:gap-2 sm:px-2 sm:text-[13px] lg:px-3 lg:text-sm" title={formatEastern(event.startsAt)}>
+        <span>{easternInput(event.startsAt).slice(0, 4)} Draft Lottery</span> <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-extrabold ${live ? 'bg-rink-red text-white' : 'bg-gold-tint text-gold-deep'}`}>
             {live && <span className="h-1.5 w-1.5 rounded-full bg-white motion-safe:animate-pulse" aria-hidden="true" />}{badge}
         </span>
     </Link>;

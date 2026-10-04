@@ -52,7 +52,7 @@ The lottery page renders dynamically. `/api/lottery` uses `Cache-Control: no-sto
 
 - The room refreshes after each response, waiting one second during the live event and within 15 seconds of the start, or 15 seconds otherwise.
 - A failed request shows a reconnecting state and retries after 2.5 seconds. Requests time out after ten seconds. Returning to the tab or coming back online triggers a refresh.
-- The navigation summary checks every 30 seconds while visible and when the tab becomes visible again. Its badge changes from a countdown to Live, then Results after the event completes.
+- The navigation summary checks every 30 seconds while visible and when the tab becomes visible again. The link includes the event's Eastern calendar year (for example, **2026 Draft Lottery**). Its badge changes from a countdown to **Live**, then **Concluded** five minutes after the scheduled start, independently of the draw animation. For the October 4, 2026 event, that is 7:35 PM Eastern. The local display clock updates every second, so it does not wait for the next summary request to change the badge.
 
 This is HTTP polling, with no WebSocket server or cron job to provision. A disconnected viewer catches up to the saved result on the next successful request. The application still depends on Vercel and Neon being available; the code does not guarantee uninterrupted delivery.
 
