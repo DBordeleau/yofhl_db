@@ -14,10 +14,11 @@ interface PlayerHeroProps {
     rank: number | null;
     seasons: number;
     actions?: ReactNode; // e.g. the Compare button
+    header?: ReactNode; // optional tribute in place of the standard player header
 }
 
 // navy header band on /player/[ID] with the player's team, positions and Jagr Cups, followed by career totals
-const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships, totalFPts, fpg, rank, seasons, actions }) => {
+const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships, totalFPts, fpg, rank, seasons, actions, header }) => {
     const stats = [
         { label: 'All-Time FPts', value: formatFpts(totalFPts) },
         { label: 'FP/G', value: fpg.toFixed(2) },
@@ -27,41 +28,43 @@ const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships,
 
     return (
         <section className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
-            <div className="navy-spotlight relative flex flex-col items-start gap-4 overflow-hidden px-5 pb-6 pt-5 text-white md:flex-row md:items-center md:gap-7 md:px-10 md:py-9">
-                {/* centre ice markings, kept to the edge so they never sit behind the text */}
-                <svg className="pointer-events-none absolute -right-[70px] -top-[30px] h-[190px] w-[190px] md:-right-5 md:top-1/2 md:h-[300px] md:w-[300px] md:-translate-y-1/2" viewBox="0 0 300 300" fill="none" aria-hidden="true">
-                    <line x1="150" y1="0" x2="150" y2="300" stroke="#E2475C" strokeWidth="5" strokeDasharray="12 8" opacity=".45" />
-                    <circle cx="150" cy="150" r="110" stroke="#6FB1F2" strokeWidth="3" opacity=".4" />
-                    <circle cx="150" cy="150" r="6" fill="#6FB1F2" opacity=".55" />
-                </svg>
+            {header ?? <>
+                <div className="navy-spotlight relative flex flex-col items-start gap-4 overflow-hidden px-5 pb-6 pt-5 text-white md:flex-row md:items-center md:gap-7 md:px-10 md:py-9">
+                    {/* centre ice markings, kept to the edge so they never sit behind the text */}
+                    <svg className="pointer-events-none absolute -right-[70px] -top-[30px] h-[190px] w-[190px] md:-right-5 md:top-1/2 md:h-[300px] md:w-[300px] md:-translate-y-1/2" viewBox="0 0 300 300" fill="none" aria-hidden="true">
+                        <line x1="150" y1="0" x2="150" y2="300" stroke="#E2475C" strokeWidth="5" strokeDasharray="12 8" opacity=".45" />
+                        <circle cx="150" cy="150" r="110" stroke="#6FB1F2" strokeWidth="3" opacity=".4" />
+                        <circle cx="150" cy="150" r="6" fill="#6FB1F2" opacity=".55" />
+                    </svg>
 
-                {team && (
-                    <Link href={`/teams/${team.id}`} aria-label={`${team.name} franchise page`} className="relative rounded-full">
-                        <TeamBadge logo={team.logoUrl} abbreviation={team.abbreviation} teamName={team.name} size={112} sizeClass="h-[72px] w-[72px] md:h-28 md:w-28" priority />
-                    </Link>
-                )}
-
-                <div className="relative min-w-0 md:max-w-[calc(100%-420px)]">
                     {team && (
-                        <Link href={`/teams/${team.id}`} className="font-wide inline-flex max-w-[calc(100%-110px)] items-center gap-2.5 text-[13px] font-extrabold uppercase tracking-[.06em] text-white hover:underline md:max-w-none md:text-[15px]">
-                            <b className="block h-[18px] w-1 flex-none rounded-sm bg-rink-red" />
-                            {team.name}
+                        <Link href={`/teams/${team.id}`} aria-label={`${team.name} franchise page`} className="relative rounded-full">
+                            <TeamBadge logo={team.logoUrl} abbreviation={team.abbreviation} teamName={team.name} size={112} sizeClass="h-[72px] w-[72px] md:h-28 md:w-28" priority />
                         </Link>
                     )}
-                    <h1 className="font-wide mb-3 mt-2 text-[32px] font-extrabold uppercase leading-[.95] tracking-tight md:text-[60px] 3xl:text-[72px]">{name}</h1>
-                    <div className="flex flex-wrap items-center gap-2.5 text-sm font-semibold text-[#B9C6DA]">
-                        {positions.map((p) => (
-                            <span key={p} className="rounded-md bg-white px-[7px] py-1 text-xs font-extrabold tracking-[.06em] text-ink">{p}</span>
-                        ))}
-                        <span>{positions.map((p) => positionNames[p] ?? p).join(' / ')}</span>
-                        <span className="ml-1.5">
-                            <CupRow count={championships} className="h-10 w-10 drop-shadow-[0_0_8px_rgba(240,199,94,.5)]" />
-                        </span>
+
+                    <div className="relative min-w-0 md:max-w-[calc(100%-420px)]">
+                        {team && (
+                            <Link href={`/teams/${team.id}`} className="font-wide inline-flex max-w-[calc(100%-110px)] items-center gap-2.5 text-[13px] font-extrabold uppercase tracking-[.06em] text-white hover:underline md:max-w-none md:text-[15px]">
+                                <b className="block h-[18px] w-1 flex-none rounded-sm bg-rink-red" />
+                                {team.name}
+                            </Link>
+                        )}
+                        <h1 className="font-wide mb-3 mt-2 text-[32px] font-extrabold uppercase leading-[.95] tracking-tight md:text-[60px] 3xl:text-[72px]">{name}</h1>
+                        <div className="flex flex-wrap items-center gap-2.5 text-sm font-semibold text-[#B9C6DA]">
+                            {positions.map((p) => (
+                                <span key={p} className="rounded-md bg-white px-[7px] py-1 text-xs font-extrabold tracking-[.06em] text-ink">{p}</span>
+                            ))}
+                            <span>{positions.map((p) => positionNames[p] ?? p).join(' / ')}</span>
+                            <span className="ml-1.5">
+                                <CupRow count={championships} className="h-10 w-10 drop-shadow-[0_0_8px_rgba(240,199,94,.5)]" />
+                            </span>
+                        </div>
+                        {actions && <div className="mt-4">{actions}</div>}
                     </div>
-                    {actions && <div className="mt-4">{actions}</div>}
                 </div>
-            </div>
-            <div className="banner-stripes h-3.5" />
+                <div className="banner-stripes h-3.5" />
+            </>}
             <dl className="grid grid-cols-2 md:grid-cols-4">
                 {stats.map((stat, i) => (
                     <div key={stat.label} className={`border-line-soft px-4 py-3.5 md:px-7 md:py-5 ${i % 2 === 0 ? 'border-r' : ''} ${i < 2 ? 'border-b md:border-b-0' : ''} ${i === 1 ? 'md:border-r' : ''}`}>
