@@ -17,7 +17,7 @@ export default function JohnnyGaudreauMemorial({ actions }: { actions: ReactNode
                 <div className="mt-6 flex items-center justify-between gap-4 md:gap-8">
                     <div className="min-w-0">
                         <h1 className="font-wide text-[32px] font-extrabold leading-[1.08] tracking-tight sm:text-[44px] md:text-[56px]">
-                            Johnny &quot;Hockey&quot; Gaudreau
+                            Johnny Gaudreau
                         </h1>
                         <p className="mt-3 text-sm font-semibold text-[#DCC99F] sm:hidden">Johnny Hockey</p>
                         <p className="mt-4 text-sm tracking-[.12em] text-[#CDD5E2]">
