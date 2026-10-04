@@ -2,6 +2,7 @@
 
 import React, { FC, ReactNode, useState } from 'react';
 import Link from 'next/link';
+import TeamBadge from '@/components/team-badge';
 import { CupRow } from '@/components/trophy-icons';
 import { formatFpts, seasonLabel, splitPositions } from '@/lib/league';
 
@@ -13,6 +14,10 @@ interface PlayerStats {
     FPG: string | number;
     Age?: number;
     Year?: number;
+    YOFHLTeam?: string;
+    TeamID?: string | null;
+    teamName?: string | null;
+    teamLogo?: string | null;
     hasAward?: boolean; // for gold highlighting in single-season
     hasMultipleAwards?: boolean; // for red highlighting in single-season
     Champion?: boolean; // trophy rendering for single-season
@@ -28,16 +33,29 @@ interface StatTableProps {
     loading?: boolean;
     animationKey?: string; // changing this replays the row entrance animation
     footer?: ReactNode;
+    showTeam?: boolean;
 }
 
 // written out in full so Tailwind keeps the metallic rank styles
 const RANK_CLASSES: Record<number, string> = { 1: 'rank-1', 2: 'rank-2', 3: 'rank-3' };
 
 const GRID = 'grid grid-cols-[28px_minmax(0,1fr)_78px_40px] items-center gap-2 px-3 md:grid-cols-[60px_minmax(0,1fr)_120px_72px] md:gap-4 md:px-6';
+const TEAM_GRID = 'grid grid-cols-[28px_minmax(0,1fr)_78px_40px] items-center gap-2 px-3 md:grid-cols-[44px_minmax(0,1.1fr)_minmax(0,1fr)_90px_54px] md:gap-3 md:px-5';
 // championship rosters drop the rank column and let the names lead
 const ROSTER_GRID = 'grid grid-cols-[minmax(0,1fr)_78px_44px] items-center gap-2 px-4 md:grid-cols-[minmax(0,1fr)_120px_72px] md:gap-4 md:px-6';
 
 type SortField = 'FPts' | 'FPG' | 'Player';
+
+function SeasonTeam({ player, compact = false }: { player: PlayerStats; compact?: boolean }) {
+    if (!player.TeamID) return <span className="text-xs font-semibold text-ink-faint">Free agent</span>;
+    return (
+        <Link href={`/teams/${player.TeamID}`} title={player.teamName ?? player.YOFHLTeam}
+            className={`flex min-w-0 items-center gap-2 font-semibold text-ink-muted hover:text-rink-blue hover:underline ${compact ? 'text-[11px]' : 'text-sm'}`}>
+            <TeamBadge logo={player.teamLogo ?? null} abbreviation={player.YOFHLTeam ?? null} teamName={player.teamName ?? null} size={compact ? 20 : 28} ring="none" />
+            <span className="min-w-0">{compact ? player.YOFHLTeam : player.teamName ?? player.YOFHLTeam}</span>
+        </Link>
+    );
+}
 
 // used to render all-time/single-season stats at /stats/[mode]/[position]
 // used to render championship rosters at /champions/[year] and franchise leaders at /teams/[ID]
@@ -49,10 +67,12 @@ const StatTable: FC<StatTableProps> = ({
     loading = false,
     animationKey = '',
     footer,
+    showTeam = false,
 }) => {
     const rankOffset = (currentPage - 1) * 25; // for pagination currently hardcoded to 25 results per page
     const isRoster = mode === 'champions';
-    const grid = isRoster ? ROSTER_GRID : GRID;
+    const teamColumn = showTeam && !isRoster;
+    const grid = isRoster ? ROSTER_GRID : teamColumn ? TEAM_GRID : GRID;
 
     // rosters open sorted by FPts so the header shows which column is active
     const [sortField, setSortField] = useState<SortField | null>(isRoster ? 'FPts' : null);
@@ -98,6 +118,7 @@ const StatTable: FC<StatTableProps> = ({
                 ) : (
                     <span role="columnheader">Player</span>
                 )}
+                {teamColumn && <span role="columnheader" className="hidden md:block">Fantasy team</span>}
                 <span role="columnheader" aria-sort={ariaSort('FPts')} className="text-right">
                     <button type="button" onClick={() => handleSort('FPts')} className="min-h-11 uppercase tracking-[inherit] hover:text-rink-blue">FPts{arrow('FPts')}</button>
                 </span>
@@ -111,6 +132,7 @@ const StatTable: FC<StatTableProps> = ({
                     <div key={i} className={`${grid} min-h-[66px] border-b border-line-soft last:border-b-0`} aria-hidden="true">
                         {!isRoster && <span className="skeleton h-6 w-7 rounded" />}
                         <span className="flex flex-col gap-1.5"><span className="skeleton h-4 w-40 max-w-full rounded" /><span className="skeleton h-3 w-16 rounded" /></span>
+                        {teamColumn && <span className="skeleton hidden h-4 w-32 max-w-full rounded md:block" />}
                         <span className="skeleton ml-auto h-4 w-16 rounded" />
                         <span className="skeleton ml-auto h-4 w-9 rounded" />
                     </div>
@@ -124,7 +146,7 @@ const StatTable: FC<StatTableProps> = ({
                             ? player.ChampionshipsWon ?? 0
                             : mode === 'single-season' && player.Champion ? 1 : 0;
                         const positions = splitPositions(player.Position ?? '').join(' · ');
-                        const sub = mode === 'single-season' && player.Year ? `${seasonLabel(player.Year)} · ${positions}` : positions;
+                        const sub = mode === 'single-season' && player.Year && !teamColumn ? `${seasonLabel(player.Year)} · ${positions}` : positions;
                         const fpg = typeof player.FPG === 'number' ? player.FPG.toFixed(2) : player.FPG;
 
                         return (
@@ -145,9 +167,12 @@ const StatTable: FC<StatTableProps> = ({
                                             {player.Player ?? 'N/A'}
                                         </Link>
                                         <CupRow count={cups} />
+                                        {player.hasAward && <span className="sr-only">{player.hasMultipleAwards ? 'Multiple individual awards' : 'Individual award winner'}</span>}
                                     </span>
                                     <span className="text-[11px] font-bold uppercase tracking-[.1em] text-ink-faint md:text-xs">{sub}</span>
+                                    {teamColumn && <span className="mt-1 md:hidden"><SeasonTeam player={player} compact /></span>}
                                 </span>
+                                {teamColumn && <span role="cell" className="hidden min-w-0 py-2.5 md:block"><SeasonTeam player={player} /></span>}
                                 <span role="cell" className="tabular text-right text-[15px] font-extrabold md:text-[19px]">{formatFpts(player.FPts)}</span>
                                 <span role="cell" className="tabular text-right text-sm text-ink-muted md:text-base">{fpg}</span>
                             </div>

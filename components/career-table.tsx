@@ -27,8 +27,8 @@ interface CareerTableProps {
 
 type SortKey = 'Year' | 'FPts' | 'FPG';
 
-// desktop columns share the width evenly so FPts and FP/G sit in the middle of the table, not off at the far edge
-const GRID = 'grid grid-cols-[minmax(0,1fr)_84px_50px] items-center gap-2.5 px-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:gap-4 lg:px-8';
+// Desktop rows share tracks so the widest season/award group sizes every row's first column.
+const GRID = 'grid grid-cols-[minmax(0,1fr)_84px_50px] items-center gap-2.5 px-4 lg:col-span-4 lg:grid-cols-subgrid lg:gap-4 lg:px-8';
 
 const ChampionBadge: FC = () => (
     <span className="metal-gold inline-flex h-7 items-center gap-1.5 rounded-full pl-2 pr-3 text-xs font-extrabold uppercase tracking-[.08em] text-[#2B1D00] shadow-[0_4px_12px_-4px_rgba(184,134,11,.6)]">
@@ -63,8 +63,8 @@ const CareerTable: FC<CareerTableProps> = ({ careerStats, awardsByYear }) => {
     );
 
     return (
-        <section className="overflow-hidden rounded-3xl border border-line bg-white shadow-card" role="table" aria-label="Season by season">
-            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 pb-3 pt-5 lg:px-6">
+        <section className="overflow-hidden rounded-3xl border border-line bg-white shadow-card lg:grid lg:grid-cols-[minmax(max-content,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]" role="table" aria-label="Season by season">
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 pb-3 pt-5 lg:col-span-4 lg:px-6">
                 <h2 className="font-wide m-0 text-lg font-extrabold uppercase lg:text-xl">Season by Season</h2>
                 <AwardLegend award={awardCounts.some((c) => c === 1)} multipleAwards={awardCounts.some((c) => c > 1)} />
             </div>
@@ -90,12 +90,12 @@ const CareerTable: FC<CareerTableProps> = ({ careerStats, awardsByYear }) => {
                             className={`${GRID} row-hover animate-rise min-h-[64px] border-b border-line-soft ${highlight}`}
                             style={{ animationDelay: `${index * 40}ms` }}
                         >
-                            <span role="cell" className="flex min-w-0 flex-col gap-1 py-3">
-                                <span className="flex flex-wrap items-center gap-2.5">
-                                    <span className="tabular text-[17px] font-extrabold">{seasonLabel(stat.Year)}</span>
+                            <span role="cell" className="flex min-w-0 flex-col gap-1 py-3 lg:flex-row lg:items-center lg:gap-2.5">
+                                <span className="flex flex-wrap items-center gap-2.5 lg:shrink-0 lg:flex-nowrap">
+                                    <span className="tabular whitespace-nowrap text-[17px] font-extrabold">{seasonLabel(stat.Year)}</span>
                                     {stat.Champion && <ChampionBadge />}
                                 </span>
-                                {!!awardCount && <span className="flex flex-wrap items-center gap-1">
+                                {!!awardCount && <span className="flex flex-wrap items-center gap-1 lg:shrink-0 lg:flex-nowrap">
                                     {awardsByYear[stat.Year].map((award) => <Link key={award} href={awardHref(award)} className="rounded-md hover:bg-gold-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-rink-blue" aria-label={`${getAwardDefinition(award)?.label ?? award}, ${seasonLabel(stat.Year)}`}>
                                         <TrophyArt award={award} title={getAwardDefinition(award)?.label ?? award} className="h-9 w-9" sizes="36px" />
                                     </Link>)}
@@ -113,7 +113,7 @@ const CareerTable: FC<CareerTableProps> = ({ careerStats, awardsByYear }) => {
                     );
                 })
             ) : (
-                <div className="p-7 text-center text-ink-muted">No career stats available</div>
+                <div className="p-7 text-center text-ink-muted lg:col-span-4">No career stats available</div>
             )}
             <div className={`${GRID} min-h-[58px] bg-ink text-white`} role="row">
                 <span role="cell" className="font-extrabold">Career</span>

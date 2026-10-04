@@ -5,8 +5,8 @@ import FranchisePerformance from '@/components/franchise-performance';
 import FranchiseHistory from '@/components/franchise-history';
 import FranchiseTrophyCase from '@/components/franchise-trophy-case';
 import FranchiseDraft from '@/components/franchise-draft';
-import FranchiseContents from '@/components/franchise-contents';
-import contentsStyles from '@/components/franchise-contents.module.css';
+import PageContents from '@/components/page-contents';
+import contentsStyles from '@/components/page-contents.module.css';
 import TransactionHistory from '@/components/transaction-history';
 import StatTable from '@/components/stat-table';
 import TeamBadge from '@/components/team-badge';
@@ -89,7 +89,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
             </FadeIn>
 
             <div className={contentsStyles.layout}>
-                <FranchiseContents key={id} teamName={team.name} sections={sections} />
+                <PageContents key={id} title={team.name} contentId="franchise-sections" sections={sections} />
                 <div id="franchise-sections" className={contentsStyles.sections}>
                     <div id="franchise-overview" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" role="region" aria-label="Franchise performance and records">
                         <FranchisePerformance seasons={team.seasons} championships={team.championships} />

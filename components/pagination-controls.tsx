@@ -27,7 +27,7 @@ const PaginationControls: FC<PaginationControlsProps> = ({ currentPage, setCurre
     );
 
     return (
-        <nav className="flex items-center gap-1 md:gap-1.5" aria-label="Pages">
+        <nav className="flex flex-wrap items-center justify-center gap-1 md:gap-1.5" aria-label="Pages">
             <button
                 type="button"
                 onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}

@@ -23,6 +23,10 @@ export interface LeaderRow {
     FPts: number;
     FPG: number;
     Year?: number;
+    YOFHLTeam?: string;
+    TeamID?: string | null;
+    teamName?: string | null;
+    teamLogo?: string | null;
     hasAward?: boolean;
     hasMultipleAwards?: boolean;
     Champion?: boolean;
@@ -180,18 +184,22 @@ export const getAllTimeLeaderboard = cached(async (position: string, page: numbe
     return { rows: data.map(withoutTotal), page, total, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
 }, 'leaderboard-all-time');
 
-export const getSingleSeasonLeaderboard = cached(async (position: string, page: number, q: string): Promise<LeaderboardPage> => {
+export const getSingleSeasonLeaderboard = cached(async (position: string, page: number, q: string, season: number | null = null): Promise<LeaderboardPage> => {
     const pos = toPosition(position);
     const search = toSearch(q);
     const data = await rows<LeaderRow & { awards: number; total: number }>(sql`
         select ps.player_id as "ID", p.name as "Player", array_to_string(ps.positions, ', ') as "Position",
                ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG", ps.season_year as "Year",
+               coalesce(t.abbreviation, 'FA') as "YOFHLTeam", t.franchise_id::text as "TeamID",
+               t.name as "teamName", t.logo_url as "teamLogo",
                (select count(*)::int from league.awards a where a.player_id = ps.player_id and a.season_year = ps.season_year) as awards,
                exists (select 1 from league.championship_rosters c where c.player_id = ps.player_id and c.season_year = ps.season_year) as "Champion",
                count(*) over ()::int as total
         from league.player_seasons ps
         join league.players p on p.id = ps.player_id
+        left join league.team_seasons t on t.id = ps.team_season_id
         where ps.fpts > 0
+          and (${season}::int is null or ps.season_year = ${season})
           and (${pos}::text is null or ${pos}::text = any(ps.positions))
           and (${search}::text is null or p.name ilike ${search}::text)
         order by ps.fpts desc, ps.player_id, ps.season_year
