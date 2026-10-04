@@ -4,7 +4,8 @@ import React, { FC, useState } from 'react';
 import Link from 'next/link';
 import AwardLegend from '@/components/award-legend';
 import TeamBadge from '@/components/team-badge';
-import { JagrCupIcon } from '@/components/trophy-icons';
+import { JagrCupIcon, TrophyArt } from '@/components/trophy-icons';
+import { awardHref, getAwardDefinition } from '@/lib/awards';
 import { formatFpts, seasonLabel } from '@/lib/league';
 
 export interface CareerStats {
@@ -31,7 +32,7 @@ const GRID = 'grid grid-cols-[minmax(0,1fr)_84px_50px] items-center gap-2.5 px-4
 
 const ChampionBadge: FC = () => (
     <span className="metal-gold inline-flex h-7 items-center gap-1.5 rounded-full pl-2 pr-3 text-xs font-extrabold uppercase tracking-[.08em] text-[#2B1D00] shadow-[0_4px_12px_-4px_rgba(184,134,11,.6)]">
-        <JagrCupIcon className="h-[18px] w-[13px]" />
+        <JagrCupIcon className="h-7 w-7" />
         Champion
     </span>
 );
@@ -94,6 +95,11 @@ const CareerTable: FC<CareerTableProps> = ({ careerStats, awardsByYear }) => {
                                     <span className="tabular text-[17px] font-extrabold">{seasonLabel(stat.Year)}</span>
                                     {stat.Champion && <ChampionBadge />}
                                 </span>
+                                {!!awardCount && <span className="flex flex-wrap items-center gap-1">
+                                    {awardsByYear[stat.Year].map((award) => <Link key={award} href={awardHref(award)} className="rounded-md hover:bg-gold-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-rink-blue" aria-label={`${getAwardDefinition(award)?.label ?? award}, ${seasonLabel(stat.Year)}`}>
+                                        <TrophyArt award={award} title={getAwardDefinition(award)?.label ?? award} className="h-9 w-9" sizes="36px" />
+                                    </Link>)}
+                                </span>}
                                 {/* phones and tablets: team tucks under the season */}
                                 <span className="text-sm font-semibold text-ink-muted lg:hidden">{team}</span>
                             </span>

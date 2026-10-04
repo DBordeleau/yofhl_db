@@ -6,7 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AwardType } from "@/lib/data/league";
-import { awardSlug } from "@/lib/league";
+import { AWARDS, awardHref, getAwardDefinition } from "@/lib/awards";
+import { TrophyArt } from '@/components/trophy-icons';
 import LotteryNavLink from '@/components/lottery/nav-link';
 
 const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
@@ -14,6 +15,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false); // mobile menu state
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLLIElement>(null);
+    const mobileDropdownRef = useRef<HTMLLIElement>(null);
 
     const navItems = [
         { name: "Leaderboards", href: "/stats/all-time/all", isActive: pathname.startsWith("/stats") || pathname.startsWith("/player") },
@@ -24,11 +26,10 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const awardsActive = pathname.startsWith("/awards");
 
     // award dropdown links
-    const awardItems = awards.map((award) => ({
-        name: award.label,
-        description: award.description,
-        href: `/awards/${awardSlug(award.name)}`,
-    }));
+    const awardItems = [
+        ...AWARDS.map((award) => ({ name: award.label, description: award.honor, href: awardHref(award.name) })),
+        ...awards.filter((award) => !getAwardDefinition(award.name)).map((award) => ({ name: award.label, description: award.description, href: awardHref(award.name) })),
+    ];
 
     useEffect(() => {
         setIsDropdownOpen(false);
@@ -39,7 +40,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     useEffect(() => {
         if (!isDropdownOpen) return;
         const onClick = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsDropdownOpen(false);
+            if (!dropdownRef.current?.contains(e.target as Node) && !mobileDropdownRef.current?.contains(e.target as Node)) setIsDropdownOpen(false);
         };
         const onKey = (e: KeyboardEvent) => {
             if (e.key === "Escape") setIsDropdownOpen(false);
@@ -105,16 +106,17 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -6 }}
                                     transition={{ duration: 0.18 }}
-                                    className="absolute right-0 mt-2 w-72 overflow-hidden rounded-2xl border border-line bg-white p-1.5 shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]"
+                                    className="absolute right-0 mt-2 max-h-[80vh] w-80 overflow-y-auto rounded-2xl border border-line bg-white p-1.5 shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]"
                                 >
+                                    <li><Link href="/awards" className="mb-1 flex min-h-11 items-center justify-between rounded-xl bg-ice px-3.5 text-sm font-extrabold text-ink hover:bg-rink-wash">All league awards <span aria-hidden="true">↗</span></Link></li>
                                     {awardItems.map((award) => (
                                         <li key={award.name}>
                                             <Link
                                                 href={award.href}
-                                                className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-[15px] font-semibold text-ink hover:bg-rink-wash"
+                                                className="flex min-h-14 items-center gap-2 rounded-xl px-2 py-1.5 text-[15px] font-semibold text-ink hover:bg-rink-wash"
                                             >
-                                                {award.name}
-                                                <span className="text-xs font-semibold text-ink-muted">{award.description}</span>
+                                                <TrophyArt award={award.name} className="h-11 w-11" sizes="44px" />
+                                                <span>{award.name}<span className="mt-0.5 block text-xs font-medium text-ink-muted">{award.description}</span></span>
                                             </Link>
                                         </li>
                                     ))}
@@ -156,7 +158,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                                     </Link>
                                 </li>
                             ))}
-                            <li>
+                            <li ref={mobileDropdownRef}>
                                 <button
                                     type="button"
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -167,11 +169,12 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                                 </button>
                                 {isDropdownOpen && (
                                     <ul className="ml-3.5 border-l-2 border-line-soft pl-2">
+                                        <li><Link href="/awards" className="flex min-h-11 items-center px-3 text-sm font-extrabold text-rink-blue hover:underline">All league awards ↗</Link></li>
                                         {awardItems.map((award) => (
                                             <li key={award.name}>
-                                                <Link href={award.href} className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 text-[15px] font-semibold text-ink-soft hover:bg-rink-wash">
-                                                    {award.name}
-                                                    <span className="text-xs text-ink-muted">{award.description}</span>
+                                                <Link href={award.href} className="flex min-h-14 items-center gap-2 rounded-xl px-2 py-1.5 text-[15px] font-semibold text-ink-soft hover:bg-rink-wash">
+                                                    <TrophyArt award={award.name} className="h-11 w-11" sizes="44px" />
+                                                    <span>{award.name}<span className="mt-0.5 block text-xs font-medium text-ink-muted">{award.description}</span></span>
                                                 </Link>
                                             </li>
                                         ))}

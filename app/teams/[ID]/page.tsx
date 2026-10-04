@@ -71,7 +71,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                         </div>
                         {team.championships.length > 0 && (
                             <div className="hidden shrink-0 flex-col items-center gap-2 lg:flex">
-                                <JagrCupIcon detailed className="h-24 w-[72px] drop-shadow-[0_8px_20px_rgba(240,199,94,.4)]" />
+                                <JagrCupIcon sizes="144px" className="h-36 w-36 drop-shadow-[0_8px_20px_rgba(240,199,94,.4)]" />
                                 <span className="text-xs font-extrabold uppercase tracking-widest text-gold-light">{team.championships.length}× champion</span>
                             </div>
                         )}
@@ -142,7 +142,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                                     const season = team.seasons.find((s) => s.year === year);
                                     return (
                                         <Link key={year} href={won ? `/champions/${year}#championship-roster` : teamSeasonHref(year, id, season?.finalRound ?? null)} className={`group flex items-center gap-4 rounded-2xl border p-5 transition-transform hover:-translate-y-0.5 ${won ? 'border-gold-light bg-gradient-to-br from-gold-tint to-white shadow-card' : 'border-line bg-white'}`}>
-                                            {won ? <JagrCupIcon detailed className="h-14 w-[42px] shrink-0" /> : <span className="font-narrow flex h-14 w-[42px] shrink-0 items-center justify-center text-3xl font-extrabold text-ink-faint" aria-hidden="true">2</span>}
+                                            {won ? <JagrCupIcon sizes="64px" className="h-16 w-16 shrink-0" /> : <span className="font-narrow flex h-14 w-[42px] shrink-0 items-center justify-center text-3xl font-extrabold text-ink-faint" aria-hidden="true">2</span>}
                                             <div className="min-w-0 flex-1">
                                                 <div className={`${labelClass} ${won ? 'text-gold-deep' : 'text-ink-muted'}`}>{won ? 'Jagr Cup champion' : 'Runner-up'}</div>
                                                 <div className="font-wide mt-1 text-xl font-extrabold group-hover:underline">{seasonLabel(year)}</div>

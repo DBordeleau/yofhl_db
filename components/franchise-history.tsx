@@ -35,7 +35,7 @@ export default function FranchiseHistory({ team }: { team: FranchiseDetail }) {
                     return (
                         <Link key={season.year} href={teamSeasonHref(season.year, team.id, season.playoffStatus === 'cancelled' ? null : season.playoffRound)} className={`group grid grid-cols-2 items-center gap-x-4 gap-y-3 border-b border-line-soft px-5 py-5 last:border-0 hover:bg-rink-wash lg:grid-cols-[minmax(0,1fr)_110px_100px_100px_165px] ${champion ? 'bg-gold-tint/40' : ''}`}>
                             <div className="min-w-0">
-                                <div className="flex items-center gap-2 font-extrabold group-hover:text-rink-blue group-hover:underline">{seasonLabel(season.year)}{champion && <JagrCupIcon className="h-5 w-4" />}</div>
+                                <div className="flex items-center gap-2 font-extrabold group-hover:text-rink-blue group-hover:underline">{seasonLabel(season.year)}{champion && <JagrCupIcon className="h-7 w-7" />}</div>
                                 {season.name !== team.name && <p className="mt-1 text-xs font-semibold text-ink-soft">{season.name}</p>}
                                 <p className="mt-1 text-xs text-ink-muted">{season.owner ?? 'Owner not recorded'}</p>
                             </div>

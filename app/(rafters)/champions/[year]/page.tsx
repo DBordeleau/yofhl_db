@@ -62,7 +62,7 @@ export default async function ChampionsPage({ params }: { params: Promise<{ year
                             </>
                         )}
                     </div>
-                    <JagrCupIcon detailed className="hidden h-32 w-24 flex-none drop-shadow-[0_10px_24px_rgba(240,199,94,.45)] md:block 3xl:h-24 3xl:w-[72px]" />
+                    <JagrCupIcon sizes="160px" className="hidden h-40 w-40 flex-none drop-shadow-[0_10px_24px_rgba(240,199,94,.45)] md:block" />
                     <span className="banner-stripes absolute inset-x-0 bottom-[18px] h-3.5" />
                 </section>
 

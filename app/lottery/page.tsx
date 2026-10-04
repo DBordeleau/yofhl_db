@@ -4,7 +4,7 @@ import { getPublicLottery } from '@/lib/lottery/data';
 import './lottery.css';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Draft Lottery · YOFHL', description: 'One pick. A new era. Watch the YOFHL draft lottery live and see the full draft order.' };
+export const metadata: Metadata = { title: 'Draft Lottery · YOFHL', description: 'One pick. A new era. Watch YOFHL draft lottery live and see the full draft order.' };
 
 export default async function LotteryPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
     const { id } = await searchParams;

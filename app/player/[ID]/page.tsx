@@ -42,7 +42,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
         })),
         ...[...player.awards].reverse().map((a) => ({
             kind: 'award' as const,
-            name: a.label,
+            name: a.Award,
             detail: a.description,
             season: seasonLabel(a.Year),
         })),

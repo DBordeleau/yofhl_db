@@ -133,6 +133,7 @@ export interface AwardWinner {
     PlayerID: string;
     Team: string | null;
     TeamID: number | null;
+    Owner?: string | null;
 }
 
 // leaderboard queries return the filtered total on every row; drop it from the rows themselves
@@ -366,6 +367,22 @@ export const getAwardWinners = cached(async (name: string) => {
         order by a.season_year desc`);
     return { award, winners };
 }, 'award-winners');
+
+// Team honours use the same championship and scoring records as franchise trophy cases.
+export const getTeamAwardWinners = cached(async (award: 'jagr-cup' | 'prime-minister') => {
+    const criterion = award === 'jagr-cup'
+        ? sql`exists (select 1 from league.season_results r where r.champion_team_season_id = t.id)`
+        : sql`not exists (select 1 from league.team_seasons other
+              where other.season_year = t.season_year and other.franchise_id <> t.franchise_id
+                and other.fpts_for >= t.fpts_for)`;
+    return rows<AwardWinner>(sql`
+        select t.season_year as "Year", t.name as "Winner", '' as "PlayerID",
+               t.name as "Team", t.franchise_id as "TeamID", o.name as "Owner"
+        from league.team_seasons t
+        left join league.owners o on o.id = t.owner_id
+        where ${criterion}
+        order by t.season_year desc`);
+}, 'team-award-winners');
 
 export const searchPlayers = cached(
     (q: string) =>
