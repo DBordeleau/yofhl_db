@@ -28,8 +28,8 @@ franchises:
 
   - id: 3
     eras:
-      - { from: 2019, to: 2019, name: Scranton The Electric Gritty, abbreviations: [STEG], owner: Jeremy Weaver }
-      - { from: 2020, to: 2020, name: Scranton The Electric City, abbreviations: [STEC], owner: Jeremy Weaver }
+      - { from: 2019, to: 2019, name: Scranton The Electric Gritty, abbreviations: [STEG], owner: Jeremy Weaver, logo: /logos/scranton_logo.jpg }
+      - { from: 2020, to: 2020, name: Scranton The Electric City, abbreviations: [STEC], owner: Jeremy Weaver, logo: /logos/scranton_logo.jpg }
       - { from: 2021, name: Hooterville Honkers, abbreviations: [HH], owner: Jeremy Weaver, logo: /logos/hooterville_honkers.webp }
 
   - id: 4
@@ -42,8 +42,8 @@ franchises:
 
   - id: 6
     eras:
-      - { from: 2019, to: 2019, name: "Brock's Beasts", abbreviations: [WWE], owner: Kaley Etheridge }
-      - { from: 2020, to: 2020, name: East Coast Orca Boys, abbreviations: [ORCA], owner: Kaley Etheridge }
+      - { from: 2019, to: 2019, name: "Brock's Beasts", abbreviations: [WWE], owner: Kaley Etheridge, logo: /logos/brocks_beasts_logo.jpg }
+      - { from: 2020, to: 2020, name: East Coast Orca Boys, abbreviations: [ORCA], owner: Kaley Etheridge, logo: /logos/east_coast_orca_boys_logo.jpg }
       - { from: 2021, name: West Texas Torteehaws, abbreviations: [TEEHAW], owner: Kaley Etheridge, logo: /teehawlogo.png }
 
   - id: 7
@@ -52,41 +52,41 @@ franchises:
 
   - id: 8
     eras:
-      - { from: 2019, to: 2019, name: Semōn Demōns, abbreviations: [SEED], owner: Narayan Wagle }
+      - { from: 2019, to: 2019, name: Semōn Demōns, abbreviations: [SEED], owner: Narayan Wagle, logo: /logos/semon_demons_logo.jpg }
       - { from: 2020, name: Skellige Sirens, abbreviations: [SKGS], owner: Monike Porter, logo: /logos/skellige_sirens.jpg }
 
   - id: 9
     eras:
-      - { from: 2019, to: 2020, name: WinTurris Coming, abbreviations: [WTURR], owner: Emmanuel Bay }
+      - { from: 2019, to: 2020, name: WinTurris Coming, abbreviations: [WTURR], owner: Emmanuel Bay, logo: /logos/winturris_coming_logo.jpg }
       - { from: 2021, name: Carolina Reapers, abbreviations: [Reaper, Reapers], owner: Brian Morris, logo: /reaplogo.png }
 
   - id: 10
     eras:
-      - { from: 2019, to: 2024, name: Andromeda Space Invaders, abbreviations: [ASI], owner: Cameron Bowie }
-      - { from: 2025, name: Retro Phenoms, abbreviations: [RP], owner: Cameron Bowie }
+      - { from: 2019, to: 2024, name: Andromeda Space Invaders, abbreviations: [ASI], owner: Cameron Bowie, logo: /logos/andromeda_space_invaders_logo.jpg }
+      - { from: 2025, name: Retro Phenoms, abbreviations: [RP], owner: Cameron Bowie, logo: /logos/retro_phenoms_logo.jpg }
 
   - id: 11
     folded: 2023
     eras:
       - { from: 2019, to: 2019, name: James May, abbreviations: [NFLD] }
-      - { from: 2020, to: 2023, name: Montreal Re-Habs, abbreviations: [NFLD] }
+      - { from: 2020, to: 2023, name: Montreal Re-Habs, abbreviations: [NFLD], logo: /logos/montreal_rehabs_logo.jpg }
 
   - id: 12
     folded: 2023
     eras:
       - { from: 2019, to: 2019, name: Drunk Gallyways, abbreviations: [DGWY] }
-      - { from: 2020, to: 2021, name: M.A.A.R city, abbreviations: [MAC] }
-      - { from: 2022, to: 2023, name: North Kariya Nukes, abbreviations: [NKN] }
+      - { from: 2020, to: 2021, name: M.A.A.R city, abbreviations: [MAC], logo: /logos/maar_city_logo.jpg }
+      - { from: 2022, to: 2023, name: North Kariya Nukes, abbreviations: [NKN], logo: /logos/north_kariya_nukes_logo.jpg }
 
   - id: 13
     eras:
-      - { from: 2020, to: 2020, name: Lower Juba Spud Farmers, abbreviations: [JUBA], owner: Andrew Halstad }
-      - { from: 2021, to: 2021, name: The Meat Cove Meatballs, abbreviations: [MEAT], owner: Andrew Halstad }
+      - { from: 2020, to: 2020, name: Lower Juba Spud Farmers, abbreviations: [JUBA], owner: Andrew Halstad, logo: /logos/lower_juba_logo.jpg }
+      - { from: 2021, to: 2021, name: The Meat Cove Meatballs, abbreviations: [MEAT], owner: Andrew Halstad, logo: /logos/meat_cove_logo.jpg }
       - { from: 2022, name: Hamhung Hall Monitors, abbreviations: [HUNG], owner: Andrew Halstad, logo: /logos/hamhung_hall_monitors.jpg }
 
   - id: 14
     eras:
-      - { from: 2020, name: Johnny T & The PJs, abbreviations: [JTPJ], owner: Johnny James }
+      - { from: 2020, name: Johnny T & The PJs, abbreviations: [JTPJ], owner: Johnny James, logo: /logos/jtpj_logo.jpg }
 
 # Individual awards, in display order. `name` is the stored name and URL slug source.
 awards:

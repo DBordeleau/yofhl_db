@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import FadeIn from '@/components/fade-in';
 import PlayoffBracket from '@/components/playoff-bracket';
 import StandingsTable from '@/components/standings-table';
+import SeasonArrival from '@/components/season-arrival';
 import StatTable from '@/components/stat-table';
 import TeamBadge from '@/components/team-badge';
 import { JagrCupIcon } from '@/components/trophy-icons';
@@ -25,6 +26,7 @@ export default async function ChampionsPage({ params }: { params: Promise<{ year
     if (season.playoffStatus === 'cancelled') {
         return (
             <FadeIn key={seasonYear} className="flex flex-col gap-10">
+                <SeasonArrival />
                 <div className="mx-auto w-full max-w-board rounded-3xl border-2 border-dashed border-line-strong px-6 py-12 text-center">
                     <div className="text-xs font-bold uppercase tracking-[.2em] text-ink-muted">{season.label}</div>
                     <div className="font-wide mt-2 text-2xl font-extrabold uppercase">Playoffs cancelled</div>
@@ -40,6 +42,7 @@ export default async function ChampionsPage({ params }: { params: Promise<{ year
 
     return (
         <div className="flex flex-col gap-10">
+            <SeasonArrival />
             <FadeIn
                 key={champ.year}
                 // wide screens: champion header becomes a sticky rail beside the roster
@@ -63,7 +66,7 @@ export default async function ChampionsPage({ params }: { params: Promise<{ year
                     <span className="banner-stripes absolute inset-x-0 bottom-[18px] h-3.5" />
                 </section>
 
-                <div className="mx-auto mt-7 max-w-board 3xl:mx-0 3xl:mt-0 3xl:max-w-none">
+                <div id="championship-roster" className="mx-auto mt-7 max-w-board scroll-mt-6 3xl:mx-0 3xl:mt-0 3xl:max-w-none">
                     {champ.rows.length ? (
                         <StatTable topPlayers={champ.rows} mode="champions" animationKey={year} />
                     ) : (

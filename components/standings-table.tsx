@@ -3,7 +3,7 @@ import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import type { StandingRow } from '@/lib/data/league';
-import { formatFpts } from '@/lib/league';
+import { formatFpts, standingsTeamId } from '@/lib/league';
 
 const GRID = 'grid grid-cols-[28px_minmax(0,1fr)_72px_76px] items-center gap-2.5 px-3.5 md:grid-cols-[40px_minmax(0,1fr)_96px_110px_110px] md:gap-4 md:px-6';
 
@@ -11,7 +11,7 @@ const GRID = 'grid grid-cols-[28px_minmax(0,1fr)_72px_76px] items-center gap-2.5
 const StandingsTable: FC<{ standings: StandingRow[]; championFranchiseId: number | null; playoffFranchiseIds: number[] }> = ({ standings, championFranchiseId, playoffFranchiseIds }) => {
     const divisions = Array.from(new Set(standings.map((s) => s.division))).sort((a, b) => a - b);
     return (
-        <section aria-label="Standings">
+        <section id="standings" className="scroll-mt-6" aria-label="Standings">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-wide text-lg font-extrabold uppercase md:text-xl">Regular Season</h2>
                 {playoffFranchiseIds.length > 0 && (
@@ -30,7 +30,7 @@ const StandingsTable: FC<{ standings: StandingRow[]; championFranchiseId: number
                             <span role="columnheader" className="hidden text-right md:block">PA</span>
                         </div>
                         {standings.filter((s) => s.division === division).map((team) => (
-                            <div key={team.teamSeasonId} role="row" className={`${GRID} row-hover min-h-[60px] border-b border-line-soft last:border-b-0`}>
+                            <div key={team.teamSeasonId} id={standingsTeamId(team.franchiseId)} role="row" className={`${GRID} arrival-target row-hover min-h-[60px] border-b border-line-soft last:border-b-0`}>
                                 <span role="cell" className="tabular flex items-center gap-1.5 font-bold text-ink-muted">
                                     {team.divisionRank}
                                 </span>

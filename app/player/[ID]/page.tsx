@@ -5,8 +5,10 @@ import CompareButton from '@/components/compare-button';
 import FadeIn from '@/components/fade-in';
 import PlayerExtras from '@/components/player-extras';
 import PlayerHero from '@/components/player-hero';
+import TransactionHistory from '@/components/transaction-history';
 import type { TrophyItem } from '@/components/trophy-case';
 import { getPlayer } from '@/lib/data/league';
+import { getHistory, getHistorySeasons } from '@/lib/data/history';
 import { seasonLabel } from '@/lib/league';
 
 // Rendered per request from cached data rather than pre-built: Fantrax ids contain "*", which
@@ -22,6 +24,8 @@ export async function generateMetadata({ params }: { params: Promise<{ ID: strin
 export default async function PlayerPage({ params }: { params: Promise<{ ID: string }> }) {
     const player = await getPlayer(decodeURIComponent((await params).ID));
     if (!player) notFound();
+    const scope = { playerId: player.id };
+    const [transactions, historySeasons] = await Promise.all([getHistory(scope), getHistorySeasons(scope)]);
 
     const awardsByYear = player.awards.reduce((acc, a) => {
         (acc[a.Year] ??= []).push(a.Award);
@@ -63,12 +67,17 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
                     actions={<CompareButton id={player.id} name={player.name} />}
                 />
 
+                <nav className="mt-4 flex flex-wrap gap-x-6 text-sm font-bold text-ink-muted" aria-label="Player sections">
+                    <a href="#career-stats" className="inline-flex min-h-11 items-center hover:text-rink-blue">Season stats ↓</a>
+                    <a href="#transactions" className="inline-flex min-h-11 items-center hover:text-rink-blue">Transaction history ↓</a>
+                </nav>
                 {/* season-by-season stats lead; the trophy case and chart follow */}
-                <div className="mt-5">
+                <div id="career-stats" className="mt-5 scroll-mt-6">
                     <CareerTable careerStats={player.playerStats} awardsByYear={awardsByYear} />
                 </div>
 
                 <PlayerExtras trophies={trophies} seasons={player.playerStats} />
+                <TransactionHistory key={`player-history-${player.id}`} scope={scope} initial={transactions} seasons={historySeasons} />
             </FadeIn>
         </main>
     );

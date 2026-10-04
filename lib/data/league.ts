@@ -99,7 +99,32 @@ export interface FranchiseDetail {
     abbreviation: string;
     logo: string | null;
     formerNames: string[];
+    owner: string | null;
+    firstSeason: number;
+    foldedAfterSeason: number | null;
+    wins: number;
+    losses: number;
+    ties: number;
+    fptsFor: number;
+    fptsAgainst: number;
+    championships: number[];
+    finals: number[];
+    seasons: FranchiseSeason[];
     leaders: LeaderRow[];
+}
+
+export interface FranchiseSeason {
+    year: number;
+    name: string;
+    owner: string | null;
+    wins: number;
+    losses: number;
+    ties: number;
+    fptsFor: number;
+    fptsAgainst: number;
+    playoffStatus: 'complete' | 'cancelled';
+    playoffRound: number | null;
+    finalRound: number | null;
 }
 
 export interface AwardWinner {
@@ -278,16 +303,21 @@ export const getFranchiseCards = cached(
 );
 
 export const getFranchise = cached(async (id: number): Promise<FranchiseDetail | null> => {
-    const [franchise] = await rows<{ id: number; name: string; abbreviation: string; logo: string | null; names: string[] }>(sql`
+    const [franchise] = await rows<Omit<FranchiseDetail, 'leaders' | 'seasons'>>(sql`
         select f.id, t.name, t.abbreviation, coalesce(t.logo_url, f.logo_url) as logo,
-               array(select distinct ts.name from league.team_seasons ts where ts.franchise_id = f.id and ts.name <> t.name) as names
+               o.name as owner, f.first_season as "firstSeason", f.folded_after_season as "foldedAfterSeason",
+               fr.wins, fr.losses, fr.ties, fr.fpts_for::float8 as "fptsFor", fr.fpts_against::float8 as "fptsAgainst",
+               fr.championships, fr.finals,
+               array(select distinct ts.name from league.team_seasons ts where ts.franchise_id = f.id and ts.name <> t.name) as "formerNames"
         from league.franchises f
+        join league.franchise_records fr on fr.franchise_id = f.id
         join lateral (
             select * from league.team_seasons ts where ts.franchise_id = f.id order by ts.season_year desc limit 1
         ) t on true
+        left join league.owners o on o.id = t.owner_id
         where f.id = ${id}`);
     if (!franchise) return null;
-    const leaders = await rows<LeaderRow>(sql`
+    const [leaders, seasons] = await Promise.all([rows<LeaderRow>(sql`
         with stints as (
             select ps.player_id, ps.season_year, ps.fpts, ps.fpg, ps.positions
             from league.player_seasons ps
@@ -304,8 +334,23 @@ export const getFranchise = cached(async (id: number): Promise<FranchiseDetail |
                  where ct.franchise_id = ${id} and c.player_id = s.player_id) as "ChampionshipsWon"
         from stints s join league.players p on p.id = s.player_id
         group by s.player_id, p.name
-        order by "FPts" desc, p.name`);
-    return { id: franchise.id, name: franchise.name, abbreviation: franchise.abbreviation, logo: franchise.logo, formerNames: franchise.names, leaders };
+        order by "FPts" desc, p.name`),
+        rows<FranchiseSeason>(sql`
+            select t.season_year as year, t.name, o.name as owner, t.wins, t.losses, t.ties,
+                   t.fpts_for::float8 as "fptsFor", t.fpts_against::float8 as "fptsAgainst",
+                   s.playoff_status as "playoffStatus",
+                   (select max(m.round) from league.matchups m
+                     where m.season_year = t.season_year and m.stage = 'playoff' and m.bracket = 'championship'
+                       and (m.away_team_season_id = t.id or m.home_team_season_id = t.id)) as "playoffRound",
+                   (select max(m.round) from league.matchups m
+                     where m.season_year = t.season_year and m.stage = 'playoff' and m.bracket = 'championship') as "finalRound"
+            from league.team_seasons t
+            join league.seasons s on s.year = t.season_year
+            left join league.owners o on o.id = t.owner_id
+            where t.franchise_id = ${id}
+            order by t.season_year desc`),
+    ]);
+    return { ...franchise, leaders, seasons };
 }, 'franchise');
 
 export const getAwardWinners = cached(async (name: string) => {

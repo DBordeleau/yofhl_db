@@ -15,18 +15,30 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
     const match = pathname.match(/^\/champions\/(\d{4})/);
     const selectedYear = match ? parseInt(match[1], 10) : null;
     const bannerRefs = useRef<Record<number, HTMLElement | null>>({});
+    const railRef = useRef<HTMLDivElement>(null);
+    const latestYear = banners.at(-1)?.year;
 
-    // keep the selected banner visible when the rail scrolls on small screens
+    // Open the mobile rail at the latest season, or the season being viewed.
     useEffect(() => {
-        if (selectedYear && bannerRefs.current[selectedYear]) {
-            bannerRefs.current[selectedYear]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        }
-    }, [selectedYear]);
+        const mobile = window.matchMedia('(max-width: 767px)');
+        const positionRail = () => {
+            const rail = railRef.current;
+            if (!rail || !mobile.matches) return;
+            const selected = selectedYear ? bannerRefs.current[selectedYear] : null;
+            const left = selected
+                ? rail.scrollLeft + selected.getBoundingClientRect().left - rail.getBoundingClientRect().left - (rail.clientWidth - selected.clientWidth) / 2
+                : rail.scrollWidth - rail.clientWidth;
+            rail.scrollTo({ left, behavior: 'instant' });
+        };
+        positionRail();
+        mobile.addEventListener('change', positionRail);
+        return () => mobile.removeEventListener('change', positionRail);
+    }, [selectedYear, latestYear]);
 
     return (
         <section className="mx-auto max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl px-4 pt-4 md:px-8 md:pt-7" aria-label="Jagr Cup champions">
             <div className="relative z-[1] h-2 rounded-full bg-ink" />
-            <div className="flex snap-x gap-2.5 overflow-x-auto overflow-y-hidden px-1 pb-4 md:justify-center md:gap-3.5 md:overflow-visible md:pb-2 3xl:gap-5">
+            <div ref={railRef} className="flex snap-x gap-2.5 overflow-x-auto overflow-y-hidden px-1 pb-4 md:justify-center md:gap-3.5 md:overflow-visible md:pb-2 3xl:gap-5">
                 {banners.map((champ, i) => {
                     const selected = champ.year === selectedYear;
                     const delay = { animationDelay: `${i * 90}ms` };

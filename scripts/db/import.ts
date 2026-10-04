@@ -3,6 +3,7 @@ import path from 'node:path';
 import { eq, inArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
 import { connect, refreshViews, type Db } from './lib/connect';
+import { prepareHistory, writeHistory } from './lib/history';
 import { parsePlayerStats, parsePlayoffs, parseStandings, type PlayerStatRow, type StandingRow } from './lib/fantrax';
 import {
     eraFor,
@@ -413,6 +414,7 @@ const main = async () => {
     const requested = process.argv.slice(2).map(parseSeasonArg);
     const years = requested.length ? requested : Array.from(available.keys()).sort();
     if (!years.length) throw new Error(`No Fantrax CSVs found in ${DATA_DIR}/`);
+    const history = prepareHistory(DATA_DIR, config, years);
 
     const { db, label, migrate, close } = await connect();
     try {
@@ -465,6 +467,7 @@ const main = async () => {
         for (const season of prepared) rows[season.year] = await writeSeason(db, config, season, keep);
 
         const notes = await seedLegacy(db, config, new Set(prepared.map((s) => s.year)));
+        await writeHistory(db, history);
         await refreshViews(db);
 
         const summary = await db.execute<{

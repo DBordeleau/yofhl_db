@@ -9,15 +9,15 @@ import type { FranchiseCard } from '@/lib/data/league';
 type SortKey = 'wins' | 'fpf' | 'cups' | 'finals';
 
 const SORTS: { key: SortKey; label: string; value: (t: FranchiseCard) => number }[] = [
+    { key: 'cups', label: 'Jagr Cups', value: (t) => t.championships.length },
     { key: 'wins', label: 'Wins', value: (t) => t.Wins },
     { key: 'fpf', label: 'Points For', value: (t) => t.FPF },
-    { key: 'cups', label: 'Jagr Cups', value: (t) => t.championships.length },
     { key: 'finals', label: 'Finals', value: (t) => t.finals.length },
 ];
 
 // title, sort control and franchise cards for /teams/stats
 const TeamGrid: FC<{ teams: FranchiseCard[] }> = ({ teams }) => {
-    const [sortKey, setSortKey] = useState<SortKey>('wins');
+    const [sortKey, setSortKey] = useState<SortKey>('cups');
     const sort = SORTS.find((s) => s.key === sortKey)!;
     // ties fall back to wins so the order stays stable
     const sorted = [...teams].sort((a, b) => sort.value(b) - sort.value(a) || b.Wins - a.Wins);
