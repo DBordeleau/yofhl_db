@@ -19,6 +19,8 @@ The YOFHL league archive and live draft lottery, built with Next.js and PostgreS
 | `/lottery` | Scheduled countdown, live pick reveals, and the completed draft order |
 | `/admin` | Sign-in and season checklists for roster, award, and bracket edits |
 | `/admin/lottery` | Lottery scheduling, odds, starting order, and full presentation preview |
+| `/owner` | Owner sign-in, team claims, password resets, and current team editing |
+| `/admin/teams` | Team names, logos, claim status, and owner invitation codes |
 
 `/` and `/stats` redirect to the all-time leaderboard. The team listing is at `/teams/stats`; there is no `/teams` index route. Defunct franchises remain accessible and always appear after active teams in every team-card sort. Each group follows the selected statistic, with wins breaking ties.
 
@@ -57,6 +59,7 @@ npm run lint
 npx tsc --noEmit
 npm run test:lottery
 npm run test:history
+npm run test:owners
 ```
 
 The test suites use Node's test runner and in-memory PGlite for database cases. They do not connect to the league database. They cover lottery timing, odds, disclosure and concurrency, plus history parsing, identity matching and repeat imports. UI changes also need a browser check on the affected pages.
@@ -101,3 +104,5 @@ Configure the [environment variables](docs/data.md#environment) for each Vercel 
 The build command is `next build`. Deployments do not run database migrations or import CSVs. Review and apply required migrations with `npm run db:migrate` against the intended database before deploying code that depends on them. Imports and admin edits have their own [cache refresh behavior](docs/data.md#cache-and-derived-data).
 
 For lottery setup, rehearsal, timing, and recovery behavior, use the [draft lottery guide](docs/lottery.md). Award artwork and stored-name mappings are documented in [public/trophies/README.md](public/trophies/README.md).
+
+For owner invitations, account setup, logo uploads, and historical identity behavior, use the [team management guide](docs/owners.md).
