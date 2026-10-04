@@ -18,7 +18,7 @@ const StandingsTable: FC<{ standings: StandingRow[]; championFranchiseId: number
                     <span className="inline-flex items-center gap-2 text-sm text-ink-soft"><span className="h-2.5 w-2.5 rounded-full bg-rink-line" />Made the playoffs</span>
                 )}
             </div>
-            <div className={`grid gap-5 ${divisions.length > 1 ? 'xl:grid-cols-2' : ''}`}>
+            <div className={`grid gap-5 ${divisions.length > 1 ? '3xl:grid-cols-2' : ''}`}>
                 {divisions.map((division) => (
                     <div key={division} className="overflow-hidden rounded-3xl border border-line bg-white shadow-card" role="table" aria-label={divisions.length > 1 ? `Division ${division}` : 'Standings'}>
                         {divisions.length > 1 && <div className="px-4 pt-4 text-xs font-bold uppercase tracking-[.14em] text-ink-muted md:px-6">Division {division}</div>}

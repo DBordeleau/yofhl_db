@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import styles from './franchise-contents.module.css';
+import styles from './page-contents.module.css';
 
-export interface FranchiseSection { id: string; label: string }
+export interface PageSection { id: string; label: string }
 
-export default function FranchiseContents({ teamName, sections }: { teamName: string; sections: FranchiseSection[] }) {
+export default function PageContents({ title, contentId, sections }: { title: string; contentId: string; sections: PageSection[] }) {
     const [active, setActive] = useState(sections[0].id);
     const [open, setOpen] = useState(false);
     const nav = useRef<HTMLElement>(null);
@@ -28,7 +28,7 @@ export default function FranchiseContents({ teamName, sections }: { teamName: st
         };
         const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
         const observer = new ResizeObserver(schedule);
-        const content = document.getElementById('franchise-sections');
+        const content = document.getElementById(contentId);
         if (content) observer.observe(content);
         update();
         window.addEventListener('scroll', schedule, { passive: true });
@@ -39,7 +39,7 @@ export default function FranchiseContents({ teamName, sections }: { teamName: st
             window.removeEventListener('scroll', schedule);
             window.removeEventListener('resize', schedule);
         };
-    }, [sections]);
+    }, [contentId, sections]);
 
     useEffect(() => {
         if (!open) return;
@@ -61,15 +61,15 @@ export default function FranchiseContents({ teamName, sections }: { teamName: st
     };
 
     return (
-        <nav ref={nav} className={styles.nav} aria-label={`${teamName}: on this page`}
+        <nav ref={nav} className={styles.nav} aria-label={`${title}: on this page`}
             onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
             onKeyDown={(event) => { if (event.key === 'Escape' && open) { setOpen(false); toggle.current?.focus(); } }}>
             <div className="hidden px-5 pb-4 pt-5 xl:block">
                 <h2 className="text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-muted">On this page</h2>
-                <p className="mt-2 text-sm font-bold leading-snug text-ink">{teamName}</p>
+                <p className="mt-2 text-sm font-bold leading-snug text-ink">{title}</p>
             </div>
             <button ref={toggle} type="button" className="flex min-h-[68px] w-full items-center justify-between gap-3 rounded-2xl px-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rink-blue xl:hidden"
-                aria-expanded={open} aria-controls="franchise-contents-links" onClick={() => setOpen(!open)}>
+                aria-expanded={open} aria-controls={`${contentId}-links`} onClick={() => setOpen(!open)}>
                 <span><span className="block text-[10px] font-extrabold uppercase tracking-[.14em] text-ink-muted">On this page</span>
                     <span className="mt-1 block text-sm font-bold">{sections[activeIndex].label}</span></span>
                 <span className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors motion-reduce:transition-none ${open ? 'bg-ink text-white' : 'bg-rink-wash text-rink-blue'}`}>
@@ -78,7 +78,7 @@ export default function FranchiseContents({ teamName, sections }: { teamName: st
                     </svg>
                 </span>
             </button>
-            <div id="franchise-contents-links" className={`${styles.menu} ${open ? styles.open : ''}`}>
+            <div id={`${contentId}-links`} className={`${styles.menu} ${open ? styles.open : ''}`}>
                 <ul className="relative space-y-1">
                     {sections.map((section, index) => (
                         <li key={section.id}>

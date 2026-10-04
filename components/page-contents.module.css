@@ -12,7 +12,8 @@
     margin-top: 24px;
 }
 
-.sections > [id] {
+.sections > [id],
+.sections .anchor {
     scroll-margin-top: 108px;
     outline: none;
 }
@@ -90,7 +91,8 @@
         margin-top: 0;
     }
 
-    .sections > [id] {
+    .sections > [id],
+    .sections .anchor {
         scroll-margin-top: 24px;
     }
 

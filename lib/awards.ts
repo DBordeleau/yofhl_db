@@ -29,7 +29,7 @@ export const AWARDS: readonly AwardDefinition[] = [
     },
     {
         id: 'le-magnifique', name: 'Le Magnifique', label: 'Le Magnifique', scope: 'player', honor: 'Most valuable player',
-        description: 'YOFHL most valuable player award. Our counterpart to the Hart Trophy honours the player whose contribution defines an MVP season.',
+        description: 'YOFHL’s most valuable player award. Our counterpart to the Hart Trophy honours the player whose contributions singlehandedly transformed the direction of their team’s season.',
         image: '/trophies/le-magnifique.webp',
     },
     {
