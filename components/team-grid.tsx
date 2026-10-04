@@ -19,8 +19,10 @@ const SORTS: { key: SortKey; label: string; value: (t: FranchiseCard) => number 
 const TeamGrid: FC<{ teams: FranchiseCard[] }> = ({ teams }) => {
     const [sortKey, setSortKey] = useState<SortKey>('cups');
     const sort = SORTS.find((s) => s.key === sortKey)!;
-    // ties fall back to wins so the order stays stable
-    const sorted = [...teams].sort((a, b) => sort.value(b) - sort.value(a) || b.Wins - a.Wins);
+    // Active teams come first; each group uses the selected sort, with wins breaking ties.
+    const sorted = [...teams].sort((a, b) =>
+        Number(a.defunct) - Number(b.defunct) || sort.value(b) - sort.value(a) || b.Wins - a.Wins,
+    );
 
     return (
         <>
