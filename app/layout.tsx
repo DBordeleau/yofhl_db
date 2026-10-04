@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Archivo } from "next/font/google";
 import Header from "@/components/header";
+import { GoldGradientDefs } from "@/components/trophy-icons";
+import { getAwardTypes } from "@/lib/data/league";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+// variable width axis drives the expanded headings and condensed rank numbers
+const archivo = Archivo({
+  subsets: ["latin"],
+  axes: ["wdth"],
+  variable: "--font-archivo",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -19,23 +18,19 @@ export const metadata: Metadata = {
   description: "An interactive webapp that lets you make queries to the YOFHL database.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const awards = await getAwardTypes();
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-transparent overflow-x-hidden`}
-      >
-        <div className="lg:w-full bg-transparent">
-          <Header />
-        </div>
-        <div className="bg-sky-100 absolute overflow-hidden -z-10 top-[8rem] h-full w-full rounded-full blur-[10rem]"></div>
+      <body className={`${archivo.variable} min-h-screen overflow-x-hidden bg-ice font-sans text-ink antialiased`}>
+        <GoldGradientDefs />
+        <Header awards={awards} />
         {children}
       </body>
     </html>
   );
 }
-

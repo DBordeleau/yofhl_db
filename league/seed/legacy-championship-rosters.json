@@ -1,0 +1,627 @@
+{
+  "note": "Snapshot of the live site's data, taken before the move to the new schema. Imported once into the curated tables.",
+  "rosters": {
+    "2019": [
+      {
+        "playerId": "*03jvu*",
+        "player": "Mitch Marner",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*003fj*",
+        "player": "Patrice Bergeron",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*03jxy*",
+        "player": "Auston Matthews",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*03duf*",
+        "player": "Dylan Larkin",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*003wx*",
+        "player": "Alexander Radulov",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*01whl*",
+        "player": "Jeff Skinner",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*03ra8*",
+        "player": "Timo Meier",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*003yc*",
+        "player": "Zach Parise",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*02ni5*",
+        "player": "Jonathan Marchessault",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*003sp*",
+        "player": "Dustin Brown",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*0243f*",
+        "player": "Seth Jones",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*02ybm*",
+        "player": "Ryan Pulock",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*00u0m*",
+        "player": "Alex Pietrangelo",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*02ybj*",
+        "player": "Anthony Mantha",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*01mzf*",
+        "player": "Reilly Smith",
+        "fantasyTeamAtSeasonEnd": "WWE"
+      },
+      {
+        "playerId": "*003x4*",
+        "player": "Ryan Suter",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*0043s*",
+        "player": "James van Riemsdyk",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*0457f*",
+        "player": "Nico Hischier",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*03rab*",
+        "player": "Jake DeBrusk",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*031v2*",
+        "player": "Andreas Johnsson",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*03as6*",
+        "player": "Jared McCann",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*02fda*",
+        "player": "Jordan Binnington",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*01zs7*",
+        "player": "Philipp Grubauer",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*003k6*",
+        "player": "Corey Crawford",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*020h1*",
+        "player": "Justin Schultz",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*04lbz*",
+        "player": "Quinn Hughes",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      }
+    ],
+    "2021": [
+      {
+        "playerId": "*03jxy*",
+        "player": "Auston Matthews",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*004jl*",
+        "player": "Brad Marchand",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*03jvu*",
+        "player": "Mitch Marner",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*02o7s*",
+        "player": "Connor Hellebuyck",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*01c13*",
+        "player": "Victor Hedman",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*003fj*",
+        "player": "Patrice Bergeron",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*01f6d*",
+        "player": "Ryan O'Reilly",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*005gi*",
+        "player": "Alec Martinez",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*00qnu*",
+        "player": "Drew Doughty",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*01fx3*",
+        "player": "Roman Josi",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*02b81*",
+        "player": "Johnny Gaudreau",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*03ece*",
+        "player": "Igor Shesterkin",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*02nok*",
+        "player": "Tomas Hertl",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*0042t*",
+        "player": "Claude Giroux",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*02nq2*",
+        "player": "Chandler Stephenson",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*03mn2*",
+        "player": "Jesse Puljujarvi",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      },
+      {
+        "playerId": "*003wx*",
+        "player": "Alexander Radulov",
+        "fantasyTeamAtSeasonEnd": "HCHH"
+      }
+    ],
+    "2022": [
+      {
+        "playerId": "*04alw*",
+        "player": "Cale Makar",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*02nom*",
+        "player": "Andrei Vasilevskiy",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*02yjw*",
+        "player": "Tristan Jarry",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*02fzm*",
+        "player": "Filip Forsberg",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*042w4*",
+        "player": "Adam Fox",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*048vf*",
+        "player": "Andrei Svechnikov",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*003tz*",
+        "player": "Brent Burns",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*04ad7*",
+        "player": "Rasmus Dahlin",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*01sio*",
+        "player": "Mats Zuccarello",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*03duf*",
+        "player": "Dylan Larkin",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*03ec6*",
+        "player": "Devon Toews",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*042vl*",
+        "player": "Jordan Kyrou",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*01ztr*",
+        "player": "Ryan Johansen",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*04y8g*",
+        "player": "Trevor Zegras",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*0047x*",
+        "player": "David Perron",
+        "fantasyTeamAtSeasonEnd": "FA"
+      },
+      {
+        "playerId": "*03mn5*",
+        "player": "Patrik Laine",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*03924*",
+        "player": "Jack Eichel",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*0040l*",
+        "player": "Jaromir Jagr",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      }
+    ],
+    "2023": [
+      {
+        "playerId": "*04ad7*",
+        "player": "Rasmus Dahlin",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*03jvu*",
+        "player": "Mitchell Marner",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*02nom*",
+        "player": "Andrei Vasilevskiy",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*042w4*",
+        "player": "Adam Fox",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*04alw*",
+        "player": "Cale Makar",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*0045k*",
+        "player": "Evgeni Malkin",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*0042t*",
+        "player": "Claude Giroux",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*03as6*",
+        "player": "Jared McCann",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*03zul*",
+        "player": "Filip Gustavsson",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*04mtp*",
+        "player": "Dylan Cozens",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*03924*",
+        "player": "Jack Eichel",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*04y8g*",
+        "player": "Trevor Zegras",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*01n84*",
+        "player": "Alex Killorn",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*048vf*",
+        "player": "Andrei Svechnikov",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*01skq*",
+        "player": "Cam Fowler",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*03mn5*",
+        "player": "Patrik Laine",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*04osu*",
+        "player": "Barrett Hayton",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*04n4n*",
+        "player": "Rasmus Sandin",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*048x7*",
+        "player": "Juuso Valimaki",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*05gda*",
+        "player": "Kent Johnson",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*01f66*",
+        "player": "Kyle Palmieri",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      },
+      {
+        "playerId": "*05mwh*",
+        "player": "Devon Levi",
+        "fantasyTeamAtSeasonEnd": "JAGR"
+      }
+    ],
+    "2024": [
+      {
+        "playerId": "*02un4*",
+        "player": "Connor McDavid",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*03bfj*",
+        "player": "Artemi Panarin",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*01fx3*",
+        "player": "Roman Josi",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*02un5*",
+        "player": "Sam Reinhart",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*04kyh*",
+        "player": "Brady Tkachuk",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*03e1m*",
+        "player": "Brayden Point",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*04ld3*",
+        "player": "Noah Dobson",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*01ztp*",
+        "player": "Zach Hyman",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*01c13*",
+        "player": "Victor Hedman",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*04apb*",
+        "player": "Robert Thomas",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*04zb4*",
+        "player": "Moritz Seider",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*003t7*",
+        "player": "Anze Kopitar",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*0322w*",
+        "player": "Ilya Sorokin",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*02ybl*",
+        "player": "Valeri Nichushkin",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*04zj5*",
+        "player": "JJ Peterka",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*04ldb*",
+        "player": "Bowen Byram",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*03mm7*",
+        "player": "Ilya Samsonov",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*01zry*",
+        "player": "Frederik Andersen",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      },
+      {
+        "playerId": "*05rf2*",
+        "player": "Logan Stankoven",
+        "fantasyTeamAtSeasonEnd": "VWIZ"
+      }
+    ],
+    "2025": [
+      {
+        "playerId": "*02b70*",
+        "player": "Nikita Kucherov",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*03jvu*",
+        "player": "Mitch Marner",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*00454*",
+        "player": "Sidney Crosby",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*01ud1*",
+        "player": "Sergei Bobrovsky",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*04qy5*",
+        "player": "Kirill Marchenko",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*03yg3*",
+        "player": "Mikhail Sergachev",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*04bdb*",
+        "player": "Jack Hughes",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*04yu5*",
+        "player": "Thomas Harley",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*04ln4*",
+        "player": "Kiefer Sherwood",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*003kg*",
+        "player": "Patrick Kane",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*05r1l*",
+        "player": "William Eklund",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*01xfp*",
+        "player": "Jaden Schwartz",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*02oar*",
+        "player": "Linus Ullmark",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*02un6*",
+        "player": "Sean Monahan",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*04ldb*",
+        "player": "Bowen Byram",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*04y80*",
+        "player": "Shane Wright",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*04dwk*",
+        "player": "Josh Norris",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*03mn5*",
+        "player": "Patrik Laine",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*03wpm*",
+        "player": "Charlie McAvoy",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      },
+      {
+        "playerId": "*03dug*",
+        "player": "Tony DeAngelo",
+        "fantasyTeamAtSeasonEnd": "HUNG"
+      }
+    ]
+  }
+}

@@ -1,160 +1,121 @@
-import { FC, useEffect, useState } from 'react';
-import { HiTrophy } from 'react-icons/hi2';
-import Link from 'next/link';
+'use client';
 
-// move to /lib/utils/types ?
-interface CareerStats {
+import React, { FC, useState } from 'react';
+import Link from 'next/link';
+import AwardLegend from '@/components/award-legend';
+import TeamBadge from '@/components/team-badge';
+import { JagrCupIcon } from '@/components/trophy-icons';
+import { formatFpts, seasonLabel } from '@/lib/league';
+
+export interface CareerStats {
     Year: number;
     Position: string;
     YOFHLTeam: string;
     FPts: number;
-    FPG: string;
+    FPG: number;
     Champion?: boolean;
-    TeamID: number | null;
+    TeamID: string | null;
+    teamName: string | null; // the team's name that season
+    teamLogo: string | null;
 }
 
 interface CareerTableProps {
-    playerID: string;
+    careerStats: CareerStats[];
+    awardsByYear: Record<number, string[]>; // award names per season, used for the row highlights
 }
 
-// contains a given player's career stats. Rendered at /player/[ID]
-const CareerTable: FC<CareerTableProps> = ({ playerID }) => {
-    const [careerStats, setCareerStats] = useState<CareerStats[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-    const [sortKey, setSortKey] = useState<keyof CareerStats>('Year');
+type SortKey = 'Year' | 'FPts' | 'FPG';
+
+// desktop columns share the width evenly so FPts and FP/G sit in the middle of the table, not off at the far edge
+const GRID = 'grid grid-cols-[minmax(0,1fr)_84px_50px] items-center gap-2.5 px-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:gap-4 lg:px-8';
+
+const ChampionBadge: FC = () => (
+    <span className="metal-gold inline-flex h-7 items-center gap-1.5 rounded-full pl-2 pr-3 text-xs font-extrabold uppercase tracking-[.08em] text-[#2B1D00] shadow-[0_4px_12px_-4px_rgba(184,134,11,.6)]">
+        <JagrCupIcon className="h-[18px] w-[13px]" />
+        Champion
+    </span>
+);
+
+// season-by-season stats, the main section of /player/[ID]
+const CareerTable: FC<CareerTableProps> = ({ careerStats, awardsByYear }) => {
+    const [sortKey, setSortKey] = useState<SortKey>('Year');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-    useEffect(() => {
-        const fetchCareerStats = async () => {
-            try {
-                const response = await fetch(`/api/player/${playerID}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch career stats');
-                }
-                const data = await response.json();
-                setCareerStats(data.playerStats || []);
-            } catch (error) {
-                if (error instanceof Error) {
-                    setError(error.message);
-                } else {
-                    setError('An unknown error occurred');
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCareerStats();
-    }, [playerID]);
-
-    if (loading) {
-        return <div>Loading...</div>;
-    }
-
-    if (error) {
-        return <div>{error}</div>;
-    }
-
-    const handleSort = (key: keyof CareerStats) => {
-        const newSortOrder = sortKey === key && sortOrder === 'asc' ? 'desc' : 'asc';
+    const handleSort = (key: SortKey) => {
+        setSortOrder(sortKey === key && sortOrder === 'asc' ? 'desc' : 'asc');
         setSortKey(key);
-        setSortOrder(newSortOrder);
-
-        const sortedStats = [...careerStats].sort((a, b) => {
-            if (key === 'FPG') {
-                const aValue = parseFloat(a[key] ?? '0');
-                const bValue = parseFloat(b[key] ?? '0');
-                return newSortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-            } else {
-                const aValue = a[key] ?? 0;
-                const bValue = b[key] ?? 0;
-                if (aValue < bValue) return newSortOrder === 'asc' ? -1 : 1;
-                if (aValue > bValue) return newSortOrder === 'asc' ? 1 : -1;
-                return 0;
-            }
-        });
-
-        setCareerStats(sortedStats);
     };
 
-    if (error) {
-        return <div>{error}</div>;
-    }
+    const rows = careerStats
+        .filter((stat) => stat.FPts > 0 || stat.YOFHLTeam !== 'FA')
+        .sort((a, b) => (sortOrder === 'asc' ? a[sortKey] - b[sortKey] : b[sortKey] - a[sortKey]));
 
-    const totalFPts = careerStats?.reduce((acc, stat) => acc + stat.FPts, 0) || 0;
+    const totalFPts = careerStats.reduce((acc, stat) => acc + stat.FPts, 0);
+    const awardCounts = rows.map((stat) => awardsByYear[stat.Year]?.length ?? 0);
+
+    const header = (key: SortKey, label: string, numeric = false) => (
+        <span className={numeric ? 'text-right lg:text-center' : ''} aria-sort={sortKey === key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'} role="columnheader">
+            <button type="button" onClick={() => handleSort(key)} className="min-h-11 uppercase tracking-[inherit] hover:text-rink-blue">
+                {label}{sortKey === key ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : ''}
+            </button>
+        </span>
+    );
 
     return (
-        <div className="flex flex-col items-center w-full max-w-7xl h-fit mb-8 overflow-y-scroll overflow-x-auto rounded-b-lg mx-auto">
-            <table className="shadow-md mb-4 border border-collapse border-solid border-slate-400 items-center text-center table-auto text-slate-800 w-full">
-                <thead>
-                    <tr className="text-black text-nowrap text-[.9rem] md:text-[1.25rem] border border-solid border-slate-400 bg-sky-300">
-                        <th
-                            className="px-2 py-2 w-1/12 cursor-pointer"
-                            onClick={() => handleSort('Year')}
-                        >
-                            Year {sortKey === 'Year' && (sortOrder === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th className="px-2 py-2 w-1/4 sm:w-1/4">Team</th>
-                        <th
-                            className="px-2 py-2 w-1/5 sm:w-1/5 cursor-pointer"
-                            onClick={() => handleSort('FPts')}
-                        >
-                            Total Fpts {sortKey === 'FPts' && (sortOrder === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th
-                            className="px-2 py-2 w-1/5 sm:w-1/5 cursor-pointer"
-                            onClick={() => handleSort('FPG')}
-                        >
-                            FP/G {sortKey === 'FPG' && (sortOrder === 'asc' ? '↑' : '↓')}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {careerStats.length > 0 ? (
-                        careerStats
-                            .filter((stat) => stat.FPts > 0 || stat.YOFHLTeam !== 'FA')
-                            .map((stat, index) => (
-                                <tr
-                                    key={index}
-                                    className="text-[.9rem] bg-white md:text-[1.25rem] border-t group border border-solid border-slate-300"
-                                >
-                                    <td className="px-2 py-2 flex justify-center items-center">
-                                        <span>{stat.Year}</span>
-                                        {stat.Champion && (
-                                            <HiTrophy className="ml-2 text-yellow-500" title="Champion" />
-                                        )}
-                                    </td>
-                                    <td className="px-2 py-2">
-                                        {stat.TeamID ? (
-                                            <Link href={`/teams/${stat.TeamID}`} className="hover:underline">{stat.YOFHLTeam}</Link>
-                                        ) : (
-                                            stat.YOFHLTeam
-                                        )}
-                                    </td>
-                                    <td className="px-2 py-2">{stat.FPts}</td>
-                                    <td className="px-2 py-2">{stat.FPG}</td>
-                                </tr>
-                            ))
+        <section className="overflow-hidden rounded-3xl border border-line bg-white shadow-card" role="table" aria-label="Season by season">
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 pb-3 pt-5 lg:px-6">
+                <h2 className="font-wide m-0 text-lg font-extrabold uppercase lg:text-xl">Season by Season</h2>
+                <AwardLegend award={awardCounts.some((c) => c === 1)} multipleAwards={awardCounts.some((c) => c > 1)} />
+            </div>
+            <div className={`${GRID} border-b-2 border-ink text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted lg:text-xs`} role="row">
+                {header('Year', 'Season')}
+                <span role="columnheader" className="hidden lg:block">Team</span>
+                {header('FPts', 'FPts', true)}
+                {header('FPG', 'FP/G', true)}
+            </div>
+            {rows.length > 0 ? (
+                rows.map((stat, index) => {
+                    const awardCount = awardsByYear[stat.Year]?.length ?? 0;
+                    const highlight = awardCount > 1 ? 'bg-award-multi' : awardCount === 1 ? 'bg-award-single' : '';
+                    const team = stat.TeamID ? (
+                        <Link href={`/teams/${stat.TeamID}`} className="hover:text-rink-blue hover:underline" title={stat.teamName ?? undefined}>{stat.YOFHLTeam}</Link>
                     ) : (
-                        <tr>
-                            <td colSpan={5} className="px-2 py-2 text-center text-slate-500">
-                                No career stats available
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-                <tfoot>
-                    <tr className="bg-white text-black text-[.9rem] md:text-[1.25rem] border border-solid border-slate-400">
-                        <td colSpan={2} className="px-2 py-2 font-semibold text-right">
-                            Total Career Stats
-                        </td>
-                        <td className="px-2 py-2 font-semibold">{totalFPts}</td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+                        stat.YOFHLTeam
+                    );
+                    return (
+                        <div
+                            key={stat.Year}
+                            role="row"
+                            className={`${GRID} row-hover animate-rise min-h-[64px] border-b border-line-soft ${highlight}`}
+                            style={{ animationDelay: `${index * 40}ms` }}
+                        >
+                            <span role="cell" className="flex min-w-0 flex-col gap-1 py-3">
+                                <span className="flex flex-wrap items-center gap-2.5">
+                                    <span className="tabular text-[17px] font-extrabold">{seasonLabel(stat.Year)}</span>
+                                    {stat.Champion && <ChampionBadge />}
+                                </span>
+                                {/* phones and tablets: team tucks under the season */}
+                                <span className="text-sm font-semibold text-ink-muted lg:hidden">{team}</span>
+                            </span>
+                            <span role="cell" className="hidden min-w-0 items-center gap-2.5 font-semibold text-ink-muted lg:flex">
+                                {stat.teamName && <TeamBadge logo={stat.teamLogo} abbreviation={stat.YOFHLTeam} teamName={stat.teamName} size={32} ring="none" />}
+                                {team}
+                            </span>
+                            <span role="cell" className="tabular text-right text-[17px] font-extrabold lg:text-center lg:text-[22px]">{formatFpts(stat.FPts)}</span>
+                            <span role="cell" className="tabular text-right text-[15px] font-bold text-ink-soft lg:text-center lg:text-[19px]">{stat.FPG.toFixed(2)}</span>
+                        </div>
+                    );
+                })
+            ) : (
+                <div className="p-7 text-center text-ink-muted">No career stats available</div>
+            )}
+            <div className={`${GRID} min-h-[58px] bg-ink text-white`} role="row">
+                <span role="cell" className="font-extrabold">Career</span>
+                <span role="cell" className="hidden lg:block" />
+                <span role="cell" className="tabular text-right text-[17px] font-extrabold lg:text-center lg:text-[22px]">{formatFpts(totalFPts)}</span>
+                <span role="cell" />
+            </div>
+        </section>
     );
 };
 

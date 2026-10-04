@@ -34,7 +34,8 @@ interface CustomTooltipProps {
     payload?: TooltipPayload[];
 }
 
-const COLORS = ['#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ec4899'];
+// series colours, also used for the selected-player swatches on /compare
+export const COMPARE_COLORS = ['#1F6FC2', '#C8102E', '#B8860B', '#2E9E6B', '#7A4FD0'];
 
 const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersData, playerNames }) => {
     const [showFPG, setShowFPG] = useState(false);
@@ -108,15 +109,15 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
             if (sortedPayload.length === 0) return null;
 
             return (
-                <div className="bg-white p-3 border border-gray-300 rounded-lg shadow-lg">
-                    <p className="font-semibold mb-2">{`Season: ${sortedPayload[0].payload.year}`}</p>
+                <div className="rounded-2xl border border-line bg-white px-3.5 py-3 shadow-[0_16px_32px_-16px_rgba(31,39,69,.45)]">
+                    <p className="mb-2 font-extrabold tabular">{`Season: ${sortedPayload[0].payload.year}`}</p>
                     {sortedPayload.map((entry, index) => {
                         return (
                             <div key={index} className="mb-1">
-                                <p style={{ color: entry.color }} className="font-medium">
+                                <p style={{ color: entry.color }} className="font-bold">
                                     {playerNames[entry.dataKey.split('_')[0]]}
                                 </p>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-ink-muted tabular">
                                     {showFPG ? `FPG: ${entry.value}` : `FPts: ${entry.value.toFixed(2)}`}
                                 </p>
                             </div>
@@ -130,8 +131,8 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
 
     if (commonYears.length === 0) {
         return (
-            <div className="w-full max-w-4xl p-4 text-center text-gray-500 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="font-semibold">No overlapping seasons found</p>
+            <div className="w-full rounded-3xl border-2 border-dashed border-line-strong p-6 text-center text-ink-muted">
+                <p className="font-bold text-ink">No overlapping seasons found</p>
                 <p className="text-sm mt-2">The selected players don&apos;t have any seasons where they all played.</p>
             </div>
         );
@@ -139,32 +140,32 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
 
     return (
         <motion.div
-            className="w-full max-w-4xl mb-6 p-4 bg-white rounded-lg shadow-md"
+            className="mb-6 w-full rounded-3xl border border-line bg-white p-4 shadow-card md:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
         >
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">
-                    Player Comparison - {showFPG ? 'Fantasy Points per Game' : 'Fantasy Points'}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-wide m-0 text-lg font-extrabold uppercase">
+                    {showFPG ? 'FP/G' : 'Fantasy Points'}
                 </h2>
 
                 {/* Toggle Button */}
-                <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
+                <div className="flex gap-1 rounded-2xl bg-line-soft p-1" role="group" aria-label="Chart metric">
                     <button
                         onClick={() => setShowFPG(false)}
-                        className={`px-4 py-2 rounded-md transition-all ${!showFPG
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-transparent text-gray-600 hover:bg-gray-200'
+                        className={`inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold transition-colors ${!showFPG
+                            ? 'bg-white text-ink shadow-[0_1px_2px_rgba(18,24,46,.12),0_0_0_1px_#DCE5EE]'
+                            : 'text-ink-muted hover:text-ink'
                             }`}
                     >
                         FPts
                     </button>
                     <button
                         onClick={() => setShowFPG(true)}
-                        className={`px-4 py-2 rounded-md transition-all ${showFPG
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-transparent text-gray-600 hover:bg-gray-200'
+                        className={`inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold transition-colors ${showFPG
+                            ? 'bg-white text-ink shadow-[0_1px_2px_rgba(18,24,46,.12),0_0_0_1px_#DCE5EE]'
+                            : 'text-ink-muted hover:text-ink'
                             }`}
                     >
                         FPG
@@ -177,11 +178,11 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
                     data={chartData}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <CartesianGrid vertical={false} stroke="#E6EDF4" />
                     <XAxis
                         dataKey="year"
                         label={{ value: 'Season', position: 'insideBottom', offset: -5 }}
-                        tick={{ fill: '#666' }}
+                        tick={{ fill: '#56627A', fontSize: 12 }}
                     />
                     <YAxis
                         label={{
@@ -189,7 +190,7 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
                             angle: -90,
                             position: 'insideLeft'
                         }}
-                        tick={{ fill: '#666' }}
+                        tick={{ fill: '#56627A', fontSize: 12 }}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
@@ -205,9 +206,9 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
                             key={playerID}
                             type="monotone"
                             dataKey={showFPG ? `${playerID}_fpg` : `${playerID}_fpts`}
-                            stroke={COLORS[index % COLORS.length]}
+                            stroke={COMPARE_COLORS[index % COMPARE_COLORS.length]}
                             strokeWidth={3}
-                            dot={{ fill: COLORS[index % COLORS.length], r: 5 }}
+                            dot={{ fill: COMPARE_COLORS[index % COMPARE_COLORS.length], r: 5 }}
                             activeDot={{ r: 8 }}
                             name={`${playerID}_${showFPG ? 'fpg' : 'fpts'}`}
                             connectNulls={false}
@@ -217,7 +218,7 @@ const PlayerComparisonGraph: React.FC<PlayerComparisonGraphProps> = ({ playersDa
             </ResponsiveContainer>
 
             {/* Comparison period info */}
-            <div className="mt-4 text-center text-sm text-gray-600 border-t pt-3">
+            <div className="mt-4 border-t border-line-soft pt-3 text-center text-sm text-ink-muted">
                 <p>
                     Comparing {Object.keys(playersData).length} players over {commonYears.length} season{commonYears.length !== 1 ? 's' : ''} ({commonYears[0]} - {commonYears[commonYears.length - 1]})
                 </p>

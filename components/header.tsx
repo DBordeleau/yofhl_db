@@ -1,189 +1,186 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import type { AwardType } from "@/lib/data/league";
+import { awardSlug } from "@/lib/league";
 
-const Header: React.FC = () => {
+const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const pathname = usePathname();
     const [isMenuOpen, setIsMenuOpen] = useState(false); // mobile menu state
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLLIElement>(null);
 
     const navItems = [
-        { name: "Player Stats", href: "/stats/all-time/all", isActive: pathname.startsWith("/stats/all-time/") || pathname.startsWith("/stats/single-season/") },
-        { name: "Compare Players", href: "/compare", isActive: pathname.startsWith("/compare") },
-        { name: "Team Stats", href: "/teams/stats", isActive: pathname === "/teams/stats" },
-        { name: "Champions", href: "/champions", isActive: pathname === "/champions" },
-        { name: "Awards", href: "/awards", isActive: pathname.startsWith("/awards") },
+        { name: "Leaderboards", href: "/stats/all-time/all", isActive: pathname.startsWith("/stats") || pathname.startsWith("/player") },
+        { name: "Compare", href: "/compare", isActive: pathname.startsWith("/compare") },
+        { name: "Teams", href: "/teams/stats", isActive: pathname.startsWith("/teams") },
+        { name: "Champions", href: "/champions", isActive: pathname.startsWith("/champions") },
     ];
+    const awardsActive = pathname.startsWith("/awards");
 
     // award dropdown links
-    const awardItems = [
-        { name: "Wayne Gretzky Award (Top Player)", href: "/awards/Wayne_Gretzky_Award" },
-        { name: "Le Magnifique (MVP)", href: "/awards/Le_Magnifique" },
-        { name: "Bobby Orr Award (Top Defenseman)", href: "/awards/Bobby_Orr_Award" },
-        { name: "Hasek Trophy (Top Goaltender)", href: "/awards/Hasek_Trophy" },
-        { name: "Teemu Selanne Trophy (Top Rookie)", href: "/awards/Teemu_Trophy" },
-        { name: "Danny Briere Award (Playoff MVP)", href: "/awards/Danny_Briere_Award" },
-    ];
+    const awardItems = awards.map((award) => ({
+        name: award.label,
+        description: award.description,
+        href: `/awards/${awardSlug(award.name)}`,
+    }));
 
     useEffect(() => {
         setIsDropdownOpen(false);
         setIsMenuOpen(false);
     }, [pathname]);
 
+    // close the awards dropdown on outside click or escape
+    useEffect(() => {
+        if (!isDropdownOpen) return;
+        const onClick = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsDropdownOpen(false);
+        };
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setIsDropdownOpen(false);
+        };
+        document.addEventListener("mousedown", onClick);
+        document.addEventListener("keydown", onKey);
+        return () => {
+            document.removeEventListener("mousedown", onClick);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [isDropdownOpen]);
+
+    const linkClass = (active: boolean) =>
+        `relative inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-[15px] font-semibold transition-colors hover:bg-rink-wash hover:text-ink ${active
+            ? "text-ink after:absolute after:inset-x-3.5 after:bottom-1 after:h-[3px] after:rounded-full after:bg-rink-red"
+            : "text-ink-soft"
+        }`;
+
+    const chevron = (open: boolean) => (
+        <svg className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+        </svg>
+    );
+
     return (
-        <div className="bg-transparent relative z-50">
-            <nav className="relative px-4 py-4 flex justify-between items-center bg-white/10 mx-auto max-w-7xl w-full">
-                <div className="flex items-center">
-                    <Link href="/">
-                        <Image // logo made by Nick Kavanagh
-                            src="/yofhldblogo.png"
-                            alt="YOFHLDB Logo"
-                            title="Logo by Nick Kavanagh"
-                            width={60}
-                            height={60}
-                            className="w-16 h-16 object-contain md:w-16 md:h-16 lg:w-16 lg:h-16"
-                        />
-                    </Link>
-                </div>
-                <div className="lg:hidden">
-                    <button // hamburger button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="navbar-burger flex items-center text-sky-600 p-3"
-                    >
-                        <svg
-                            className="block h-6 w-6 fill-current"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <title>Mobile menu</title>
-                            <path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"></path>
-                        </svg>
-                    </button>
-                </div>
+        <header className="relative z-50 border-b border-line bg-white">
+            <nav className="mx-auto flex min-h-16 max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl items-center gap-6 px-4 md:min-h-[76px] md:px-8" aria-label="Primary">
+                <Link href="/" className="flex flex-none" aria-label="YOFHL Database home">
+                    <Image // logo made by Nick Kavanagh
+                        src="/yofhldblogo.png"
+                        alt="YOFHL Database"
+                        title="Logo by Nick Kavanagh"
+                        width={52}
+                        height={52}
+                        className="h-11 w-11 object-contain md:h-[52px] md:w-[52px]"
+                        priority
+                    />
+                </Link>
 
                 {/* desktop/large display nav */}
-                <ul className="hidden lg:flex lg:items-center lg:space-x-6 mx-auto bg-transparent">
-                    {navItems.map((item) =>
-                        item.name === "Awards" ? (
-                            <li key={item.name} className="relative group">
-                                <button
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className={`text-sm font-bold flex items-center ${item.isActive
-                                        ? "text-sky-500"
-                                        : "text-gray-400 hover:text-gray-500"
-                                        }`}
+                <ul className="ml-auto hidden items-center gap-0.5 md:flex">
+                    {navItems.map((item) => (
+                        <li key={item.name}>
+                            <Link href={item.href} className={linkClass(item.isActive)} aria-current={item.isActive ? "page" : undefined}>
+                                {item.name}
+                            </Link>
+                        </li>
+                    ))}
+                    <li className="relative" ref={dropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            className={linkClass(awardsActive)}
+                            aria-expanded={isDropdownOpen}
+                            aria-haspopup="true"
+                        >
+                            Awards {chevron(isDropdownOpen)}
+                        </button>
+                        <AnimatePresence>
+                            {isDropdownOpen && (
+                                <motion.ul
+                                    initial={{ opacity: 0, y: -6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.18 }}
+                                    className="absolute right-0 mt-2 w-72 overflow-hidden rounded-2xl border border-line bg-white p-1.5 shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]"
                                 >
-                                    {item.name}
-                                    <svg
-                                        className={`ml-2 h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : "rotate-0"}`}
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
+                                    {awardItems.map((award) => (
+                                        <li key={award.name}>
+                                            <Link
+                                                href={award.href}
+                                                className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-[15px] font-semibold text-ink hover:bg-rink-wash"
+                                            >
+                                                {award.name}
+                                                <span className="text-xs font-semibold text-ink-muted">{award.description}</span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </motion.ul>
+                            )}
+                        </AnimatePresence>
+                    </li>
+                </ul>
+
+                <button // hamburger button
+                    type="button"
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line text-ink md:hidden"
+                    aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                    aria-expanded={isMenuOpen}
+                >
+                    <svg className="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                        {isMenuOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+                    </svg>
+                </button>
+            </nav>
+
+            {/* mobile/small display nav */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+                        className="overflow-hidden border-t border-line-soft bg-white md:hidden"
+                    >
+                        <ul className="flex flex-col px-4 pb-4 pt-2">
+                            {navItems.map((item) => (
+                                <li key={item.name}>
+                                    <Link href={item.href} className={`${linkClass(item.isActive)} min-h-12 w-full text-[17px] after:!right-auto after:w-6`}>
+                                        {item.name}
+                                    </Link>
+                                </li>
+                            ))}
+                            <li>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className={`${linkClass(awardsActive)} min-h-12 w-full text-[17px] after:!right-auto after:w-6`}
+                                    aria-expanded={isDropdownOpen}
+                                >
+                                    Awards {chevron(isDropdownOpen)}
                                 </button>
                                 {isDropdownOpen && (
-                                    <ul className="absolute mt-2 w-40 bg-white border border-gray-200 shadow-lg rounded-md z-50">
+                                    <ul className="ml-3.5 border-l-2 border-line-soft pl-2">
                                         {awardItems.map((award) => (
                                             <li key={award.name}>
-                                                <Link
-                                                    href={award.href}
-                                                    className="block px-4 py-2 text-xs text-gray-700 hover:bg-sky-100"
-                                                >
+                                                <Link href={award.href} className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 text-[15px] font-semibold text-ink-soft hover:bg-rink-wash">
                                                     {award.name}
+                                                    <span className="text-xs text-ink-muted">{award.description}</span>
                                                 </Link>
                                             </li>
                                         ))}
                                     </ul>
                                 )}
                             </li>
-                        ) : (
-                            <li key={item.name}>
-                                <Link
-                                    href={item.href}
-                                    className={`text-sm font-bold ${item.isActive
-                                        ? "text-sky-500"
-                                        : "text-gray-400 hover:text-gray-500"
-                                        }`}
-                                >
-                                    {item.name}
-                                </Link>
-                            </li>
-                        )
-                    )}
-                </ul>
-
-                {/* mobile/small display nav */}
-                <div
-                    className={`lg:hidden fixed -mt-24 inset-0 bg-white flex flex-col items-center justify-center overflow-y-auto space-y-6 z-50 transition-transform ${isMenuOpen ? "transform-none" : "transform -translate-x-full"
-                        }`}
-                >
-                    <div className="mb-4">
-                        <Image //logo made by Nick Kavanagh
-                            src="/yofhldblogo.png"
-                            alt="YO FHLDB Logo"
-                            title="Logo by Nick Kavanagh"
-                            width={100}
-                            height={100}
-                            className="w-32 h-32 object-contain"
-                        />
-                    </div>
-
-                    <ul className="list-none space-y-4">
-                        {navItems.map((item) =>
-                            item.name === "Awards" ? (
-                                <li key={item.name} className="relative">
-                                    <button
-                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                        className={`text-[1rem] font-bold flex items-center ${item.isActive ? "text-sky-600" : "text-gray-400 hover:text-gray-500"}`}
-                                    >
-                                        {item.name}
-                                        <svg
-                                            className={`ml-2 h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : "rotate-0"}`}
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-                                    {isDropdownOpen && (
-                                        <ul className="absolute mt-2 w-60 bg-white border border-gray-200 shadow-lg rounded-md z-50">
-                                            {awardItems.map((award) => (
-                                                <li key={award.name}>
-                                                    <Link
-                                                        href={award.href}
-                                                        className="block px-4 py-2 text-xs text-gray-700 hover:bg-sky-100"
-                                                    >
-                                                        {award.name}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </li>
-                            ) : (
-                                <li key={item.name}>
-                                    <Link
-                                        href={item.href}
-                                        className={`text-[1rem] font-bold ${item.isActive ? "text-sky-600" : "text-gray-400 hover:text-gray-500"}`}
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        {item.name}
-                                    </Link>
-                                </li>
-                            )
-                        )}
-                    </ul>
-                </div>
-            </nav>
-        </div>
+                        </ul>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </header>
     );
 };
 

@@ -1,0 +1,250 @@
+{
+  "note": "Snapshot of the live site's data, taken before the move to the new schema. Imported once into the curated tables.",
+  "awards": [
+    {
+      "season": 2019,
+      "award": "Wayne Gretzky Award",
+      "playerId": "*02b70*",
+      "player": "Nikita Kucherov",
+      "team": "Varrock Dark Wizards"
+    },
+    {
+      "season": 2019,
+      "award": "Le Magnifique",
+      "playerId": "*02b70*",
+      "player": "Nikita Kucherov",
+      "team": "Varrock Dark Wizards"
+    },
+    {
+      "season": 2019,
+      "award": "Bobby Orr Award",
+      "playerId": "*003tz*",
+      "player": "Brent Burns",
+      "team": "Brock's Beasts"
+    },
+    {
+      "season": 2019,
+      "award": "Hasek Trophy",
+      "playerId": "*02nom*",
+      "player": "Andrei Vasilevskiy",
+      "team": "WinTurris Coming"
+    },
+    {
+      "season": 2019,
+      "award": "Teemu Trophy",
+      "playerId": "*04ad7*",
+      "player": "Rasmus Dahlin",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2019,
+      "award": "Danny Briere Award",
+      "playerId": "*003fj*",
+      "player": "Patrice Bergeron",
+      "team": "Hub City Hyman Hounds"
+    },
+    {
+      "season": 2020,
+      "award": "Wayne Gretzky Award",
+      "playerId": "*02yjl*",
+      "player": "Leon Draisaitl",
+      "team": "Andromeda Space Invaders"
+    },
+    {
+      "season": 2020,
+      "award": "Le Magnifique",
+      "playerId": "*02yjl*",
+      "player": "Leon Draisaitl",
+      "team": "Andromeda Space Invaders"
+    },
+    {
+      "season": 2020,
+      "award": "Bobby Orr Award",
+      "playerId": "*01fx3*",
+      "player": "Roman Josi",
+      "team": "Hub City Hyman Hounds"
+    },
+    {
+      "season": 2020,
+      "award": "Hasek Trophy",
+      "playerId": "*02o7s*",
+      "player": "Connor Hellebuyck",
+      "team": "Hub City Hyman Hounds"
+    },
+    {
+      "season": 2020,
+      "award": "Teemu Trophy",
+      "playerId": "*04alw*",
+      "player": "Cale Makar",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2021,
+      "award": "Wayne Gretzky Award",
+      "playerId": "*02un4*",
+      "player": "Connor McDavid",
+      "team": "Varrock Dark Wizards"
+    },
+    {
+      "season": 2021,
+      "award": "Le Magnifique",
+      "playerId": "*02yjl*",
+      "player": "Leon Draisaitl",
+      "team": "Andromed Space Invaders"
+    },
+    {
+      "season": 2021,
+      "award": "Bobby Orr Award",
+      "playerId": "*01c13*",
+      "player": "Victor Hedman",
+      "team": "Hub City Hyman Hounds"
+    },
+    {
+      "season": 2021,
+      "award": "Hasek Trophy",
+      "playerId": "*02nom*",
+      "player": "Andrei Vasilevskiy",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2021,
+      "award": "Teemu Trophy",
+      "playerId": "*03rh3*",
+      "player": "Kirill Kaprizov",
+      "team": "Skellige Sirens"
+    },
+    {
+      "season": 2021,
+      "award": "Danny Briere Award",
+      "playerId": "*02un4*",
+      "player": "Connor McDavid",
+      "team": "Varrock Dark Wizards"
+    },
+    {
+      "season": 2022,
+      "award": "Wayne Gretzky Award",
+      "playerId": "*04alw*",
+      "player": "Cale Makar",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2022,
+      "award": "Le Magnifique",
+      "playerId": "*04alw*",
+      "player": "Cale Makar",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2022,
+      "award": "Bobby Orr Award",
+      "playerId": "*04alw*",
+      "player": "Cale Makar",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2022,
+      "award": "Hasek Trophy",
+      "playerId": "*03ece*",
+      "player": "Igor Shesterkin",
+      "team": "Paddyville Lucifers"
+    },
+    {
+      "season": 2022,
+      "award": "Teemu Trophy",
+      "playerId": "*04zb4*",
+      "player": "Moritz Seider",
+      "team": "Varrock Dark Wizards"
+    },
+    {
+      "season": 2022,
+      "award": "Danny Briere Award",
+      "playerId": "*04alw*",
+      "player": "Cale Makar",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2023,
+      "award": "Wayne Gretzky Award",
+      "playerId": "*02un4*",
+      "player": "Connor McDavid",
+      "team": "Varrock Dark Wizards"
+    },
+    {
+      "season": 2023,
+      "award": "Le Magnifique",
+      "playerId": "*02un4*",
+      "player": "Connor McDavid",
+      "team": "Varrock Dark Wizards"
+    },
+    {
+      "season": 2023,
+      "award": "Bobby Orr Award",
+      "playerId": "*016g3*",
+      "player": "Erik Karlsson",
+      "team": "Carolina Reapers"
+    },
+    {
+      "season": 2023,
+      "award": "Hasek Trophy",
+      "playerId": "*0322w*",
+      "player": "Ilya Sorokin",
+      "team": "Varrock Dark Wizards"
+    },
+    {
+      "season": 2023,
+      "award": "Teemu Trophy",
+      "playerId": "*04bw4*",
+      "player": "Andrei Kuzmenko",
+      "team": "West Texas Torteehaws"
+    },
+    {
+      "season": 2023,
+      "award": "Danny Briere Award",
+      "playerId": "*02nom*",
+      "player": "Andrei Vasilevskiy",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2024,
+      "award": "Wayne Gretzky Award",
+      "playerId": "*02f9l*",
+      "player": "Nathan MacKinnon",
+      "team": "New Purrsey Devils"
+    },
+    {
+      "season": 2024,
+      "award": "Le Magnifique",
+      "playerId": "*03jxy*",
+      "player": "Auston Matthews",
+      "team": "West Texas Torteehaws"
+    },
+    {
+      "season": 2024,
+      "award": "Bobby Orr Award",
+      "playerId": "*04alw*",
+      "player": "Cale Makar",
+      "team": "Jagrtown Icefellas"
+    },
+    {
+      "season": 2024,
+      "award": "Hasek Trophy",
+      "playerId": "*02o7s*",
+      "player": "Connor Hellebuyck",
+      "team": "Johnny T & The PJs"
+    },
+    {
+      "season": 2024,
+      "award": "Teemu Trophy",
+      "playerId": "*04y4m*",
+      "player": "Connor Bedard",
+      "team": "The Lalibirdies"
+    },
+    {
+      "season": 2024,
+      "award": "Danny Briere Award",
+      "playerId": "*02un4*",
+      "player": "Connor McDavid",
+      "team": "Varrock Dark Wizards"
+    }
+  ]
+}

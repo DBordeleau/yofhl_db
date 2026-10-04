@@ -15,6 +15,9 @@
 # testing
 /coverage
 
+# local PGlite database (DATABASE_URL_V2=pglite:.pglite)
+/.pglite
+
 # next.js
 /.next/
 /out/

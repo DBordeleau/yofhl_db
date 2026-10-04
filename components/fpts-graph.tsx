@@ -1,37 +1,64 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { motion } from 'framer-motion';
+import { Area, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import AwardLegend from '@/components/award-legend';
+import { formatFpts, seasonLabel } from '@/lib/league';
 
 interface CareerStats {
     Year: number;
     FPts: number;
     FPG: number;
     YOFHLTeam: string;
+    Champion?: boolean;
 }
 
 interface FPtsGraphProps {
     playerStats: CareerStats[];
-    playerName: string;
+    className?: string;
+}
+
+interface ChartPoint {
+    season: string;
+    fpts: number;
+    fpg: number;
+    team: string;
+    champion: boolean;
 }
 
 interface TooltipPayload {
     value: number;
-    payload: {
-        year: string;
-        fpts: number;
-        fpg: number;
-        team: string;
-    };
+    payload: ChartPoint;
 }
 
 interface CustomTooltipProps {
     active?: boolean;
     payload?: TooltipPayload[];
+    showFPG: boolean;
 }
 
-const FPtsGraph: React.FC<FPtsGraphProps> = ({ playerStats, playerName }) => {
+interface DotProps {
+    cx?: number;
+    cy?: number;
+    index?: number;
+    payload?: ChartPoint;
+}
+
+// Custom tooltip to show more details
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, showFPG }) => {
+    if (!active || !payload || !payload.length) return null;
+    const point = payload[0].payload;
+    return (
+        <div className="rounded-2xl border border-line bg-white px-3.5 py-3 shadow-[0_16px_32px_-16px_rgba(31,39,69,.45)]">
+            <p className="tabular font-extrabold">{point.season}{point.champion && <span className="ml-2 text-xs font-bold uppercase tracking-[.1em] text-rink-red">Jagr Cup</span>}</p>
+            <p className="tabular mt-1 font-bold text-rink-blue">{showFPG ? `${point.fpg.toFixed(2)} FP/G` : `${formatFpts(point.fpts)} FPts`}</p>
+            <p className="tabular text-sm text-ink-muted">{showFPG ? `${formatFpts(point.fpts)} FPts` : `${point.fpg.toFixed(2)} FP/G`}</p>
+            <p className="text-sm text-ink-muted">{point.team}</p>
+        </div>
+    );
+};
+
+const FPtsGraph: React.FC<FPtsGraphProps> = ({ playerStats, className = '' }) => {
     const [showFPG, setShowFPG] = useState(false);
 
     // Sort data by year to ensure proper line progression
@@ -45,144 +72,95 @@ const FPtsGraph: React.FC<FPtsGraphProps> = ({ playerStats, playerName }) => {
         ? sortedData.slice(firstNonZeroIndex)
         : sortedData;
 
-    // Format data for recharts
-    const chartData = filteredData.map(stat => ({
-        year: stat.Year.toString(),
+    const chartData: ChartPoint[] = filteredData.map(stat => ({
+        season: seasonLabel(stat.Year).replace(/^\d{2}/, ''),
         fpts: stat.FPts,
         fpg: stat.FPG,
-        team: stat.YOFHLTeam
+        team: stat.YOFHLTeam,
+        champion: !!stat.Champion,
     }));
 
-    // Custom tooltip to show more details
-    const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
-        if (active && payload && payload.length) {
-            return (
-                <div className="bg-white p-3 border border-gray-300 rounded-lg shadow-lg">
-                    <p className="font-semibold">{`Season: ${payload[0].payload.year}`}</p>
-                    <p className="text-blue-600">
-                        {showFPG
-                            ? `FPG: ${payload[0].value}`
-                            : `Fantasy Points: ${payload[0].value.toFixed(2)}`
-                        }
-                    </p>
-                    <p className="text-gray-600">
-                        {showFPG
-                            ? `Total FPts: ${payload[0].payload.fpts.toFixed(2)}`
-                            : `FPG: ${payload[0].payload.fpg}`
-                        }
-                    </p>
-                    <p className="text-sm text-gray-500">{`Team: ${payload[0].payload.team}`}</p>
-                </div>
-            );
-        }
-        return null;
-    };
-
-    if (!playerStats || playerStats.length === 0) {
+    if (chartData.length === 0) {
         return (
-            <div className="w-full max-w-4xl p-4 text-center text-gray-500">
+            <section className={`rounded-3xl border border-line bg-white p-6 text-center text-ink-muted shadow-card ${className}`}>
                 No data available to display
-            </div>
+            </section>
         );
     }
 
     // Calculate stats based on current view
-    const currentData = chartData.map(d => showFPG ? d.fpg : d.fpts);
-    const careerHigh = Math.max(...currentData);
-    const careerAverage = currentData.reduce((sum, val) => sum + val, 0) / currentData.length;
+    const key = showFPG ? 'fpg' : 'fpts';
+    const values = chartData.map(d => d[key]);
+    const careerHigh = Math.max(...values);
+    const careerAverage = values.reduce((sum, val) => sum + val, 0) / values.length;
+    const peakIndex = values.indexOf(careerHigh);
+    const fmt = (v: number) => (showFPG ? v.toFixed(2) : formatFpts(v));
+
+    // champion seasons get a red dot, the career high gets its value printed above it
+    const renderDot = ({ cx, cy, index, payload }: DotProps) => {
+        if (cx == null || cy == null || !payload) return <g key={index} />;
+        return (
+            <g key={index}>
+                <circle cx={cx} cy={cy} r={payload.champion ? 8 : 6} fill={payload.champion ? '#C8102E' : '#1F6FC2'} stroke="#FFFFFF" strokeWidth={2} />
+                {index === peakIndex && (
+                    <text x={cx} y={cy - 14} textAnchor="middle" fontSize={12} fontWeight={800} fill="#12182E">{fmt(careerHigh)}</text>
+                )}
+            </g>
+        );
+    };
+
+    const toggle = (active: boolean) =>
+        `inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold transition-colors ${active ? 'bg-white text-ink shadow-[0_1px_2px_rgba(18,24,46,.12),0_0_0_1px_#DCE5EE]' : 'text-ink-muted hover:text-ink'}`;
 
     return (
-        <motion.div
-            className="w-full max-w-4xl mb-6 p-4 bg-white rounded-lg shadow-md"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-        >
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">
-                    {playerName}&apos;s {showFPG ? 'Fantasy Points per Game' : 'Fantasy Points'} by Season
-                </h2>
-
-                {/* Toggle Button */}
-                <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
-                    <button
-                        onClick={() => setShowFPG(false)}
-                        className={`px-4 py-2 rounded-md transition-all ${!showFPG
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-transparent text-gray-600 hover:bg-gray-200'
-                            }`}
-                    >
-                        FPts
-                    </button>
-                    <button
-                        onClick={() => setShowFPG(true)}
-                        className={`px-4 py-2 rounded-md transition-all ${showFPG
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-transparent text-gray-600 hover:bg-gray-200'
-                            }`}
-                    >
-                        FPG
-                    </button>
+        <section className={`flex flex-col rounded-3xl border border-line bg-white p-4 shadow-card md:p-6 ${className}`}>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-wide m-0 text-lg font-extrabold uppercase max-lg:sr-only">{showFPG ? 'FP/G' : 'Fantasy Points'}</h2>
+                <div className="flex gap-1 rounded-2xl bg-line-soft p-1" role="group" aria-label="Chart metric">
+                    <button type="button" onClick={() => setShowFPG(false)} className={toggle(!showFPG)} aria-pressed={!showFPG}>FPts</button>
+                    <button type="button" onClick={() => setShowFPG(true)} className={toggle(showFPG)} aria-pressed={showFPG}>FP/G</button>
                 </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={400}>
-                <LineChart
-                    data={chartData}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis
-                        dataKey="year"
-                        label={{ value: 'Season', position: 'insideBottom', offset: -5 }}
-                        tick={{ fill: '#666' }}
-                    />
-                    <YAxis
-                        label={{
-                            value: showFPG ? 'Fantasy Points per Game' : 'Fantasy Points',
-                            angle: -90,
-                            position: 'insideLeft'
-                        }}
-                        tick={{ fill: '#666' }}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                        verticalAlign="top"
-                        height={36}
-                        formatter={() => showFPG ? 'FPG' : 'Fantasy Points'}
-                    />
-                    <Line
-                        type="monotone"
-                        dataKey={showFPG ? "fpg" : "fpts"}
-                        stroke="#2563eb"
-                        strokeWidth={3}
-                        dot={{ fill: '#2563eb', r: 5 }}
-                        activeDot={{ r: 8 }}
-                        name={showFPG ? "FPG" : "Fantasy Points"}
-                    />
-                </LineChart>
-            </ResponsiveContainer>
+            <AwardLegend cupDot={chartData.some((d) => d.champion)} className="mb-1" />
+
+            {/* grows to match the trophy case beside it on desktop */}
+            <div className="relative min-h-[260px] flex-1">
+                <div className="absolute inset-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={chartData} margin={{ top: 26, right: 12, left: -8, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="fpts-area" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stopColor="#3D8BDA" stopOpacity={0.18} />
+                                    <stop offset="1" stopColor="#3D8BDA" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid vertical={false} stroke="#E6EDF4" />
+                            <XAxis dataKey="season" tickLine={false} axisLine={{ stroke: '#DCE5EE' }} tick={{ fill: '#56627A', fontSize: 11 }} interval={0} />
+                            <YAxis tickLine={false} axisLine={false} tick={{ fill: '#6B778E', fontSize: 11 }} width={44} />
+                            <Tooltip content={<CustomTooltip showFPG={showFPG} />} cursor={{ stroke: '#C9D6E3', strokeDasharray: '4 4' }} />
+                            <Area type="monotone" dataKey={key} stroke="none" fill="url(#fpts-area)" isAnimationActive={false} />
+                            <Line
+                                type="monotone"
+                                dataKey={key}
+                                stroke="#1F6FC2"
+                                strokeWidth={3}
+                                dot={renderDot}
+                                activeDot={{ r: 8, fill: '#1F6FC2', stroke: '#FFFFFF', strokeWidth: 2 }}
+                                animationDuration={900}
+                            />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
 
             {/* Summary stats */}
-            <div className="mt-4 flex justify-around text-sm text-gray-600 border-t pt-3">
-                <div className="text-center">
-                    <p className="font-semibold">Career High</p>
-                    <p className="text-blue-600">
-                        {showFPG ? careerHigh.toFixed(2) : careerHigh.toFixed(2)} {showFPG ? 'FPG' : 'pts'}
-                    </p>
-                </div>
-                <div className="text-center">
-                    <p className="font-semibold">Career Average</p>
-                    <p className="text-blue-600">
-                        {careerAverage.toFixed(2)} {showFPG ? 'FPG' : 'pts'}
-                    </p>
-                </div>
-                <div className="text-center">
-                    <p className="font-semibold">Seasons Played</p>
-                    <p className="text-blue-600">{chartData.length}</p>
-                </div>
-            </div>
-        </motion.div>
+            <dl className="mt-3 grid grid-cols-3 border-t border-line-soft pt-3 text-center">
+                <div><dt className="text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted">Career High</dt><dd className="tabular mt-1 font-extrabold">{fmt(careerHigh)}</dd></div>
+                <div><dt className="text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted">Average</dt><dd className="tabular mt-1 font-extrabold">{fmt(careerAverage)}</dd></div>
+                <div><dt className="text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted">Seasons</dt><dd className="tabular mt-1 font-extrabold">{chartData.length}</dd></div>
+            </dl>
+        </section>
     );
 };
 

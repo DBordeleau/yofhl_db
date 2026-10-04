@@ -19,7 +19,7 @@ export default function LotteryPage() {
     };
 
     return (
-        <main className="relative overflow-hidden z-10 flex flex-col gap-y-8 items-center text-center min-h-screen">
+        <main className="relative z-10 mx-auto flex min-h-screen max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl flex-col items-center gap-y-8 px-4 pt-10 text-center md:pt-14">
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -31,7 +31,7 @@ export default function LotteryPage() {
                     alt="YOFHL Logo"
                     width={180}
                     height={180}
-                    className="mx-auto rounded-full shadow-lg shadow-blue-500/20"
+                    className="mx-auto rounded-full shadow-card"
                     onError={(e) => {
                         e.currentTarget.style.display = 'none';
                     }}
@@ -42,7 +42,7 @@ export default function LotteryPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="text-[3rem] font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600"
+                className="font-wide mb-3 text-[30px] font-extrabold uppercase leading-none tracking-tight md:text-[50px]"
             >
                 YOFHL Draft Lottery App
             </motion.h1>
@@ -55,9 +55,9 @@ export default function LotteryPage() {
             >
                 <div className="relative w-60">
                     <motion.button
-                        whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.5)" }}
+                        whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.95 }}
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 mb-[4rem] px-8 rounded-lg flex items-center justify-between w-full shadow-xl"
+                        className="mb-[4rem] flex w-full items-center justify-between rounded-2xl bg-ink px-8 py-4 font-bold text-white shadow-card"
                         onClick={() => setIsOpen(!isOpen)}
                     >
                         <div className="flex items-center gap-3">
@@ -74,20 +74,20 @@ export default function LotteryPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.2 }}
-                                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl overflow-hidden z-20"
+                                className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-line bg-white p-1.5 shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]"
                             >
                                 <button
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                                    className="flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-semibold transition-colors hover:bg-rink-wash"
                                     onClick={handleInstallerDownload}
                                 >
-                                    <FaDownload className="text-blue-600" />
+                                    <FaDownload className="text-rink-blue" />
                                     <span>Installer (.exe)</span>
                                 </button>
                                 <button
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                                    className="flex min-h-11 w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-semibold transition-colors hover:bg-rink-wash"
                                     onClick={handleZipDownload}
                                 >
-                                    <FaFileArchive className="text-blue-600" />
+                                    <FaFileArchive className="text-rink-blue" />
                                     <span>.zip</span>
                                 </button>
                             </motion.div>
@@ -100,23 +100,23 @@ export default function LotteryPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.5 }}
-                className="mt-[1rem] text-sm text-gray-600"
+                className="mt-[1rem] text-sm text-ink-muted"
             >
                 <p className="font-medium">Version 1.0.0</p>
-                <p className="mt-2 text-gray-500">Compatible with Windows 10/11 64-bit systems</p>
+                <p className="mt-2 text-ink-faint">Compatible with Windows 10/11 64-bit systems</p>
             </motion.div>
 
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
-                className="mt-6 max-w-md px-6 py-5 rounded-lg bg-gray-50 border border-gray-200"
+                className="mt-6 max-w-md rounded-3xl border border-line bg-white px-6 py-5 shadow-card"
             >
-                <div className="flex items-center gap-2 mb-3 text-blue-700">
+                <div className="mb-3 flex items-center gap-2 text-rink-blue">
                     <FaInfoCircle />
-                    <h3 className="font-medium">Installation Instructions</h3>
+                    <h3 className="font-bold">Installation Instructions</h3>
                 </div>
-                <div className="text-left text-[1rem] text-gray-700">
+                <div className="text-left text-[1rem] text-ink-soft">
                     <p className="mb-3">
                         <strong>Installer (.exe):</strong> Simply download and follow the prompts in the installation wizard.
                     </p>

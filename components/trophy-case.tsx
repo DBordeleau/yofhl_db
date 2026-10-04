@@ -1,72 +1,161 @@
 'use client';
 
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC, useEffect, useRef, useState } from 'react';
+import { animate, motion, useMotionValue, useReducedMotion } from 'framer-motion';
+import { AwardTrophyIcon, JagrCupIcon } from '@/components/trophy-icons';
 
-interface Award {
-    Award: string;
-    Year: number;
+export interface TrophyItem {
+    kind: 'cup' | 'award';
+    name: string; // "Jagr Cup" or the award name
+    detail: string; // team for a cup, award description for an award
+    season: string;
 }
 
 interface TrophyCaseProps {
-    playerID: string;
+    items: TrophyItem[];
+    className?: string;
 }
 
-// currently used to display player award data on their career page at /player/[ID]
-const TrophyCase: FC<TrophyCaseProps> = ({ playerID }) => {
-    const [awards, setAwards] = useState<Award[]>([]);
-    const [error, setError] = useState<string | null>(null);
+const CARD = 230; // carousel card width
+const GAP = 16;
+const STEP = CARD + GAP;
+
+const TrophyArt: FC<{ item: TrophyItem; large?: boolean }> = ({ item, large }) =>
+    item.kind === 'cup' ? (
+        <JagrCupIcon detailed className={large ? 'h-[104px] w-[78px]' : 'h-[72px] w-[54px]'} />
+    ) : (
+        <AwardTrophyIcon className={large ? 'h-[104px] w-[92px]' : 'h-[72px] w-16'} />
+    );
+
+const TrophyTile: FC<{ item: TrophyItem; index: number; large?: boolean }> = ({ item, index, large }) => (
+    <div
+        className={`trophy-tile group relative flex h-full flex-col items-center gap-1 overflow-hidden rounded-[20px] border px-3 pb-4 text-center text-white ${large ? 'pt-[30px]' : 'pt-[22px]'} ${item.kind === 'cup'
+            ? 'border-gold-light/70 shadow-[0_0_0_1px_rgba(240,199,94,.25),0_18px_36px_-18px_rgba(184,134,11,.6)]'
+            : 'border-gold-light/20'
+            }`}
+        style={{ '--sheen-delay': `${(index * 0.7).toFixed(1)}s` } as React.CSSProperties}
+    >
+        <span className={`trophy-pool absolute left-1/2 -translate-x-1/2 rounded-full ${large ? 'top-[112px] h-[26px] w-[150px]' : 'top-[84px] h-[26px] w-[110px]'}`} />
+        <span className={`relative flex items-end justify-center drop-shadow-[0_6px_12px_rgba(240,199,94,.35)] transition-transform duration-300 ease-[cubic-bezier(.3,1.4,.5,1)] group-hover:-translate-y-1 group-hover:scale-105 ${large ? 'h-[110px]' : 'h-[84px]'}`}>
+            <TrophyArt item={item} large={large} />
+        </span>
+        <span className={`font-wide mt-2 font-extrabold uppercase leading-tight ${large ? 'text-sm' : 'text-xs'}`}>{item.name}</span>
+        <span className="text-xs text-[#AFC0D8]">{item.detail}</span>
+        <span className="tabular text-[13px] font-extrabold text-gold-light">{item.season}</span>
+    </div>
+);
+
+// swipeable carousel used on small screens: drag, arrows, dots or tap a neighbouring card
+const TrophyCarousel: FC<TrophyCaseProps> = ({ items }) => {
+    const [index, setIndex] = useState(0);
+    const x = useMotionValue(0);
+    const dragged = useRef(false);
+    const reduceMotion = useReducedMotion();
 
     useEffect(() => {
-        const fetchAwards = async () => {
-            try {
-                const response = await fetch(`/api/player/${playerID}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch awards');
-                }
-                const data = await response.json();
-                setAwards(data.awards || []);
-            } catch (error: unknown) {
-                if (error instanceof Error) {
-                    setError(error.message);
-                } else {
-                    setError('An unknown error occurred');
-                }
-            }
-        };
+        const controls = animate(x, -index * STEP, reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 34 });
+        return controls.stop;
+    }, [index, x, reduceMotion]);
 
-        fetchAwards();
-    }, [playerID]);
+    const go = (i: number) => setIndex(Math.max(0, Math.min(items.length - 1, i)));
 
-    if (error) return <div>{error}</div>;
+    const arrow = (d: string) => (
+        <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true"><path d={d} /></svg>
+    );
 
     return (
-        <div className="items-center w-full max-w-7xl mb-4">
-            <h2 className="text-2xl font-semibold mb-4">Trophy Case</h2>
-            {awards.length > 0 ? (
-                <table className="shadow-md mb-4 border border-collapse border-solid border-slate-400 text-center table-auto text-slate-800 w-full">
-                    <thead>
-                        <tr className="text-black text-[.9rem] md:text-[1.25rem] border border-solid border-slate-400 bg-yellow-400">
-                            <th className="px-2 py-2 w-1/4">Year</th>
-                            <th className="px-2 py-2 w-3/4">Award</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {awards.map((award, index) => (
-                            <tr
-                                key={index}
-                                className="text-[.9rem] bg-white md:text-[1.25rem] border-t group border border-solid border-slate-300"
-                            >
-                                <td className="px-2 py-2">{award.Year}</td>
-                                <td className="px-2 py-2">{award.Award}</td>
-                            </tr>
+        <div aria-roledescription="carousel" aria-label="Trophy case">
+            <div className="-mx-4 overflow-hidden pb-1 pt-1.5">
+                <motion.div
+                    className="flex cursor-grab touch-pan-y active:cursor-grabbing"
+                    style={{ x, gap: GAP, marginLeft: `calc(50% - ${CARD / 2}px)` }}
+                    drag="x"
+                    dragConstraints={{ left: -(items.length - 1) * STEP, right: 0 }}
+                    dragElastic={0.18}
+                    onDragStart={() => { dragged.current = true; }}
+                    onDragEnd={(_, info) => {
+                        // project the release position forward with velocity, and let short flicks still advance one card
+                        let next = Math.round(-(x.get() + info.velocity.x * 0.2) / STEP);
+                        if (next === index && Math.abs(info.offset.x) > 40) next = index + (info.offset.x < 0 ? 1 : -1);
+                        const target = Math.max(0, Math.min(items.length - 1, next));
+                        // snap back even when the index doesn't change
+                        animate(x, -target * STEP, { type: 'spring', stiffness: 320, damping: 34 });
+                        setIndex(target);
+                        setTimeout(() => { dragged.current = false; }, 0);
+                    }}
+                >
+                    {items.map((item, i) => (
+                        <motion.div
+                            key={`${item.name}-${item.season}-${i}`}
+                            className="min-h-[270px] flex-none"
+                            style={{ width: CARD }}
+                            animate={{ scale: i === index ? 1 : 0.86, opacity: i === index ? 1 : 0.5 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            onClick={() => { if (!dragged.current) go(i); }}
+                            aria-roledescription="slide"
+                            aria-label={`${i + 1} of ${items.length}: ${item.name}, ${item.season}`}
+                            aria-hidden={i !== index}
+                        >
+                            <TrophyTile item={item} index={i} large />
+                        </motion.div>
+                    ))}
+                </motion.div>
+            </div>
+            {items.length > 1 && (
+                <div className="mt-3.5 flex items-center justify-between">
+                    <button type="button" onClick={() => go(index - 1)} disabled={index === 0} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line-strong bg-white text-ink disabled:opacity-35" aria-label="Previous trophy">
+                        {arrow('M15 6l-6 6 6 6')}
+                    </button>
+                    <div className="flex">
+                        {items.map((item, i) => (
+                            <button key={i} type="button" onClick={() => go(i)} className="inline-flex h-11 w-7 items-center justify-center" aria-label={`Show ${item.name}, ${item.season}`} aria-current={i === index}>
+                                <i className={`block h-2 rounded-full transition-all duration-300 ${i === index ? 'w-[22px] bg-gold' : 'w-2 bg-line-strong'}`} />
+                            </button>
                         ))}
-                    </tbody>
-                </table>
-            ) : (
-                <div className="text-slate-500">Player has never won an individual award.</div>
+                    </div>
+                    <button type="button" onClick={() => go(index + 1)} disabled={index === items.length - 1} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line-strong bg-white text-ink disabled:opacity-35" aria-label="Next trophy">
+                        {arrow('M9 6l6 6-6 6')}
+                    </button>
+                </div>
             )}
         </div>
     );
 };
+
+// Jagr Cups and individual awards for a player at /player/[ID]
+const TrophyCase: FC<TrophyCaseProps> = ({ items, className = '' }) => (
+    <section className={`rounded-3xl border border-line bg-white p-4 shadow-card md:p-6 ${className}`}>
+        {/* below lg the player page tabs already label this panel */}
+        <div className="mb-3.5 flex items-baseline justify-between max-lg:sr-only">
+            <h2 className="font-wide m-0 text-lg font-extrabold uppercase">Trophy Case</h2>
+            {items.length > 0 && (
+                <span className="metal-gold inline-flex h-[30px] min-w-[30px] items-center justify-center rounded-full px-2.5 text-sm font-extrabold text-[#2B1D00]">{items.length}</span>
+            )}
+        </div>
+        {items.length > 0 ? (
+            <>
+                <div className="hidden gap-3 md:grid md:grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
+                    {items.map((item, i) => (
+                        <div key={`${item.name}-${item.season}-${i}`} className="animate-rise" style={{ animationDelay: `${i * 70}ms` }}>
+                            <TrophyTile item={item} index={i} />
+                        </div>
+                    ))}
+                </div>
+                <div className="md:hidden">
+                    <TrophyCarousel items={items} />
+                </div>
+            </>
+        ) : (
+            <div className="flex flex-col items-center gap-2.5 rounded-[20px] border-2 border-dashed border-line-strong px-4 py-7 font-semibold text-ink-faint">
+                <svg className="h-[54px] w-12" viewBox="0 0 32 36" fill="none" stroke="#B4C0D0" strokeWidth="1.2" strokeDasharray="2 2" aria-hidden="true">
+                    <path d="M9 2.5h14V11c0 4.4-3.1 8-7 8s-7-3.6-7-8z" />
+                    <rect x="8" y="27" width="16" height="7" rx="1.2" />
+                    <path d="M16 19v8" />
+                </svg>
+                No trophies yet
+            </div>
+        )}
+    </section>
+);
 
 export default TrophyCase;

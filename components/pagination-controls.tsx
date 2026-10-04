@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC } from 'react';
 
 interface PaginationControlsProps {
     currentPage: number;
@@ -6,66 +6,62 @@ interface PaginationControlsProps {
     maxPages: number;
 }
 
+// first, last and the pages around the current one, with gaps marked by null
+const pageWindow = (current: number, max: number): (number | null)[] => {
+    const pages = new Set([1, max, current - 1, current, current + 1].filter((p) => p >= 1 && p <= max));
+    const sorted = Array.from(pages).sort((a, b) => a - b);
+    const out: (number | null)[] = [];
+    sorted.forEach((page, i) => {
+        if (i > 0 && page - sorted[i - 1] > 1) out.push(null);
+        out.push(page);
+    });
+    return out;
+};
+
 const PaginationControls: FC<PaginationControlsProps> = ({ currentPage, setCurrentPage, maxPages }) => {
-    const [inputValue, setInputValue] = useState<number | string>(currentPage);
+    if (maxPages <= 1) return null;
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setInputValue(value === '' ? '' : parseInt(value, 10));
-    };
-
-    // i disabled this but just in case it renders on some browsers
-    const handleInputBlur = () => {
-        let page = Number(inputValue);
-        if (isNaN(page) || page < 1) page = 1;
-        if (page > maxPages) page = maxPages;
-        setInputValue(page);
-        setCurrentPage(page);
-    };
-
-    const handlePrevClick = () => {
-        const newPage = Math.max(currentPage - 1, 1);
-        setCurrentPage(newPage);
-        setInputValue(newPage);
-    };
-
-    const handleNextClick = () => {
-        const newPage = Math.min(currentPage + 1, maxPages);
-        setCurrentPage(newPage);
-        setInputValue(newPage);
-    };
+    const base = 'inline-flex h-11 min-w-11 items-center justify-center rounded-xl font-bold text-ink-soft tabular';
+    const arrow = (d: string) => (
+        <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><path d={d} /></svg>
+    );
 
     return (
-        <div className="flex items-center gap-4">
+        <nav className="flex items-center gap-1 md:gap-1.5" aria-label="Pages">
             <button
-                onClick={handlePrevClick}
+                type="button"
+                onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-2 py-2 bg-sky-300 text-slate rounded disabled:opacity-50"
+                className={`${base} hover:bg-rink-wash disabled:opacity-35 disabled:hover:bg-transparent`}
+                aria-label="Previous page"
             >
-                Prev
+                {arrow('M15 6l-6 6 6 6')}
             </button>
-            <div className="flex items-center gap-1">
-                <span>Page:</span>
-                <input
-                    type="number"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onBlur={handleInputBlur}
-                    className="w-12 py-1 border border-gray-300 rounded text-center"
-                    style={{
-                        MozAppearance: 'textfield',
-                    }}
-                />
-                <span>/ {maxPages}</span>
-            </div>
+            {pageWindow(currentPage, maxPages).map((page, i) =>
+                page === null ? (
+                    <span key={`gap-${i}`} className={`${base} min-w-6`}>…</span>
+                ) : (
+                    <button
+                        key={page}
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={`${base} ${page === currentPage ? 'bg-ink text-white' : 'hover:bg-rink-wash'}`}
+                        aria-current={page === currentPage ? 'page' : undefined}
+                    >
+                        {page}
+                    </button>
+                )
+            )}
             <button
-                onClick={handleNextClick}
+                type="button"
+                onClick={() => setCurrentPage(Math.min(currentPage + 1, maxPages))}
                 disabled={currentPage === maxPages}
-                className="px-2 py-2 bg-sky-300 text-slate rounded disabled:opacity-50"
+                className={`${base} hover:bg-rink-wash disabled:opacity-35 disabled:hover:bg-transparent`}
+                aria-label="Next page"
             >
-                Next
+                {arrow('M9 6l6 6-6 6')}
             </button>
-        </div>
+        </nav>
     );
 };
 

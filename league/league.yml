@@ -1,0 +1,116 @@
+# YOFHL league configuration: the hand-maintained facts the Fantrax CSVs don't contain.
+# The importer (npm run db:import) reads this file on every run.
+#
+# Seasons are identified by the year they end in: 2026 means the 2025–26 season.
+#
+# Franchises
+#   id            stable franchise id (used in /teams/[id] URLs), never reuse one
+#   eras          one entry per identity the franchise has had. Add a new era when a team is
+#                 renamed/rebranded or changes hands; styling differences ("Ice Fellas" vs
+#                 "Icefellas", "and" vs "&", a leading "The") are matched automatically
+#     from / to   first and last season of the era (omit "to" while the era is current)
+#     name        display name for the era
+#     abbreviations   every abbreviation Fantrax used for the team during the era
+#     owner       owner during the era (leave out if unknown)
+#     logo        path under /public, optional
+#     aliases     extra Fantrax spellings that normalisation doesn't catch, optional
+#   folded        last season played, for franchises that no longer exist
+
+franchises:
+  - id: 1
+    eras:
+      - { from: 2019, to: 2021, name: Hub City Hyman Hounds, abbreviations: [HCHH], owner: Sean Crocker }
+      - { from: 2022, name: Paddyville Lucifers, abbreviations: [PVLS], owner: Pat Henriksson, logo: /pvlslogo.png }
+
+  - id: 2
+    eras:
+      - { from: 2019, name: New Purrsey Devils, abbreviations: [NPD], owner: Daniel Sauve }
+
+  - id: 3
+    eras:
+      - { from: 2019, to: 2019, name: Scranton The Electric Gritty, abbreviations: [STEG], owner: Jeremy Weaver }
+      - { from: 2020, to: 2020, name: Scranton The Electric City, abbreviations: [STEC], owner: Jeremy Weaver }
+      - { from: 2021, name: Hooterville Honkers, abbreviations: [HH], owner: Jeremy Weaver, logo: /hhlogo.png }
+
+  - id: 4
+    eras:
+      - { from: 2019, name: Varrock Dark Wizards, abbreviations: [VWIZ], owner: Dillon Bordeleau, logo: /vwizlogo.png }
+
+  - id: 5
+    eras:
+      - { from: 2019, name: Jagrtown Icefellas, abbreviations: [JAGR], owner: Nick Kavanagh, logo: /jagrlogo.png }
+
+  - id: 6
+    eras:
+      - { from: 2019, to: 2019, name: "Brock's Beasts", abbreviations: [WWE], owner: Kaley Etheridge }
+      - { from: 2020, to: 2020, name: East Coast Orca Boys, abbreviations: [ORCA], owner: Kaley Etheridge }
+      - { from: 2021, name: West Texas Torteehaws, abbreviations: [TEEHAW], owner: Kaley Etheridge, logo: /teehawlogo.png }
+
+  - id: 7
+    eras:
+      - { from: 2019, name: The Lalibirdies, abbreviations: [Lali], owner: Eric Laliberte, logo: /lalilogo.png }
+
+  - id: 8
+    eras:
+      - { from: 2019, to: 2019, name: Semōn Demōns, abbreviations: [SEED], owner: Narayan Wagle }
+      - { from: 2020, name: Skellige Sirens, abbreviations: [SKGS], owner: Monike Porter }
+
+  - id: 9
+    eras:
+      - { from: 2019, to: 2020, name: WinTurris Coming, abbreviations: [WTURR], owner: Emmanuel Bay }
+      - { from: 2021, name: Carolina Reapers, abbreviations: [Reaper, Reapers], owner: Brian Morris, logo: /reaplogo.png }
+
+  - id: 10
+    eras:
+      - { from: 2019, to: 2024, name: Andromeda Space Invaders, abbreviations: [ASI], owner: Cameron Bowie }
+      - { from: 2025, name: Retro Phenoms, abbreviations: [RP], owner: Cameron Bowie }
+
+  - id: 11
+    folded: 2023
+    eras:
+      - { from: 2019, to: 2019, name: James May, abbreviations: [NFLD] }
+      - { from: 2020, to: 2023, name: Montreal Re-Habs, abbreviations: [NFLD] }
+
+  - id: 12
+    folded: 2023
+    eras:
+      - { from: 2019, to: 2019, name: Drunk Gallyways, abbreviations: [DGWY] }
+      - { from: 2020, to: 2021, name: M.A.A.R city, abbreviations: [MAC] }
+      - { from: 2022, to: 2023, name: North Kariya Nukes, abbreviations: [NKN] }
+
+  - id: 13
+    eras:
+      - { from: 2020, to: 2020, name: Lower Juba Spud Farmers, abbreviations: [JUBA], owner: Andrew Halstad }
+      - { from: 2021, to: 2021, name: The Meat Cove Meatballs, abbreviations: [MEAT], owner: Andrew Halstad }
+      - { from: 2022, name: Hamhung Hall Monitors, abbreviations: [HUNG], owner: Andrew Halstad }
+
+  - id: 14
+    eras:
+      - { from: 2020, name: Johnny T & The PJs, abbreviations: [JTPJ], owner: Johnny James }
+
+# Individual awards, in display order. `name` is the stored name and URL slug source.
+awards:
+  - { name: Wayne Gretzky Award, description: Top Player }
+  - { name: Le Magnifique, description: MVP }
+  - { name: Bobby Orr Award, description: Top Defenseman }
+  - { name: Hasek Trophy, description: Top Goaltender }
+  - { name: Teemu Trophy, label: Teemu Selanne Trophy, description: Top Rookie }
+  - { name: Danny Briere Award, description: Playoff MVP }
+
+# Season-specific facts about the playoffs
+seasons:
+  2020:
+    playoffs: cancelled # COVID-19
+  2021:
+    # the 2020–21 export holds two 4-team brackets; these teams played the consolation one
+    consolation: [JTPJ, NFLD, MAC, MEAT]
+
+# Playoff scores that need correcting before import.
+# Raising the goalie-start limit for the longer final round made Fantrax retroactively rescore the
+# earlier playoff rounds. The original scores are lost, so the rescored exports show three
+# semi-final losers who actually advanced. Each fix lifts the team that advanced to 0.25 (the
+# smallest scoring increment) above its opponent.
+scoreOverrides:
+  - { season: 2022, round: 2, team: VWIZ, score: 282.75, note: Rescored after a later rule change; adjusted to match the real result }
+  - { season: 2024, round: 2, team: VWIZ, score: 328.5, note: Rescored after a later rule change; adjusted to match the real result }
+  - { season: 2025, round: 2, team: HUNG, score: 314.75, note: Rescored after a later rule change; adjusted to match the real result }

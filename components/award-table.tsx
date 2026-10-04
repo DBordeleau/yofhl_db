@@ -1,63 +1,51 @@
 import React from 'react';
 import Link from 'next/link';
-
-interface Award {
-    Award: string;
-    Year: number;
-    Winner: string;
-    Team: string;
-    PlayerID: number | null;
-}
+import type { AwardWinner } from '@/lib/data/league';
+import { seasonLabel } from '@/lib/league';
 
 interface AwardTableProps {
-    awardsData: Award[];
+    awardsData: AwardWinner[];
 }
+
+const GRID = 'grid grid-cols-[72px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2.5 px-3.5 md:grid-cols-[110px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4 md:px-6';
 
 // table rendered on /awards/[award]
 const AwardTable: React.FC<AwardTableProps> = ({ awardsData }) => {
     return (
-        <div className="flex flex-col items-center w-fit md:w-full h-[75vh] overflow-y-auto overflow-x-auto rounded-b-lg mx-auto">
-            <table className="text-nowrap shadow-md mb-4 border border-solid border-slate-400 items-center text-center table-auto text-slate-800 w-full">
-                <thead>
-                    <tr className="text-black text-[.8rem] md:text-[1.25rem] border border-solid border-slate-400 bg-sky-300">
-                        <th className="px-4 py-2 w-1/3">Year</th>
-                        <th className="px-4 py-2 w-1/3">Winner</th>
-                        <th className="px-4 py-2 w-1/3">Team</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {awardsData.length > 0 ? (
-                        awardsData.map((award, index) => (
-                            <tr
-                                key={index}
-                                className="text-[.8rem] md:text-[1.25rem] border-t group border border-solid bg-white border-slate-300 hover:bg-sky-100 border-black/10"
-                            >
-                                <td className="px-4 py-2">{award.Year}</td>
-                                <td className="px-4 py-2 group-hover:font-semibold">
-                                    {award.PlayerID ? (
-                                        <Link
-                                            href={`/player/${award.PlayerID}`}
-                                            passHref
-                                            className="hover:underline"
-                                        >
-                                            {award.Winner}
-                                        </Link>
-                                    ) : (
-                                        award.Winner
-                                    )}
-                                </td>
-                                <td className="px-4 py-2">{award.Team}</td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan={3} className="px-4 py-2 text-center text-slate-500">
-                                No awards found
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+        <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card" role="table" aria-label="Award winners">
+            <div className={`${GRID} min-h-12 border-b-2 border-ink text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted md:text-xs`} role="row">
+                <span role="columnheader">Season</span>
+                <span role="columnheader">Winner</span>
+                <span role="columnheader" className="text-right">Team</span>
+            </div>
+            {awardsData.length > 0 ? (
+                awardsData.map((award, index) => {
+                    return (
+                        <div
+                            key={`${award.Year}-${index}`}
+                            role="row"
+                            className={`${GRID} row-hover animate-rise min-h-[60px] border-b border-line-soft last:border-b-0`}
+                            style={{ animationDelay: `${index * 40}ms` }}
+                        >
+                            <span role="cell" className="tabular font-bold">{seasonLabel(award.Year)}</span>
+                            <span role="cell" className="min-w-0">
+                                {award.PlayerID ? (
+                                    <Link href={`/player/${award.PlayerID}`} className="text-[15px] font-bold text-ink underline-offset-[3px] hover:text-rink-blue hover:underline md:text-[17px]">
+                                        {award.Winner}
+                                    </Link>
+                                ) : (
+                                    <span className="font-bold">{award.Winner}</span>
+                                )}
+                            </span>
+                            <span role="cell" className="text-right text-sm font-semibold leading-snug text-ink-muted">
+                                {award.TeamID ? <Link href={`/teams/${award.TeamID}`} className="hover:text-rink-blue hover:underline">{award.Team}</Link> : award.Team ?? '—'}
+                            </span>
+                        </div>
+                    );
+                })
+            ) : (
+                <div className="p-7 text-center text-ink-muted">No awards found</div>
+            )}
         </div>
     );
 };

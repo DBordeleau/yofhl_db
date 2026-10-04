@@ -1,35 +1,12 @@
-'use client'
-import { useEffect, useState } from 'react';
-import TeamStatTable from '@/components/team-stat-table';
-import { motion } from 'framer-motion';
+import TeamGrid from '@/components/team-grid';
+import { getFranchiseCards } from '@/lib/data/league';
 
-// renders all-time team stats in a table at /teams/stats
-const TeamStatsPage = () => {
-    const [teamStats, setTeamStats] = useState([]);
-
-    // get all-time data for all teams from /api/team/stats
-    useEffect(() => {
-        const fetchTeamStats = async () => {
-            const response = await fetch(`/api/teams/stats`);
-            const data = await response.json();
-            setTeamStats(data);
-        };
-
-        fetchTeamStats();
-    }, []);
-
+// every franchise's all-time record as cards at /teams/stats
+export default async function TeamStatsPage() {
+    const teams = await getFranchiseCards();
     return (
-        <div className="flex overflow-y-hidden flex-col items-center p-4">
-            <h1 className="text-3xl font-bold mb-4">All-Time Team Stats</h1>
-            <motion.div
-                className="flex flex-col items-center"
-                initial={{ opacity: 0, y: 100 }}
-                animate={{ opacity: 1, y: 0 }}
-            >
-                <TeamStatTable teamStats={teamStats} />
-            </motion.div>
-        </div>
+        <main className="mx-auto max-w-page px-4 pb-16 pt-8 md:px-8 md:pt-12 3xl:max-w-page-3xl 4xl:max-w-page-4xl">
+            <TeamGrid teams={teams} />
+        </main>
     );
-};
-
-export default TeamStatsPage;
+}

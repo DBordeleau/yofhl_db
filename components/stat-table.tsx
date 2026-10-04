@@ -1,15 +1,16 @@
 'use client'
 
-import { FC, useState } from 'react';
-import { HiTrophy } from "react-icons/hi2";
+import React, { FC, ReactNode, useState } from 'react';
 import Link from 'next/link';
+import { CupRow } from '@/components/trophy-icons';
+import { formatFpts, seasonLabel, splitPositions } from '@/lib/league';
 
 // all player data used across both modes
 interface PlayerStats {
     Player: string;
     Position: string;
     FPts: number;
-    FPG: string;
+    FPG: string | number;
     Age?: number;
     Year?: number;
     hasAward?: boolean; // for gold highlighting in single-season
@@ -20,137 +21,144 @@ interface PlayerStats {
 }
 
 interface StatTableProps {
-    mode: string;
+    mode: string; // 'all-time' | 'single-season' | 'champions'
     topPlayers: PlayerStats[];
     currentPage?: number;
     searchQuery?: string;
+    loading?: boolean;
+    animationKey?: string; // changing this replays the row entrance animation
+    footer?: ReactNode;
 }
 
+// written out in full so Tailwind keeps the metallic rank styles
+const RANK_CLASSES: Record<number, string> = { 1: 'rank-1', 2: 'rank-2', 3: 'rank-3' };
+
+const GRID = 'grid grid-cols-[28px_minmax(0,1fr)_78px_40px] items-center gap-2 px-3 md:grid-cols-[60px_minmax(0,1fr)_120px_72px] md:gap-4 md:px-6';
+// championship rosters drop the rank column and let the names lead
+const ROSTER_GRID = 'grid grid-cols-[minmax(0,1fr)_78px_44px] items-center gap-2 px-4 md:grid-cols-[minmax(0,1fr)_120px_72px] md:gap-4 md:px-6';
+
+type SortField = 'FPts' | 'FPG' | 'Player';
+
 // used to render all-time/single-season stats at /stats/[mode]/[position]
-// used to render championship rosters at /champions/[year]
+// used to render championship rosters at /champions/[year] and franchise leaders at /teams/[ID]
 const StatTable: FC<StatTableProps> = ({
     mode,
     topPlayers,
     currentPage = 1,
     searchQuery = "",
+    loading = false,
+    animationKey = '',
+    footer,
 }) => {
     const rankOffset = (currentPage - 1) * 25; // for pagination currently hardcoded to 25 results per page
+    const isRoster = mode === 'champions';
+    const grid = isRoster ? ROSTER_GRID : GRID;
 
-    const [sortField, setSortField] = useState<keyof PlayerStats | null>(null);
+    // rosters open sorted by FPts so the header shows which column is active
+    const [sortField, setSortField] = useState<SortField | null>(isRoster ? 'FPts' : null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
     const filteredPlayers = topPlayers.filter(player =>
         player.Player?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // header sorting for fpts, fpg and year
+    // header sorting for fpts, fpg and (on rosters) player name
     const sortedPlayers = [...filteredPlayers].sort((a, b) => {
         if (!sortField) return 0;
-        const fieldA = a[sortField];
-        const fieldB = b[sortField];
-
-        if (typeof fieldA === 'number' && typeof fieldB === 'number') {
-            return sortDirection === 'asc' ? fieldA - fieldB : fieldB - fieldA;
+        if (sortField === 'Player') {
+            return sortDirection === 'asc' ? a.Player.localeCompare(b.Player) : b.Player.localeCompare(a.Player);
         }
-
-        if (typeof fieldA === 'string' && typeof fieldB === 'string') {
-            return sortDirection === 'asc'
-                ? fieldA.localeCompare(fieldB)
-                : fieldB.localeCompare(fieldA);
-        }
-
-        return 0;
+        const fieldA = parseFloat(String(a[sortField]));
+        const fieldB = parseFloat(String(b[sortField]));
+        return sortDirection === 'asc' ? fieldA - fieldB : fieldB - fieldA;
     });
 
-    const handleSort = (field: keyof PlayerStats) => {
+    const handleSort = (field: SortField) => {
         if (sortField === field) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
             setSortField(field);
-            setSortDirection('desc');
+            // names read A to Z first, numbers high to low
+            setSortDirection(field === 'Player' ? 'asc' : 'desc');
         }
     };
 
-    return (
-        <div className="flex flex-col items-center md:w-full max-w-7xl h-[75vh] overflow-y-auto overflow-x-auto rounded-b-lg">
-            <table className="shadow-md mb-4 border border-collapse border-solid border-slate-400 items-center text-center table-auto text-slate-800 w-full">
-                <thead>
-                    <tr className="text-black text-nowrap text-[.75rem] md:text-[1.25rem] border border-solid border-slate-400 bg-sky-300">
-                        <th className="px-2 py-2 w-1/12">Rank</th>
-                        <th className="px-2 py-2 w-1/4 sm:w-1/4">Player</th>
-                        <th className="px-2 py-2 w-1/12 sm:w-1/6">Position</th>
-                        <th
-                            className="px-2 py-2 w-1/5 sm:w-1/5 cursor-pointer hover:underline"
-                            onClick={() => handleSort('FPts')}
-                        >
-                            Fpts {sortField === 'FPts' && (sortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        {mode === 'single-season' && (
-                            <th
-                                className="px-2 py-2 w-1/5 sm:w-1/5 cursor-pointer hover:underline"
-                                onClick={() => handleSort('FPG')}
-                            >
-                                FP/G {sortField === 'FPG' && (sortDirection === 'asc' ? '↑' : '↓')}
-                            </th>
-                        )}
-                        {mode === 'single-season' && (
-                            <th className="px-2 py-2 w-1/5 sm:w-1/6">Year</th>
-                        )}
-                    </tr>
-                </thead>
-                <tbody>
-                    {sortedPlayers.length > 0 ? (
-                        sortedPlayers.map((player, index) => {
-                            // set row style based on number of awards
-                            let rowClass = "text-nowrap text-[.75rem] md:text-[1.25rem] border-t group border border-solid ";
-                            if (player.hasMultipleAwards) {
-                                rowClass += 'bg-red-300';
-                            } else if (player.hasAward) {
-                                rowClass += 'bg-yellow-400';
-                            } else {
-                                rowClass += 'bg-white';
-                            }
+    const arrow = (field: SortField) => (sortField === field ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '');
+    const ariaSort = (field: SortField) =>
+        sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none';
 
-                            return (
-                                <tr
-                                    key={index}
-                                    className={`${rowClass} border-slate-300 border-black/10`}>
-                                    <td className="px-2 py-2">{rankOffset + index + 1}</td>
-                                    <td className="px-2 py-2 group-hover:font-semibold flex items-center justify-center gap-2">
-                                        <Link href={`/player/${player.ID}`} className="hover:underline">
+    return (
+        <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card" role="table" aria-label="Fantasy points">
+            <div className={`${grid} min-h-12 border-b-2 border-ink text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted md:text-xs`} role="row">
+                {!isRoster && <span role="columnheader"><span className="md:hidden">#</span><span className="hidden md:inline">Rank</span></span>}
+                {isRoster ? (
+                    <span role="columnheader" aria-sort={ariaSort('Player')}>
+                        <button type="button" onClick={() => handleSort('Player')} className="min-h-11 uppercase tracking-[inherit] hover:text-rink-blue">Player{arrow('Player')}</button>
+                    </span>
+                ) : (
+                    <span role="columnheader">Player</span>
+                )}
+                <span role="columnheader" aria-sort={ariaSort('FPts')} className="text-right">
+                    <button type="button" onClick={() => handleSort('FPts')} className="min-h-11 uppercase tracking-[inherit] hover:text-rink-blue">FPts{arrow('FPts')}</button>
+                </span>
+                <span role="columnheader" aria-sort={ariaSort('FPG')} className="text-right">
+                    <button type="button" onClick={() => handleSort('FPG')} className="min-h-11 uppercase tracking-[inherit] hover:text-rink-blue">FP/G{arrow('FPG')}</button>
+                </span>
+            </div>
+
+            {loading ? (
+                Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className={`${grid} min-h-[66px] border-b border-line-soft last:border-b-0`} aria-hidden="true">
+                        {!isRoster && <span className="skeleton h-6 w-7 rounded" />}
+                        <span className="flex flex-col gap-1.5"><span className="skeleton h-4 w-40 max-w-full rounded" /><span className="skeleton h-3 w-16 rounded" /></span>
+                        <span className="skeleton ml-auto h-4 w-16 rounded" />
+                        <span className="skeleton ml-auto h-4 w-9 rounded" />
+                    </div>
+                ))
+            ) : sortedPlayers.length > 0 ? (
+                <div key={animationKey} role="rowgroup">
+                    {sortedPlayers.map((player, index) => {
+                        const rank = rankOffset + index + 1;
+                        const highlight = player.hasMultipleAwards ? 'bg-award-multi' : player.hasAward ? 'bg-award-single' : '';
+                        const cups = mode === 'all-time'
+                            ? player.ChampionshipsWon ?? 0
+                            : mode === 'single-season' && player.Champion ? 1 : 0;
+                        const positions = splitPositions(player.Position ?? '').join(' · ');
+                        const sub = mode === 'single-season' && player.Year ? `${seasonLabel(player.Year)} · ${positions}` : positions;
+                        const fpg = typeof player.FPG === 'number' ? player.FPG.toFixed(2) : player.FPG;
+
+                        return (
+                            <div
+                                key={`${player.ID}-${player.Year ?? ''}-${index}`}
+                                role="row"
+                                className={`${grid} row-hover animate-rise min-h-[66px] border-b border-line-soft transition-colors last:border-b-0 ${highlight}`}
+                                style={{ animationDelay: `${Math.min(index, 14) * 35}ms` }}
+                            >
+                                {!isRoster && (
+                                    <span role="cell" className={`font-narrow tabular font-extrabold leading-none ${rank <= 3 ? `${RANK_CLASSES[rank]} text-[28px] md:text-[36px]` : 'text-[22px] text-[#97A2B4] md:text-[28px]'}`}>
+                                        {rank}
+                                    </span>
+                                )}
+                                <span role="cell" className="flex min-w-0 flex-col gap-0.5 py-2.5">
+                                    <span className="flex flex-wrap items-center gap-2">
+                                        <Link href={`/player/${player.ID}`} className="text-[15px] font-bold text-ink underline-offset-[3px] hover:text-rink-blue hover:underline md:text-[17px]">
                                             {player.Player ?? 'N/A'}
                                         </Link>
-                                        {mode === 'single-season' && player.Champion && (
-                                            // render a single trophy next to name if player is a champion in single-season mode
-                                            <HiTrophy className="text-black" title="Jagr Cup Champion" />
-                                        )}
-                                        {mode === 'all-time' && (player.ChampionshipsWon ?? 0) > 0 && (
-                                            Array.from({ length: player.ChampionshipsWon ?? 0 }).map((_, i) => (
-                                                // render a trophy for each championship a player has won in all-time mode
-                                                <HiTrophy key={i} className="text-yellow-500 text-[.7rem] lg:text-[1rem]" title="Jagr Cup Champion" />
-                                            ))
-                                        )}
-                                    </td>
-                                    <td className="px-2 py-2">{player.Position}</td>
-                                    <td className="px-2 py-2 group-hover:font-semibold">{player.FPts}</td>
-                                    {mode === 'single-season' && ( // FP/G not displayed in all-time mode
-                                        <td className="px-2 py-2 group-hover:font-semibold">{player.FPG}</td>
-                                    )}
-                                    {mode === 'single-season' && ( // year not displayed in all-time mode
-                                        <td className="px-2 py-2">{player.Year}</td>
-                                    )}
-                                </tr>
-                            );
-                        })
-                    ) : (
-                        <tr>
-                            <td colSpan={mode === 'single-season' ? 6 : 5} className="px-2 py-2 text-center text-slate-500">
-                                No results found
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+                                        <CupRow count={cups} />
+                                    </span>
+                                    <span className="text-[11px] font-bold uppercase tracking-[.1em] text-ink-faint md:text-xs">{sub}</span>
+                                </span>
+                                <span role="cell" className="tabular text-right text-[15px] font-extrabold md:text-[19px]">{formatFpts(player.FPts)}</span>
+                                <span role="cell" className="tabular text-right text-sm text-ink-muted md:text-base">{fpg}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="p-7 text-center text-ink-muted">No players found</div>
+            )}
+
+            {footer && <div className="flex justify-center border-t border-line-soft px-5 py-3">{footer}</div>}
         </div>
     );
 };

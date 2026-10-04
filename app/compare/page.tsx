@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import PlayerComparisonGraph from '@/components/player-comparison-graph';
+import PlayerComparisonGraph, { COMPARE_COLORS } from '@/components/player-comparison-graph';
+import PageTitle from '@/components/page-title';
+import RinkDivider from '@/components/rink-divider';
 import { FaSearch, FaTimes, FaChartLine } from 'react-icons/fa';
 
 interface Player {
@@ -50,7 +52,7 @@ export default function ComparisonPage() {
 
         setIsSearching(true);
         try {
-            const res = await fetch(`/api/player/search?q=${encodeURIComponent(query)}`);
+            const res = await fetch(`/api/players/search?q=${encodeURIComponent(query)}`);
             const data = await res.json();
             setSearchResults(data.players || []);
         } catch (error) {
@@ -122,7 +124,7 @@ export default function ComparisonPage() {
 
             // Fetch stats for all selected players
             for (const player of selectedPlayers) {
-                const res = await fetch(`/api/player/${player.ID}`);
+                const res = await fetch(`/api/players/${encodeURIComponent(player.ID)}`);
                 const playerData = await res.json();
                 data[player.ID] = playerData.playerStats || [];
             }
@@ -135,40 +137,45 @@ export default function ComparisonPage() {
         }
     };
 
-    return (
-        <main className="relative overflow-hidden z-10 flex flex-col gap-y-6 items-center pt-6 px-4 min-h-screen">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-4xl"
-            >
-                <h1 className="text-3xl font-bold mb-6 text-center">Player Comparison</h1>
+    const panel = 'absolute z-20 mt-2 w-full rounded-2xl border border-line bg-white p-4 text-center text-ink-muted shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]';
 
+    return (
+        <main className="mx-auto max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl px-4 pb-16 pt-8 md:px-8 md:pt-12">
+            <PageTitle eyebrow="Head to Head" title="Compare Players" />
+            <RinkDivider />
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
+                className="mx-auto w-full max-w-4xl"
+            >
                 {/* Search Bar */}
                 <div className="relative mb-6">
-                    <div className="relative">
-                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <label className="flex h-[52px] items-center gap-3 rounded-2xl border border-line-strong bg-white px-4 text-ink-muted focus-within:border-rink-blue focus-within:shadow-[0_0_0_3px_rgba(31,111,194,.15)]">
+                        <FaSearch aria-hidden="true" />
+                        <span className="sr-only">Search for players to compare</span>
                         <input
-                            type="text"
+                            type="search"
                             value={searchQuery}
                             onChange={(e) => handleSearchChange(e.target.value)}
-                            placeholder="Search for players to compare (min 3 characters)..."
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Search players to compare"
+                            className="w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-faint"
                         />
-                    </div>
+                    </label>
 
                     {/* Search Results Dropdown */}
                     {searchResults.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="absolute z-20 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                            className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-line bg-white p-1.5 shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]"
                         >
                             {searchResults.map((player) => (
                                 <button
                                     key={player.ID}
+                                    type="button"
                                     onClick={() => addPlayer(player)}
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-100 transition-colors border-b last:border-b-0"
+                                    className="flex min-h-11 w-full items-center rounded-xl px-3.5 text-left font-semibold text-ink hover:bg-rink-wash"
                                 >
                                     {player.Player}
                                 </button>
@@ -178,51 +185,50 @@ export default function ComparisonPage() {
 
                     {/* Show searching state or hint */}
                     {isSearching && searchQuery.length >= 3 && (
-                        <div className="absolute z-20 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
-                            Searching...
-                        </div>
+                        <div className={panel}>Searching...</div>
                     )}
 
                     {/* Show hint when query is too short */}
                     {searchQuery.length > 0 && searchQuery.length < 3 && (
-                        <div className="absolute z-20 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500 text-sm">
-                            Type at least 3 characters to search
-                        </div>
+                        <div className={`${panel} text-sm`}>Type at least 3 characters to search</div>
                     )}
 
                     {/* Show no results message */}
                     {!isSearching && searchQuery.length >= 3 && searchResults.length === 0 && (
-                        <div className="absolute z-20 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
-                            No players found
-                        </div>
+                        <div className={panel}>No players found</div>
                     )}
                 </div>
 
                 {/* Selected Players */}
                 <div className="mb-6">
-                    <h2 className="text-lg font-semibold mb-3">
-                        Selected Players ({selectedPlayers.length}/5)
+                    <h2 className="mb-3 text-xs font-bold uppercase tracking-[.14em] text-ink-muted">
+                        Selected <span className="tabular">{selectedPlayers.length}/5</span>
                     </h2>
 
                     {selectedPlayers.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-                            No players selected. Search and add players to compare.
+                        <div className="rounded-2xl border-2 border-dashed border-line-strong py-8 text-center font-semibold text-ink-faint">
+                            No players selected
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {selectedPlayers.map((player) => (
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            {selectedPlayers.map((player, index) => (
                                 <motion.div
                                     key={player.ID}
-                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    initial={{ opacity: 0, scale: 0.94 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-3"
+                                    className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-line bg-white pl-4 pr-1.5 shadow-card"
                                 >
-                                    <span className="font-medium">{player.Player}</span>
+                                    <span className="flex items-center gap-3 font-bold">
+                                        <span className="h-3 w-3 flex-none rounded-full" style={{ background: COMPARE_COLORS[index % COMPARE_COLORS.length] }} />
+                                        {player.Player}
+                                    </span>
                                     <button
+                                        type="button"
                                         onClick={() => removePlayer(player.ID)}
-                                        className="text-red-500 hover:text-red-700 transition-colors"
+                                        className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-award-multi hover:text-rink-red"
+                                        aria-label={`Remove ${player.Player}`}
                                     >
-                                        <FaTimes />
+                                        <FaTimes aria-hidden="true" />
                                     </button>
                                 </motion.div>
                             ))}
@@ -231,24 +237,18 @@ export default function ComparisonPage() {
                 </div>
 
                 {/* Compare Button - Always visible but disabled if < 2 players */}
-                <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    whileHover={selectedPlayers.length >= 2 ? { scale: 1.05 } : {}}
-                    whileTap={selectedPlayers.length >= 2 ? { scale: 0.95 } : {}}
+                <button
+                    type="button"
                     onClick={handleCompare}
                     disabled={selectedPlayers.length < 2}
-                    className={`w-full font-bold py-4 rounded-lg flex items-center justify-center gap-3 shadow-lg transition-all ${selectedPlayers.length >= 2
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-xl cursor-pointer'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
+                    className="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-2xl bg-ink text-base font-bold text-white transition-colors hover:bg-[#232C4A] disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-faint"
                 >
-                    <FaChartLine />
+                    <FaChartLine aria-hidden="true" />
                     {selectedPlayers.length < 2
-                        ? `Select ${2 - selectedPlayers.length} more player${2 - selectedPlayers.length === 1 ? '' : 's'} to compare`
+                        ? `Select ${2 - selectedPlayers.length} more player${2 - selectedPlayers.length === 1 ? '' : 's'}`
                         : 'Compare Players'
                     }
-                </motion.button>
+                </button>
 
                 {/* Comparison Graph */}
                 {showComparison && (
