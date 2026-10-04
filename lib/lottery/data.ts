@@ -1,14 +1,14 @@
 import { randomInt } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
-import { pickWinner, publicLottery, type LotteryRecord, type LotteryResponse, type LotteryTeam } from './model';
-import { drawQuery, lotteryColumns } from './queries';
+import { pickWinner, publicLottery, type LotteryEntry, type LotteryRecord, type LotteryResponse, type LotteryTeam } from './model';
+import { drawQuery, lotteryColumns, lotteryLogosQuery } from './queries';
 
 export const getLotteryTeams = () => rows<LotteryTeam>(sql`
     select f.id, f.display_name as name, coalesce(t.abbreviation, left(f.display_name, 3)) as abbreviation,
-           f.logo_url as logo
+           coalesce(t.logo_url, f.logo_url) as logo
     from league.franchises f
-    left join lateral (select abbreviation, wins, fpts_for from league.team_seasons
+    left join lateral (select abbreviation, wins, fpts_for, logo_url from league.team_seasons
                       where franchise_id = f.id order by season_year desc limit 1) t on true
     where f.folded_after_season is null
     order by t.wins asc nulls last, t.fpts_for asc nulls last, f.id`);
@@ -33,6 +33,10 @@ export async function getPublicLottery(id?: string): Promise<LotteryResponse> {
         await rows(drawQuery(record.id, record.version, candidate));
         record = (await rows<LotteryRecord>(sql`select ${lotteryColumns} from league.draft_lotteries
             where id = ${record.id} and cancelled_at is null`))[0] ?? null;
+        [clock] = await rows<{ now: string }>(sql`select clock_timestamp() as now`);
+    }
+    if (record) {
+        record = { ...record, entries: await rows<LotteryEntry>(lotteryLogosQuery(record.entries)) };
         [clock] = await rows<{ now: string }>(sql`select clock_timestamp() as now`);
     }
     return { serverNow: new Date(clock.now).toISOString(), lottery: record ? publicLottery(record, new Date(clock.now).getTime()) : null };

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { LotteryResponse } from '@/lib/lottery/model';
 
 // Refreshes use server time plus elapsed monotonic time, not the viewer's wall clock.
-export function useLottery(initial: LotteryResponse, id?: string, preview = false, unavailable = false) {
+export function useLottery(initial: LotteryResponse, id?: string, unavailable = false) {
     const [data, setData] = useState(initial);
     const [now, setNow] = useState(new Date(initial.serverNow).getTime());
     const [error, setError] = useState(unavailable);
@@ -13,7 +13,6 @@ export function useLottery(initial: LotteryResponse, id?: string, preview = fals
         setData(initial);
         setNow(new Date(initial.serverNow).getTime());
         clock.current = { server: new Date(initial.serverNow).getTime(), received: performance.now() };
-        if (preview) return;
         let stopped = false;
         let timer: ReturnType<typeof setTimeout>;
         let controller: AbortController | null = null;
@@ -47,6 +46,6 @@ export function useLottery(initial: LotteryResponse, id?: string, preview = fals
         document.addEventListener('visibilitychange', onVisible);
         window.addEventListener('online', onVisible);
         return () => { stopped = true; clearTimeout(timer); clearInterval(tick); controller?.abort(); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('online', onVisible); };
-    }, [id, initial, preview]);
+    }, [id, initial]);
     return { data, now, error };
 }

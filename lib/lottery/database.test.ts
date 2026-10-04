@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import { archiveCompletedQuery, cancelQuery, drawQuery, editQuery } from './queries';
+import { archiveCompletedQuery, cancelQuery, drawQuery, editQuery, lotteryLogosQuery } from './queries';
 import type { LotteryEntry } from './model';
 
 test('database enforces one draw, edit/cancel deadlines, stale version protection and one current event', async () => {
@@ -37,11 +37,30 @@ test('database enforces one draw, edit/cancel deadlines, stale version protectio
         assert.equal((await db.query<{ is_current: boolean }>('select is_current from league.draft_lotteries')).rows[0].is_current, true, 'cannot replace live event');
         await db.query(`update league.draft_lotteries set starts_at=clock_timestamp()-interval '42 seconds' where id=$1`, [id]);
         await run(archiveCompletedQuery());
-        assert.equal((await db.query<{ is_current: boolean }>('select is_current from league.draft_lotteries')).rows[0].is_current, false, 'four lottery positions finish after 41 seconds, regardless of fixed teams');
+        assert.equal((await db.query<{ is_current: boolean }>('select is_current from league.draft_lotteries')).rows[0].is_current, true, 'the longer reveal must finish before archiving');
+        await db.query(`update league.draft_lotteries set starts_at=clock_timestamp()-interval '48 seconds' where id=$1`, [id]);
+        await run(archiveCompletedQuery());
+        assert.equal((await db.query<{ is_current: boolean }>('select is_current from league.draft_lotteries')).rows[0].is_current, false, 'four lottery positions finish after 47 seconds, regardless of fixed teams');
         const nextId = '00000000-0000-4000-8000-000000000002';
         await db.query(`insert into league.draft_lotteries (id,title,starts_at,entries) values ($1,'Next',clock_timestamp()+interval '1 hour',$2::jsonb)`, [nextId, JSON.stringify(entries)]);
         assert.equal((await run(cancelQuery(nextId, 1))).rows.length, 1);
         await db.query(`update league.draft_lotteries set starts_at=clock_timestamp()-interval '1 hour' where id=$1`, [nextId]);
         assert.equal((await run(drawQuery(nextId, 2, 1))).rows.length, 0, 'cancelled event cannot draw');
+    } finally { await db.close(); }
+});
+
+test('lottery logos match team pages and repair saved snapshots without changing the draw', async () => {
+    const db = new PGlite();
+    try {
+        await db.exec(`create schema league;
+            create table league.franchises (id integer primary key, logo_url text);
+            create table league.team_seasons (franchise_id integer, season_year integer, logo_url text);
+            insert into league.franchises values (1, '/franchise.png'), (2, '/fallback.png'), (3, null), (4, null);
+            insert into league.team_seasons values (1, 2025, '/old.png'), (1, 2026, '/current.png'), (2, 2026, null);`);
+        const entries: LotteryEntry[] = [1, 2, 3, 4, 5].map((id) => ({ id, name: `Saved team ${id}`, abbreviation: `T${id}`, logo: id >= 3 && id !== 4 ? '/saved.png' : null, odds: id <= 4 ? 25 : null }));
+        const { sql: query, params } = new PgDialect().sqlToQuery(lotteryLogosQuery(entries));
+        const result = (await db.query<LotteryEntry>(query, params)).rows;
+        assert.deepEqual(result, entries.map((entry, index) => ({ ...entry, logo: ['/current.png', '/fallback.png', '/saved.png', null, '/saved.png'][index] })));
+        assert.equal(entries[0].logo, null, 'saved entries are not mutated');
     } finally { await db.close(); }
 });

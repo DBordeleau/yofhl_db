@@ -127,11 +127,18 @@ arrivals see the same saved result, at the current point in the presentation.
 The winner immediately defines pick #1; all other teams retain their relative starting order.
 The draft order shows question marks for positions the lottery can change, with fixed positions
 visible below them. After a 12-second introduction, the public API releases only the unsettled
-picks from last to first every seven seconds. The final two appear together, followed by a
+picks from last to first every ten seconds. The final two appear together, followed by a
 15-second winner celebration. Unrevealed
 results are omitted from public responses. The complete order stays available after the event.
 An interrupted connection retries automatically and cannot change the saved draw. Reduced
 motion preferences disable decorative animation and confetti.
+
+The admin presentation preview runs the same countdown, opening transition, pick animations,
+and results view. Its ten-second countdown and the four-pick event take 57 seconds in total.
+Pause, resume, restart, or jump to the concluded lottery without scheduling or drawing an event.
+Team names link to their franchise pages. Lottery logos use the latest season's artwork, then
+the franchise logo, then the saved event logo. Loading artwork does not change the saved odds,
+order, or winner.
 
 Run `npm run test:lottery` for odds, timezone, disclosure, ordering, and database race/deadline
 checks. Database tests use in-memory PGlite and never connect to the league database.

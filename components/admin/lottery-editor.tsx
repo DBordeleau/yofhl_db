@@ -108,9 +108,10 @@ export default function LotteryEditor({ initial, teams }: { initial: LotteryReco
                 <ol className="divide-y divide-line-soft">
                     {entries.map((entry, index) => {
                         const team = saved?.entries.find((team) => team.id === entry.id) ?? teams.find((team) => team.id === entry.id)!;
+                        const logo = teams.find((team) => team.id === entry.id)?.logo ?? team.logo;
                         return <li key={entry.id} className="flex flex-wrap items-center gap-3 px-4 py-4 md:px-7">
                             <span className="w-6 text-center text-lg font-black tabular-nums text-ink-muted">{index + 1}</span>
-                            <TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={40} ring="none" />
+                            <TeamBadge logo={logo} abbreviation={team.abbreviation} teamName={team.name} size={40} ring="none" />
                             <span className="min-w-0 flex-1 basis-24 text-sm font-bold">{team.name}</span>
                             <div className="flex gap-1">
                                 <button type="button" aria-label={`Move ${team.name} up`} disabled={index === 0 || started || pending} onClick={() => move(index, -1)} className="h-11 w-9 rounded-lg border border-line text-lg hover:bg-ice disabled:opacity-25">↑</button>
@@ -151,6 +152,9 @@ export default function LotteryEditor({ initial, teams }: { initial: LotteryReco
             }}>Yes, cancel lottery</button><button className="min-h-11 px-4 text-sm font-bold" onClick={() => setConfirmCancel(false)}>Keep lottery</button></div>
         </div>}
         <button type="button" aria-expanded={preview} onClick={() => setPreview(!preview)} disabled={participants < 2 || !Number.isFinite(total)} className="min-h-11 rounded-xl border border-line-strong bg-white px-4 text-sm font-bold text-ink hover:bg-rink-wash disabled:opacity-40">{preview ? 'Close presentation preview' : 'Preview presentation'}</button>
-        {preview && participants >= 2 && Number.isFinite(total) && <LotteryPreview title={title} entries={entries.map((entry) => ({ ...(saved?.entries.find((team) => team.id === entry.id) ?? teams.find((team) => team.id === entry.id)!), odds: entry.odds }))} />}
+        {preview && participants >= 2 && Number.isFinite(total) && <LotteryPreview key={JSON.stringify([title, dateTime, entries])} title={title} easternDateTime={dateTime} entries={entries.map((entry) => {
+            const team = saved?.entries.find((team) => team.id === entry.id) ?? teams.find((team) => team.id === entry.id)!;
+            return { ...team, logo: teams.find((team) => team.id === entry.id)?.logo ?? team.logo, odds: entry.odds };
+        })} />}
     </div>;
 }

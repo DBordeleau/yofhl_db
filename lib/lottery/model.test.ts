@@ -58,6 +58,13 @@ test('the navigation appears exactly 24 hours before start', () => {
     assert.equal(navVisible(record, start + NAV_WINDOW_MS), true);
 });
 
+test('public start times use browser-safe ISO format for database timestamps', () => {
+    const fromDatabase = { ...record, startsAt: '2026-10-10 23:00:00+00' };
+    const response = publicLottery(fromDatabase, start - 10_000);
+    assert.equal(response.startsAt, '2026-10-10T23:00:00.000Z');
+    assert.deepEqual(response, publicLottery(record, start - 10_000));
+});
+
 test('public responses withhold unrevealed results, including the final two picks', () => {
     const pickCount = lotteryPickCount(entries);
     assert.equal(pickCount, 4);
@@ -77,7 +84,8 @@ test('public responses withhold unrevealed results, including the final two pick
         assert.equal(data.winnerId, null);
     }
     const finale = finalRevealAt(record.startsAt, entries);
-    assert.equal(finale - start, 26_000, 'fixed draft positions do not add reveal time');
+    assert.equal(REVEAL_MS, 10_000, 'picks are revealed ten seconds apart');
+    assert.equal(finale - start, 32_000, 'fixed draft positions do not add reveal time');
     assert.equal(publicLottery(record, finale - 1).revealed.length, 4);
     const final = publicLottery(record, finale);
     assert.equal(final.winnerId, 3);
