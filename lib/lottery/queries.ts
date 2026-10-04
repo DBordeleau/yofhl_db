@@ -4,6 +4,17 @@ import { FINALE_MS, INTRO_MS, REVEAL_MS, type LotteryEntry } from './model';
 export const lotteryColumns = sql`id, title, starts_at as "startsAt", entries, version,
     is_current as "isCurrent", cancelled_at as "cancelledAt", winner_id as "winnerId", drawn_at as "drawnAt"`;
 
+// Keep the saved order, names and odds; resolve artwork the same way as team pages.
+export const lotteryLogosQuery = (entries: LotteryEntry[]) => sql`
+    select (entry->>'id')::int as id, entry->>'name' as name,
+           entry->>'abbreviation' as abbreviation, (entry->>'odds')::float8 as odds,
+           coalesce(t.logo_url, f.logo_url, entry->>'logo') as logo
+    from jsonb_array_elements(${JSON.stringify(entries)}::jsonb) with ordinality as draw(entry, position)
+    left join league.franchises f on f.id = (entry->>'id')::int
+    left join lateral (select logo_url from league.team_seasons
+                       where franchise_id = f.id order by season_year desc limit 1) t on true
+    order by position`;
+
 export const drawQuery = (id: string, version: number, winnerId: number) => sql`
     update league.draft_lotteries set winner_id = ${winnerId}, drawn_at = clock_timestamp()
     where id = ${id} and version = ${version} and winner_id is null

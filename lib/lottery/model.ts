@@ -1,7 +1,7 @@
 // Shared presentation rules. Odds are percentages with at most two decimal places.
 export const EASTERN_ZONE = 'America/Toronto';
 export const INTRO_MS = 12_000;
-export const REVEAL_MS = 7_000;
+export const REVEAL_MS = 10_000;
 export const FINALE_MS = 15_000;
 export const NAV_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -144,7 +144,7 @@ export function publicLottery(record: LotteryRecord, now: number): PublicLottery
         });
     }
     return {
-        id: record.id, title: record.title, startsAt: record.startsAt,
+        id: record.id, title: record.title, startsAt: new Date(start).toISOString(),
         endsAt: new Date(ends).toISOString(), entries: record.entries,
         phase: now < start ? 'scheduled' : complete ? 'complete' : 'live',
         revealed, winnerId: now >= finale && now >= start ? record.winnerId : null,
