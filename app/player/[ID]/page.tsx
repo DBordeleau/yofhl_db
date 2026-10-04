@@ -75,6 +75,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
                     totalFPts={player.totalFPts}
                     fpg={player.fpg}
                     rank={player.rank}
+                    rankNote={isMemorial ? '#19 on August 28, 2024' : undefined}
                     seasons={player.seasons}
                     actions={compareAction}
                     header={isMemorial ? <JohnnyGaudreauMemorial actions={compareAction} /> : undefined}

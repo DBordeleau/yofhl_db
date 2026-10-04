@@ -12,17 +12,18 @@ interface PlayerHeroProps {
     totalFPts: number;
     fpg: number;
     rank: number | null;
+    rankNote?: string;
     seasons: number;
     actions?: ReactNode; // e.g. the Compare button
     header?: ReactNode; // optional tribute in place of the standard player header
 }
 
 // navy header band on /player/[ID] with the player's team, positions and Jagr Cups, followed by career totals
-const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships, totalFPts, fpg, rank, seasons, actions, header }) => {
+const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships, totalFPts, fpg, rank, rankNote, seasons, actions, header }) => {
     const stats = [
         { label: 'All-Time FPts', value: formatFpts(totalFPts) },
         { label: 'FP/G', value: fpg.toFixed(2) },
-        { label: 'All-Time Rank', value: rank ? `#${rank}` : '—' },
+        { label: 'All-Time Rank', value: rank ? `#${rank}` : '—', note: rankNote },
         { label: 'Seasons', value: String(seasons) },
     ];
 
@@ -65,11 +66,14 @@ const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships,
                 </div>
                 <div className="banner-stripes h-3.5" />
             </>}
-            <dl className="grid grid-cols-2 md:grid-cols-4">
+            <dl className="grid grid-cols-6 md:grid-cols-4">
                 {stats.map((stat, i) => (
-                    <div key={stat.label} className={`border-line-soft px-4 py-3.5 md:px-7 md:py-5 ${i % 2 === 0 ? 'border-r' : ''} ${i < 2 ? 'border-b md:border-b-0' : ''} ${i === 1 ? 'md:border-r' : ''}`}>
+                    <div key={stat.label} className={`border-line-soft px-4 py-3.5 md:col-span-1 md:px-7 md:py-5 ${rankNote && i === 2 ? 'col-span-4' : rankNote && i === 3 ? 'col-span-2' : 'col-span-3'} ${i % 2 === 0 ? 'border-r' : ''} ${i < 2 ? 'border-b md:border-b-0' : ''} ${i === 1 ? 'md:border-r' : ''}`}>
                         <dt className="text-[11px] font-bold uppercase tracking-[.14em] text-ink-muted md:text-xs">{stat.label}</dt>
-                        <dd className="font-wide tabular mt-1.5 text-[22px] font-extrabold md:text-[32px]">{stat.value}</dd>
+                        <dd className="mt-1.5">
+                            <span className="font-wide tabular block text-[22px] font-extrabold md:text-[32px]">{stat.value}</span>
+                            {stat.note && <span className="mt-1 block whitespace-nowrap text-[11px] leading-4 text-rink-red">{stat.note}</span>}
+                        </dd>
                     </div>
                 ))}
             </dl>
