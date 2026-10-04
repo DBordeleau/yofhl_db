@@ -19,6 +19,9 @@ const monogramSize = (size: number, abbreviation: string | null) => {
 
 // white circular badge with the team logo, or the abbreviation when a team has no logo yet
 const TeamBadge: FC<TeamBadgeProps> = ({ logo, abbreviation, teamName, size, sizeClass, ring = 'gold', priority = false }) => {
+    // artwork in /logos/ carries its own background, so it fills the circle instead of sitting inset on white
+    const fill = logo?.startsWith('/logos/') ?? false;
+    const scale = fill ? 1 : 0.78;
     const ringClass =
         ring === 'glow'
             ? 'shadow-[0_0_0_4px_#F0C75E,0_0_40px_rgba(240,199,94,.35),0_16px_32px_rgba(0,0,0,.35)]'
@@ -35,10 +38,10 @@ const TeamBadge: FC<TeamBadgeProps> = ({ logo, abbreviation, teamName, size, siz
                 <Image
                     src={logo}
                     alt={teamName ? `${teamName} logo` : ''}
-                    width={Math.round(size * 0.78)}
-                    height={Math.round(size * 0.78)}
-                    className="object-contain"
-                    style={{ width: '78%', height: '78%' }}
+                    width={Math.round(size * scale)}
+                    height={Math.round(size * scale)}
+                    className={fill ? 'object-cover' : 'object-contain'}
+                    style={{ width: `${scale * 100}%`, height: `${scale * 100}%` }}
                     priority={priority}
                 />
             ) : (

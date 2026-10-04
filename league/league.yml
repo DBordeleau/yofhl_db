@@ -12,25 +12,25 @@
 #     name        display name for the era
 #     abbreviations   every abbreviation Fantrax used for the team during the era
 #     owner       owner during the era (leave out if unknown)
-#     logo        path under /public, optional
+#     logo        path under /public, optional; full-bleed artwork (own background) goes in /public/logos/ and fills the badge
 #     aliases     extra Fantrax spellings that normalisation doesn't catch, optional
 #   folded        last season played, for franchises that no longer exist
 
 franchises:
   - id: 1
     eras:
-      - { from: 2019, to: 2021, name: Hub City Hyman Hounds, abbreviations: [HCHH], owner: Sean Crocker }
+      - { from: 2019, to: 2021, name: Hub City Hyman Hounds, abbreviations: [HCHH], owner: Sean Crocker, logo: /logos/hub_city_hyman_hounds.jpg }
       - { from: 2022, name: Paddyville Lucifers, abbreviations: [PVLS], owner: Pat Henriksson, logo: /pvlslogo.png }
 
   - id: 2
     eras:
-      - { from: 2019, name: New Purrsey Devils, abbreviations: [NPD], owner: Daniel Sauve }
+      - { from: 2019, name: New Purrsey Devils, abbreviations: [NPD], owner: Daniel Sauve, logo: /logos/new_purrsey_devils.jpg }
 
   - id: 3
     eras:
       - { from: 2019, to: 2019, name: Scranton The Electric Gritty, abbreviations: [STEG], owner: Jeremy Weaver }
       - { from: 2020, to: 2020, name: Scranton The Electric City, abbreviations: [STEC], owner: Jeremy Weaver }
-      - { from: 2021, name: Hooterville Honkers, abbreviations: [HH], owner: Jeremy Weaver, logo: /hhlogo.png }
+      - { from: 2021, name: Hooterville Honkers, abbreviations: [HH], owner: Jeremy Weaver, logo: /logos/hooterville_honkers.webp }
 
   - id: 4
     eras:
@@ -53,7 +53,7 @@ franchises:
   - id: 8
     eras:
       - { from: 2019, to: 2019, name: Semōn Demōns, abbreviations: [SEED], owner: Narayan Wagle }
-      - { from: 2020, name: Skellige Sirens, abbreviations: [SKGS], owner: Monike Porter }
+      - { from: 2020, name: Skellige Sirens, abbreviations: [SKGS], owner: Monike Porter, logo: /logos/skellige_sirens.jpg }
 
   - id: 9
     eras:
@@ -82,7 +82,7 @@ franchises:
     eras:
       - { from: 2020, to: 2020, name: Lower Juba Spud Farmers, abbreviations: [JUBA], owner: Andrew Halstad }
       - { from: 2021, to: 2021, name: The Meat Cove Meatballs, abbreviations: [MEAT], owner: Andrew Halstad }
-      - { from: 2022, name: Hamhung Hall Monitors, abbreviations: [HUNG], owner: Andrew Halstad }
+      - { from: 2022, name: Hamhung Hall Monitors, abbreviations: [HUNG], owner: Andrew Halstad, logo: /logos/hamhung_hall_monitors.jpg }
 
   - id: 14
     eras:
