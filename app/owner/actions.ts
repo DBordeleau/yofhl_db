@@ -8,13 +8,32 @@ import { isAdmin, requireAdmin } from '@/lib/admin/auth';
 import { rows, LEAGUE_TAG } from '@/lib/data/db';
 import { clearOwnerSession, freshOwnerToken, limitOwnerAction, ownerSession, requireSameOrigin, startOwnerSession } from '@/lib/owner/auth';
 import { hashCode, invitation, teamName, type ManagedTeam } from '@/lib/owner/model';
-import { claimTeamQuery, issueInviteQuery, managedTeamsQuery, saveTeamQuery, updateTeamQuery } from '@/lib/owner/queries';
+import { claimTeamQuery, issueInviteQuery, managedTeamsQuery, saveTeamQuery, updateTeamQuery, saveBrandingQuery } from '@/lib/owner/queries';
+import { parseTeamColours } from '@/lib/team-branding';
 
 const refresh = () => {
     revalidateTag(LEAGUE_TAG);
     revalidatePath('/owner');
     revalidatePath('/admin/teams');
+    revalidatePath('/owner/branding');
 };
+
+export async function saveTeamBranding(id: number, version: number, value: unknown) {
+    await requireSameOrigin();
+    const admin = await isAdmin();
+    const user = admin ? null : await ownerSession();
+    if (!admin && !user) return { error: 'Your session has expired. Please sign in again.' };
+    if (!Number.isSafeInteger(id) || id <= 0 || !Number.isSafeInteger(version) || version < 0) return { error: 'Invalid team.' };
+    const branding = parseTeamColours(value, id);
+    if (!branding) return { error: 'Choose three six-digit hex colours and a background style available to your team.' };
+    await limitOwnerAction('save-branding', user?.uid ?? 'admin');
+    const result = await rows(saveBrandingQuery(id, version, branding, user?.uid ?? null, admin));
+    if (!result.length) return { error: 'This team changed or you no longer have access. Reload the page before saving.' };
+    refresh();
+    revalidatePath(`/admin/teams/${id}/branding`);
+    revalidatePath('/', 'layout');
+    return { saved: true };
+}
 
 export async function signInOwner(idToken: string) {
     await requireSameOrigin();

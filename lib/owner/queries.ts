@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import type { TeamColours } from '../team-branding';
 
 export const managedTeamsQuery = sql`
     select f.id, coalesce(m.name, t.name, f.display_name) as name,
@@ -6,7 +7,7 @@ export const managedTeamsQuery = sql`
            coalesce(t.abbreviation, '') as abbreviation,
            f.folded_after_season is not null as defunct,
            m.owner_uid as "ownerUid", m.owner_email as "ownerEmail",
-           m.invite_expires_at as "inviteExpiresAt", coalesce(m.version, 0) as version
+           m.invite_expires_at as "inviteExpiresAt", coalesce(m.version, 0) as version, m.branding
     from league.franchises f
     left join league.team_management m on m.franchise_id = f.id
     left join lateral (select name, logo_url, abbreviation from league.team_seasons
@@ -58,3 +59,19 @@ export const rateLimitQuery = (key: string) => sql`
       attempts = case when league.owner_rate_limits.resets_at <= now() then 1 else league.owner_rate_limits.attempts + 1 end,
       resets_at = case when league.owner_rate_limits.resets_at <= now() then now() + interval '15 minutes' else league.owner_rate_limits.resets_at end
     returning attempts`;
+
+// Share the identity version so a colour save cannot silently race a name/logo edit.
+export const saveBrandingQuery = (id: number, version: number, branding: TeamColours, uid: string | null, admin: boolean) => sql`
+    insert into league.team_management as m (franchise_id, branding)
+    select f.id, ${JSON.stringify(branding)}::jsonb from league.franchises f
+    where f.id = ${id} and (${admin} or exists (
+        select 1 from league.team_management owned
+        where owned.franchise_id = f.id and owned.owner_uid = ${uid} and f.folded_after_season is null
+    )) and (${version} = 0 or exists (
+        select 1 from league.team_management current where current.franchise_id = f.id and current.version = ${version}
+    ))
+    on conflict (franchise_id) do update set branding = excluded.branding, version = m.version + 1
+    where m.version = ${version} and (${admin} or (m.owner_uid = ${uid} and exists (
+        select 1 from league.franchises f where f.id = m.franchise_id and f.folded_after_season is null
+    )))
+    returning m.franchise_id`;

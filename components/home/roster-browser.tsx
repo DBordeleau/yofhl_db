@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import TeamBadge from '@/components/team-badge';
+import TeamBranding from '@/components/team-branding/team-branding';
 import { periodLabel, rosterGroup, type Period, type SnapshotPlayer, type SnapshotTeam } from '@/lib/fantrax/model';
 import styles from './home.module.css';
 
@@ -25,8 +26,8 @@ function Player({ player }: { player: SnapshotPlayer }) {
     </li>;
 }
 
-export default function RosterBrowser({ teams, rosterPeriod }: { teams: SnapshotTeam[]; rosterPeriod: Period | null }) {
-    const [selectedId, setSelectedId] = useState(teams[0]?.id);
+export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId }: { teams: SnapshotTeam[]; rosterPeriod: Period | null; initialFranchiseId?: number }) {
+    const [selectedId, setSelectedId] = useState(() => teams.find(team => team.franchiseId === initialFranchiseId)?.id ?? teams[0]?.id);
     const selectedIndex = Math.max(0, teams.findIndex(team => team.id === selectedId));
     const selected = teams[selectedIndex];
     if (!selected) return null;
@@ -48,15 +49,17 @@ export default function RosterBrowser({ teams, rosterPeriod }: { teams: Snapshot
         </div>
         <div className={styles.rosterPanel}>
             <div key={selected.id} className={styles.rosterSheet}>
-                <header className={styles.rosterHeader}>
-                    <span className={styles.rosterWatermark} aria-hidden="true">{selected.abbreviation}</span>
-                    <TeamBadge logo={selected.logo} abbreviation={selected.abbreviation} teamName={selected.name} size={88} ring="none" />
-                    <div className={styles.rosterIdentity} aria-live="polite">
-                        <h3>{selected.name}</h3>
-                        <p>{selected.owner ? <><span>{selected.owner}</span><span aria-hidden="true"> / </span></> : null}{selected.players.length} players</p>
-                    </div>
-                    {selected.franchiseId ? <Link href={`/teams/${selected.franchiseId}`} className={styles.franchiseLink}>Franchise history <span aria-hidden="true">↗</span></Link> : null}
-                </header>
+                <TeamBranding teamId={selected.franchiseId} data-brand-layout="roster" className={styles.rosterBranding}>
+                    <header data-brand-part="surface" className={styles.rosterHeader}>
+                        <span className={styles.rosterWatermark} aria-hidden="true">{selected.abbreviation}</span>
+                        <TeamBadge logo={selected.logo} abbreviation={selected.abbreviation} teamName={selected.name} size={88} ring="none" />
+                        <div className={styles.rosterIdentity} aria-live="polite">
+                            <h3>{selected.franchiseId ? <Link href={`/teams/${selected.franchiseId}`} className={styles.rosterTitleLink}>{selected.name}</Link> : selected.name}</h3>
+                            <p>{selected.owner ? <><span>{selected.owner}</span><span aria-hidden="true"> / </span></> : null}{selected.players.length} players</p>
+                        </div>
+                    </header>
+                    <div data-brand-part="stripes" className={styles.rosterStripes} aria-hidden="true" />
+                </TeamBranding>
                 {selected.players.length ? <div className={styles.rosterBody}>
                     <div className={styles.lineupGrid}>
                         {grouped.slice(0, positions.length).map(group => <section className={`${styles.positionGroup} ${group.key === 'D' ? styles.defenceGroup : ''}`} key={group.key} aria-label={group.label}>

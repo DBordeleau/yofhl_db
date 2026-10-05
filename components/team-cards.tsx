@@ -1,18 +1,18 @@
 import React, { FC } from 'react';
 import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
+import TeamBranding from '@/components/team-branding/team-branding';
 import { CupRow, JagrCupIcon } from '@/components/trophy-icons';
 import type { FranchiseCard } from '@/lib/data/league';
 import { formatFpts, seasonLabel } from '@/lib/league';
 
 interface TeamCardProps {
     team: FranchiseCard;
-    rank: number;
     index: number;
 }
 
 // one franchise's all-time record, linking to its profile at /teams/[ID]
-const TeamCard: FC<TeamCardProps> = ({ team, rank, index }) => {
+const TeamCard: FC<TeamCardProps> = ({ team, index }) => {
     const cups = team.championships;
     const finals = team.finals;
     const games = team.Wins + team.Losses + team.Ties;
@@ -26,17 +26,16 @@ const TeamCard: FC<TeamCardProps> = ({ team, rank, index }) => {
             className={`animate-rise group flex flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-card transition-transform duration-300 hover:-translate-y-1 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-rink-line ${defunct ? 'opacity-80' : ''}`}
             style={{ animationDelay: `${index * 45}ms` }}
         >
-            <div className="navy-spotlight relative flex items-center gap-4 px-5 py-5 text-white">
+            <TeamBranding teamId={team.ID} data-brand-layout="card">
+            <div data-brand-part="surface" className="navy-spotlight relative flex items-center gap-4 px-5 py-5 text-white">
                 <TeamBadge logo={logo} abbreviation={team.Abbreviation} teamName={team.Team} size={64} ring={cups.length ? 'gold' : 'none'} />
                 <div className="min-w-0 flex-1">
-                    <div className="font-wide text-[17px] font-extrabold uppercase leading-tight group-hover:underline">{team.Team}</div>
-                    <div className="mt-1 text-xs font-bold uppercase tracking-[.1em] text-[#B9C6DA]">
-                        {team.Abbreviation}{defunct ? <> · <span className="text-[#E2475C]">Defunct</span></> : team.Owner ? ` · ${team.Owner}` : ''}
-                    </div>
+                    <h2 className="font-wide text-[17px] font-extrabold uppercase leading-tight group-hover:underline">{team.Team}</h2>
+                    {team.Owner ? <div className="mt-1 text-xs font-bold uppercase tracking-[.1em] text-[#B9C6DA]">{team.Owner}</div> : null}
                 </div>
-                <span className="font-narrow tabular self-start text-[32px] font-extrabold leading-none text-white/25">{rank}</span>
             </div>
-            <div className="banner-stripes h-3.5" />
+            <div data-brand-part="stripes" className="banner-stripes h-3.5" />
+            </TeamBranding>
 
             <div className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-4">
                 <div>

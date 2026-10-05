@@ -1,0 +1,62 @@
+{
+  "1": {
+    "primary": "#A71930",
+    "secondary": "#FF8000",
+    "tertiary": "#FFFF00",
+    "treatment": "horns"
+  },
+  "2": {
+    "primary": "#BE2038",
+    "secondary": "#181A20",
+    "tertiary": "#FFFFFF",
+    "treatment": "fangs"
+  },
+  "3": {
+    "primary": "#182C4B",
+    "secondary": "#AA2A3A",
+    "tertiary": "#FFFFFF",
+    "treatment": "flight"
+  },
+  "4": {
+    "primary": "#55328A",
+    "secondary": "#FFFF00",
+    "tertiary": "#FFFFFF",
+    "treatment": "arcane"
+  },
+  "5": {
+    "primary": "#1E5986",
+    "secondary": "#CE6873",
+    "tertiary": "#FFB364",
+    "treatment": "mullet"
+  },
+  "6": {
+    "primary": "#285B48",
+    "secondary": "#EDB34C",
+    "tertiary": "#FFFFFF",
+    "treatment": "western"
+  },
+  "7": {
+    "primary": "#1556A0",
+    "secondary": "#37C9E8",
+    "tertiary": "#ECBA22",
+    "treatment": "fleur"
+  },
+  "8": {
+    "primary": "#7D007D",
+    "secondary": "#62E8E4",
+    "tertiary": "#F4FEFF",
+    "treatment": "tides"
+  },
+  "9": {
+    "primary": "#158D32",
+    "secondary": "#D24015",
+    "tertiary": "#FFFFFF",
+    "treatment": "scythe"
+  },
+  "13": {
+    "primary": "#1E466B",
+    "secondary": "#EB6957",
+    "tertiary": "#FFFFFF",
+    "treatment": "hoops"
+  }
+}

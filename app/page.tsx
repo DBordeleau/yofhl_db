@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
+import TeamBranding from '@/components/team-branding/team-branding';
 import { TrophyArt } from '@/components/trophy-icons';
 import MatchupBrowser from '@/components/home/matchup-browser';
 import RosterBrowser from '@/components/home/roster-browser';
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     description: 'Ye Olde Fantasy Hockey League standings, matchups, rosters, scoring leaders, and season history.',
 };
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ period?: string | string[] }> }) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ period?: string | string[]; roster?: string | string[] }> }) {
     const [params, snapshot, seasons] = await Promise.all([
         searchParams,
         getLeagueSnapshot().catch(() => null),
@@ -36,6 +37,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     const season = snapshot ? seasonLabel(snapshot.seasonYear + 1) : 'Current season';
     const updated = snapshot ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(snapshot.fetchedAt)) : null;
     const totalGames = snapshot?.teams.some(team => team.record && team.record !== '0-0-0');
+    const rosterFranchiseId = typeof params.roster === 'string' && /^\d+$/.test(params.roster) ? Number(params.roster) : undefined;
 
     return <main className={styles.home}>
         <section className={styles.hero} aria-labelledby="home-heading">
@@ -82,11 +84,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </section>
 
                 <aside className={styles.historyColumn} aria-label="Champions and scoring leaders">
-                    {champion ? <Link href={`/champions/${champion.year}#championship-roster`} className={styles.championCard}>
-                        <div className={styles.championTop}><span className={styles.eyebrow}>Reigning champions</span><span>{champion.label}</span></div>
+                    {champion ? <TeamBranding teamId={champion.franchiseId} data-brand-layout="champion"><Link data-brand-part="surface" href={`/champions/${champion.year}#championship-roster`} className={styles.championCard}>
+                        <div className={styles.championTop}><span className={styles.eyebrow}>Reigning champions</span><span className={styles.championSeason}>{champion.label}</span></div>
                         <div className={styles.championIdentity}><TeamBadge logo={champion.logo} abbreviation={champion.abbreviation} teamName={champion.team} size={76} ring="none" /><div><span>Jagr Cup champions</span><h3>{champion.team}</h3></div></div>
                         <div className={styles.championBottom}>View championship season <span aria-hidden="true">↗</span></div>
-                    </Link> : null}
+                    </Link></TeamBranding> : null}
                     <section className={styles.leadersCard} aria-labelledby="leaders-heading"><div className={styles.leadersHeading}><p className={styles.eyebrow}>{season}</p><h3 id="leaders-heading">Scoring leaders</h3></div>
                         {leaders?.rows.length ? <><ol>{leaders.rows.slice(0, 5).map((player, index) => <li key={player.ID}><Link href={`/player/${encodeURIComponent(player.ID)}`}><span className={styles.leaderRank}>{String(index + 1).padStart(2, '0')}</span><span>{player.Player}<small>{player.Position.replace(/,/g, ' · ')} · {player.YOFHLTeam}</small></span><strong>{formatFpts(player.FPts)}<small>FPts</small></strong></Link></li>)}</ol><p className={styles.leadersNote}>Based on imported {season} player stats.</p></> : <div className={styles.leadersEmpty}><p>{preseason && opening ? <>Season starts {shortDate(opening.startDate)}.</> : 'Current-season player stats are not available yet.'}</p></div>}
                         <a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.leaderFooter}>View season on Fantrax <span aria-hidden="true">↗</span></a>
@@ -94,7 +96,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </aside>
             </div>
 
-            {snapshot ? <RosterBrowser teams={snapshot.teams} rosterPeriod={snapshot.rosterPeriod} /> : null}
+            {snapshot ? <RosterBrowser key={rosterFranchiseId ?? 'default'} teams={snapshot.teams} rosterPeriod={snapshot.rosterPeriod} initialFranchiseId={rosterFranchiseId} /> : null}
 
             <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading"><div><h2 id="archive-heading">This league has history.</h2><Link href="/stats/all-time/all" className={styles.historyButton}>Explore League History <span aria-hidden="true">↗</span></Link></div><div className={styles.archiveLinks}><Link href="/champions">Champions <span aria-hidden="true">↗</span></Link><Link href="/awards">Awards <span aria-hidden="true">↗</span></Link><Link href="/teams/stats">Franchise records <span aria-hidden="true">↗</span></Link></div></section>
 

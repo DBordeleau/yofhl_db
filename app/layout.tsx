@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
 import Header from "@/components/header";
+import TeamBrandingProvider from "@/components/team-branding/branding-provider";
+import { getTeamBranding } from "@/lib/data/team-branding";
 import { getAwardTypes } from "@/lib/data/league";
 import "./globals.css";
 
@@ -22,12 +24,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const awards = await getAwardTypes();
+  const [awards, palettes] = await Promise.all([getAwardTypes(), getTeamBranding()]);
   return (
     <html lang="en">
       <body className={`${archivo.variable} min-h-screen overflow-x-hidden bg-ice font-sans text-ink antialiased`}>
         <Header awards={awards} />
-        {children}
+        <TeamBrandingProvider palettes={palettes}>{children}</TeamBrandingProvider>
       </body>
     </html>
   );

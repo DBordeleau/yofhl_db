@@ -1,0 +1,211 @@
+.scope {
+    --team-pattern: linear-gradient(116deg, transparent 60%, var(--team-secondary) 60% 69%, transparent 69% 70.5%, var(--team-detail) 70.5% 71.1%, transparent 71.1% 73%, var(--team-secondary) 73% 75%, transparent 75%);
+    --team-pattern-opacity: 1;
+}
+
+.scope[data-team-signature] {
+    --team-pattern: var(--team-artwork) right center / auto 100% no-repeat;
+}
+
+.scope[data-treatment='arcane'] {
+    --team-pattern: var(--team-artwork) right bottom / auto 100% no-repeat;
+    --team-accent-pattern: var(--team-accent-artwork) right bottom / auto 100% no-repeat;
+}
+
+.scope[data-treatment='scythe'] {
+    --team-pattern: var(--team-artwork) right bottom / auto min(100%, 220px) no-repeat;
+}
+
+.scope[data-treatment='tides'] {
+    --team-pattern: var(--team-artwork) right bottom / auto min(100%, 220px) no-repeat;
+}
+
+.scope[data-treatment='tides'][data-brand-layout='card'],
+.scope[data-treatment='scythe'][data-brand-layout='card'] {
+    --team-pattern: var(--team-artwork) right bottom / auto min(60%, 80px) no-repeat;
+}
+
+.scope[data-treatment='tides'][data-brand-layout='champion'] {
+    --team-pattern: var(--team-artwork) right bottom / auto 90px no-repeat;
+}
+
+.scope[data-treatment='scythe'][data-brand-layout='champion'] {
+    --team-pattern: var(--team-artwork) right bottom / auto 100px no-repeat;
+}
+
+.scope[data-treatment='western'] {
+    --team-flag-stripes: linear-gradient(0deg, transparent 0 5%, var(--team-secondary) 5% 11%, transparent 11% 13%, var(--team-tertiary) 13% 14%, transparent 14% 86%, var(--team-tertiary) 86% 87%, transparent 87% 89%, var(--team-secondary) 89% 95%, transparent 95%);
+    --team-pattern: var(--team-artwork) right center / auto 100% no-repeat, var(--team-flag-stripes);
+}
+
+.scope[data-treatment='gradient'] {
+    --team-pattern: radial-gradient(ellipse at 100% 5%, var(--team-secondary), transparent 80%);
+    --team-pattern-opacity: 1;
+}
+
+.scope[data-treatment='hoops'] {
+    --team-pattern: linear-gradient(0deg, transparent 0 20%, var(--team-detail) 20% 21%, transparent 21% 25%, var(--team-secondary) 25% 48%, transparent 48% 52%, var(--team-detail) 52% 53%, transparent 53%);
+    --team-pattern-opacity: 1;
+}
+
+.scope[data-treatment='split'] {
+    --team-pattern: linear-gradient(122deg, transparent 0 60%, var(--team-detail) 60% 60.5%, var(--team-secondary) 60.5%);
+    --team-pattern-opacity: 1;
+}
+
+.scope[data-treatment='chevron'] {
+    --team-pattern: linear-gradient(28deg, transparent 0 48%, var(--team-detail) 48% 49%, var(--team-secondary) 49% 59%, var(--team-detail) 59% 60%, transparent 60%) left / 50% 100% no-repeat,
+        linear-gradient(-28deg, transparent 0 48%, var(--team-detail) 48% 49%, var(--team-secondary) 49% 59%, var(--team-detail) 59% 60%, transparent 60%) right / 50% 100% no-repeat;
+    --team-pattern-opacity: 1;
+}
+
+.scope[data-treatment='weave'] {
+    --team-pattern: repeating-linear-gradient(45deg, transparent 0 28px, var(--team-detail) 28px 29px, transparent 29px 56px),
+        repeating-linear-gradient(-45deg, transparent 0 26px, var(--team-secondary) 26px 30px, transparent 30px 56px);
+    --team-pattern-opacity: 1;
+}
+
+.scope[data-brand-part='surface'],
+.scope [data-brand-part='surface'] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--team-surface);
+}
+
+.scope :is(h1, h2, h3) {
+    text-shadow: 0 1px 2px #06101e, 0 0 4px #06101e;
+}
+
+.scope[data-brand-part='surface']::before,
+.scope [data-brand-part='surface']::before,
+.scope[data-brand-part='surface']::after,
+.scope [data-brand-part='surface']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    z-index: -2;
+    pointer-events: none;
+    background: var(--team-pattern);
+    opacity: var(--team-pattern-opacity);
+}
+
+.scope[data-brand-part='surface']::after,
+.scope [data-brand-part='surface']::after {
+    z-index: -1;
+    /* Paint the trim above both the artwork and the text scrim. Inset shadows sit below them. */
+    background: var(--team-trim, linear-gradient(transparent, transparent)),
+        var(--team-accent-pattern, linear-gradient(transparent, transparent)),
+        linear-gradient(90deg, #06101ed9 0%, #06101ec2 38%, #06101e80 57%, #06101e00 82%);
+    opacity: 1;
+}
+
+.scope [data-brand-part='stripes'] {
+    background: linear-gradient(var(--team-secondary) 0 5px, var(--team-tertiary) 5px 8px, var(--team-primary) 8px 14px);
+}
+
+.scope a[data-brand-part='surface'] { --team-trim: linear-gradient(var(--team-tertiary) 0 2px, transparent 2px); }
+
+.scope [data-brand-part='rink'] { opacity: .25; }
+.scope[data-team-signature] [data-brand-part='rink'] { display: none; }
+.scope [data-brand-part='rink'] line { stroke: var(--team-secondary); }
+.scope [data-brand-part='rink'] circle { stroke: #fff; }
+.scope [data-brand-part='accent'] { background: var(--team-secondary); }
+.scope[data-brand-layout='roster'] [data-brand-part='surface'] {
+    --team-trim: linear-gradient(var(--team-tertiary) 0 2px, transparent 2px);
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+    .scope[data-treatment='tides'][data-brand-layout='profile'] {
+        --team-pattern: var(--team-artwork) right bottom / auto 120px no-repeat;
+    }
+
+    .scope[data-treatment='scythe'][data-brand-layout='profile'] {
+        --team-pattern: var(--team-artwork) right bottom / auto 100px no-repeat;
+    }
+}
+
+@media (max-width: 767px) {
+    .scope[data-treatment='tides'][data-brand-layout='profile'] {
+        --team-pattern: var(--team-artwork) right bottom / auto 96px no-repeat;
+    }
+
+    .scope[data-treatment='tides'][data-brand-layout='profile'] [data-brand-part='surface'] {
+        padding-bottom: 96px;
+    }
+
+    .scope[data-treatment='scythe'][data-brand-layout='profile'] {
+        --team-pattern: var(--team-artwork) right bottom / auto 120px no-repeat;
+    }
+
+    .scope[data-treatment='scythe'][data-brand-layout='profile'] [data-brand-part='surface'] {
+        padding-bottom: 120px;
+    }
+}
+
+@media (min-width: 900px) {
+    .scope[data-brand-layout='roster'][data-team-signature] {
+        --team-pattern: var(--team-artwork) right 4% center / auto 100% no-repeat,
+            var(--team-watermark) 58% center / auto 265% no-repeat;
+    }
+
+    .scope[data-brand-layout='roster'][data-team-signature] [data-brand-part='surface'] {
+        min-height: 190px;
+    }
+
+    .scope[data-brand-layout='roster'][data-treatment='western'] {
+        --team-flag-stripes: linear-gradient(0deg, transparent 0 18%, var(--team-secondary) 18% 25%, transparent 25% 27%, var(--team-tertiary) 27% 28%, transparent 28% 72%, var(--team-tertiary) 72% 73%, transparent 73% 75%, var(--team-secondary) 75% 82%, transparent 82%);
+        --team-pattern: var(--team-artwork) right 4% center / auto 100% no-repeat,
+            var(--team-watermark) 56% center / auto 265% no-repeat,
+            var(--team-flag-stripes);
+    }
+
+    .scope[data-brand-layout='roster'][data-treatment='arcane'],
+    .scope[data-brand-layout='roster'][data-treatment='scythe'] {
+        --team-pattern: var(--team-artwork) right 4% bottom / auto 100% no-repeat,
+            var(--team-watermark) 58% center / auto 265% no-repeat;
+    }
+
+    .scope[data-brand-layout='roster'][data-treatment='arcane'] {
+        --team-accent-pattern: var(--team-accent-artwork) right 4% bottom / auto 100% no-repeat;
+    }
+
+    .scope[data-brand-layout='roster'][data-treatment='tides'] {
+        --team-pattern: var(--team-artwork) right bottom / auto min(100%, 220px) no-repeat,
+            var(--team-watermark) center bottom / auto 165% no-repeat;
+    }
+}
+
+.preview { min-height: 170px; display: flex; align-items: center; gap: 20px; padding: 28px; color: white; }
+.preview h3 { font-size: clamp(21px, 3vw, 30px); font-weight: 900; line-height: 1.08; text-transform: uppercase; overflow-wrap: anywhere; }
+.preview p { margin-top: 9px; font-size: 12px; color: #dce5ee; }
+.previewLabel { margin-bottom: 10px; font-size: 10px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; color: #dce5ee; }
+.colourField { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #bdcad9; border-radius: 10px; background: white; }
+.colourField input[type='color'] { width: 40px; height: 40px; padding: 0; border: 0; background: transparent; cursor: pointer; flex-shrink: 0; }
+.colourField input[type='text'] { min-width: 0; width: 100%; font: 700 14px monospace; text-transform: uppercase; padding: 8px 0; background: transparent; }
+.colourField:focus-within { outline: 2px solid #267ac6; outline-offset: 2px; }
+.colourField input:focus { outline: none; }
+
+.styleChoice { display: block; min-width: 0; cursor: pointer; overflow: hidden; border: 1px solid #bdcad9; border-radius: 12px; }
+.styleChoice:has(input:checked) { border-color: #267ac6; box-shadow: 0 0 0 1px #267ac6; background: #eef5fc; }
+.styleChoice:focus-within { outline: 2px solid #267ac6; outline-offset: 3px; }
+.styleChoice:hover { border-color: #267ac6; }
+.stylePreview { --team-trim: linear-gradient(0deg, var(--team-tertiary) 0 1px, transparent 1px); display: flex; align-items: center; gap: 9px; height: 76px; padding: 14px; border-bottom: 3px solid var(--team-secondary); }
+.stylePreviewBadge { height: 24px; width: 24px; flex-shrink: 0; border: 2px solid #ffffffa0; border-radius: 50%; background: #ffffff15; }
+.stylePreviewLines { display: grid; gap: 5px; width: 35%; }
+.stylePreviewLines::before, .stylePreviewLines::after { content: ''; display: block; height: 3px; border-radius: 2px; background: #ffffffa0; }
+.stylePreviewLines::after { width: 60%; background: #ffffff50; }
+.signatureChoice { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
+.signatureChoice .stylePreview { height: 100%; min-height: 116px; }
+
+@media (max-width: 480px) {
+    .scope[data-treatment='tides'] {
+        --team-pattern: var(--team-artwork) right bottom / auto min(100%, 160px) no-repeat;
+    }
+    .preview { gap: 15px; padding: 22px 18px; }
+}
