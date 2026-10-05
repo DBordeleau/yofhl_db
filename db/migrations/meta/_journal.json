@@ -57,6 +57,13 @@
       "when": 1791140225391,
       "tag": "0007_keeper_rookie_season",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791161513390,
+      "tag": "0008_team_branding",
+      "breakpoints": true
     }
   ]
 }

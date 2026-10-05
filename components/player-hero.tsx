@@ -1,6 +1,7 @@
 import { FC, ReactNode } from 'react';
 import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
+import TeamBranding from '@/components/team-branding/team-branding';
 import { CupRow } from '@/components/trophy-icons';
 import { formatFpts, positionNames } from '@/lib/league';
 
@@ -28,11 +29,11 @@ const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships,
     ];
 
     return (
-        <section className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
+        <TeamBranding as="section" teamId={team?.id} data-brand-layout="profile" className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
             {header ?? <>
-                <div className="navy-spotlight relative flex flex-col items-start gap-4 overflow-hidden px-5 pb-6 pt-5 text-white md:flex-row md:items-center md:gap-7 md:px-10 md:py-9">
+                <div data-brand-part="surface" className="navy-spotlight relative flex flex-col items-start gap-4 overflow-hidden px-5 pb-6 pt-5 text-white md:flex-row md:items-center md:gap-7 md:px-10 md:py-9">
                     {/* centre ice markings, kept to the edge so they never sit behind the text */}
-                    <svg className="pointer-events-none absolute -right-[70px] -top-[30px] h-[190px] w-[190px] md:-right-5 md:top-1/2 md:h-[300px] md:w-[300px] md:-translate-y-1/2" viewBox="0 0 300 300" fill="none" aria-hidden="true">
+                    <svg data-brand-part="rink" className="pointer-events-none absolute -right-[70px] -top-[30px] h-[190px] w-[190px] md:-right-5 md:top-1/2 md:h-[300px] md:w-[300px] md:-translate-y-1/2" viewBox="0 0 300 300" fill="none" aria-hidden="true">
                         <line x1="150" y1="0" x2="150" y2="300" stroke="#E2475C" strokeWidth="5" strokeDasharray="12 8" opacity=".45" />
                         <circle cx="150" cy="150" r="110" stroke="#6FB1F2" strokeWidth="3" opacity=".4" />
                         <circle cx="150" cy="150" r="6" fill="#6FB1F2" opacity=".55" />
@@ -47,7 +48,7 @@ const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships,
                     <div className="relative min-w-0 md:max-w-[calc(100%-420px)]">
                         {team && (
                             <Link href={`/teams/${team.id}`} className="font-wide inline-flex max-w-[calc(100%-110px)] items-center gap-2.5 text-[13px] font-extrabold uppercase tracking-[.06em] text-white hover:underline md:max-w-none md:text-[15px]">
-                                <b className="block h-[18px] w-1 flex-none rounded-sm bg-rink-red" />
+                                <b data-brand-part="accent" className="block h-[18px] w-1 flex-none rounded-sm bg-rink-red" />
                                 {team.name}
                             </Link>
                         )}
@@ -64,7 +65,7 @@ const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships,
                         {actions && <div className="mt-4">{actions}</div>}
                     </div>
                 </div>
-                <div className="banner-stripes h-3.5" />
+                <div data-brand-part="stripes" className="banner-stripes h-3.5" />
             </>}
             <dl className="grid grid-cols-6 md:grid-cols-4">
                 {stats.map((stat, i) => (
@@ -77,7 +78,7 @@ const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships,
                     </div>
                 ))}
             </dl>
-        </section>
+        </TeamBranding>
     );
 };
 

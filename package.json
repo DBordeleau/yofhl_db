@@ -9,6 +9,7 @@
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/migrate.ts",
+    "db:seed:branding": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/seed-team-branding.ts",
     "test:lottery": "node --import tsx --test lib/lottery/*.test.ts",
     "test:history": "node --import tsx --test scripts/db/lib/history.test.ts",
     "test:owners": "node --import tsx --test lib/owner/*.test.ts",

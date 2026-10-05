@@ -2,6 +2,8 @@
 
 Owners use `/owner` to claim a team, sign in, request a password reset, or edit their current name and logo. Commissioners use `/admin/teams` with the existing admin login.
 
+The **Brand studio** link opens a dedicated editor for three team colours and banner style. Owners can edit only their active team; commissioners can open each team's studio from administration. Changes save to the database and appear throughout the public site. See [team branding](team-branding.md) for artwork, permissions and the initial palette import.
+
 ## Invite the ten active owners
 
 1. Open `/admin/teams` and select **Generate invitation code** for an unclaimed active team.

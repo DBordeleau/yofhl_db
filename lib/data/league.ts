@@ -14,6 +14,7 @@ export interface BannerSeason {
     abbreviation: string | null;
     owner: string | null;
     logo: string | null;
+    franchiseId: number | null;
 }
 
 export interface LeaderRow {
@@ -154,7 +155,7 @@ export const getBannerSeasons = cached(
     () =>
         rows<BannerSeason>(sql`
             select s.year, s.label, s.playoff_status as "playoffStatus",
-                   t.name as team, t.abbreviation, t.logo_url as logo, o.name as owner
+                   t.name as team, t.abbreviation, t.logo_url as logo, o.name as owner, t.franchise_id as "franchiseId"
             from league.seasons s
             left join league.season_results r on r.season_year = s.year
             left join league.team_seasons t on t.id = r.champion_team_season_id

@@ -10,6 +10,7 @@ import contentsStyles from '@/components/page-contents.module.css';
 import TransactionHistory from '@/components/transaction-history';
 import StatTable from '@/components/stat-table';
 import TeamBadge from '@/components/team-badge';
+import TeamBranding from '@/components/team-branding/team-branding';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import { getFranchise, getFranchiseCards } from '@/lib/data/league';
 import { getFranchiseDraft, getFranchiseHonors, getHistory, getHistorySeasons } from '@/lib/data/history';
@@ -58,8 +59,8 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                 <span aria-hidden="true">←</span> All teams
             </Link>
             <FadeIn>
-                <section className="navy-spotlight relative overflow-hidden rounded-3xl text-white" aria-label="Franchise overview">
-                    <div className="flex flex-col items-center gap-6 px-5 py-8 text-center md:flex-row md:gap-9 md:px-10 md:py-10 md:text-left">
+                <TeamBranding as="section" teamId={team.id} data-brand-layout="profile" className="navy-spotlight relative overflow-hidden rounded-3xl text-white" aria-label="Franchise overview">
+                    <div data-brand-part="surface" className="flex flex-col items-center gap-6 px-5 py-8 text-center md:flex-row md:gap-9 md:px-10 md:py-10 md:text-left lg:min-h-[248px] lg:pr-72">
                         <TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={140} sizeClass="h-[110px] w-[110px] md:h-[140px] md:w-[140px]" ring="glow" priority />
                         <div className="min-w-0 flex-1">
                             <div className={`${labelClass} text-gold-light`}>{team.foldedAfterSeason ? 'Defunct franchise' : 'Franchise'} · {team.seasons.length} seasons</div>
@@ -69,23 +70,27 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                             </p>
                             {team.formerNames.length > 0 && <p className="mt-2 text-xs leading-relaxed text-[#B9C6DA]">Formerly {team.formerNames.join(' · ')}</p>}
                         </div>
-                        {team.championships.length > 0 && (
-                            <div className="hidden shrink-0 flex-col items-center gap-2 lg:flex">
-                                <JagrCupIcon sizes="144px" className="h-36 w-36 drop-shadow-[0_8px_20px_rgba(240,199,94,.4)]" />
-                                <span className="text-xs font-extrabold uppercase tracking-widest text-gold-light">{team.championships.length}× champion</span>
-                            </div>
-                        )}
                     </div>
                     <dl className="grid grid-cols-2 gap-px border-t border-white/10 bg-white/10 md:grid-cols-4">
                         {stats.map((stat) => (
                             <div key={stat.label} className="bg-ink/90 px-4 py-5 md:px-6">
                                 <dt className={`${labelClass} min-h-8 text-[#B9C6DA]`}>{stat.label}</dt>
-                                <dd className={`font-narrow tabular mt-2 whitespace-nowrap text-[clamp(1.375rem,6.5vw,1.875rem)] font-extrabold leading-none md:text-[36px] ${stat.gold ? 'text-gold-light' : ''}`}>{stat.value}</dd>
+                                <dd className={`font-narrow tabular mt-2 flex min-h-12 items-center gap-3 whitespace-nowrap text-[clamp(1.375rem,6.5vw,1.875rem)] font-extrabold leading-none md:text-[36px] ${stat.gold ? 'text-gold-light' : ''}`}>
+                                    {stat.gold && team.championships.length > 0 ? (
+                                        <>
+                                            <JagrCupIcon sizes="48px" className="h-12 w-12" />
+                                            <span>
+                                                {stat.value}×
+                                                <span className="mt-1.5 block font-sans text-[9px] font-bold uppercase tracking-wider md:text-[10px]">Champion</span>
+                                            </span>
+                                        </>
+                                    ) : stat.value}
+                                </dd>
                             </div>
                         ))}
                     </dl>
-                    <div className="banner-stripes h-3.5" />
-                </section>
+                    <div data-brand-part="stripes" className="banner-stripes h-3.5" />
+                </TeamBranding>
             </FadeIn>
 
             <div className={contentsStyles.layout}>

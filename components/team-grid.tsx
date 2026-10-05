@@ -43,7 +43,7 @@ const TeamGrid: FC<{ teams: FranchiseCard[] }> = ({ teams }) => {
             </PageTitle>
             <RinkDivider />
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 4xl:grid-cols-5">
-                {sorted.map((team, i) => <TeamCard key={`${sortKey}-${team.ID}`} team={team} rank={i + 1} index={i} />)}
+                {sorted.map((team, i) => <TeamCard key={`${sortKey}-${team.ID}`} team={team} index={i} />)}
             </div>
         </>
     );

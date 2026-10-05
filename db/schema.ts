@@ -18,6 +18,7 @@ import {
 import { sql } from 'drizzle-orm';
 import type { LotteryEntry } from '@/lib/lottery/model';
 import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
+import type { TeamColours } from '@/lib/team-branding';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -69,6 +70,7 @@ export const teamManagement = league.table('team_management', {
     franchiseId: integer('franchise_id').primaryKey().references(() => franchises.id),
     name: text('name'),
     logoUrl: text('logo_url'),
+    branding: jsonb('branding').$type<TeamColours>(),
     ownerUid: text('owner_uid').unique(),
     ownerEmail: text('owner_email'),
     inviteHash: text('invite_hash').unique(),

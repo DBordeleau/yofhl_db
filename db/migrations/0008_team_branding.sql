@@ -1,0 +1,1 @@
+ALTER TABLE "league"."team_management" ADD COLUMN "branding" jsonb;
