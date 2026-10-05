@@ -73,7 +73,7 @@ const PlayerHero: FC<PlayerHeroProps> = ({ name, positions, team, championships,
                         <dt className="text-[11px] font-bold uppercase tracking-[.14em] text-ink-muted md:text-xs">{stat.label}</dt>
                         <dd className="mt-1.5">
                             <span className="font-wide tabular block text-[22px] font-extrabold md:text-[32px]">{stat.value}</span>
-                            {stat.note && <span className="mt-1 block whitespace-nowrap text-[11px] leading-4 text-rink-red">{stat.note}</span>}
+                            {stat.note && <span className="mt-1.5 block text-balance font-serif text-[13px] italic leading-5 text-rink-red">{stat.note}</span>}
                         </dd>
                     </div>
                 ))}

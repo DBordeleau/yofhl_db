@@ -17,6 +17,8 @@ import { seasonLabel } from '@/lib/league';
 export const dynamic = 'force-dynamic';
 
 const JOHNNY_GAUDREAU_ID = '*02b81*';
+// 2018–19 through 2023–24 Player Stats CSVs: 2,177.50 FPts, with 36 players ahead.
+const JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE = '#37 on August 29, 2024';
 
 export async function generateMetadata({ params }: { params: Promise<{ ID: string }> }) {
     const player = await getPlayer(decodeURIComponent((await params).ID));
@@ -75,7 +77,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
                     totalFPts={player.totalFPts}
                     fpg={player.fpg}
                     rank={player.rank}
-                    rankNote={isMemorial ? '#19 on August 28, 2024' : undefined}
+                    rankNote={isMemorial ? JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE : undefined}
                     seasons={player.seasons}
                     actions={compareAction}
                     header={isMemorial ? <JohnnyGaudreauMemorial actions={compareAction} /> : undefined}
