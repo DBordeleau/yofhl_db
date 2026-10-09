@@ -2,8 +2,10 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { DRAFT_STARTS_AT, draftCountdown } from '@/lib/draft';
+import Arrow from '@/components/arrow';
 import styles from './draft-announcement.module.css';
 
+const draftRoomUrl = 'https://www.fantrax.com/fantasy/league/rf5o9cu2mutybszr/draft';
 const date = new Date(DRAFT_STARTS_AT);
 const noticeDate = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric' }).format(date);
 const heroDate = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Toronto', weekday: 'long', month: 'short', day: 'numeric' }).format(date);
@@ -37,6 +39,7 @@ export default function DraftAnnouncement({ variant = 'notice', fallback = null 
             <span className={styles.noticeClock} role="timer" aria-label="Time until the draft">
                 {countdown ? <>{countdown[0] > 0 && <>{countdown[0]}<small>d</small> </>}{String(countdown[1]).padStart(2, '0')}<small>h</small> {String(countdown[2]).padStart(2, '0')}<small>m</small></> : <>–<small>d</small> ––<small>h</small> ––<small>m</small></>}
             </span>
+            <a className={styles.draftLink} href={draftRoomUrl} target="_blank" rel="noopener noreferrer">Draft room <Arrow direction="out" /><span className="sr-only"> (opens in a new tab)</span></a>
         </p>
     </aside>;
 
@@ -45,6 +48,7 @@ export default function DraftAnnouncement({ variant = 'notice', fallback = null 
             <span className={styles.heroTag}>Up next</span>
             <h2 id="draft-heading">2026 Draft</h2>
             <time dateTime={DRAFT_STARTS_AT}>{heroDate} · {draftTime} ET</time>
+            <a className={styles.draftLink} href={draftRoomUrl} target="_blank" rel="noopener noreferrer">Draft room <Arrow direction="out" /><span className="sr-only"> (opens in a new tab)</span></a>
         </div>
         <dl className={styles.clock} role="timer" aria-label="Time until the draft" aria-live="off">
             {units.map(([unit, short], index) => <div key={unit}>

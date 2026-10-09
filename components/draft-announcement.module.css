@@ -5,6 +5,9 @@
 .notice time { font-weight: 600; white-space: nowrap; }
 .noticeClock { padding-left: 12px; border-left: 1px solid #ffffff24; color: #f0c75e; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .noticeClock small { margin-left: 1px; color: #c9ad6a; font-size: 11px; font-weight: 700; }
+.draftLink { color: #f0c75e; font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.draftLink:hover { color: #fff; }
+.draftLink:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; border-radius: 2px; }
 .hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; width: 100%; padding-block: 14px; }
 .heroDetails { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; min-width: 0; }
 .heroTag { align-self: center; padding: 4px 7px; border-radius: 3px; background: #d41536; color: #fff; font-size: 10px; line-height: 1; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }

@@ -33,7 +33,7 @@ Home-page rosters group active, benched, and injured players by assigned Fantrax
 
 Johnny Gaudreau's player profile has a memorial header and a historical rank note alongside his current career statistics.
 
-The draft announcement is set in `lib/draft.ts` for October 10, 2026 at 9:00 PM Eastern. The homepage shows a countdown; other pages show a compact notice below navigation. Both disappear when the draft starts. There is no draft-room link yet. The concluded lottery remains available at `/lottery`, but is no longer promoted in navigation.
+The draft announcement is set in `lib/draft.ts` for October 10, 2026 at 9:00 PM Eastern. The homepage shows a countdown; other pages show a compact notice below navigation. Both include a draft-room link that opens Fantrax in a new tab and disappear when the draft starts. The concluded lottery remains available at `/lottery`, but is no longer promoted in navigation.
 
 ## Run locally
 
