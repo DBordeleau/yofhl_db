@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { AwardType } from "@/lib/data/league";
 import { AWARDS, awardHref, getAwardDefinition } from "@/lib/awards";
 import { TrophyArt } from '@/components/trophy-icons';
-import LotteryNavLink from '@/components/lottery/nav-link';
+import DraftAnnouncement from '@/components/draft-announcement';
 import TeamBadge from '@/components/team-badge';
 import { useOwnerNavigation } from '@/lib/owner/navigation';
 import KeeperReminder from '@/components/keepers/reminder';
@@ -140,12 +140,11 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                     </li>
                 </ul>
 
-                <div className="ml-auto shrink-0 lg:ml-0"><LotteryNavLink /></div>
                 <div className="ml-auto hidden shrink-0 border-l border-line pl-4 lg:block">{ownerLink}</div>
                 <button // hamburger button
                     type="button"
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line text-ink lg:hidden"
+                    className="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line text-ink lg:hidden"
                     aria-label={isMenuOpen ? "Close menu" : "Open menu"}
                     aria-expanded={isMenuOpen}
                 >
@@ -201,6 +200,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {pathname !== '/' && <DraftAnnouncement />}
             {owner.keepers && <KeeperReminder state={owner.keepers} />}
         </header>
     );

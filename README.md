@@ -33,6 +33,8 @@ Home-page rosters group active, benched, and injured players by assigned Fantrax
 
 Johnny Gaudreau's player profile has a memorial header and a historical rank note alongside his current career statistics.
 
+The draft announcement is set in `lib/draft.ts` for October 10, 2026 at 9:00 PM Eastern. The homepage shows a countdown; other pages show a compact notice below navigation. Both disappear when the draft starts. There is no draft-room link yet. The concluded lottery remains available at `/lottery`, but is no longer promoted in navigation.
+
 ## Run locally
 
 Use Node.js 24 and npm 11, the versions used for the current development setup. The database scripts require Node's `--env-file-if-exists` and `--import` flags.
@@ -67,6 +69,7 @@ The web app uses Neon's HTTP driver. PGlite is supported by the database scripts
 npm run lint
 npx tsc --noEmit
 npm run test:lottery
+npm run test:draft
 npm run test:history
 npm run test:owners
 npm run test:snapshot

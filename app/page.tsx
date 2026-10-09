@@ -7,6 +7,7 @@ import MatchupBrowser from '@/components/home/matchup-browser';
 import RosterBrowser from '@/components/home/roster-browser';
 import HeroRink from '@/components/home/hero-rink';
 import SectionLink from '@/components/home/section-link';
+import DraftAnnouncement from '@/components/draft-announcement';
 import { getSingleSeasonLeaderboard, getBannerSeasons } from '@/lib/data/league';
 import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores } from '@/lib/fantrax/data';
 import { periodPhase, selectPeriod, shortDate } from '@/lib/fantrax/model';
@@ -60,6 +61,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </section>
 
         <div className={styles.content}>
+            <DraftAnnouncement featured />
             <div id="current-season" className={styles.sectionNavRow} tabIndex={-1}>
                 <nav className={styles.sectionNav} aria-label="League home sections"><SectionLink href="#matchups">Matchups</SectionLink><SectionLink href="#standings">Standings</SectionLink><SectionLink href="#rosters">Rosters</SectionLink></nav>
                 <span className={styles.updateLabel}>{updated ? <>Updated {updated} ET <span>· Daily snapshot</span></> : 'Snapshot temporarily unavailable'}</span>
