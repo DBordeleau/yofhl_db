@@ -121,7 +121,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -6 }}
                                     transition={{ duration: 0.18 }}
-                                    className="absolute right-0 mt-2 max-h-[80vh] w-80 overflow-y-auto rounded-2xl border border-line bg-white p-1.5 shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]"
+                                    className="absolute z-10 right-0 mt-2 max-h-[80vh] w-80 overflow-y-auto rounded-2xl border border-line bg-white p-1.5 shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]"
                                 >
                                     <li><Link href="/awards" className="mb-1 flex min-h-11 items-center justify-between rounded-xl bg-ice px-3.5 text-sm font-extrabold text-ink hover:bg-rink-wash">All league awards <Arrow /></Link></li>
                                     {awardItems.map((award) => (
