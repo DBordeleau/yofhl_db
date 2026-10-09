@@ -12,6 +12,7 @@ import DraftAnnouncement from '@/components/draft-announcement';
 import TeamBadge from '@/components/team-badge';
 import { useOwnerNavigation } from '@/lib/owner/navigation';
 import KeeperReminder from '@/components/keepers/reminder';
+import { KEEPERS_ENABLED } from '@/lib/keepers/model';
 import Arrow from '@/components/arrow';
 
 const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
@@ -202,7 +203,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                 )}
             </AnimatePresence>
             {pathname !== '/' && <DraftAnnouncement />}
-            {owner.keepers && <KeeperReminder state={owner.keepers} />}
+            {KEEPERS_ENABLED && owner.keepers && <KeeperReminder state={owner.keepers} />}
         </header>
     );
 };

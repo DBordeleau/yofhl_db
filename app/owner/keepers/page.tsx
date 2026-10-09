@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import KeeperEditor from '@/components/keepers/keeper-editor';
 import { ownerSession } from '@/lib/owner/auth';
 import { getKeeperSubmission, ownedKeeperTeam, getKeeperRoster } from '@/lib/keepers/data';
-import { keepersOpen } from '@/lib/keepers/model';
+import { KEEPERS_ENABLED, keepersOpen } from '@/lib/keepers/model';
 import { refreshKeeperRoster, saveKeeperSelection } from './actions';
 import { enrichKeeperRoster } from '@/lib/keepers/nhl';
 import { FANTRAX_LEAGUE_URL } from '@/lib/fantrax/data';
@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'My keepers | YOFHL DB', robots: { index: false, follow: false } };
 
 export default async function KeeperPage() {
+    if (!KEEPERS_ENABLED) notFound();
     const user = await ownerSession();
     if (!user) redirect('/owner');
     const team = await ownedKeeperTeam(user.uid);

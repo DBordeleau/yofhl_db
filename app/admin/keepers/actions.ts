@@ -5,8 +5,10 @@ import { requireAdmin } from '@/lib/admin/auth';
 import { requireSameOrigin } from '@/lib/owner/auth';
 import { rows } from '@/lib/data/db';
 import { reviewRookieQuery } from '@/lib/keepers/queries';
+import { KEEPERS_ENABLED } from '@/lib/keepers/model';
 
 export async function reviewRookie(form: FormData): Promise<{ error?: string }> {
+    if (!KEEPERS_ENABLED) return { error: 'Keeper submissions are currently unavailable.' };
     try {
         await requireSameOrigin(); await requireAdmin();
         const franchiseId = Number(form.get('franchiseId'));

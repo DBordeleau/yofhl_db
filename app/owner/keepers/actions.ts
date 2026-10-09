@@ -3,13 +3,14 @@
 import { revalidatePath } from 'next/cache';
 import { ownerSession, requireSameOrigin, limitOwnerAction } from '@/lib/owner/auth';
 import { getKeeperRoster, getKeeperSubmission, ownedKeeperTeam } from '@/lib/keepers/data';
-import { CALDER_SEASON, keepersOpen, rosterFingerprint, validateKeepers, type KeeperInput, type KeeperSaveResult, type KeeperPlayer } from '@/lib/keepers/model';
+import { KEEPERS_ENABLED, CALDER_SEASON, keepersOpen, rosterFingerprint, validateKeepers, type KeeperInput, type KeeperSaveResult, type KeeperPlayer } from '@/lib/keepers/model';
 import { enrichKeeperRoster } from '@/lib/keepers/nhl';
 import { rows } from '@/lib/data/db';
 import { saveKeepersQuery } from '@/lib/keepers/queries';
 import type { KeeperSubmission } from '@/lib/keepers/model';
 
 export async function saveKeeperSelection(input: KeeperInput): Promise<KeeperSaveResult> {
+    if (!KEEPERS_ENABLED) return { error: 'Keeper submissions are currently unavailable.' };
     try {
         await requireSameOrigin();
         const user = await ownerSession();
@@ -42,6 +43,7 @@ export async function saveKeeperSelection(input: KeeperInput): Promise<KeeperSav
 }
 
 export async function refreshKeeperRoster(): Promise<{ roster: KeeperPlayer[]; fetchedAt: string; serverNow: string; error?: never } | { error: string; roster?: never }> {
+    if (!KEEPERS_ENABLED) return { error: 'Keeper submissions are currently unavailable.' };
     try {
         await requireSameOrigin();
         const user = await ownerSession();

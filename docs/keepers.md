@@ -1,5 +1,9 @@
 # Keeper submissions
 
+Keeper features are currently disabled on the live site by `KEEPERS_ENABLED = false` in `lib/keepers/model.ts`. Owner and admin links, reminders and sign-in copy are hidden; both keeper pages return 404, and all keeper server actions reject requests before authentication or data access. `/api/owner` returns `keepers: null` without querying keeper submissions or Fantrax. The implementation, tests, database tables and saved lists are retained.
+
+To reopen next year's submissions, update the season, Calder season, deadline and labels in `lib/keepers/model.ts`, verify the Fantrax league/franchise mapping, then set `KEEPERS_ENABLED = true` and deploy. Update the disabled-access regression test in `lib/keepers/availability.test.ts` when reopening. The instructions below describe the feature when enabled.
+
 Owners open **Manage Team → 2026–27 keepers** (`/owner/keepers`). Existing Firebase owner accounts and franchise claims control access. No Fantrax user secret is needed.
 
 The window closes Friday, October 9, 2026 at 7:00 p.m. America/Toronto (`2026-10-09T23:00:00Z`). Owners can submit and revise until then. The database rejects writes at or after the deadline, including requests that began earlier. Open pages disable the form and hide the reminder when the deadline arrives. Saved lists remain readable afterward.

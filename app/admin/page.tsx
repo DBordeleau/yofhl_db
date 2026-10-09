@@ -4,6 +4,7 @@ import LoginForm from '@/components/admin/login-form';
 import { adminConfigured, isAdmin } from '@/lib/admin/auth';
 import { getSeasonStatuses } from '@/lib/admin/data';
 import Arrow from '@/components/arrow';
+import { KEEPERS_ENABLED } from '@/lib/keepers/model';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export default async function AdminHome() {
     return (
         <>
             <AdminHeader title="Seasons" />
-            <Link href="/admin/keepers" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice"><div><p className="font-wide text-lg font-extrabold">Keeper submissions</p><p className="mt-1 text-sm text-ink-soft">Review each team’s keeps, rookie eligibility, and players to drop.</p></div><Arrow className="text-2xl" /></Link>
+            {KEEPERS_ENABLED && <Link href="/admin/keepers" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice"><div><p className="font-wide text-lg font-extrabold">Keeper submissions</p><p className="mt-1 text-sm text-ink-soft">Review each team’s keeps, rookie eligibility, and players to drop.</p></div><Arrow className="text-2xl" /></Link>}
             <Link href="/admin/teams" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice">
                 <div><p className="font-wide text-lg font-extrabold">Teams & owners</p><p className="mt-1 text-sm text-ink-soft">Edit team names and logos, and generate owner invitation codes.</p></div>
                 <Arrow className="text-2xl" />

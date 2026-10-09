@@ -123,4 +123,4 @@ For owner invitations, account setup, logo uploads, and historical identity beha
 
 ## Keeper submissions
 
-Owners can submit 2026–27 keepers from **Manage Team**; commissioners review them at `/admin/keepers`. The deadline is October 9, 2026 at 7 p.m. Eastern. See [keeper rules, setup and validation](docs/keepers.md). Apply database migrations before deploying the feature.
+Keeper features are currently disabled on the live site. The implementation and saved submissions are retained for next year's submission window. See [keeper rules, reactivation and validation](docs/keepers.md).

@@ -1,6 +1,9 @@
 import type { SnapshotPlayer } from '../fantrax/model';
 import type { PlayerDetails } from './player-details';
 
+// Re-enable after updating the season, deadline and Fantrax mapping for the next submission window.
+export const KEEPERS_ENABLED = false;
+
 // Seasons in the archive use their ending year. This submission window is 2026–27.
 export const KEEPER_SEASON = 2027;
 export const KEEPER_SEASON_LABEL = '2026–27';

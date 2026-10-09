@@ -4,7 +4,7 @@ import { rows } from '@/lib/data/db';
 import { managedTeamsQuery } from '@/lib/owner/queries';
 import type { ManagedTeam } from '@/lib/owner/model';
 import { getKeeperRoster, getKeeperSubmission } from '@/lib/keepers/data';
-import { keepersOpen, submissionStatus } from '@/lib/keepers/model';
+import { KEEPERS_ENABLED, keepersOpen, submissionStatus } from '@/lib/keepers/model';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +12,7 @@ export async function GET() {
     const user = await ownerSession();
     const team = user ? (await rows<ManagedTeam>(managedTeamsQuery)).find((team) => team.ownerUid === user.uid && !team.defunct) : null;
     let keepers = null;
-    if (team && keepersOpen()) {
+    if (KEEPERS_ENABLED && team && keepersOpen()) {
         const submission = await getKeeperSubmission(team.id);
         // An API outage must not make an existing submission look missing.
         const current = submission ? await getKeeperRoster(team.id).catch(() => null) : null;

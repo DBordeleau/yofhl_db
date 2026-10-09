@@ -1,4 +1,5 @@
 import AdminHeader from '@/components/admin/admin-header';
+import { notFound } from 'next/navigation';
 import LoginForm from '@/components/admin/login-form';
 import RookieReview from '@/components/keepers/rookie-review';
 import CopyDropList from '@/components/keepers/copy-drop-list';
@@ -9,7 +10,7 @@ import { managedTeamsQuery } from '@/lib/owner/queries';
 import type { ManagedTeam } from '@/lib/owner/model';
 import { keeperSubmissionsQuery } from '@/lib/keepers/queries';
 import { getLeagueSnapshot } from '@/lib/fantrax/data';
-import { KEEPER_SEASON_LABEL, KEEPER_DEADLINE_LABEL, KEEPER_SEASON, KEEPER_TOTAL_LIMIT, currentRookieReview, isMinor, keeperPosition, keepersOpen, submissionStatus, validateKeepers, type KeeperSubmission, type KeeperPlayer } from '@/lib/keepers/model';
+import { KEEPERS_ENABLED, KEEPER_SEASON_LABEL, KEEPER_DEADLINE_LABEL, KEEPER_SEASON, KEEPER_TOTAL_LIMIT, currentRookieReview, isMinor, keeperPosition, keepersOpen, submissionStatus, validateKeepers, type KeeperSubmission, type KeeperPlayer } from '@/lib/keepers/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Keeper submissions | Admin' };
@@ -19,6 +20,7 @@ function PlayerList({ players, rookieId }: { players: KeeperPlayer[]; rookieId?:
 }
 
 export default async function KeeperAdminPage() {
+    if (!KEEPERS_ENABLED) notFound();
     if (!(await isAdmin())) return <LoginForm next="/admin/keepers" configured={adminConfigured()} />;
     const open = keepersOpen();
     const [allTeams, submissions, snapshot] = await Promise.all([
