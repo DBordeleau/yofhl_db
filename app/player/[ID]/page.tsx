@@ -66,7 +66,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
     return (
         <main className="mx-auto max-w-page px-4 pb-16 md:px-8 3xl:max-w-page-3xl 4xl:max-w-page-4xl">
             <Link href="/stats/all-time/all" className="mb-3 mt-5 inline-flex min-h-11 items-center gap-2 px-1 text-[15px] font-bold text-rink-blue hover:text-ink">
-                <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+                <Arrow direction="left" />
                 Leaderboards
             </Link>
             <ProfileContent>
