@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import type { FranchiseDetail, FranchiseSeason } from '@/lib/data/league';
 import { formatFpts, seasonLabel, teamSeasonHref, winPercentage } from '@/lib/league';
+import Arrow from '@/components/arrow';
 
 const seasonResult = (season: FranchiseSeason, team: FranchiseDetail) => {
     if (season.playoffStatus === 'cancelled') return 'Playoffs cancelled';
@@ -47,7 +48,7 @@ export default function FranchiseHistory({ team }: { team: FranchiseDetail }) {
                             <div className="tabular text-right text-sm text-ink-muted"><span className="mr-1.5 text-xs lg:sr-only">PA</span>{formatFpts(season.fptsAgainst)}</div>
                             <div className="col-span-2 flex items-center justify-between gap-2 border-t border-line-soft pt-2 lg:col-span-1 lg:justify-end lg:border-0 lg:pt-0">
                                 <span className={`text-xs font-bold ${champion ? 'text-gold-deep' : season.playoffStatus !== 'cancelled' && season.playoffRound !== null ? 'text-rink-blue' : 'text-ink-muted'}`}>{result}</span>
-                                <span className="text-sm text-ink-faint" aria-hidden="true">↗</span>
+                                <Arrow className="text-sm text-ink-faint" />
                             </div>
                         </Link>
                     );

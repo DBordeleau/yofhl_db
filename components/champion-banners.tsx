@@ -7,23 +7,22 @@ import type { BannerSeason } from '@/lib/data/league';
 import { seasonLabel } from '@/lib/league';
 import TeamBadge from '@/components/team-badge';
 
-// Jagr Cup championship banners hanging from the rafters. Each links to that season's championship roster.
+// Jagr Cup championship banners hanging from the rafters. Each links to that season's historical summary.
 const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
     // a season in progress has no champion yet and gets no banner
     const banners = seasons.filter((s) => s.team || s.playoffStatus === 'cancelled');
     const pathname = usePathname();
-    const match = pathname.match(/^\/champions\/(\d{4})/);
+    const match = pathname.match(/^\/season\/(\d{4})/);
     const selectedYear = match ? parseInt(match[1], 10) : null;
     const bannerRefs = useRef<Record<number, HTMLElement | null>>({});
     const railRef = useRef<HTMLDivElement>(null);
     const latestYear = banners.at(-1)?.year;
 
-    // Open the mobile rail at the latest season, or the season being viewed.
+    // When the banners overflow the rail, open it at the latest season, or the season being viewed.
     useEffect(() => {
-        const mobile = window.matchMedia('(max-width: 767px)');
         const positionRail = () => {
             const rail = railRef.current;
-            if (!rail || !mobile.matches) return;
+            if (!rail || rail.scrollWidth <= rail.clientWidth) return;
             const selected = selectedYear ? bannerRefs.current[selectedYear] : null;
             const left = selected
                 ? rail.scrollLeft + selected.getBoundingClientRect().left - rail.getBoundingClientRect().left - (rail.clientWidth - selected.clientWidth) / 2
@@ -31,14 +30,15 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
             rail.scrollTo({ left, behavior: 'instant' });
         };
         positionRail();
-        mobile.addEventListener('change', positionRail);
-        return () => mobile.removeEventListener('change', positionRail);
+        const observer = new ResizeObserver(positionRail);
+        if (railRef.current) observer.observe(railRef.current);
+        return () => observer.disconnect();
     }, [selectedYear, latestYear]);
 
     return (
         <section className="mx-auto max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl px-4 pt-4 md:px-8 md:pt-7" aria-label="Jagr Cup champions">
             <div className="relative z-[1] h-2 rounded-full bg-ink" />
-            <div ref={railRef} className="flex snap-x gap-2.5 overflow-x-auto overflow-y-hidden px-1 pb-4 md:justify-center md:gap-3.5 md:overflow-visible md:pb-2 3xl:gap-5">
+            <div ref={railRef} className="flex snap-x gap-2.5 overflow-x-auto overflow-y-hidden px-1 pb-4 [justify-content:safe_center] md:gap-3.5 md:pb-2 3xl:gap-5">
                 {banners.map((champ, i) => {
                     const selected = champ.year === selectedYear;
                     const delay = { animationDelay: `${i * 90}ms` };
@@ -47,7 +47,7 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
                         return (
                             <Link
                                 key={champ.year}
-                                href={`/champions/${champ.year}`}
+                                href={`/season/${champ.year}`}
                                 ref={(el) => { bannerRefs.current[champ.year] = el; }}
                                 className="banner banner-void flex flex-none snap-start flex-col items-center focus-visible:rounded-md focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-rink-line"
                                 style={delay}
@@ -67,7 +67,7 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
                     return (
                         <Link
                             key={champ.year}
-                            href={`/champions/${champ.year}`}
+                            href={`/season/${champ.year}`}
                             ref={(el) => { bannerRefs.current[champ.year] = el; }}
                             className="banner flex flex-none snap-start flex-col items-center text-white focus-visible:rounded-md focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-rink-line"
                             style={delay}

@@ -20,9 +20,13 @@
     --team-pattern: var(--team-artwork) right bottom / auto min(100%, 220px) no-repeat;
 }
 
-.scope[data-treatment='tides'][data-brand-layout='card'],
-.scope[data-treatment='scythe'][data-brand-layout='card'] {
+.scope[data-treatment='tides'][data-brand-layout='card'] {
     --team-pattern: var(--team-artwork) right bottom / auto min(60%, 80px) no-repeat;
+}
+
+/* The reaper is tall and narrow, so it needs the full header height to read at card size. */
+.scope[data-treatment='scythe'][data-brand-layout='card'] {
+    --team-pattern: var(--team-artwork) right 4% bottom / auto 100% no-repeat;
 }
 
 .scope[data-treatment='tides'][data-brand-layout='champion'] {

@@ -32,7 +32,7 @@ export const playoffTeamId = (franchiseId: number, round: number, bracket = 'cha
 
 // A null round sends teams that missed (or had cancelled) playoffs to their standings row.
 export const teamSeasonHref = (year: number, franchiseId: number, playoffRound: number | null = null) =>
-    `/champions/${year}#${playoffRound === null ? standingsTeamId(franchiseId) : playoffTeamId(franchiseId, playoffRound)}`;
+    `/season/${year}#${playoffRound === null ? standingsTeamId(franchiseId) : playoffTeamId(franchiseId, playoffRound)}`;
 
 export const formatFpts = (value: number) =>
     value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

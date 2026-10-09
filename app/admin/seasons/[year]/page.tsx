@@ -32,7 +32,7 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
             <AdminHeader title={season.label} back />
             <p className="-mt-3 mb-6 text-sm text-ink-soft">
                 Changes go live on the site as soon as they&apos;re saved.{' '}
-                <Link href={`/champions/${season.year}`} className="font-bold text-rink-blue hover:underline" target="_blank">View the season page</Link>
+                <Link href={`/season/${season.year}`} className="font-bold text-rink-blue hover:underline" target="_blank">View the season page</Link>
             </p>
             <div className="flex flex-col gap-6">
                 {playoffs && season.champion && (

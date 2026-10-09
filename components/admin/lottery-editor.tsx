@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import TeamBadge from '@/components/team-badge';
 import { cancelLottery, saveLottery } from '@/app/admin/lottery/actions';
 import { easternInput, finalRevealAt, FINALE_MS, formatEastern, type LotteryInput, type LotteryRecord, type LotteryTeam } from '@/lib/lottery/model';
+import Arrow from '@/components/arrow';
 
 const control = 'min-h-11 rounded-xl border border-line-strong bg-white px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-rink-blue disabled:bg-ice';
 const defaultEntries = (teams: LotteryTeam[]) => teams.map((team, index) => ({ id: team.id, odds: [40, 30, 20, 10][index] ?? null }));
@@ -75,7 +76,7 @@ export default function LotteryEditor({ initial, teams }: { initial: LotteryReco
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-ink p-5 text-white md:p-6">
             <div><p className="font-wide text-lg font-extrabold">One draw. The whole league watching.</p>
                 <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-300">The winning team moves to pick #1. All other teams keep their relative order. The live room reveals the full order automatically, with the first two picks announced together.</p></div>
-            {saved && !creating && <Link href={`/lottery?id=${saved.id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-white/30 px-4 text-sm font-bold hover:bg-white/10">Open lottery room ↗</Link>}
+            {saved && !creating && <Link href={`/lottery?id=${saved.id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-white/30 px-4 text-sm font-bold hover:bg-white/10">Open lottery room <Arrow className="ml-2" /></Link>}
         </div>
         {started && <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gold-light bg-gold-tint p-5">
             <div><p className="font-bold">{complete ? 'Lottery concluded' : 'Lottery is live'}</p><p className="mt-1 text-sm text-ink-soft">The schedule, odds and order are locked once the event starts.</p></div>

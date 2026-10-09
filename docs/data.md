@@ -121,6 +121,8 @@ Draft tables show the player's full-season FPts and FP/G, not only points earned
 
 Team transaction feeds start on Trades. Player feeds include all history kinds. Each page contains ten events. Matching trades include every asset; a player's free-agent history includes only that player's claim or drop. Team pages also have a separate searchable and sortable draft section.
 
+Historical season summaries live at `/season/<end year>`. Their Draft class section includes all recorded draft slots, historical drafting team names, player links, and full-season FPts and FP/G. Readers can search players, filter by team or round, and sort by pick order or stats. Seasons without an export show an unavailable-records message. `/season` opens the latest completed season; former `/champions` URLs permanently redirect to the corresponding season routes.
+
 The ambiguous `2019-2020 Trades.csv` batch stamped `Sun Oct 20, 2019, 11:05PM` is intentionally hidden from feeds, counts, pagination, and season filters at the league owner's request. [lib/history/visibility.ts](../lib/history/visibility.ts) matches its source file and timestamp, so reimporting keeps it hidden. The source rows remain stored. The separate 3:30 PM Josi trade and same-time free-agent claims remain visible.
 
 ## Live draft lottery

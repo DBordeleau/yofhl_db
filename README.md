@@ -15,7 +15,7 @@ The YOFHL league archive and live draft lottery, built with Next.js and PostgreS
 | `/compare` | Player comparisons and points charts |
 | `/teams/stats` | Franchise cards sorted by Jagr Cups, wins, points for, or finals appearances |
 | `/teams/<franchise ID>` | Records, former names, trophy case, seasons, leaders, trades, and draft history, with section navigation |
-| `/champions` and `/champions/<end year>` | Championship history, rosters, standings, playoff brackets, and season player leaders with fantasy teams, position filters, and section navigation |
+| `/season` and `/season/<end year>` | Season history, championship rosters, standings, playoff brackets, player leaders, and searchable draft classes |
 | `/awards` and `/awards/<award slug>` | Eight league trophies and their winners |
 | `/lottery` | Scheduled countdown, live pick reveals, and the completed draft order |
 | `/admin` | Sign-in and season checklists for roster, award, and bracket edits |

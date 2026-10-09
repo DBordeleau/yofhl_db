@@ -58,7 +58,7 @@ function SeasonTeam({ player, compact = false }: { player: PlayerStats; compact?
 }
 
 // used to render all-time/single-season stats at /stats/[mode]/[position]
-// used to render championship rosters at /champions/[year] and franchise leaders at /teams/[ID]
+// used to render championship rosters at /season/[year] and franchise leaders at /teams/[ID]
 const StatTable: FC<StatTableProps> = ({
     mode,
     topPlayers,

@@ -62,21 +62,9 @@
     left: 8px;
     height: 44px;
     border-radius: 12px;
-    background: linear-gradient(90deg, #FFF3CC, #FFF8E5);
-    box-shadow: inset 0 0 0 1px rgb(184 134 11 / 12%);
+    background: #FFF3CC;
     transition: transform 300ms cubic-bezier(.2, .8, .2, 1);
     pointer-events: none;
-}
-
-.indicator::before {
-    content: '';
-    position: absolute;
-    top: 12px;
-    bottom: 12px;
-    left: 0;
-    width: 3px;
-    border-radius: 3px;
-    background: #B8860B;
 }
 
 @media (min-width: 1280px) {

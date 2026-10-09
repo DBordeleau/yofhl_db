@@ -31,6 +31,12 @@ export interface DraftSelection {
     points: number | null;
     fpg: number | null;
 }
+export interface SeasonDraftSelection extends DraftSelection {
+    franchiseId: number | null;
+    teamName: string | null;
+    teamAbbreviation: string | null;
+    teamLogo: string | null;
+}
 export interface FranchiseHonors {
     primeMinisters: { year: number; points: number }[];
     awards: { year: number; name: string; label: string; description: string; playerId: string; player: string }[];

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
 import { saveTeam, createTeamInvitation } from '@/app/owner/actions';
 import { refreshOwnerNavigation } from '@/lib/owner/navigation';
+import Arrow from '@/components/arrow';
 
 export interface EditableTeam {
     id: number; name: string; logo: string | null; abbreviation: string; version: number;
@@ -43,7 +44,7 @@ export default function TeamEditor({ team, admin = false }: { team: EditableTeam
     return <section className="rounded-3xl border border-line bg-white p-6 shadow-card">
         <div className="mb-6 flex items-center gap-4">
             <TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={64} ring="none" />
-            <div className="min-w-0"><h2 className="break-words font-wide text-xl font-extrabold">{team.name}</h2><Link href={`/teams/${team.id}`} className="mt-1 inline-block text-sm font-bold text-rink-blue hover:underline">View team →</Link></div>
+            <div className="min-w-0"><h2 className="break-words font-wide text-xl font-extrabold">{team.name}</h2><Link href={`/teams/${team.id}`} className="mt-1 inline-block text-sm font-bold text-rink-blue hover:underline">View team <Arrow /></Link></div>
         </div>
         {admin && <p className="mb-5 break-words rounded-xl bg-ice p-3 text-sm text-ink-soft">{team.defunct ? 'Defunct franchise' : team.claimed ? `Claimed by ${team.ownerEmail}` : 'Unclaimed'}</p>}
         <form ref={formRef} onSubmit={save} className="space-y-5">
@@ -52,7 +53,7 @@ export default function TeamEditor({ team, admin = false }: { team: EditableTeam
             <label className="block text-sm font-bold">Replace logo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-ice file:px-3 file:py-3 file:font-bold file:text-ink" /><span className="mt-2 block text-xs font-normal text-ink-soft">PNG, JPEG or WebP, up to 2 MB. Your current logo stays until you save a replacement.</span></label>
             <button disabled={busy} className="min-h-12 rounded-xl bg-ink px-5 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Please wait…' : 'Save team'}</button>
         </form>
-        <Link href={admin ? `/admin/teams/${team.id}/branding` : '/owner/branding'} className="mt-6 flex min-h-16 items-center justify-between gap-4 rounded-xl border border-line bg-ice p-4 text-sm font-bold hover:border-rink-blue hover:text-rink-blue"><span>Brand studio<span className="mt-1 block text-xs font-normal text-ink-muted">Team colours, signature artwork and banner styles</span></span><span aria-hidden="true">→</span></Link>
+        <Link href={admin ? `/admin/teams/${team.id}/branding` : '/owner/branding'} className="mt-6 flex min-h-16 items-center justify-between gap-4 rounded-xl border border-line bg-ice p-4 text-sm font-bold hover:border-rink-blue hover:text-rink-blue"><span>Brand studio<span className="mt-1 block text-xs font-normal text-ink-muted">Team colours, signature artwork and banner styles</span></span><Arrow /></Link>
         {admin && !team.claimed && !team.defunct && <div className="mt-6 border-t border-line pt-5">
             <button disabled={busy} type="button" onClick={invite} className="min-h-11 rounded-xl border border-line-strong px-4 text-sm font-bold text-rink-blue disabled:opacity-50">{team.inviteExpiresAt ? 'Replace invitation code' : 'Generate invitation code'}</button>
             <p className="mt-2 text-xs text-ink-soft">Codes expire after 14 days. Generating another invalidates the previous code.</p>

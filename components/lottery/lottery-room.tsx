@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import TeamBadge from '@/components/team-badge';
 import { formatEastern, INTRO_MS, lotteryPickCount, REVEAL_MS, type LotteryResponse, type PublicLottery } from '@/lib/lottery/model';
 import { useLottery } from './use-lottery';
+import Arrow from '@/components/arrow';
 
 const pad = (value: number) => String(value).padStart(2, '0');
 const revealEase = [0.16, 1, 0.3, 1] as const;
@@ -64,7 +65,7 @@ export function LotteryPresentation({ event, now, error = false, preview = false
             {!event ? <section className="lottery-empty">
                 <h1>Draft <em>lottery</em></h1>
                 <p>{error ? 'The lottery room is temporarily unavailable. Reconnecting…' : 'No lottery is scheduled.'}</p>
-                <Link href="/teams/stats" className="lottery-button">Teams <span>↗</span></Link>
+                <Link href="/teams/stats" className="lottery-button">Teams <span><Arrow /></span></Link>
             </section> : <>
                 <section className={`lottery-hero ${waiting ? 'is-waiting' : 'is-revealing'}`} aria-labelledby="lottery-title">
                     <div className="lottery-hero-copy">

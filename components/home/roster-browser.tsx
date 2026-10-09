@@ -6,6 +6,7 @@ import TeamBadge from '@/components/team-badge';
 import TeamBranding from '@/components/team-branding/team-branding';
 import { periodLabel, rosterGroup, type Period, type SnapshotPlayer, type SnapshotTeam } from '@/lib/fantrax/model';
 import styles from './home.module.css';
+import Arrow from '@/components/arrow';
 
 const positions = [
     { key: 'LW', label: 'Left wing' }, { key: 'C', label: 'Centre' }, { key: 'RW', label: 'Right wing' },
@@ -38,13 +39,13 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId 
         <div className={styles.sectionHeading}>
             <h2 id="roster-heading">Team rosters</h2>
             <div className={styles.rosterControls}>
-                <button type="button" aria-label="Previous team roster" disabled={teams.length < 2} onClick={() => changeTeam(-1)}><span aria-hidden="true">←</span></button>
+                <button type="button" aria-label="Previous team roster" disabled={teams.length < 2} onClick={() => changeTeam(-1)}><Arrow direction="left" /></button>
                 <div className={styles.teamPicker}>
                     <label className="sr-only" htmlFor="roster-team">Select a team roster</label>
                     <select id="roster-team" value={selected.id} onChange={event => setSelectedId(event.target.value)}>{teams.map(team => <option value={team.id} key={team.id}>{team.name}</option>)}</select>
                     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.8" /></svg>
                 </div>
-                <button type="button" aria-label="Next team roster" disabled={teams.length < 2} onClick={() => changeTeam(1)}><span aria-hidden="true">→</span></button>
+                <button type="button" aria-label="Next team roster" disabled={teams.length < 2} onClick={() => changeTeam(1)}><Arrow /></button>
             </div>
         </div>
         <div className={styles.rosterPanel}>
@@ -73,7 +74,7 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId 
                     </section>)}
                 </div> : <p className={styles.emptyState}>No roster available.</p>}
             </div>
-            <div className={styles.rosterFooter}>{rosterPeriod ? `Lineup period ${rosterPeriod.number} · ${periodLabel(rosterPeriod)}` : 'Fantrax roster'}<span>Updated daily</span></div>
+            <div className={styles.rosterFooter}>{rosterPeriod ? `Lineup period ${rosterPeriod.number} · ${periodLabel(rosterPeriod)}` : 'Fantrax roster'}</div>
         </div>
     </section>;
 }
