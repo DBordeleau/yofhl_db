@@ -7,12 +7,12 @@ import type { BannerSeason } from '@/lib/data/league';
 import { seasonLabel } from '@/lib/league';
 import TeamBadge from '@/components/team-badge';
 
-// Jagr Cup championship banners hanging from the rafters. Each links to that season's championship roster.
+// Jagr Cup championship banners hanging from the rafters. Each links to that season's historical summary.
 const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
     // a season in progress has no champion yet and gets no banner
     const banners = seasons.filter((s) => s.team || s.playoffStatus === 'cancelled');
     const pathname = usePathname();
-    const match = pathname.match(/^\/champions\/(\d{4})/);
+    const match = pathname.match(/^\/season\/(\d{4})/);
     const selectedYear = match ? parseInt(match[1], 10) : null;
     const bannerRefs = useRef<Record<number, HTMLElement | null>>({});
     const railRef = useRef<HTMLDivElement>(null);
@@ -47,7 +47,7 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
                         return (
                             <Link
                                 key={champ.year}
-                                href={`/champions/${champ.year}`}
+                                href={`/season/${champ.year}`}
                                 ref={(el) => { bannerRefs.current[champ.year] = el; }}
                                 className="banner banner-void flex flex-none snap-start flex-col items-center focus-visible:rounded-md focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-rink-line"
                                 style={delay}
@@ -67,7 +67,7 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
                     return (
                         <Link
                             key={champ.year}
-                            href={`/champions/${champ.year}`}
+                            href={`/season/${champ.year}`}
                             ref={(el) => { bannerRefs.current[champ.year] = el; }}
                             className="banner flex flex-none snap-start flex-col items-center text-white focus-visible:rounded-md focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-rink-line"
                             style={delay}

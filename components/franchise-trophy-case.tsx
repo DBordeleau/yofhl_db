@@ -24,7 +24,7 @@ export default function FranchiseTrophyCase({ franchiseId, championships, honors
                         <div><p className="font-narrow tabular text-4xl font-extrabold text-gold-deep">{championships.length}</p><h3 className="font-wide mt-1 text-lg font-extrabold"><Link href={awardHref("Jagr Cup")} className="hover:underline">Jagr Cups</Link></h3></div>
                     </div>
                     <div className="mt-5 flex flex-wrap gap-2">
-                        {[...championships].sort((a, b) => b - a).map((year) => <Link key={year} href={`/champions/${year}`} className="metal-gold rounded-full px-3 py-2 text-xs font-extrabold text-[#2B1D00] hover:underline">{seasonLabel(year)}</Link>)}
+                        {[...championships].sort((a, b) => b - a).map((year) => <Link key={year} href={`/season/${year}`} className="metal-gold rounded-full px-3 py-2 text-xs font-extrabold text-[#2B1D00] hover:underline">{seasonLabel(year)}</Link>)}
                         {!championships.length && <span className="text-sm text-ink-muted">No championships yet</span>}
                     </div>
                 </div>

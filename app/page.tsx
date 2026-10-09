@@ -86,7 +86,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </section>
 
                 <aside className={styles.historyColumn} aria-label="Champions and scoring leaders">
-                    {champion ? <TeamBranding teamId={champion.franchiseId} data-brand-layout="champion"><Link data-brand-part="surface" href={`/champions/${champion.year}#championship-roster`} className={styles.championCard}>
+                    {champion ? <TeamBranding teamId={champion.franchiseId} data-brand-layout="champion"><Link data-brand-part="surface" href={`/season/${champion.year}#championship-roster`} className={styles.championCard}>
                         <div className={styles.championTop}><span className={styles.eyebrow}>Reigning champions</span><span className={styles.championSeason}>{champion.label}</span></div>
                         <div className={styles.championIdentity}><TeamBadge logo={champion.logo} abbreviation={champion.abbreviation} teamName={champion.team} size={76} ring="none" /><div><span>Jagr Cup champions</span><h3>{champion.team}</h3></div></div>
                         <div className={styles.championBottom}>View championship season <span aria-hidden="true">↗</span></div>
@@ -100,7 +100,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
             {snapshot ? <RosterBrowser key={rosterFranchiseId ?? 'default'} teams={snapshot.teams} rosterPeriod={snapshot.rosterPeriod} initialFranchiseId={rosterFranchiseId} /> : null}
 
-            <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading"><div><h2 id="archive-heading">This league has history.</h2><Link href="/stats/all-time/all" className={styles.historyButton}>Explore League History <span aria-hidden="true">↗</span></Link></div><div className={styles.archiveLinks}><Link href="/champions">Champions <span aria-hidden="true">↗</span></Link><Link href="/awards">Awards <span aria-hidden="true">↗</span></Link><Link href="/teams/stats">Franchise records <span aria-hidden="true">↗</span></Link></div></section>
+            <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading"><div><h2 id="archive-heading">This league has history.</h2><Link href="/stats/all-time/all" className={styles.historyButton}>Explore League History <span aria-hidden="true">↗</span></Link></div><div className={styles.archiveLinks}><Link href="/season">Seasons <span aria-hidden="true">↗</span></Link><Link href="/awards">Awards <span aria-hidden="true">↗</span></Link><Link href="/teams/stats">Franchise records <span aria-hidden="true">↗</span></Link></div></section>
 
             <footer className={styles.footer}><span><strong>YOFHL</strong> Ye Olde Fantasy Hockey League</span><span>Standings, matchups & rosters from Fantrax · Updated daily</span></footer>
         </div>

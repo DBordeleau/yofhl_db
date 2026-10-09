@@ -106,7 +106,7 @@ const Bracket: FC<{ games: BracketGame[]; title: string; isConsolation: boolean;
     );
 };
 
-// championship bracket (plus any consolation bracket) for /champions/[year]
+// championship bracket (plus any consolation bracket) for /season/[year]
 const PlayoffBracket: FC<{ games: BracketGame[] }> = ({ games }) => {
     if (!games.length) return null;
     const marks = new Map<number, string>();

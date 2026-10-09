@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
-import type { DraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
+import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
 
 export const getFranchiseHonors = cached(async (id: number): Promise<FranchiseHonors> => {
@@ -33,6 +33,19 @@ export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql
     left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
     where d.franchise_id = ${id}
     order by d.season_year desc, d.overall`), 'franchise-draft');
+
+export const getSeasonDraft = cached((year: number) => rows<SeasonDraftSelection>(sql`
+    select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",
+           coalesce(p.name, d.player_name) as player, d.positions,
+           d.franchise_id as "franchiseId", d.team_name as "teamName",
+           t.abbreviation as "teamAbbreviation", t.logo_url as "teamLogo",
+           ps.fpts::float8 as points, ps.fpg::float8 as fpg
+    from league.draft_picks d
+    left join league.players p on p.id = d.player_id
+    left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
+    left join league.team_seasons t on t.franchise_id = d.franchise_id and t.season_year = d.season_year
+    where d.season_year = ${year}
+    order by d.overall`), 'season-draft-v2');
 
 export const getHistorySeasons = cached(async (scope: HistoryScope) => {
     const found = await rows<{ year: number }>(sql`

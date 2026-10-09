@@ -61,7 +61,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                 </div>
                 <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'} />
             </section>
-            <div className="mt-8 text-center"><Link href={awardHref('jagr-cup') === awardHref(award.name) ? '/champions' : '/awards'} className="inline-flex min-h-11 items-center text-sm font-bold text-rink-blue hover:underline">{definition?.id === 'jagr-cup' ? 'Visit the championship rafters' : 'Explore all league awards'} <span className="ml-2" aria-hidden="true">→</span></Link></div>
+            <div className="mt-8 text-center"><Link href={awardHref('jagr-cup') === awardHref(award.name) ? '/season' : '/awards'} className="inline-flex min-h-11 items-center text-sm font-bold text-rink-blue hover:underline">{definition?.id === 'jagr-cup' ? 'Visit the championship rafters' : 'Explore all league awards'} <span className="ml-2" aria-hidden="true">→</span></Link></div>
         </main>
     );
 }

@@ -7,7 +7,7 @@ import { formatFpts, standingsTeamId } from '@/lib/league';
 
 const GRID = 'grid grid-cols-[28px_minmax(0,1fr)_72px_76px] items-center gap-2.5 px-3.5 md:grid-cols-[40px_minmax(0,1fr)_96px_110px_110px] md:gap-4 md:px-6';
 
-// regular-season standings for /champions/[year], one table per division
+// regular-season standings for /season/[year], one table per division
 const StandingsTable: FC<{ standings: StandingRow[]; championFranchiseId: number | null; playoffFranchiseIds: number[] }> = ({ standings, championFranchiseId, playoffFranchiseIds }) => {
     const divisions = Array.from(new Set(standings.map((s) => s.division))).sort((a, b) => a - b);
     return (

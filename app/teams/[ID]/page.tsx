@@ -146,7 +146,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                                     const won = team.championships.includes(year);
                                     const season = team.seasons.find((s) => s.year === year);
                                     return (
-                                        <Link key={year} href={won ? `/champions/${year}#championship-roster` : teamSeasonHref(year, id, season?.finalRound ?? null)} className={`group flex items-center gap-4 rounded-2xl border p-5 transition-transform hover:-translate-y-0.5 ${won ? 'border-gold-light bg-gradient-to-br from-gold-tint to-white shadow-card' : 'border-line bg-white'}`}>
+                                        <Link key={year} href={won ? `/season/${year}#championship-roster` : teamSeasonHref(year, id, season?.finalRound ?? null)} className={`group flex items-center gap-4 rounded-2xl border p-5 transition-transform hover:-translate-y-0.5 ${won ? 'border-gold-light bg-gradient-to-br from-gold-tint to-white shadow-card' : 'border-line bg-white'}`}>
                                             {won ? <JagrCupIcon sizes="64px" className="h-16 w-16 shrink-0" /> : <span className="font-narrow flex h-14 w-[42px] shrink-0 items-center justify-center text-3xl font-extrabold text-ink-faint" aria-hidden="true">2</span>}
                                             <div className="min-w-0 flex-1">
                                                 <div className={`${labelClass} ${won ? 'text-gold-deep' : 'text-ink-muted'}`}>{won ? 'Jagr Cup champion' : 'Runner-up'}</div>

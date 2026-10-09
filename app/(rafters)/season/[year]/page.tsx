@@ -6,25 +6,35 @@ import PlayoffBracket from '@/components/playoff-bracket';
 import StandingsTable from '@/components/standings-table';
 import SeasonArrival from '@/components/season-arrival';
 import SeasonLeaders from '@/components/season-leaders';
+import SeasonDraft from '@/components/season-draft';
 import StatTable from '@/components/stat-table';
 import TeamBadge from '@/components/team-badge';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import { getBannerSeasons, getChampionRoster, getSeasonDetail, getSingleSeasonLeaderboard } from '@/lib/data/league';
+import { getSeasonDraft } from '@/lib/data/history';
+import { seasonLabel } from '@/lib/league';
+
+export async function generateMetadata({ params }: { params: Promise<{ year: string }> }) {
+    const { year } = await params;
+    return { title: `${seasonLabel(Number(year))} Season · YOFHL` };
+}
 
 // every season with a banner is built ahead of time
 export async function generateStaticParams() {
     return (await getBannerSeasons()).map((s) => ({ year: String(s.year) }));
 }
 
-// A season's champion, roster, bracket, standings, and position-filtered player leaders.
-export default async function ChampionsPage({ params }: { params: Promise<{ year: string }> }) {
+// A season's champion, roster, bracket, standings, player leaders, and draft class.
+export default async function SeasonPage({ params }: { params: Promise<{ year: string }> }) {
     const { year } = await params;
-    const seasonYear = parseInt(year, 10);
+    if (!/^\d{4}$/.test(year)) notFound();
+    const seasonYear = Number(year);
     const season = (await getBannerSeasons()).find((s) => s.year === seasonYear);
     if (!season) notFound();
-    const [detail, leaders] = await Promise.all([
+    const [detail, leaders, draft] = await Promise.all([
         getSeasonDetail(seasonYear),
         getSingleSeasonLeaderboard('all', 1, '', seasonYear),
+        getSeasonDraft(seasonYear),
     ]);
     const playoffTeams = Array.from(new Set(detail.games.filter((g) => g.bracket === 'championship').flatMap((g) => [g.away.franchiseId, g.home.franchiseId])));
     const finalGame = detail.games.filter((g) => g.bracket === 'championship').sort((a, b) => b.round - a.round)[0];
@@ -36,6 +46,7 @@ export default async function ChampionsPage({ params }: { params: Promise<{ year
         ...(!cancelled && detail.games.length ? [{ id: 'playoffs', label: 'Playoffs' }] : []),
         { id: 'standings', label: 'Regular season' },
         { id: 'season-leaders', label: 'Top players' },
+        { id: 'draft-class', label: 'Draft class' },
     ];
 
     return (
@@ -91,6 +102,7 @@ export default async function ChampionsPage({ params }: { params: Promise<{ year
                     playoffFranchiseIds={cancelled ? [] : playoffTeams}
                 />
                 <SeasonLeaders key={`leaders-${seasonYear}`} year={seasonYear} initial={leaders} />
+                <SeasonDraft key={`draft-${seasonYear}`} year={seasonYear} picks={draft} />
             </div>
         </div>
     );
