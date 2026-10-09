@@ -6,6 +6,7 @@ import { TrophyArt } from '@/components/trophy-icons';
 import { AWARDS, awardHref, getAwardDefinition } from '@/lib/awards';
 import { getAwardTypes, getAwardWinners, getTeamAwardWinners } from '@/lib/data/league';
 import { awardFromSlug, awardSlug, seasonLabel } from '@/lib/league';
+import Arrow from '@/components/arrow';
 
 export async function generateStaticParams() {
     const names = new Set([...AWARDS.map((award) => award.name), ...(await getAwardTypes()).map((award) => award.name)]);
@@ -33,7 +34,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
 
     return (
         <main className="mx-auto max-w-page px-4 pb-16 pt-5 md:px-8 md:pt-8 3xl:max-w-page-3xl 4xl:max-w-page-4xl">
-            <Link href="/awards" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink-muted hover:text-rink-blue"><span aria-hidden="true">←</span> All awards</Link>
+            <Link href="/awards" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink-muted hover:text-rink-blue"><Arrow direction="left" /> All awards</Link>
             <section className="navy-spotlight relative overflow-hidden rounded-3xl border border-gold-light/20 text-white">
                 <div className="grid items-center gap-3 px-5 pb-10 pt-5 md:grid-cols-[minmax(240px,.8fr)_minmax(0,1.2fr)] md:gap-8 md:px-10 md:py-12 lg:gap-14 lg:px-14">
                     <div className="relative flex justify-center">
@@ -46,7 +47,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                         <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[#D8E2EF] md:mx-0 md:text-base">{definition?.description ?? award.description}</p>
                         {latest && <div className="mt-6 border-t border-white/15 pt-5">
                             <p className="text-[11px] font-bold uppercase tracking-[.15em] text-gold-light">Latest winner · {seasonLabel(latest.Year)}</p>
-                            <p className="mt-2 text-xl font-extrabold">{latestHref ? <Link href={latestHref} className="underline-offset-4 hover:text-gold-light hover:underline">{latest.Winner} <span aria-hidden="true">↗</span></Link> : latest.Winner}</p>
+                            <p className="mt-2 text-xl font-extrabold">{latestHref ? <Link href={latestHref} className="underline-offset-4 hover:text-gold-light hover:underline">{latest.Winner} <Arrow /></Link> : latest.Winner}</p>
                             {!teamAward && latest.Team && <p className="mt-1 text-sm text-[#AFC0D8]">{latest.Team}</p>}
                         </div>}
                     </div>
@@ -61,7 +62,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                 </div>
                 <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'} />
             </section>
-            <div className="mt-8 text-center"><Link href={awardHref('jagr-cup') === awardHref(award.name) ? '/season' : '/awards'} className="inline-flex min-h-11 items-center text-sm font-bold text-rink-blue hover:underline">{definition?.id === 'jagr-cup' ? 'Visit the championship rafters' : 'Explore all league awards'} <span className="ml-2" aria-hidden="true">→</span></Link></div>
+            <div className="mt-8 text-center"><Link href={awardHref('jagr-cup') === awardHref(award.name) ? '/season' : '/awards'} className="inline-flex min-h-11 items-center text-sm font-bold text-rink-blue hover:underline">{definition?.id === 'jagr-cup' ? 'Visit the championship rafters' : 'Explore all league awards'} <Arrow className="ml-2" /></Link></div>
         </main>
     );
 }

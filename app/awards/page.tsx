@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { TrophyArt } from '@/components/trophy-icons';
 import TrophySparkles from '@/components/trophy-sparkles';
 import { AWARDS, awardHref } from '@/lib/awards';
+import Arrow from '@/components/arrow';
 
 export const metadata: Metadata = {
     title: 'League awards · YOFHL DB',
@@ -24,7 +25,7 @@ export default function AwardsPage() {
                     </span>
                     <span className="relative mt-2 text-[10px] font-extrabold uppercase tracking-[.15em] text-gold-light">{award.honor}</span>
                     <h2 className="font-wide relative mt-2 text-lg font-extrabold leading-snug">{award.label}</h2>
-                    <span className="relative mt-auto pt-5 text-xs font-semibold text-[#BDCCE0] group-hover:text-white">See winners <span aria-hidden="true">↗</span></span>
+                    <span className="relative mt-auto pt-5 text-xs font-semibold text-[#BDCCE0] group-hover:text-white">See winners <Arrow /></span>
                 </Link>)}
             </div>
         </main>

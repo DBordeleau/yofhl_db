@@ -12,6 +12,7 @@ import DraftAnnouncement from '@/components/draft-announcement';
 import TeamBadge from '@/components/team-badge';
 import { useOwnerNavigation } from '@/lib/owner/navigation';
 import KeeperReminder from '@/components/keepers/reminder';
+import Arrow from '@/components/arrow';
 
 const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const pathname = usePathname();
@@ -122,7 +123,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                                     transition={{ duration: 0.18 }}
                                     className="absolute right-0 mt-2 max-h-[80vh] w-80 overflow-y-auto rounded-2xl border border-line bg-white p-1.5 shadow-[0_24px_48px_-24px_rgba(31,39,69,.45)]"
                                 >
-                                    <li><Link href="/awards" className="mb-1 flex min-h-11 items-center justify-between rounded-xl bg-ice px-3.5 text-sm font-extrabold text-ink hover:bg-rink-wash">All league awards <span aria-hidden="true">↗</span></Link></li>
+                                    <li><Link href="/awards" className="mb-1 flex min-h-11 items-center justify-between rounded-xl bg-ice px-3.5 text-sm font-extrabold text-ink hover:bg-rink-wash">All league awards <Arrow /></Link></li>
                                     {awardItems.map((award) => (
                                         <li key={award.name}>
                                             <Link
@@ -183,7 +184,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                                 </button>
                                 {isDropdownOpen && (
                                     <ul className="ml-3.5 border-l-2 border-line-soft pl-2">
-                                        <li><Link href="/awards" className="flex min-h-11 items-center px-3 text-sm font-extrabold text-rink-blue hover:underline">All league awards ↗</Link></li>
+                                        <li><Link href="/awards" className="flex min-h-11 items-center px-3 text-sm font-extrabold text-rink-blue hover:underline">All league awards <Arrow /></Link></li>
                                         {awardItems.map((award) => (
                                             <li key={award.name}>
                                                 <Link href={award.href} className="flex min-h-14 items-center gap-2 rounded-xl px-2 py-1.5 text-[15px] font-semibold text-ink-soft hover:bg-rink-wash">

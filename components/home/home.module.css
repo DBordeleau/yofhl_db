@@ -13,9 +13,9 @@
 .heroActions { animation: heroEnter .7s .25s cubic-bezier(.2,.7,.2,1) both; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
 .historyButton, .seasonButton { display: inline-flex; gap: 18px; align-items: center; justify-content: space-between; min-height: 47px; padding: 12px 17px; border: 1px solid transparent; border-radius: 4px; font-size: 13px; font-weight: 800; transition: background .2s, transform .2s; }
 .historyButton { background: #d41536; color: #fff; box-shadow: 0 4px 20px #c8102e25; }
-.historyButton:hover { background: #ed2346; transform: translateY(-2px); }
+.historyButton:hover { background: #ed2346; }
 .seasonButton { background: #c3e3f7; border-color: #e1f4ff; color: #173c59; }
-.seasonButton:hover { background: #e1f3ff; transform: translateY(-2px); }
+.seasonButton:hover { background: #e1f3ff; }
 .heroArt { position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center; }
 .heroTrophy { transform: rotate(4deg); animation: trophyEnter 1s .12s cubic-bezier(.2,.7,.2,1) both; position: relative; width: 310px; height: 310px; margin-top: -12px; filter: drop-shadow(0 20px 24px #091a2bcc); }
 .trophyCaption { position: absolute; bottom: 23px; left: 50%; transform: translateX(-50%); white-space: nowrap; color: #e8d5aa; font-size: 12px; font-weight: 750; letter-spacing: .2em; text-transform: uppercase; }
@@ -25,7 +25,6 @@
 .heroBottom p { display: flex; align-items: center; gap: 10px; color: #b4c4d6; }
 .heroBottom strong { font-weight: 800; color: white; }
 .statusDot { height: 6px; width: 6px; border-radius: 50%; background: #a9d6fa; box-shadow: 0 0 0 4px #a9d6fa0c; }
-.dailyLabel { color: #a9bad0; }
 .sectionNavRow { display: flex; justify-content: space-between; align-items: center; gap: 20px; border-bottom: 1px solid #dbe3ed; min-height: 65px; }
 .sectionNav { display: flex; gap: 26px; }
 .sectionNav a { display: inline-flex; align-items: center; min-height: 48px; font-size: 14px; font-weight: 750; color: #4d5c72; white-space: nowrap; }
@@ -121,7 +120,6 @@
 .unavailable h2 { font-size: 24px; font-weight: 750; }
 .unavailable p { margin-top: 10px; font-size: 15px; color: #64758b; }
 .leadersEmpty { padding: 2px 20px 28px; color: #53667f; font-size: 14px; }
-.leadersNote { padding: 14px 20px; font-size: 11px; color: #63758b; }
 .rosterSection { margin-top: 42px; }
 .rosterSection > .sectionHeading { margin-bottom: 18px; }
 .rosterControls { display: flex; align-items: center; gap: 6px; }

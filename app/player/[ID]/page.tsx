@@ -11,6 +11,7 @@ import type { TrophyItem } from '@/components/trophy-case';
 import { getPlayer } from '@/lib/data/league';
 import { getHistory, getHistorySeasons } from '@/lib/data/history';
 import { seasonLabel } from '@/lib/league';
+import Arrow from '@/components/arrow';
 
 // Rendered per request from cached data rather than pre-built: Fantrax ids contain "*", which
 // can't appear in file names on Windows, so static player pages would break local builds.
@@ -84,8 +85,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
                 />
 
                 <nav className="mt-4 flex flex-wrap gap-x-6 text-sm font-bold text-ink-muted" aria-label="Player sections">
-                    <a href="#career-stats" className="inline-flex min-h-11 items-center hover:text-rink-blue">Season stats ↓</a>
-                    <a href="#transactions" className="inline-flex min-h-11 items-center hover:text-rink-blue">Transaction history ↓</a>
+                    <a href="#career-stats" className="inline-flex min-h-11 items-center gap-1.5 hover:text-rink-blue">Season stats <Arrow direction="down" /></a>
+                    <a href="#transactions" className="inline-flex min-h-11 items-center gap-1.5 hover:text-rink-blue">Transaction history <Arrow direction="down" /></a>
                 </nav>
                 {/* season-by-season stats lead; the trophy case and chart follow */}
                 <div id="career-stats" className="mt-5 scroll-mt-6">

@@ -3,6 +3,7 @@ import AdminHeader from '@/components/admin/admin-header';
 import LoginForm from '@/components/admin/login-form';
 import { adminConfigured, isAdmin } from '@/lib/admin/auth';
 import { getSeasonStatuses } from '@/lib/admin/data';
+import Arrow from '@/components/arrow';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,14 +25,14 @@ export default async function AdminHome() {
     return (
         <>
             <AdminHeader title="Seasons" />
-            <Link href="/admin/keepers" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice"><div><p className="font-wide text-lg font-extrabold">Keeper submissions</p><p className="mt-1 text-sm text-ink-soft">Review each team’s keeps, rookie eligibility, and players to drop.</p></div><span aria-hidden="true" className="text-2xl">→</span></Link>
+            <Link href="/admin/keepers" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice"><div><p className="font-wide text-lg font-extrabold">Keeper submissions</p><p className="mt-1 text-sm text-ink-soft">Review each team’s keeps, rookie eligibility, and players to drop.</p></div><Arrow className="text-2xl" /></Link>
             <Link href="/admin/teams" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice">
                 <div><p className="font-wide text-lg font-extrabold">Teams & owners</p><p className="mt-1 text-sm text-ink-soft">Edit team names and logos, and generate owner invitation codes.</p></div>
-                <span aria-hidden="true" className="text-2xl">→</span>
+                <Arrow className="text-2xl" />
             </Link>
             <Link href="/admin/lottery" className="mb-6 flex items-center justify-between gap-4 rounded-2xl bg-ink p-5 text-white hover:bg-[#232C4A]">
                 <div><p className="font-wide text-lg font-extrabold">Draft lottery</p><p className="mt-1 text-sm text-slate-300">Schedule the live event, set odds and build the draft order.</p></div>
-                <span aria-hidden="true" className="text-2xl">→</span>
+                <Arrow className="text-2xl" />
             </Link>
             <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {seasons.map((s) => {

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Image from 'next/image';
 import familyPhoto from '@/public/memorial/johnny-gaudreau-family.webp';
 import styles from './johnny-gaudreau-memorial.module.css';
+import Arrow from '@/components/arrow';
 
 // A permanent remembrance for Johnny's profile. Career records remain below it.
 export default function JohnnyGaudreauMemorial({ actions }: { actions: ReactNode }) {
@@ -54,7 +55,7 @@ export default function JohnnyGaudreauMemorial({ actions }: { actions: ReactNode
                             href="https://www.nhl.com/video/remembering-johnny-gaudreau-6361273889112"
                             className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-sm text-ink-soft underline decoration-[#B9AA8E] underline-offset-4 hover:text-rink-blue focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rink-blue"
                         >
-                            Remembering Johnny &amp; Matthew Gaudreau ↗
+                            Remembering Johnny &amp; Matthew Gaudreau <Arrow direction="out" />
                         </a>
                     </div>
                 </div>
@@ -71,7 +72,7 @@ export default function JohnnyGaudreauMemorial({ actions }: { actions: ReactNode
                             href="https://www.theplayerstribune.com/meredith-gaudreau-johnny-hockey-nhl"
                             className="inline-flex min-h-11 items-center rounded-sm font-serif text-lg leading-6 text-ink-soft underline decoration-[#B9AA8E] underline-offset-4 hover:text-rink-blue focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rink-blue"
                         >
-                            Thank You For Being Perfect, John ↗
+                            Thank You For Being Perfect, John <Arrow direction="out" className="ml-1.5" />
                         </a>
                         <p className="mt-1 text-xs leading-5 text-ink-muted">By Meredith Gaudreau · The Players’ Tribune</p>
                     </figcaption>

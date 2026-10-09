@@ -6,6 +6,7 @@ import { useTransition } from 'react';
 import TeamBadge from '@/components/team-badge';
 import { periodLabel, periodPhase, shortDate, type MatchupScores, type Period, type ScheduledMatchup, type SnapshotTeam } from '@/lib/fantrax/model';
 import styles from './home.module.css';
+import Arrow from '@/components/arrow';
 
 export default function MatchupBrowser({ periods, selected, matchups, scores, teams, now, currentPeriod }: {
     periods: Period[]; selected: Period; matchups: ScheduledMatchup[]; scores: MatchupScores | null;
@@ -24,17 +25,17 @@ export default function MatchupBrowser({ periods, selected, matchups, scores, te
         <div className={styles.sectionHeading}>
             <h2 id="matchup-heading">Matchups</h2>
             <div className={styles.periodControls}>
-                <button type="button" aria-label="Previous scoring period" disabled={index <= 0 || pending} onClick={() => navigate(periods[index - 1].number)}>←</button>
+                <button type="button" aria-label="Previous scoring period" disabled={index <= 0 || pending} onClick={() => navigate(periods[index - 1].number)}><Arrow direction="left" /></button>
                 <label className="sr-only" htmlFor="scoring-period">Scoring period</label>
                 <select id="scoring-period" value={selected.number} disabled={pending} onChange={event => navigate(Number(event.target.value))}>
                     {periods.map(period => <option value={period.number} key={period.number}>Round {String(period.number).padStart(2, '0')} · {periodLabel(period)}</option>)}
                 </select>
-                <button type="button" aria-label="Next scoring period" disabled={index >= periods.length - 1 || pending} onClick={() => navigate(periods[index + 1].number)}>→</button>
+                <button type="button" aria-label="Next scoring period" disabled={index >= periods.length - 1 || pending} onClick={() => navigate(periods[index + 1].number)}><Arrow /></button>
             </div>
         </div>
         <div className={styles.matchupMeta}>
-            <span>{pending ? 'Loading matchups…' : phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress · daily score snapshot' : 'Completed scoring period'}<span aria-hidden="true"> / </span>{periodLabel(selected)}</span>
-            {selected.number !== currentPeriod ? <Link href={href(currentPeriod)} scroll={false}>Back to current round ↗</Link> : <span>All dates Eastern</span>}
+            <span>{pending ? 'Loading matchups…' : phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress' : 'Completed scoring period'}<span aria-hidden="true"> / </span>{periodLabel(selected)}</span>
+            {selected.number !== currentPeriod ? <Link href={href(currentPeriod)} scroll={false}>{selected.number > currentPeriod && <Arrow direction="left" />} Back to current round {selected.number < currentPeriod && <Arrow />}</Link> : <span>All dates Eastern</span>}
         </div>
         <div className={styles.matchupGrid} style={{ opacity: pending ? .55 : 1 }}>
             {matchups.map((matchup, matchIndex) => {
@@ -57,6 +58,6 @@ export default function MatchupBrowser({ periods, selected, matchups, scores, te
             })}
         </div>
         {matchups.length === 0 ? <p className={styles.emptyState}>Matchups have not been announced for this round.</p> : idleTeams.length > 0 ? <p className={styles.idleTeams}>Not scheduled this round <span>{idleTeams.map(team => team.name).join(' · ')}</span></p> : null}
-        {scores && phase !== 'upcoming' ? <p className={styles.sourceNote}>Scores retrieved {new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(scores.fetchedAt))} ET. This is a daily snapshot; scores may have changed.</p> : null}
+        {scores && phase !== 'upcoming' ? <p className={styles.sourceNote}>Scores as of {new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(scores.fetchedAt))} ET.</p> : null}
     </section>;
 }

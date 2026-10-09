@@ -5,6 +5,7 @@ import LotteryEditor from '@/components/admin/lottery-editor';
 import { adminConfigured, isAdmin } from '@/lib/admin/auth';
 import { getCurrentLottery, getLotteryHistory, getLotteryTeams } from '@/lib/lottery/data';
 import { formatEastern } from '@/lib/lottery/model';
+import Arrow from '@/components/arrow';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export default async function AdminLotteryPage() {
             <ul className="mt-3 divide-y divide-line rounded-2xl border border-line bg-white px-5">
                 {history.map((event) => <li key={event.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                     <div><p className="font-bold">{event.title}</p><p className="text-sm text-ink-muted">{formatEastern(event.startsAt)}</p></div>
-                    <Link href={`/lottery?id=${event.id}`} className="py-3 text-sm font-bold text-rink-blue">View results →</Link>
+                    <Link href={`/lottery?id=${event.id}`} className="py-3 text-sm font-bold text-rink-blue">View results <Arrow /></Link>
                 </li>)}
             </ul>
         </section>}

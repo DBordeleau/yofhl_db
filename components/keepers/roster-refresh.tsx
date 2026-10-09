@@ -1,5 +1,6 @@
 import { KEEPER_TOTAL_LIMIT } from '@/lib/keepers/model';
 import styles from './keepers.module.css';
+import Arrow from '@/components/arrow';
 
 interface Props {
     minorCount: number;
@@ -31,7 +32,7 @@ export default function RosterRefresh({ minorCount, fantraxUrl, checkedAt, disab
         </div>
         {openSpots ? steps : <details className={styles.refreshHelp}><summary>How to update your minor bench for this keeper form</summary>{steps}</details>}
         <div className={styles.refreshActions}>
-            <a href={fantraxUrl} target="_blank" rel="noopener noreferrer">Open Fantrax <span>↗ <span className="sr-only">in a new tab</span></span></a>
+            <a href={fantraxUrl} target="_blank" rel="noopener noreferrer">Open Fantrax <span><Arrow direction="out" /> <span className="sr-only">in a new tab</span></span></a>
             <button type="button" disabled={disabled} onClick={onRefresh}>{refreshing ? 'Refreshing…' : 'Refresh from Fantrax'}</button>
             <small>Roster last checked {checkedAt} Eastern</small>
         </div>
