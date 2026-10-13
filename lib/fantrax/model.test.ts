@@ -53,13 +53,11 @@ test('groups active, bench, and IR players by assigned position without duplicat
     assert.equal(rosterGroup({ ...player, status: 'UNKNOWN' }), 'OTHER');
 });
 
-test('names regular-season weeks and the last three scheduled weeks as the Jagr Cup playoffs', () => {
-    const schedule = Array.from({ length: 25 }, (_, index) => index + 1);
-    assert.deepEqual(weekName(1, schedule), { short: 'Week 1', full: 'Week 1', playoff: false });
-    assert.equal(weekName(22, schedule).full, 'Week 22');
-    assert.equal(weekName(23, schedule).full, 'Jagr Cup Playoff Quarterfinals');
-    assert.equal(weekName(24, schedule).full, 'Jagr Cup Playoff Semifinals');
-    assert.deepEqual(weekName(25, schedule), { short: 'Grand Finals', full: 'Jagr Cup Playoff Grand Finals', playoff: true });
-    // Fantrax can list a trailing scoring period with no matchups; it is not part of the playoffs.
-    assert.equal(weekName(26, schedule).full, 'Week 26');
+test('names regular-season weeks and the last three weeks of the season as the Jagr Cup playoffs', () => {
+    const season = Array.from({ length: 26 }, (_, index) => index + 1);
+    assert.deepEqual(weekName(1, season), { short: 'Week 1', full: 'Week 1', playoff: false });
+    assert.equal(weekName(23, season).full, 'Week 23');
+    assert.equal(weekName(24, season).full, 'Jagr Cup Playoff Quarterfinals');
+    assert.equal(weekName(25, season).full, 'Jagr Cup Playoff Semifinals');
+    assert.deepEqual(weekName(26, season), { short: 'Grand Finals', full: 'Jagr Cup Playoff Grand Finals', playoff: true });
 });
