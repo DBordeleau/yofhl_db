@@ -84,6 +84,15 @@ export function periodLabel(period: Period): string {
     return `${shortDate(period.startDate)} – ${shortDate(period.endDate)}`;
 }
 
+const PLAYOFF_ROUNDS = ['Grand Finals', 'Semifinals', 'Quarterfinals'];
+
+// The last three weeks with a schedule are the Jagr Cup playoffs; every other matchup period is a regular-season week.
+export function weekName(period: number, scheduledPeriods: number[]): { short: string; full: string; playoff: boolean } {
+    const fromEnd = [...new Set(scheduledPeriods)].sort((a, b) => b - a).indexOf(period);
+    const round = fromEnd >= 0 ? PLAYOFF_ROUNDS[fromEnd] : undefined;
+    return round ? { short: round, full: `Jagr Cup Playoff ${round}`, playoff: true } : { short: `Week ${period}`, full: `Week ${period}`, playoff: false };
+}
+
 export function playerName(name: string): string {
     const [last, first] = name.split(', ');
     return first ? `${first} ${last}` : last;

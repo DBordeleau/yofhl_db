@@ -11,7 +11,7 @@ import DraftAnnouncement from '@/components/draft-announcement';
 import { draftCountdown } from '@/lib/draft';
 import { getBannerSeasons } from '@/lib/data/league';
 import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores, getScoringLeaders } from '@/lib/fantrax/data';
-import { periodPhase, selectPeriod, shortDate } from '@/lib/fantrax/model';
+import { periodPhase, selectPeriod, shortDate, weekName } from '@/lib/fantrax/model';
 import { formatFpts, seasonLabel } from '@/lib/league';
 import styles from '@/components/home/home.module.css';
 import Arrow from '@/components/arrow';
@@ -40,7 +40,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     const season = snapshot ? seasonLabel(snapshot.seasonYear + 1) : 'Current season';
     const updated = snapshot ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(snapshot.fetchedAt)) : null;
     const totalGames = snapshot?.teams.some(team => team.record && team.record !== '0-0-0');
-    const seasonStatus = <p><span className={styles.statusDot} />{preseason && opening ? <>Season starts <strong>{shortDate(opening.startDate)}</strong></> : current ? <>Season {periodPhase(current, now) === 'complete' ? 'complete' : 'in progress'} <strong>Round {current.number}</strong></> : 'League home'}</p>;
+    const scheduledPeriods = snapshot?.schedule.map(round => round.period) ?? [];
+    const seasonStatus = <p><span className={styles.statusDot} />{preseason && opening ? <>Season starts <strong>{shortDate(opening.startDate)}</strong></> : current ? <>Season {periodPhase(current, now) === 'complete' ? 'complete' : 'in progress'} <strong>{weekName(current.number, scheduledPeriods).full}</strong></> : 'League home'}</p>;
     const rosterFranchiseId = typeof params.roster === 'string' && /^\d+$/.test(params.roster) ? Number(params.roster) : undefined;
 
     return <main className={styles.home}>
@@ -68,7 +69,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <span className={styles.updateLabel}>{updated ? <>Updated {updated} ET</> : 'Snapshot temporarily unavailable'}</span>
             </div>
 
-            {snapshot && period && current ? <MatchupBrowser periods={snapshot.scoringPeriods} selected={period} matchups={snapshot.schedule.find(item => item.period === period.number)?.matchupList ?? []} scores={scores} teams={snapshot.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} now={now} currentPeriod={current.number} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
+            {snapshot && period && current ? <MatchupBrowser periods={snapshot.scoringPeriods} scheduledPeriods={scheduledPeriods} selected={period} matchups={snapshot.schedule.find(item => item.period === period.number)?.matchupList ?? []} scores={scores} teams={snapshot.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} now={now} currentPeriod={current.number} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
 
             <div className={styles.leagueGrid}>
                 <section id="standings" aria-labelledby="standings-heading" tabIndex={-1}>
