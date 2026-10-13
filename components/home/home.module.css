@@ -44,19 +44,59 @@
 .matchupMeta > span:first-child { font-weight: 650; color: #455570; }
 .matchupMeta > span > span { margin-inline: 9px; color: #a0aabc; }
 .matchupMeta a { color: #1f6fc2; font-weight: 700; }
-.matchupGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; transition: opacity .15s; }
-.matchupCard { background: #fff; border: 1px solid #dae2ec; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 10px #152c4c02; }
-.matchupCardTop { display: flex; justify-content: space-between; gap: 10px; padding: 13px 14px 9px; color: #6f7b8f; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.matchupCardTop > span:last-child { color: #346897; }
-.matchupTeam { display: flex; align-items: center; gap: 9px; padding: 8px 14px; }
-.matchupTeam:last-child { padding-bottom: 16px; }
-.matchupIdentity { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; }
-.matchupIdentity:hover .matchupTeamName { color: #1f6fc2; }
-.matchupTeamName { font-size: 14px; line-height: 1.25; font-weight: 750; }
-.matchupGames { display: block; margin-top: 4px; font-size: 11px; line-height: 1.4; font-weight: 500; font-variant-numeric: tabular-nums; color: #627188; }
-.matchupScore { flex-shrink: 0; font-size: 15px; font-variant-numeric: tabular-nums; font-weight: 750; color: #637187; }
-.winningTeam .matchupScore { color: #12182e; }
-.matchupCardBottom { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #eaf0f5; margin-top: 8px; padding: 10px 14px; color: #627188; font-size: 11px; }
+.matchupGrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; transition: opacity .15s; }
+/* three cards per row; a short last row stretches (two cards) or centres (one card) instead of leaving a hole */
+.scoreCard:nth-child(3n+1):nth-last-child(2), .scoreCard:nth-child(3n+2):last-child { grid-column: span 3; }
+.scoreCard:nth-child(3n+1):last-child { grid-column: 3 / span 2; }
+.ticker { position: relative; display: flex; align-items: stretch; height: 56px; margin-bottom: 16px; border-radius: 6px; overflow: hidden; color: #fff; background: linear-gradient(180deg, #16233b, #0b1426); box-shadow: 0 12px 26px #0b142630, inset 0 -1px 0 #ffffff0d; transition: opacity .15s; }
+.ticker::before { content: ''; position: absolute; z-index: 2; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, #c8102e 0 32%, #4a8bcc); pointer-events: none; }
+.tickerLabel { position: relative; z-index: 1; flex-shrink: 0; display: flex; align-items: stretch; }
+.tickerBrand { display: flex; align-items: center; padding: 2px 26px 0 18px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 18px; font-weight: 950; font-style: italic; font-stretch: 115%; letter-spacing: -.04em; text-shadow: 0 1px 1px #5a0010; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+.tickerRound { display: flex; flex-direction: column; justify-content: center; gap: 4px; margin-left: -14px; padding: 2px 30px 0 26px; background: #050c18; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); font-size: 14px; line-height: 1; font-weight: 850; font-stretch: 92%; letter-spacing: .03em; text-transform: uppercase; white-space: nowrap; }
+.tickerStatus { display: flex; align-items: center; gap: 6px; color: #9fb3cb; font-size: 10px; font-weight: 750; font-stretch: 100%; letter-spacing: .14em; }
+.ticker[data-phase='active'] .tickerStatus { color: #ff7d8f; }
+.liveDot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: #ff3b55; animation: livePulse 1.6s ease-out infinite; }
+.tickerViewport { position: relative; flex: 1; min-width: 0; overflow: hidden; container-type: inline-size; -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+.tickerTrack { display: flex; width: max-content; height: 100%; animation: tickerScroll var(--ticker-duration, 30s) linear infinite; }
+.ticker:hover .tickerTrack, .ticker:focus-within .tickerTrack { animation-play-state: paused; }
+/* each copy is at least as wide as the viewport, so the loop never shows a gap with only a few matchups */
+.tickerGroup { display: flex; justify-content: space-around; min-width: 100cqw; height: 100%; }
+.tickerCell { display: flex; align-items: center; height: 100%; }
+.tickerCell::after { content: ''; flex-shrink: 0; width: 1px; height: 26px; background: #ffffff1f; }
+.tickerItem { display: flex; align-items: center; gap: 18px; height: 100%; padding: 2px 24px 0; white-space: nowrap; transition: background .15s; }
+.tickerItem:hover { background: #ffffff12; }
+.home .tickerItem:focus-visible { outline-offset: -3px; background: #ffffff12; }
+.tickerTeam { display: flex; align-items: center; gap: 8px; }
+.tickerAbbr { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #e3ebf5; }
+.tickerScore { font-size: 18px; font-weight: 900; font-stretch: 88%; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: #fff; }
+.tickerTeam[data-trailing] :is(.tickerAbbr, .tickerScore) { color: #8295ad; }
+.ticker[data-phase='complete'] .tickerTeam[data-leading] .tickerScore::after, .scoreCard[data-phase='complete'] .scoreRow[data-leading] .scoreValue::after { content: ''; display: inline-block; margin-left: 6px; vertical-align: 3px; border-block: 5px solid transparent; border-right: 6px solid #e8213f; }
+.tickerAt { margin-right: 4px; color: #71849e; font-size: 12px; font-weight: 700; }
+.tickerNote { padding: 4px 6px 3px; border-radius: 3px; background: #ffffff17; color: #c3d0e0; font-size: 10px; line-height: 1; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.scoreCard { grid-column: span 2; display: flex; flex-direction: column; background: #fff; border: 1px solid #d6dfea; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 14px #152c4c0a; scroll-margin-top: 24px; transition: transform .2s, box-shadow .2s, border-color .2s; }
+.scoreCard:hover { transform: translateY(-2px); border-color: #bccadb; box-shadow: 0 14px 28px #152c4c1c; }
+.scoreCard[data-spotlight], .scoreCard:target { transform: translateY(-2px); border-color: #c8102e; box-shadow: 0 0 0 1px #c8102e, 0 14px 28px #c8102e24; }
+.scoreCardTop { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 14px 8px; background: #101a30; color: #8fa1b9; font-size: 10px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+.scoreStatus { display: flex; align-items: center; gap: 6px; color: #fff; }
+.scoreCard[data-phase='active'] .scoreStatus { color: #ff8b9b; }
+.scoreRow { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 18px; }
+.scoreRow::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 4px; border-radius: 0 3px 3px 0; background: var(--side-colour); }
+.scoreRow + .scoreRow { border-top: 1px solid #edf1f6; }
+.scoreIdentity { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+.scoreIdentity:hover .scoreTeamName { color: #1f6fc2; }
+.scoreTeamName { font-size: 15px; line-height: 1.2; font-weight: 750; letter-spacing: -.015em; overflow-wrap: anywhere; }
+.scoreGames { display: block; margin-top: 3px; font-size: 11px; line-height: 1.4; font-weight: 500; letter-spacing: 0; font-variant-numeric: tabular-nums; color: #6a7990; }
+.scoreValue { flex-shrink: 0; font-size: 30px; line-height: 1; font-weight: 900; font-stretch: 85%; letter-spacing: -.03em; font-variant-numeric: tabular-nums; color: #101a30; }
+.scoreRow[data-trailing] .scoreValue { color: #a7b2c1; }
+.scoreRow[data-trailing] .scoreTeamName { color: #56657a; }
+.scoreCard[data-phase='upcoming'] .scoreValue { color: #c0c9d5; font-size: 24px; }
+.scoreCardBottom { margin-top: auto; padding: 2px 16px 13px; }
+.scoreCardBottom p { font-size: 11px; line-height: 1.4; color: #66758b; }
+.scoreCardBottom p:only-child { margin-top: 2px; padding-top: 11px; border-top: 1px solid #edf1f6; }
+.scoreCardBottom strong { font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #101a30; }
+.scoreShare { display: flex; gap: 2px; height: 5px; margin-bottom: 9px; border-radius: 3px; overflow: hidden; background: #e6ecf3; }
+.scoreShare span { min-width: 2px; transition: width .6s cubic-bezier(.2,.7,.2,1); }
+.scoreShare span:last-child { flex: 1; }
 .idleTeams { margin-top: 13px; font-size: 12px; line-height: 1.7; color: #728095; }
 .idleTeams span { margin-left: 10px; color: #4c5b71; }
 .leagueGrid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 28px; margin-top: 46px; }
@@ -96,11 +136,11 @@
 .leadersHeading { padding: 20px 20px 12px; }
 .leadersHeading h3 { font-size: 20px; font-weight: 800; letter-spacing: -.04em; }
 .leadersHeading .eyebrow { font-size: 10px; }
-.leadersCard ol { display: grid; gap: 8px; padding: 2px 12px 14px; }
-.leaderPlayer { --team-trim: linear-gradient(var(--team-tertiary) 0 2px, transparent 2px); display: flex; align-items: center; gap: 10px; min-height: 82px; padding: 12px 76px 12px 10px; border-radius: 4px; background: linear-gradient(110deg, #243650, #152139); color: #fff; font-size: 14px; font-weight: 700; }
+.leadersCard ol { display: grid; gap: 1px; background: #06101e; border-top: 1px solid #06101e; }
+.leaderPlayer { --team-trim: linear-gradient(90deg, var(--team-secondary) 0 4px, transparent 4px); display: flex; align-items: center; gap: 12px; min-height: 80px; padding: 12px 76px 12px 18px; background: linear-gradient(110deg, #243650, #152139); color: #fff; font-size: 14px; font-weight: 700; }
 .leaderPlayer a:hover { text-decoration: underline; text-decoration-color: #fff; text-underline-offset: 3px; }
 .leaderPlayer a:focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 2px; }
-.leaderRank { flex-shrink: 0; font-size: 12px; font-weight: 700; color: #d2dce8; }
+.leaderRank { flex-shrink: 0; min-width: 18px; font-size: 13px; font-weight: 850; font-stretch: 85%; color: #d2dce8; text-shadow: 0 1px 2px #06101e; }
 .leaderDetails { flex: 0 1 135px; min-width: 0; overflow-wrap: anywhere; text-shadow: 0 1px 2px #06101e; }
 .leaderName, .leaderPoints { color: #fff; font-weight: 900; font-stretch: 85%; -webkit-text-stroke: 3px #06101e; paint-order: stroke fill; text-shadow: 0 2px 0 #06101e, 0 3px 6px #06101e80; }
 .leaderName { display: inline-block; min-height: 24px; font-size: 18px; line-height: 1.15; letter-spacing: -.025em; }
@@ -166,6 +206,8 @@
 .additionalGroup ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 30px; }
 .emptyPosition { padding-block: 18px; color: #7a889a; font-size: 13px; }
 .rosterFooter { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 28px; border-top: 1px solid #dce4ec; color: #758498; font-size: 11px; }
+@keyframes tickerScroll { to { transform: translateX(-50%); } }
+@keyframes livePulse { 0% { box-shadow: 0 0 0 0 #ff3b55a6; } 70%, 100% { box-shadow: 0 0 0 7px #ff3b5500; } }
 @keyframes rosterEnter { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes heroEnter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes trophyEnter { from { opacity: 0; transform: translateY(25px) rotate(-5deg) scale(.94); } to { opacity: 1; transform: translateY(0) rotate(4deg) scale(1); } }
@@ -173,10 +215,11 @@
 @media (min-width: 1800px) {
     .heroInner, .heroBottomInner, .content { max-width: 1500px; }
     .heroInner { min-height: 420px; } .hero h1 { font-size: 90px; } .heroRink { width: 1200px; height: 552px; top: -35px; }
-    .heroTrophy { width: 350px; height: 350px; } .matchupTeamName, .standingsTable { font-size: 15px; }
+    .heroTrophy { width: 350px; height: 350px; } .standingsTable { font-size: 15px; }
+    .matchupGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .matchupGrid .scoreCard:nth-child(n) { grid-column: auto; } .scoreValue { font-size: 28px; }
 }
 @media (max-width: 1100px) {
-    .matchupGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .matchupTeamName { font-size: 15px; }
+    .matchupGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .matchupGrid .scoreCard:nth-child(n) { grid-column: auto; } .matchupGrid .scoreCard:nth-child(odd):last-child { grid-column: 1 / -1; }
     .leagueGrid { gap: 20px; } .heroKicker { font-size: 11px; } .heroTrophy { width: 280px; height: 280px; }
     .hero h1 { font-size: 68px; } .championTop { flex-wrap: wrap; gap: 4px; } .championIdentity { gap: 12px; }
     .championIdentity h3 { font-size: 21px; } .leaderPlayer { gap: 8px; }
@@ -208,10 +251,12 @@
     .sectionNav a { font-size: 13px; min-height: 43px; } .updateLabel { display: block; max-width: none; text-align: left; font-size: 11px; }
     .matchupSection { padding-top: 27px; } .sectionHeading { align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 18px; }
     .sectionHeading h2 { font-size: 25px; } .periodControls { width: 100%; } .periodControls select { max-width: none; flex: 1; } .periodControls button { width: 42px; }
-    .matchupGrid { grid-template-columns: 1fr; gap: 10px; } .matchupCardTop { padding-inline: 11px; font-size: 10px; gap: 4px; letter-spacing: .04em; }
-    .matchupTeam { padding: 8px 10px; gap: 5px; } .matchupIdentity { gap: 7px; }
-    .matchupIdentity > span:first-child { width: 30px !important; height: 30px !important; } .matchupTeamName { font-size: 12px; } .matchupScore { font-size: 13px; }
-    .matchupCardBottom { padding: 9px 11px; font-size: 10px; } .matchupMeta { margin-top: 0; font-size: 11px; }
+    .matchupGrid { grid-template-columns: 1fr; gap: 10px; } .matchupGrid .scoreCard:nth-child(n) { grid-column: auto; } .matchupMeta { margin-top: 0; font-size: 11px; }
+    .ticker { height: 50px; margin-bottom: 12px; } .tickerBrand { display: none; }
+    .tickerRound { margin-left: 0; padding-inline: 12px 24px; font-size: 12px; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+    .tickerItem { gap: 12px; padding-inline: 14px; } .tickerScore { font-size: 16px; } .tickerAbbr { font-size: 12px; }
+    .scoreRow { padding-block: 10px; } .scoreIdentity { gap: 9px; } .scoreIdentity > span:first-child { width: 34px !important; height: 34px !important; }
+    .scoreTeamName { font-size: 14px; } .scoreValue { font-size: 26px; }
     .idleTeams { font-size: 11px; } .idleTeams span { display: block; margin-left: 0; }
     .leagueGrid { margin-top: 32px; } .leagueGrid > section > .sectionHeading { flex-wrap: nowrap; align-items: center; }
     .standingsCaption { padding-inline: 13px; font-size: 11px; } .standingsTable { font-size: 13px; }
@@ -227,13 +272,15 @@
 @media (max-width: 360px) {
     .heroArt { right: -8px; width: 125px; top: 64px; } .heroTrophy { width: 130px; height: 130px; }
     .hero h1 { font-size: 46px; } .heroActions { gap: 8px; } .historyButton, .seasonButton { font-size: 11px; padding-inline: 9px; gap: 8px; }
-    .matchupTeamName { font-size: 13px; } .sectionNav { gap: 9px; }
+    .scoreTeamName { font-size: 13px; } .scoreValue { font-size: 24px; } .sectionNav { gap: 9px; }
     .sectionNav a { font-size: 12px; } .standingTeam { gap: 6px; } .standingsTable { font-size: 12px; }
     .standingTeam > span:first-child { width: 26px !important; height: 26px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
     .heroKicker, .hero h1, .heroActions, .heroTrophy, .heroRink, .heroBottomInner { animation: none; }
-    .historyButton, .seasonButton, .matchupGrid { transition: none; }
+    .historyButton, .seasonButton, .matchupGrid, .ticker, .scoreCard, .scoreShare span { transition: none; }
+    .liveDot { animation: none; } .scoreCard:hover, .scoreCard[data-spotlight], .scoreCard:target { transform: none; }
+    .tickerTrack { animation: none; } .tickerViewport { overflow-x: auto; } .tickerGroup + .tickerGroup { display: none; }
 }
 @media (max-width: 1100px) {
     .rosterHeader { gap: 18px; padding: 24px; grid-template-columns: 76px minmax(0, 1fr); }
