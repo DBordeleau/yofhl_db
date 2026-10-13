@@ -1,7 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
-import { playerName, publishedMatchups, type LeagueSnapshot, type MatchupScores, type Period, type ScheduledMatchup } from './model';
-import { loadScoringLeaders } from './leaders';
+import { playerName, publishedMatchups, type LeagueSnapshot, type MatchupScores, type Period, type RosterStats, type ScheduledMatchup } from './model';
+import { loadRosterStats, loadScoringLeaders } from './leaders';
 
 export const FANTRAX_LEAGUE_ID = 'rf5o9cu2mutybszr';
 export const FANTRAX_LEAGUE_URL = `https://www.fantrax.com/fantasy/league/${FANTRAX_LEAGUE_ID}/home`;
@@ -114,3 +114,7 @@ export const getScoringLeaders = unstable_cache(async (seasonYear: number) => {
     const archiveIds = new Map(archive.map(player => [player.id.replace(/\*/g, ''), player.id]));
     return { fetchedAt: new Date().toISOString(), players: players.map(player => ({ ...player, archiveId: archiveIds.get(player.id) ?? null })) };
 }, ['fantrax-scoring-leaders', FANTRAX_LEAGUE_ID], { revalidate: DAY });
+
+export const getRosterStats = unstable_cache(async (seasonYear: number): Promise<RosterStats> => ({
+    players: await loadRosterStats(FANTRAX_LEAGUE_ID, seasonYear), fetchedAt: new Date().toISOString(),
+}), ['fantrax-roster-stats', FANTRAX_LEAGUE_ID], { revalidate: DAY });

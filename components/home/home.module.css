@@ -200,10 +200,17 @@
 .groupCount { font-size: 12px; font-weight: 500; color: #758598; font-stretch: 100%; letter-spacing: 0; }
 .defenceGroup { grid-column: span 2; }
 .defenceGroup ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 30px; }
-.playerRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 46px; padding-block: 9px; border-bottom: 1px solid #e7ecf1; }
+.playerRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding-block: 11px; border-bottom: 1px solid #e7ecf1; }
+.playerDetails { min-width: 0; }
 .playerIdentity { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 16px; line-height: 1.25; font-weight: 600; font-stretch: 95%; letter-spacing: -.02em; }
+.playerIdentity > :first-child { min-width: 0; overflow-wrap: anywhere; }
 .playerIdentity a:hover { color: #bb1231; text-decoration: underline; text-underline-offset: 3px; }
-.playerClub { flex-shrink: 0; color: #718196; font-size: 10px; font-weight: 650; letter-spacing: .035em; white-space: nowrap; }
+.playerClub { display: block; margin-top: 4px; color: #718196; font-size: 10px; font-weight: 650; letter-spacing: .035em; }
+.playerStats { display: grid; grid-template-columns: minmax(55px, auto) minmax(43px, auto); gap: 10px; flex-shrink: 0; text-align: right; }
+.playerStats dt { margin-bottom: 4px; color: #718196; font-size: 9px; line-height: 1; font-weight: 650; letter-spacing: .04em; }
+.playerStats abbr { text-decoration: none; }
+.playerStats dd { color: #14243b; font-size: 13px; line-height: 1.25; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.playerStats > :last-child dd { color: #53647c; font-weight: 550; }
 .irBadge { display: inline-block; flex-shrink: 0; padding: 3px 4px; border-radius: 2px; color: #fff; background: #c8102e; font-size: 9px; line-height: 1; font-weight: 800; letter-spacing: .025em; }
 .additionalGroup { margin-top: 24px; }
 .additionalGroup ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 30px; }
@@ -305,6 +312,8 @@
     .rosterHeader { gap: 18px; padding: 24px; grid-template-columns: 76px minmax(0, 1fr); }
     .rosterHeader > span:first-of-type + span { width: 76px !important; height: 76px !important; }
     .rosterBody { padding: 22px 24px; } .lineupGrid, .defenceGroup ul, .additionalGroup ul { column-gap: 24px; }
+    .lineupGrid, .additionalGroup ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .defenceGroup { grid-column: auto; } .defenceGroup ul { grid-template-columns: 1fr; }
     .playerIdentity { font-size: 15px; } .rosterFooter { padding-inline: 24px; }
 }
 @media (max-width: 800px) {

@@ -14,6 +14,11 @@ export interface SnapshotPlayer {
     archiveId: string | null;
 }
 
+export interface RosterStats {
+    fetchedAt: string;
+    players: Record<string, { points: number | null; perGame: number | null }>;
+}
+
 // Bench and IR players stay with their assigned position; minors remain separate.
 export function rosterGroup(player: SnapshotPlayer): string {
     if (['ACTIVE', 'RESERVE', 'INJURED_RESERVE'].includes(player.status)) {

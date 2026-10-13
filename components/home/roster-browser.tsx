@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import TeamBadge from '@/components/team-badge';
 import TeamBranding from '@/components/team-branding/team-branding';
-import { periodLabel, rosterGroup, type Period, type SnapshotPlayer, type SnapshotTeam } from '@/lib/fantrax/model';
+import { periodLabel, rosterGroup, shortDate, type Period, type RosterStats, type SnapshotPlayer, type SnapshotTeam } from '@/lib/fantrax/model';
+import { formatFpts, seasonLabel } from '@/lib/league';
 import styles from './home.module.css';
 import Arrow from '@/components/arrow';
 
@@ -16,18 +17,24 @@ const additionalGroups = [
     { key: 'MINORS', label: 'Minors' }, { key: 'OTHER', label: 'Other roster slots' },
 ];
 
-function Player({ player }: { player: SnapshotPlayer }) {
+function Player({ player, stats }: { player: SnapshotPlayer; stats: RosterStats['players'][string] | undefined }) {
     const showPosition = ['MINORS', 'OTHER'].includes(rosterGroup(player));
     return <li className={styles.playerRow}>
-        <div className={styles.playerIdentity}>
-            {player.archiveId ? <Link href={`/player/${encodeURIComponent(player.archiveId)}`}>{player.name}</Link> : <span>{player.name}</span>}
-            {player.status === 'INJURED_RESERVE' ? <span className={styles.irBadge} title="Injured reserve" aria-label="Injured reserve">IR</span> : null}
+        <div className={styles.playerDetails}>
+            <div className={styles.playerIdentity}>
+                {player.archiveId ? <Link href={`/player/${encodeURIComponent(player.archiveId)}`}>{player.name}</Link> : <span>{player.name}</span>}
+                {player.status === 'INJURED_RESERVE' ? <span className={styles.irBadge} title="Injured reserve" aria-label="Injured reserve">IR</span> : null}
+            </div>
+            <span className={styles.playerClub}>{showPosition ? `${player.position.replace(/,/g, '/')} · ` : ''}{player.nhlTeam === '(N/A)' ? 'FA' : player.nhlTeam}</span>
         </div>
-        <span className={styles.playerClub}>{showPosition ? `${player.position.replace(/,/g, '/')} · ` : ''}{player.nhlTeam === '(N/A)' ? 'FA' : player.nhlTeam}</span>
+        <dl className={styles.playerStats}>
+            <div><dt><abbr title="Fantasy points">FPTS</abbr></dt><dd>{stats?.points == null ? <span aria-label="Unavailable">—</span> : formatFpts(stats.points)}</dd></div>
+            <div><dt><abbr title="Fantasy points per game">FP/G</abbr></dt><dd>{stats?.perGame == null ? <span aria-label="Unavailable">—</span> : formatFpts(stats.perGame)}</dd></div>
+        </dl>
     </li>;
 }
 
-export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId }: { teams: SnapshotTeam[]; rosterPeriod: Period | null; initialFranchiseId?: number }) {
+export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId, stats, seasonYear }: { teams: SnapshotTeam[]; rosterPeriod: Period | null; initialFranchiseId?: number; stats: RosterStats | null; seasonYear: number }) {
     const [selectedId, setSelectedId] = useState(() => teams.find(team => team.franchiseId === initialFranchiseId)?.id ?? teams[0]?.id);
     const selectedIndex = Math.max(0, teams.findIndex(team => team.id === selectedId));
     const selected = teams[selectedIndex];
@@ -65,16 +72,19 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId 
                     <div className={styles.lineupGrid}>
                         {grouped.slice(0, positions.length).map(group => <section className={`${styles.positionGroup} ${group.key === 'D' ? styles.defenceGroup : ''}`} key={group.key} aria-label={group.label}>
                             <h4>{group.label}<span className={styles.groupCount}>{group.players.length}</span></h4>
-                            {group.players.length ? <ul>{group.players.map(player => <Player key={player.id} player={player} />)}</ul> : <p className={styles.emptyPosition}>No players</p>}
+                            {group.players.length ? <ul>{group.players.map(player => <Player key={player.id} player={player} stats={stats?.players[player.id]} />)}</ul> : <p className={styles.emptyPosition}>No players</p>}
                         </section>)}
                     </div>
                     {grouped.slice(positions.length).filter(group => group.players.length).map(group => <section className={styles.additionalGroup} key={group.key} aria-label={group.label}>
                         <h4>{group.label}<span className={styles.groupCount}>{group.players.length}</span></h4>
-                        <ul>{group.players.map(player => <Player key={player.id} player={player} />)}</ul>
+                        <ul>{group.players.map(player => <Player key={player.id} player={player} stats={stats?.players[player.id]} />)}</ul>
                     </section>)}
                 </div> : <p className={styles.emptyState}>No roster available.</p>}
             </div>
-            <div className={styles.rosterFooter}>{rosterPeriod ? `Lineup period ${rosterPeriod.number} · ${periodLabel(rosterPeriod)}` : 'Fantrax roster'}</div>
+            <div className={styles.rosterFooter}>
+                <span>{rosterPeriod ? `Lineup period ${rosterPeriod.number} · ${periodLabel(rosterPeriod)}` : 'Fantrax roster'}</span>
+                <span>{seasonLabel(seasonYear + 1)} season stats · {stats ? `Updated ${shortDate(stats.fetchedAt)}` : 'Temporarily unavailable'}</span>
+            </div>
         </div>
     </section>;
 }

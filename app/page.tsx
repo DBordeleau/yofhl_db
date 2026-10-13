@@ -10,7 +10,7 @@ import SectionLink from '@/components/home/section-link';
 import DraftAnnouncement from '@/components/draft-announcement';
 import { draftCountdown } from '@/lib/draft';
 import { getBannerSeasons } from '@/lib/data/league';
-import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores, getScoringLeaders } from '@/lib/fantrax/data';
+import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores, getRosterStats, getScoringLeaders } from '@/lib/fantrax/data';
 import { periodPhase, selectPeriod, shortDate, weekName } from '@/lib/fantrax/model';
 import { formatFpts, seasonLabel } from '@/lib/league';
 import styles from '@/components/home/home.module.css';
@@ -31,10 +31,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     const period = snapshot ? selectPeriod(snapshot.scoringPeriods, typeof params.period === 'string' ? params.period : undefined, now) : null;
     const current = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
     const loadScores = (item: typeof period) => item && periodPhase(item, now) !== 'upcoming' ? getMatchupScores(item.number).catch(() => null) : null;
-    const [scores, currentScores, leaders] = await Promise.all([
+    const [scores, currentScores, leaders, rosterStats] = await Promise.all([
         loadScores(period),
         current?.number === period?.number ? null : loadScores(current),
         snapshot ? getScoringLeaders(snapshot.seasonYear).catch(error => { console.error('Fantrax scoring leaders unavailable:', error); return null; }) : null,
+        snapshot ? getRosterStats(snapshot.seasonYear).catch(error => { console.error('Fantrax roster stats unavailable:', error); return null; }) : null,
     ]);
     const opening = snapshot?.scoringPeriods[0];
     const preseason = opening ? now < Date.parse(opening.startDate) : false;
@@ -115,7 +116,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </aside>
             </div>
 
-            {snapshot ? <RosterBrowser key={rosterFranchiseId ?? 'default'} teams={snapshot.teams} rosterPeriod={snapshot.rosterPeriod} initialFranchiseId={rosterFranchiseId} /> : null}
+            {snapshot ? <RosterBrowser key={rosterFranchiseId ?? 'default'} teams={snapshot.teams} rosterPeriod={snapshot.rosterPeriod} initialFranchiseId={rosterFranchiseId} stats={rosterStats} seasonYear={snapshot.seasonYear} /> : null}
 
             <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading"><div><h2 id="archive-heading">This league has history.</h2><Link href="/stats/all-time/all" className={styles.historyButton}>Explore league history <Arrow /></Link></div><div className={styles.archiveLinks}><Link href="/season">Seasons <Arrow /></Link><Link href="/awards">Awards <Arrow /></Link><Link href="/teams/stats">Franchise records <Arrow /></Link></div></section>
 

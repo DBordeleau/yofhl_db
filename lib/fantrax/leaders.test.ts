@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadScoringLeaders } from './leaders';
+import { loadRosterStats, loadScoringLeaders } from './leaders';
 
 const season = { code: 'SEASON_current_YEAR_TO_DATE', name: '2026-27 Reg Season - YTD', timeframeTypeCode: 'YEAR_TO_DATE' };
 const table = () => ({
@@ -76,4 +76,59 @@ test('rejects wrong seasons, sorting, incomplete tables, duplicate players, and 
 test('reports upstream failures instead of treating them as no scoring yet', async t => {
     t.mock.method(globalThis, 'fetch', async () => new Response('', { status: 503 }));
     await assert.rejects(loadScoringLeaders('league', 2026), /503/);
+});
+
+const rosterTable = () => ({
+    ...table(), displayedStatusOrTeam: 'ALL_TAKEN',
+    tableHeader: { cells: [{ key: 'fptsPerGame' }, { key: 'fpts' }] },
+    statsTable: [
+        { scorer: { scorerId: 'skater' }, cells: [{ content: '13.9' }, { content: '1,234.5' }] },
+        { scorer: { scorerId: 'goalie' }, cells: [{ content: '-2.5' }, { content: '-5' }] },
+    ],
+});
+
+test('loads roster totals and per-game stats by column key, including negative scores', async t => {
+    t.mock.method(globalThis, 'fetch', async (_url: string, init: RequestInit) => {
+        const request = JSON.parse(init.body as string).msgs[0].data;
+        assert.equal(request.statusOrTeamFilter, 'ALL_TAKEN');
+        assert.equal(request.positionOrGroup, 'ALL');
+        assert.equal(request.maxResultsPerPage, '1000');
+        return response(rosterTable());
+    });
+    assert.deepEqual(await loadRosterStats('league', 2026), {
+        skater: { points: 1234.5, perGame: 13.9 }, goalie: { points: -5, perGame: -2.5 },
+    });
+});
+
+test('preserves real zeros and distinguishes missing roster stats', async t => {
+    const data = rosterTable();
+    data.statsTable[0].cells = [{ content: '0' }, { content: '0' }];
+    data.statsTable[1].cells = [{ content: '—' }, { content: 'N/A' }];
+    t.mock.method(globalThis, 'fetch', async () => response(data));
+    assert.deepEqual(await loadRosterStats('league', 2026), {
+        skater: { points: 0, perGame: 0 }, goalie: { points: null, perGame: null },
+    });
+});
+
+test('rejects wrong roster filters, seasons, incomplete pages, duplicates and invalid stats', async t => {
+    let data: unknown;
+    t.mock.method(globalThis, 'fetch', async () => response(data));
+    const base = rosterTable();
+    for (data of [
+        { ...base, displayedStatusOrTeam: 'ALL' },
+        { ...base, displayedSeasonOrProjection: { ...season, name: '2025-26 Reg Season - YTD' }, seasonOrProjections: [] },
+        { ...base, tableHeader: { cells: [{ key: 'fpts' }] } },
+        { ...base, statsTable: [base.statsTable[0]] },
+        { ...base, paginatedResultSet: { pageNumber: 1, totalNumResults: 1001 }, statsTable: Array(1000).fill(base.statsTable[0]) },
+        { ...base, statsTable: [base.statsTable[0], base.statsTable[0]] },
+        { ...base, statsTable: [{ ...base.statsTable[0], cells: [{ content: 'broken' }, { content: '10' }] }, base.statsTable[1]] },
+        { ...base, statsTable: [{ ...base.statsTable[0], cells: [] }, base.statsTable[1]] },
+    ]) await assert.rejects(loadRosterStats('league', 2026), /Fantrax/);
+});
+
+test('keeps roster stats failures distinct from a league with no rostered players', async t => {
+    t.mock.method(globalThis, 'fetch', async () => response({ ...rosterTable(), statsTable: [], paginatedResultSet: { pageNumber: 1, totalNumResults: 0 } }));
+    assert.deepEqual(await loadRosterStats('league', 2026), {});
+    t.mock.method(globalThis, 'fetch', async () => new Response('', { status: 503 }));
+    await assert.rejects(loadRosterStats('league', 2026), /503/);
 });
