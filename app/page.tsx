@@ -9,8 +9,8 @@ import HeroRink from '@/components/home/hero-rink';
 import SectionLink from '@/components/home/section-link';
 import DraftAnnouncement from '@/components/draft-announcement';
 import { draftCountdown } from '@/lib/draft';
-import { getSingleSeasonLeaderboard, getBannerSeasons } from '@/lib/data/league';
-import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores } from '@/lib/fantrax/data';
+import { getBannerSeasons } from '@/lib/data/league';
+import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores, getScoringLeaders } from '@/lib/fantrax/data';
 import { periodPhase, selectPeriod, shortDate } from '@/lib/fantrax/model';
 import { formatFpts, seasonLabel } from '@/lib/league';
 import styles from '@/components/home/home.module.css';
@@ -32,7 +32,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     const current = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
     const [scores, leaders] = await Promise.all([
         period && periodPhase(period, now) !== 'upcoming' ? getMatchupScores(period.number).catch(() => null) : null,
-        snapshot ? getSingleSeasonLeaderboard('all', 1, '', snapshot.seasonYear + 1).catch(() => null) : null,
+        snapshot ? getScoringLeaders(snapshot.seasonYear).catch(error => { console.error('Fantrax scoring leaders unavailable:', error); return null; }) : null,
     ]);
     const opening = snapshot?.scoringPeriods[0];
     const preseason = opening ? now < Date.parse(opening.startDate) : false;
@@ -92,8 +92,21 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                         <div className={styles.championIdentity}><TeamBadge logo={champion.logo} abbreviation={champion.abbreviation} teamName={champion.team} size={76} ring="none" /><div><span>Jagr Cup champions</span><h3>{champion.team}</h3></div></div>
                         <div className={styles.championBottom}>View championship season <Arrow /></div>
                     </Link></TeamBranding> : null}
-                    <section className={styles.leadersCard} aria-labelledby="leaders-heading"><div className={styles.leadersHeading}><p className={styles.eyebrow}>{season}</p><h3 id="leaders-heading">Scoring leaders</h3></div>
-                        {leaders?.rows.length ? <><ol>{leaders.rows.slice(0, 5).map((player, index) => <li key={player.ID}><Link href={`/player/${encodeURIComponent(player.ID)}`}><span className={styles.leaderRank}>{String(index + 1).padStart(2, '0')}</span><span>{player.Player}<small>{player.Position.replace(/,/g, ' · ')} · {player.YOFHLTeam}</small></span><strong>{formatFpts(player.FPts)}<small>FPts</small></strong></Link></li>)}</ol></> : <div className={styles.leadersEmpty}><p>{preseason && opening ? <>Season starts {shortDate(opening.startDate)}.</> : 'Current-season player stats are not available yet.'}</p></div>}
+                    <section className={styles.leadersCard} aria-labelledby="leaders-heading"><div className={styles.leadersHeading}><p className={styles.eyebrow}>{season} · Season totals</p><h3 id="leaders-heading">Scoring leaders</h3></div>
+                        {leaders?.players.length ? <ol>{leaders.players.map((player, index) => {
+                            const team = snapshot?.teams.find(team => team.id === player.teamId);
+                            return <li key={player.id}><TeamBranding teamId={team?.franchiseId} data-brand-layout="card">
+                                <div data-brand-part="surface" className={styles.leaderPlayer}>
+                                    <span className={styles.leaderRank}>{String(index + 1).padStart(2, '0')}</span>
+                                    <TeamBadge logo={team?.logo ?? null} abbreviation={team?.abbreviation ?? player.team} teamName={team?.name ?? player.team} size={38} ring="none" />
+                                    <div className={styles.leaderDetails}>
+                                        {player.archiveId ? <Link className={styles.leaderName} href={`/player/${encodeURIComponent(player.archiveId)}`}>{player.name}</Link> : <span className={styles.leaderName}>{player.name}</span>}
+                                        <small>{player.position.replace(/,/g, ' · ')} · {team?.franchiseId ? <Link className={styles.leaderTeam} href={`/teams/${team.franchiseId}`} aria-label={`${team.name} history`}>{team.abbreviation ?? player.team}</Link> : team?.abbreviation ?? player.team}</small>
+                                    </div>
+                                    <strong className={styles.leaderPoints}>{formatFpts(player.points)}<small>FPts</small></strong>
+                                </div>
+                            </TeamBranding></li>;
+                        })}</ol> : <div className={styles.leadersEmpty}><p>{preseason && opening ? <>Season starts {shortDate(opening.startDate)}.</> : leaders ? 'No scoring recorded yet.' : 'Scoring leaders are temporarily unavailable.'}</p></div>}
                         <a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.leaderFooter}>View season on Fantrax <Arrow direction="out" /></a>
                     </section>
                 </aside>
@@ -103,7 +116,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
             <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading"><div><h2 id="archive-heading">This league has history.</h2><Link href="/stats/all-time/all" className={styles.historyButton}>Explore league history <Arrow /></Link></div><div className={styles.archiveLinks}><Link href="/season">Seasons <Arrow /></Link><Link href="/awards">Awards <Arrow /></Link><Link href="/teams/stats">Franchise records <Arrow /></Link></div></section>
 
-            <footer className={styles.footer}><span><strong>YOFHL</strong> Ye Olde Fantasy Hockey League</span><span>Standings, matchups and rosters come from Fantrax and update daily.</span></footer>
+            <footer className={styles.footer}><span><strong>YOFHL</strong> Ye Olde Fantasy Hockey League</span><span>League data from Fantrax.</span></footer>
         </div>
     </main>;
 }

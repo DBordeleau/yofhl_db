@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
 import { playerName, publishedMatchups, type LeagueSnapshot, type MatchupScores, type Period, type ScheduledMatchup } from './model';
+import { loadScoringLeaders } from './leaders';
 
 export const FANTRAX_LEAGUE_ID = 'rf5o9cu2mutybszr';
 export const FANTRAX_LEAGUE_URL = `https://www.fantrax.com/fantasy/league/${FANTRAX_LEAGUE_ID}/home`;
@@ -107,3 +108,9 @@ export const getMatchupScores = unstable_cache(async (period: number): Promise<M
     if (!Array.isArray(scores.matchups) || scores.period !== period) throw new Error('Fantrax returned invalid matchup scores');
     return { ...scores, fetchedAt: new Date().toISOString() };
 }, ['fantrax-matchup-scores', FANTRAX_LEAGUE_ID], { revalidate: DAY });
+
+export const getScoringLeaders = unstable_cache(async (seasonYear: number) => {
+    const [players, archive] = await Promise.all([loadScoringLeaders(FANTRAX_LEAGUE_ID, seasonYear), getArchivedPlayerIds()]);
+    const archiveIds = new Map(archive.map(player => [player.id.replace(/\*/g, ''), player.id]));
+    return { fetchedAt: new Date().toISOString(), players: players.map(player => ({ ...player, archiveId: archiveIds.get(player.id) ?? null })) };
+}, ['fantrax-scoring-leaders', FANTRAX_LEAGUE_ID], { revalidate: DAY });

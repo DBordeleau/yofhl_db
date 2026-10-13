@@ -2,7 +2,7 @@
 
 Owners open **Brand studio** from **Manage Team**, at `/owner/branding`. It resolves the signed-in owner's active franchise; there is no team selector. Commissioners open a franchise's studio through `/admin/teams`, at `/admin/teams/<id>/branding`.
 
-The studio previews three colours and a banner style. **Save branding** publishes the combination across the home roster, reigning champions card, team stats cards, franchise profile and associated player profiles. **Discard changes** returns to the last saved combination. Team names and logo uploads remain in the team-management form.
+The studio previews three colours and a banner style. **Save branding** publishes the combination across the home roster, scoring leaders, reigning champions card, team stats cards, franchise profile and associated player profiles. **Discard changes** returns to the last saved combination. Team names and logo uploads remain in the team-management form.
 
 ## Colours and styles
 
