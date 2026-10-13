@@ -46,29 +46,32 @@ function useTickerDock(enabled: boolean) {
     return { slot, dock, settle };
 }
 
-export default function MatchupBrowser({ periods, scheduledPeriods, selected, matchups, scores, teams, now, currentPeriod }: {
-    periods: Period[]; scheduledPeriods: number[]; selected: Period; matchups: ScheduledMatchup[]; scores: MatchupScores | null;
-    teams: Team[]; now: number; currentPeriod: number;
+type Week = { period: Period; matchups: ScheduledMatchup[]; scores: MatchupScores | null };
+const phaseStatus = (phase: ReturnType<typeof periodPhase>) => phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress' : 'Final';
+
+// The cards follow the week picked in the dropdown; the ticker always shows the current week.
+export default function MatchupBrowser({ periods, seasonPeriods, selected, matchups, scores, current, teams, now }: {
+    periods: Period[]; seasonPeriods: number[]; selected: Period; matchups: ScheduledMatchup[]; scores: MatchupScores | null;
+    current: Week; teams: Team[]; now: number;
 }) {
     const router = useRouter();
     const palettes = useTeamBranding();
     const [pending, startTransition] = useTransition();
     const [spotlight, setSpotlight] = useState<number | null>(null);
-    const { slot, dock, settle } = useTickerDock(matchups.length > 0);
     const index = periods.findIndex(period => period.number === selected.number);
     const phase = periodPhase(selected, now);
     const playing = new Set(matchups.flatMap(matchup => [matchup.away.id, matchup.home.id]));
     const idleTeams = matchups.every(matchup => matchup.away.id && matchup.home.id) ? teams.filter(team => !playing.has(team.id)) : [];
     const href = (period: number) => `/?period=${period}#matchups`;
     const navigate = (period: number) => startTransition(() => router.push(href(period), { scroll: false }));
-    const week = weekName(selected.number, scheduledPeriods);
-    const status = phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress' : 'Final';
+    const status = phaseStatus(phase);
+    const currentPeriod = current.period.number;
     const colour = (team?: Team) => (team?.franchiseId ? palettes[team.franchiseId] ?? suggestedPalettes[team.franchiseId] : null)?.primary ?? fallbackColours.primary;
 
     // One shape for the ticker and the cards: who is playing, the score, and who is ahead.
-    const games = matchups.map((matchup, matchIndex) => {
-        const result = scores?.matchups.find(score => score.away.teamId === matchup.away.id && score.home.teamId === matchup.home.id);
-        const scored = phase !== 'upcoming' && result ? result : null;
+    const buildGames = (list: ScheduledMatchup[], results: MatchupScores | null, gamePhase: typeof phase) => list.map((matchup, matchIndex) => {
+        const result = results?.matchups.find(score => score.away.teamId === matchup.away.id && score.home.teamId === matchup.home.id);
+        const scored = gamePhase !== 'upcoming' && result ? result : null;
         const sides = Object.fromEntries(SIDES.map(side => {
             const team = teams.find(team => team.id === matchup[side].id);
             const name = team?.name ?? matchup[side].name ?? 'To be determined';
@@ -78,12 +81,20 @@ export default function MatchupBrowser({ periods, scheduledPeriods, selected, ma
         const total = scored ? Math.max(scored.away.score, 0) + Math.max(scored.home.score, 0) : 0;
         return { id: `matchup-${matchIndex + 1}`, number: String(matchIndex + 1).padStart(2, '0'), sides, leader, scored, total };
     });
+    const games = buildGames(matchups, scores, phase);
+    const showingCurrent = selected.number === currentPeriod;
+    const tickerPhase = periodPhase(current.period, now);
+    const tickerGames = showingCurrent ? games : buildGames(current.matchups, current.scores, tickerPhase);
+    const tickerWeek = weekName(currentPeriod, seasonPeriods);
+    const { slot, dock, settle } = useTickerDock(tickerGames.length > 0);
 
     // The ticker loops by sliding two identical copies; only the first is exposed to assistive tech.
-    const tickerItems = (copy: number) => games.map((game, gameIndex) => <div role={copy ? undefined : 'listitem'} className={styles.tickerCell} key={`${copy}-${game.id}`}><a
-        href={`#${game.id}`} className={styles.tickerItem} tabIndex={copy ? -1 : undefined}
-        onMouseEnter={() => setSpotlight(gameIndex)} onMouseLeave={() => setSpotlight(null)}
-        onFocus={() => setSpotlight(gameIndex)} onBlur={() => setSpotlight(null)}
+    // Items point at the current week's cards, switching the dropdown back to the current week when needed.
+    const tickerItems = (copy: number) => tickerGames.map((game, gameIndex) => <div role={copy ? undefined : 'listitem'} className={styles.tickerCell} key={`${copy}-${game.id}`}><a
+        href={showingCurrent ? `#${game.id}` : href(currentPeriod)} className={styles.tickerItem} tabIndex={copy ? -1 : undefined}
+        onClick={showingCurrent ? undefined : event => { event.preventDefault(); navigate(currentPeriod); }}
+        onMouseEnter={() => showingCurrent && setSpotlight(gameIndex)} onMouseLeave={() => setSpotlight(null)}
+        onFocus={() => showingCurrent && setSpotlight(gameIndex)} onBlur={() => setSpotlight(null)}
         aria-label={copy ? undefined : SIDES.map(side => `${game.sides[side].name}${game.sides[side].score == null ? '' : ` ${game.sides[side].score!.toFixed(2)}`}`).join(' vs ')}
     >
         {SIDES.map(side => {
@@ -94,11 +105,11 @@ export default function MatchupBrowser({ periods, scheduledPeriods, selected, ma
                 <span className={styles.tickerTeam} data-side={side} data-leading={game.leader === side ? '' : undefined} data-trailing={game.leader === other(side) ? '' : undefined}>
                     <TeamBadge logo={team.team?.logo ?? null} teamName={team.name} abbreviation={team.abbreviation} size={24} ring="none" />
                     <span className={styles.tickerAbbr}>{team.abbreviation}</span>
-                    {phase !== 'upcoming' ? <span className={styles.tickerScore}>{team.score == null ? '—' : team.score.toFixed(2)}</span> : null}
+                    {tickerPhase !== 'upcoming' ? <span className={styles.tickerScore}>{team.score == null ? '—' : team.score.toFixed(2)}</span> : null}
                 </span>
             </Fragment>;
         })}
-        {phase === 'upcoming' ? <span className={styles.tickerNote}>{shortDate(selected.startDate)}</span> : phase === 'complete' && game.scored ? <span className={styles.tickerNote}>Final</span> : null}
+        {tickerPhase === 'upcoming' ? <span className={styles.tickerNote}>{shortDate(current.period.startDate)}</span> : tickerPhase === 'complete' && game.scored ? <span className={styles.tickerNote}>Final</span> : null}
     </a></div>);
 
     return <section id="matchups" className={styles.matchupSection} aria-labelledby="matchup-heading" aria-busy={pending} tabIndex={-1}>
@@ -108,20 +119,20 @@ export default function MatchupBrowser({ periods, scheduledPeriods, selected, ma
                 <button type="button" aria-label="Previous week" disabled={index <= 0 || pending} onClick={() => navigate(periods[index - 1].number)}><Arrow direction="left" /></button>
                 <label className="sr-only" htmlFor="scoring-period">Week</label>
                 <select id="scoring-period" value={selected.number} disabled={pending} onChange={event => navigate(Number(event.target.value))}>
-                    {periods.map(period => <option value={period.number} key={period.number}>{weekName(period.number, scheduledPeriods).full} · {periodLabel(period)}</option>)}
+                    {periods.map(period => <option value={period.number} key={period.number}>{weekName(period.number, seasonPeriods).full} · {periodLabel(period)}</option>)}
                 </select>
                 <button type="button" aria-label="Next week" disabled={index >= periods.length - 1 || pending} onClick={() => navigate(periods[index + 1].number)}><Arrow /></button>
             </div>
         </div>
 
-        {games.length > 0 ? <div ref={slot} className={styles.tickerSlot}><div className={styles.ticker} data-dock={dock} onAnimationEnd={event => event.target === event.currentTarget && settle()} data-phase={phase} data-playoff={week.playoff ? '' : undefined} style={{ opacity: pending ? .55 : 1, '--ticker-duration': `${Math.max(games.length, 3) * 6.5}s` } as CSSProperties}>
+        {tickerGames.length > 0 ? <div ref={slot} className={styles.tickerSlot}><div className={styles.ticker} data-dock={dock} onAnimationEnd={event => event.target === event.currentTarget && settle()} data-phase={tickerPhase} data-playoff={tickerWeek.playoff ? '' : undefined} style={{ '--ticker-duration': `${Math.max(tickerGames.length, 3) * 6.5}s` } as CSSProperties}>
             <div className={styles.tickerLabel}>
                 <span className={styles.tickerBrand}>YOFHL</span>
-                <span className={styles.tickerRound}><span>{week.short}</span><span className={styles.tickerStatus}>{phase === 'active' ? <span className={styles.liveDot} aria-hidden="true" /> : null}{status}</span></span>
+                <span className={styles.tickerRound}><span>{tickerWeek.short}</span><span className={styles.tickerStatus}>{tickerPhase === 'active' ? <span className={styles.liveDot} aria-hidden="true" /> : null}{phaseStatus(tickerPhase)}</span></span>
             </div>
             <div className={styles.tickerViewport}>
                 <div className={styles.tickerTrack}>
-                    <div className={styles.tickerGroup} role="list" aria-label={`${week.full} scores`}>{tickerItems(0)}</div>
+                    <div className={styles.tickerGroup} role="list" aria-label={`${tickerWeek.full} scores`}>{tickerItems(0)}</div>
                     <div className={styles.tickerGroup} aria-hidden="true">{tickerItems(1)}</div>
                 </div>
             </div>

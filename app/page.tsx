@@ -30,8 +30,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     const now = Date.now();
     const period = snapshot ? selectPeriod(snapshot.scoringPeriods, typeof params.period === 'string' ? params.period : undefined, now) : null;
     const current = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
-    const [scores, leaders] = await Promise.all([
-        period && periodPhase(period, now) !== 'upcoming' ? getMatchupScores(period.number).catch(() => null) : null,
+    const loadScores = (item: typeof period) => item && periodPhase(item, now) !== 'upcoming' ? getMatchupScores(item.number).catch(() => null) : null;
+    const [scores, currentScores, leaders] = await Promise.all([
+        loadScores(period),
+        current?.number === period?.number ? null : loadScores(current),
         snapshot ? getScoringLeaders(snapshot.seasonYear).catch(error => { console.error('Fantrax scoring leaders unavailable:', error); return null; }) : null,
     ]);
     const opening = snapshot?.scoringPeriods[0];
@@ -40,8 +42,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     const season = snapshot ? seasonLabel(snapshot.seasonYear + 1) : 'Current season';
     const updated = snapshot ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(snapshot.fetchedAt)) : null;
     const totalGames = snapshot?.teams.some(team => team.record && team.record !== '0-0-0');
-    const scheduledPeriods = snapshot?.schedule.map(round => round.period) ?? [];
-    const seasonStatus = <p><span className={styles.statusDot} />{preseason && opening ? <>Season starts <strong>{shortDate(opening.startDate)}</strong></> : current ? <>Season {periodPhase(current, now) === 'complete' ? 'complete' : 'in progress'} <strong>{weekName(current.number, scheduledPeriods).full}</strong></> : 'League home'}</p>;
+    const seasonPeriods = snapshot?.scoringPeriods.map(item => item.number) ?? [];
+    const seasonStatus = <p><span className={styles.statusDot} />{preseason && opening ? <>Season starts <strong>{shortDate(opening.startDate)}</strong></> : current ? <>Season {periodPhase(current, now) === 'complete' ? 'complete' : 'in progress'} <strong>{weekName(current.number, seasonPeriods).full}</strong></> : 'League home'}</p>;
     const rosterFranchiseId = typeof params.roster === 'string' && /^\d+$/.test(params.roster) ? Number(params.roster) : undefined;
 
     return <main className={styles.home}>
@@ -69,7 +71,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <span className={styles.updateLabel}>{updated ? <>Updated {updated} ET</> : 'Snapshot temporarily unavailable'}</span>
             </div>
 
-            {snapshot && period && current ? <MatchupBrowser periods={snapshot.scoringPeriods} scheduledPeriods={scheduledPeriods} selected={period} matchups={snapshot.schedule.find(item => item.period === period.number)?.matchupList ?? []} scores={scores} teams={snapshot.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} now={now} currentPeriod={current.number} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
+            {snapshot && period && current ? <MatchupBrowser periods={snapshot.scoringPeriods} seasonPeriods={seasonPeriods} selected={period} matchups={snapshot.schedule.find(item => item.period === period.number)?.matchupList ?? []} scores={scores} current={{ period: current, matchups: snapshot.schedule.find(item => item.period === current.number)?.matchupList ?? [], scores: current.number === period.number ? scores : currentScores }} teams={snapshot.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} now={now} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
 
             <div className={styles.leagueGrid}>
                 <section id="standings" aria-labelledby="standings-heading" tabIndex={-1}>

@@ -86,9 +86,10 @@ export function periodLabel(period: Period): string {
 
 const PLAYOFF_ROUNDS = ['Grand Finals', 'Semifinals', 'Quarterfinals'];
 
-// The last three weeks with a schedule are the Jagr Cup playoffs; every other matchup period is a regular-season week.
-export function weekName(period: number, scheduledPeriods: number[]): { short: string; full: string; playoff: boolean } {
-    const fromEnd = [...new Set(scheduledPeriods)].sort((a, b) => b - a).indexOf(period);
+// The last three weeks of the season are the Jagr Cup playoffs (Fantrax leaves their matchups unscheduled until
+// seeding is known); every earlier week is a regular-season week.
+export function weekName(period: number, seasonPeriods: number[]): { short: string; full: string; playoff: boolean } {
+    const fromEnd = [...new Set(seasonPeriods)].sort((a, b) => b - a).indexOf(period);
     const round = fromEnd >= 0 ? PLAYOFF_ROUNDS[fromEnd] : undefined;
     return round ? { short: round, full: `Jagr Cup Playoff ${round}`, playoff: true } : { short: `Week ${period}`, full: `Week ${period}`, playoff: false };
 }
