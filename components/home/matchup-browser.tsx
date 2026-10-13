@@ -41,23 +41,23 @@ export default function MatchupBrowser({ periods, selected, matchups, scores, te
             {matchups.map((matchup, matchIndex) => {
                 const result = scores?.matchups.find(score => score.away.teamId === matchup.away.id && score.home.teamId === matchup.home.id);
                 return <article className={styles.matchupCard} key={`${selected.number}-${matchIndex}`}>
-                    <div className={styles.matchupCardTop}><span>Match {String(matchIndex + 1).padStart(2, '0')}</span><span>{phase === 'upcoming' ? 'Upcoming' : phase === 'complete' ? 'Result' : 'Daily snapshot'}</span></div>
+                    <div className={styles.matchupCardTop}><span>Match {String(matchIndex + 1).padStart(2, '0')}</span><span>{phase === 'upcoming' ? 'Upcoming' : phase === 'complete' ? 'Result' : 'In progress'}</span></div>
                     {(['away', 'home'] as const).map(side => {
                         const team = teams.find(team => team.id === matchup[side].id);
                         const score = result?.[side].score;
+                        const gamesPlayed = result?.[side].gamesPlayed;
                         const winner = phase === 'complete' && result && result[side].score > result[side === 'away' ? 'home' : 'away'].score;
                         const name = team?.name ?? matchup[side].name ?? 'To be determined';
-                        const content = <><TeamBadge logo={team?.logo ?? null} teamName={name} abbreviation={team?.abbreviation ?? 'TBD'} size={38} ring="none" /><span className={styles.matchupTeamName}>{name}</span></>;
+                        const content = <><TeamBadge logo={team?.logo ?? null} teamName={name} abbreviation={team?.abbreviation ?? 'TBD'} size={38} ring="none" /><span className={styles.matchupTeamName}>{name}{phase !== 'upcoming' && gamesPlayed != null && <span className={styles.matchupGames}>{gamesPlayed} GP</span>}</span></>;
                         return <div className={`${styles.matchupTeam} ${winner ? styles.winningTeam : ''}`} key={side}>
                             {team?.franchiseId ? <Link href={`/teams/${team.franchiseId}`} className={styles.matchupIdentity}>{content}</Link> : <span className={styles.matchupIdentity}>{content}</span>}
                             <span className={styles.matchupScore} aria-label={phase === 'upcoming' ? 'Not started' : score == null ? 'Score unavailable' : `${score} fantasy points`}>{phase === 'upcoming' || score == null ? '—' : score.toFixed(2)}</span>
                         </div>;
                     })}
-                    <div className={styles.matchupCardBottom}>{phase === 'upcoming' ? `Starts ${shortDate(selected.startDate)}` : result ? `${result.away.gamesPlayed} / ${result.home.gamesPlayed} player games played` : 'Scores temporarily unavailable'}</div>
+                    {phase === 'upcoming' || !result ? <div className={styles.matchupCardBottom}>{phase === 'upcoming' ? `Starts ${shortDate(selected.startDate)}` : 'Scores temporarily unavailable'}</div> : null}
                 </article>;
             })}
         </div>
         {matchups.length === 0 ? <p className={styles.emptyState}>Matchups have not been announced for this round.</p> : idleTeams.length > 0 ? <p className={styles.idleTeams}>Not scheduled this round <span>{idleTeams.map(team => team.name).join(' · ')}</span></p> : null}
-        {scores && phase !== 'upcoming' ? <p className={styles.sourceNote}>Scores as of {new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(scores.fetchedAt))} ET.</p> : null}
     </section>;
 }
