@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { periodLabel, periodPhase, publishedMatchups, rosterGroup, selectPeriod, type Period, type SnapshotPlayer } from './model';
+import { periodLabel, periodPhase, publishedMatchups, rosterGroup, selectPeriod, weekName, type Period, type SnapshotPlayer } from './model';
 
 const periods: Period[] = [
     { number: 1, startDate: '2026-10-12T17:00:00.000Z', endDate: '2026-10-17T00:59:59.000Z' },
@@ -51,4 +51,15 @@ test('groups active, bench, and IR players by assigned position without duplicat
     assert.equal(rosterGroup({ ...player, status: 'MINORS' }), 'MINORS');
     assert.equal(rosterGroup({ ...player, lineupPosition: 'FLEX' }), 'OTHER');
     assert.equal(rosterGroup({ ...player, status: 'UNKNOWN' }), 'OTHER');
+});
+
+test('names regular-season weeks and the last three scheduled weeks as the Jagr Cup playoffs', () => {
+    const schedule = Array.from({ length: 25 }, (_, index) => index + 1);
+    assert.deepEqual(weekName(1, schedule), { short: 'Week 1', full: 'Week 1', playoff: false });
+    assert.equal(weekName(22, schedule).full, 'Week 22');
+    assert.equal(weekName(23, schedule).full, 'Jagr Cup Playoff Quarterfinals');
+    assert.equal(weekName(24, schedule).full, 'Jagr Cup Playoff Semifinals');
+    assert.deepEqual(weekName(25, schedule), { short: 'Grand Finals', full: 'Jagr Cup Playoff Grand Finals', playoff: true });
+    // Fantrax can list a trailing scoring period with no matchups; it is not part of the playoffs.
+    assert.equal(weekName(26, schedule).full, 'Week 26');
 });

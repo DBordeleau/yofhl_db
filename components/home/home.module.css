@@ -39,7 +39,7 @@
 .periodControls button { flex-shrink: 0; width: 36px; height: 40px; border: 1px solid #d4dee9; background: #fff; border-radius: 4px; font-size: 16px; }
 .periodControls button:disabled { opacity: .35; cursor: not-allowed; }
 .periodControls button:not(:disabled):hover { background: #e6eef7; }
-.periodControls select { min-width: 0; max-width: 260px; min-height: 40px; padding: 8px 26px 8px 12px; background-color: #fff; border: 1px solid #d4dee9; border-radius: 4px; font-size: 13px; font-weight: 700; }
+.periodControls select { min-width: 0; max-width: 340px; min-height: 40px; padding: 8px 26px 8px 12px; background-color: #fff; border: 1px solid #d4dee9; border-radius: 4px; font-size: 13px; font-weight: 700; }
 .matchupMeta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: -6px; margin-bottom: 14px; font-size: 12px; color: #66758b; }
 .matchupMeta > span:first-child { font-weight: 650; color: #455570; }
 .matchupMeta > span > span { margin-inline: 9px; color: #a0aabc; }
@@ -48,7 +48,8 @@
 /* three cards per row; a short last row stretches (two cards) or centres (one card) instead of leaving a hole */
 .scoreCard:nth-child(3n+1):nth-last-child(2), .scoreCard:nth-child(3n+2):last-child { grid-column: span 3; }
 .scoreCard:nth-child(3n+1):last-child { grid-column: 3 / span 2; }
-.ticker { position: relative; display: flex; align-items: stretch; height: 56px; margin-bottom: 16px; border-radius: 6px; overflow: hidden; color: #fff; background: linear-gradient(180deg, #16233b, #0b1426); box-shadow: 0 12px 26px #0b142630, inset 0 -1px 0 #ffffff0d; transition: opacity .15s; }
+.tickerSlot { height: 56px; margin-bottom: 16px; }
+.ticker { position: relative; display: flex; align-items: stretch; height: 100%; border-radius: 6px; overflow: hidden; color: #fff; background: linear-gradient(180deg, #16233b, #0b1426); box-shadow: 0 12px 26px #0b142630, inset 0 -1px 0 #ffffff0d; transition: opacity .15s; }
 .ticker::before { content: ''; position: absolute; z-index: 2; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, #c8102e 0 32%, #4a8bcc); pointer-events: none; }
 .tickerLabel { position: relative; z-index: 1; flex-shrink: 0; display: flex; align-items: stretch; }
 .tickerBrand { display: flex; align-items: center; padding: 2px 26px 0 18px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 18px; font-weight: 950; font-style: italic; font-stretch: 115%; letter-spacing: -.04em; text-shadow: 0 1px 1px #5a0010; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
@@ -61,17 +62,20 @@
 .ticker:hover .tickerTrack, .ticker:focus-within .tickerTrack { animation-play-state: paused; }
 /* each copy is at least as wide as the viewport, so the loop never shows a gap with only a few matchups */
 .tickerGroup { display: flex; justify-content: space-around; min-width: 100cqw; height: 100%; }
-.tickerCell { display: flex; align-items: center; height: 100%; }
-.tickerCell::after { content: ''; flex-shrink: 0; width: 1px; height: 26px; background: #ffffff1f; }
-.tickerItem { display: flex; align-items: center; gap: 18px; height: 100%; padding: 2px 24px 0; white-space: nowrap; transition: background .15s; }
-.tickerItem:hover { background: #ffffff12; }
-.home .tickerItem:focus-visible { outline-offset: -3px; background: #ffffff12; }
+.tickerCell { display: flex; align-items: center; height: 100%; padding-inline: 7px; }
+.tickerItem { display: flex; align-items: center; gap: 12px; height: 40px; padding: 1px 14px 0; border: 1px solid #ffffff14; border-radius: 4px; background: #ffffff08; white-space: nowrap; transition: background .15s, border-color .15s; }
+.tickerItem:hover { background: #ffffff14; border-color: #ffffff2e; }
+.home .tickerItem:focus-visible { outline-offset: 2px; background: #ffffff14; }
 .tickerTeam { display: flex; align-items: center; gap: 8px; }
+.tickerTeam[data-side='home'] { flex-direction: row-reverse; }
+.vsBadge { display: inline-flex; align-items: center; height: 20px; padding: 1px 9px 0 8px; background: linear-gradient(180deg, #df1a3c, #b00d28); color: #fff; font-size: 11px; line-height: 1; font-weight: 950; font-style: italic; font-stretch: 115%; letter-spacing: -.02em; text-shadow: 0 1px 1px #5a0010; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
+/* playoff weeks trade the red for Jagr Cup gold */
+.ticker[data-playoff] .vsBadge { background: linear-gradient(180deg, #f3d995, #c99a3e); color: #2a1c05; text-shadow: none; }
+.ticker[data-playoff] .tickerRound > span:first-child { color: #f3d995; }
 .tickerAbbr { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #e3ebf5; }
 .tickerScore { font-size: 18px; font-weight: 900; font-stretch: 88%; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: #fff; }
 .tickerTeam[data-trailing] :is(.tickerAbbr, .tickerScore) { color: #8295ad; }
-.ticker[data-phase='complete'] .tickerTeam[data-leading] .tickerScore::after, .scoreCard[data-phase='complete'] .scoreRow[data-leading] .scoreValue::after { content: ''; display: inline-block; margin-left: 6px; vertical-align: 3px; border-block: 5px solid transparent; border-right: 6px solid #e8213f; }
-.tickerAt { margin-right: 4px; color: #71849e; font-size: 12px; font-weight: 700; }
+.scoreCard[data-phase='complete'] .scoreRow[data-leading] .scoreValue::after { content: ''; display: inline-block; margin-left: 6px; vertical-align: 3px; border-block: 5px solid transparent; border-right: 6px solid #e8213f; }
 .tickerNote { padding: 4px 6px 3px; border-radius: 3px; background: #ffffff17; color: #c3d0e0; font-size: 10px; line-height: 1; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .scoreCard { grid-column: span 2; display: flex; flex-direction: column; background: #fff; border: 1px solid #d6dfea; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 14px #152c4c0a; scroll-margin-top: 24px; transition: transform .2s, box-shadow .2s, border-color .2s; }
 .scoreCard:hover { transform: translateY(-2px); border-color: #bccadb; box-shadow: 0 14px 28px #152c4c1c; }
@@ -79,8 +83,7 @@
 .scoreCardTop { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 14px 8px; background: #101a30; color: #8fa1b9; font-size: 10px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
 .scoreStatus { display: flex; align-items: center; gap: 6px; color: #fff; }
 .scoreCard[data-phase='active'] .scoreStatus { color: #ff8b9b; }
-.scoreRow { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 18px; }
-.scoreRow::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 4px; border-radius: 0 3px 3px 0; background: var(--side-colour); }
+.scoreRow { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
 .scoreRow + .scoreRow { border-top: 1px solid #edf1f6; }
 .scoreIdentity { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
 .scoreIdentity:hover .scoreTeamName { color: #1f6fc2; }
@@ -206,6 +209,22 @@
 .additionalGroup ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 30px; }
 .emptyPosition { padding-block: 18px; color: #7a889a; font-size: 13px; }
 .rosterFooter { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 28px; border-top: 1px solid #dce4ec; color: #758498; font-size: 11px; }
+@media (min-width: 1024px) {
+    .home { --dock-height: 50px; --dock-content: 1136px; }
+    .home :is(section, aside)[id], .scoreCard { scroll-margin-top: calc(var(--dock-height) + 24px); }
+    .ticker:is([data-dock='docked'], [data-dock='undocking']) {
+        position: fixed; z-index: 60; inset: 0 0 auto; height: var(--dock-height); border-radius: 0;
+        padding-inline: max(16px, calc((100% - var(--dock-content)) / 2));
+        box-shadow: 0 12px 32px #0b142659, inset 0 -1px 0 #ffffff14;
+        animation: tickerDock .42s cubic-bezier(.16,.84,.3,1) both;
+    }
+    .ticker[data-dock='undocking'] { animation: tickerUndock .24s cubic-bezier(.5,0,.9,.4) both; }
+    .ticker[data-dock='returning'] { animation: tickerReturn .4s cubic-bezier(.16,.84,.3,1) both; }
+    .ticker:is([data-dock='docked'], [data-dock='undocking']) .tickerBrand { font-size: 16px; }
+}
+@keyframes tickerDock { from { transform: translateY(-110%); } }
+@keyframes tickerUndock { to { transform: translateY(-110%); } }
+@keyframes tickerReturn { from { opacity: 0; transform: translateY(-10px) scale(.985); } }
 @keyframes tickerScroll { to { transform: translateX(-50%); } }
 @keyframes livePulse { 0% { box-shadow: 0 0 0 0 #ff3b55a6; } 70%, 100% { box-shadow: 0 0 0 7px #ff3b5500; } }
 @keyframes rosterEnter { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -215,7 +234,7 @@
 @media (min-width: 1800px) {
     .heroInner, .heroBottomInner, .content { max-width: 1500px; }
     .heroInner { min-height: 420px; } .hero h1 { font-size: 90px; } .heroRink { width: 1200px; height: 552px; top: -35px; }
-    .heroTrophy { width: 350px; height: 350px; } .standingsTable { font-size: 15px; }
+    .home { --dock-content: 1436px; } .heroTrophy { width: 350px; height: 350px; } .standingsTable { font-size: 15px; }
     .matchupGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .matchupGrid .scoreCard:nth-child(n) { grid-column: auto; } .scoreValue { font-size: 28px; }
 }
 @media (max-width: 1100px) {
@@ -252,9 +271,9 @@
     .matchupSection { padding-top: 27px; } .sectionHeading { align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 18px; }
     .sectionHeading h2 { font-size: 25px; } .periodControls { width: 100%; } .periodControls select { max-width: none; flex: 1; } .periodControls button { width: 42px; }
     .matchupGrid { grid-template-columns: 1fr; gap: 10px; } .matchupGrid .scoreCard:nth-child(n) { grid-column: auto; } .matchupMeta { margin-top: 0; font-size: 11px; }
-    .ticker { height: 50px; margin-bottom: 12px; } .tickerBrand { display: none; }
+    .tickerSlot { height: 50px; margin-bottom: 12px; } .tickerBrand { display: none; }
     .tickerRound { margin-left: 0; padding-inline: 12px 24px; font-size: 12px; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
-    .tickerItem { gap: 12px; padding-inline: 14px; } .tickerScore { font-size: 16px; } .tickerAbbr { font-size: 12px; }
+    .tickerCell { padding-inline: 5px; } .tickerItem { gap: 9px; height: 36px; padding-inline: 10px; } .vsBadge { height: 18px; font-size: 10px; padding-inline: 7px 8px; } .tickerScore { font-size: 16px; } .tickerAbbr { font-size: 12px; }
     .scoreRow { padding-block: 10px; } .scoreIdentity { gap: 9px; } .scoreIdentity > span:first-child { width: 34px !important; height: 34px !important; }
     .scoreTeamName { font-size: 14px; } .scoreValue { font-size: 26px; }
     .idleTeams { font-size: 11px; } .idleTeams span { display: block; margin-left: 0; }
@@ -280,7 +299,7 @@
     .heroKicker, .hero h1, .heroActions, .heroTrophy, .heroRink, .heroBottomInner { animation: none; }
     .historyButton, .seasonButton, .matchupGrid, .ticker, .scoreCard, .scoreShare span { transition: none; }
     .liveDot { animation: none; } .scoreCard:hover, .scoreCard[data-spotlight], .scoreCard:target { transform: none; }
-    .tickerTrack { animation: none; } .tickerViewport { overflow-x: auto; } .tickerGroup + .tickerGroup { display: none; }
+    .tickerTrack, .ticker[data-dock] { animation: none; } .tickerViewport { overflow-x: auto; } .tickerGroup + .tickerGroup { display: none; }
 }
 @media (max-width: 1100px) {
     .rosterHeader { gap: 18px; padding: 24px; grid-template-columns: 76px minmax(0, 1fr); }
