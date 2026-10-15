@@ -107,12 +107,11 @@ seasons:
     # the 2020–21 export holds two 4-team brackets; these teams played the consolation one
     consolation: [JTPJ, NFLD, MAC, MEAT]
 
-# Playoff scores that need correcting before import.
-# Raising the goalie-start limit for the longer final round made Fantrax retroactively rescore the
-# earlier playoff rounds. The original scores are lost, so the rescored exports show three
-# semi-final losers who actually advanced. Each fix lifts the team that advanced to 0.25 (the
-# smallest scoring increment) above its opponent.
+# The longer final's goalie-start limit retroactively changed earlier playoff scores.
+# Verified reconstructions use the original four-start cap, including every start on the day
+# it was reached. Daily scoring and NHL starter evidence are in playoff-goalie-audit.json.
+# The league owner confirmed that starts after the cap stopped counting.
 scoreOverrides:
-  - { season: 2022, round: 2, team: VWIZ, score: 282.75, note: Rescored after a later rule change; adjusted to match the real result }
-  - { season: 2024, round: 2, team: VWIZ, score: 328.5, note: Rescored after a later rule change; adjusted to match the real result }
-  - { season: 2025, round: 2, team: HUNG, score: 314.75, note: Rescored after a later rule change; adjusted to match the real result }
+  - { season: 2022, round: 2, team: PVLS, score: 274.5, verified: true, note: Excludes Hellebuyck's March 13 start after the four-start cap }
+  - { season: 2024, round: 2, team: JAGR, score: 312.25, verified: true, note: Excludes Luukkonen's March 24 start after the four-start cap }
+  - { season: 2025, round: 2, team: SKGS, score: 294.5, verified: true, note: Excludes Oettinger and Blackwood's March 29 starts after the four-start cap }

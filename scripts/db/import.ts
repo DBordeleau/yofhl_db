@@ -203,8 +203,10 @@ const prepareSeason = (config: LeagueConfig, files: SeasonFiles, errors: string[
                 if (team === game.awayFranchise) game.awayScore = o.score;
                 else if (team === game.homeFranchise) game.homeScore = o.score;
                 else return;
-                game.scoreAdjusted = true;
-                game.note = o.note;
+                if (!o.verified) {
+                    game.scoreAdjusted = true;
+                    game.note = o.note;
+                }
                 applied.add(i);
             });
             game.winnerFranchise =

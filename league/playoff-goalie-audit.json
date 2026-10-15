@@ -1,0 +1,296 @@
+{
+  "method": "Count all active goalie starts through the day the fourth start occurs. Remove later contributions from the exported team total. All listed appearances were confirmed as NHL starts.",
+  "ruleConfirmation": "The league owner confirmed that starts after the cap stopped counting. This also applies to 2025, despite the saved rules now specifying forfeiture of all goalie points.",
+  "games": [
+    {
+      "year": 2022,
+      "round": 2,
+      "period": 42,
+      "leagueId": "z7jzx67oku2xdvgj",
+      "status": "reconstructed",
+      "limit": 4,
+      "limitBasis": "Finals limit is 8 starts in the saved Fantrax rules; league owner confirms it was doubled for the final.",
+      "rulesUrl": "https://www.fantrax.com/newui/fantasy/leagueRulesSummary.go?leagueId=z7jzx67oku2xdvgj",
+      "winner": 4,
+      "teams": [
+        {
+          "franchise": 1,
+          "name": "Paddyville Lucifers",
+          "exported": 282.5,
+          "reconstructed": 274.5,
+          "starts": [
+            {
+              "date": "2022-03-08",
+              "player": "Connor Hellebuyck",
+              "points": 2,
+              "nhlPlayerId": 8476945,
+              "nhlGameId": 2021020911
+            },
+            {
+              "date": "2022-03-10",
+              "player": "Igor Shesterkin",
+              "points": -8,
+              "nhlPlayerId": 8478048,
+              "nhlGameId": 2021020924
+            },
+            {
+              "date": "2022-03-11",
+              "player": "Connor Hellebuyck",
+              "points": 0,
+              "nhlPlayerId": 8476945,
+              "nhlGameId": 2021020928
+            },
+            {
+              "date": "2022-03-12",
+              "player": "Igor Shesterkin",
+              "points": 6,
+              "nhlPlayerId": 8478048,
+              "nhlGameId": 2021020938
+            },
+            {
+              "date": "2022-03-13",
+              "player": "Connor Hellebuyck",
+              "points": 8,
+              "nhlPlayerId": 8476945,
+              "nhlGameId": 2021020947
+            }
+          ]
+        },
+        {
+          "franchise": 4,
+          "name": "Varrock Dark Wizards",
+          "exported": 279,
+          "reconstructed": 279,
+          "starts": [
+            {
+              "date": "2022-03-08",
+              "player": "Robin Lehner",
+              "points": 2,
+              "nhlPlayerId": 8475215,
+              "nhlGameId": 2021020905
+            },
+            {
+              "date": "2022-03-09",
+              "player": "Thatcher Demko",
+              "points": 6,
+              "nhlPlayerId": 8477967,
+              "nhlGameId": 2021020914
+            },
+            {
+              "date": "2022-03-11",
+              "player": "Thatcher Demko",
+              "points": 2,
+              "nhlPlayerId": 8477967,
+              "nhlGameId": 2021020931
+            },
+            {
+              "date": "2022-03-13",
+              "player": "Antti Raanta",
+              "points": 2,
+              "nhlPlayerId": 8477293,
+              "nhlGameId": 2021020945
+            },
+            {
+              "date": "2022-03-13",
+              "player": "Thatcher Demko",
+              "points": 8,
+              "nhlPlayerId": 8477967,
+              "nhlGameId": 2021020950
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "year": 2024,
+      "round": 2,
+      "period": 44,
+      "leagueId": "9k4ujgoolm6sflk7",
+      "status": "reconstructed",
+      "limit": 4,
+      "limitBasis": "Finals limit is 8 starts in the saved Fantrax rules; league owner confirms it was doubled for the final.",
+      "rulesUrl": "https://www.fantrax.com/newui/fantasy/leagueRulesSummary.go?leagueId=9k4ujgoolm6sflk7",
+      "winner": 4,
+      "teams": [
+        {
+          "franchise": 5,
+          "name": "Jagrtown Ice Fellas",
+          "exported": 328.25,
+          "reconstructed": 312.25,
+          "starts": [
+            {
+              "date": "2024-03-18",
+              "player": "Ukko-Pekka Luukkonen",
+              "points": 16,
+              "nhlPlayerId": 8480045,
+              "nhlGameId": 2023021081
+            },
+            {
+              "date": "2024-03-19",
+              "player": "Adin Hill",
+              "points": -4,
+              "nhlPlayerId": 8478499,
+              "nhlGameId": 2023021094
+            },
+            {
+              "date": "2024-03-21",
+              "player": "Ukko-Pekka Luukkonen",
+              "points": -8,
+              "nhlPlayerId": 8480045,
+              "nhlGameId": 2023021104
+            },
+            {
+              "date": "2024-03-23",
+              "player": "Adin Hill",
+              "points": 10,
+              "nhlPlayerId": 8478499,
+              "nhlGameId": 2023021123
+            },
+            {
+              "date": "2024-03-24",
+              "player": "Ukko-Pekka Luukkonen",
+              "points": 16,
+              "nhlPlayerId": 8480045,
+              "nhlGameId": 2023021132
+            }
+          ]
+        },
+        {
+          "franchise": 4,
+          "name": "Varrock Dark Wizards",
+          "exported": 319.25,
+          "reconstructed": 319.25,
+          "starts": [
+            {
+              "date": "2024-03-21",
+              "player": "Ilya Sorokin",
+              "points": -8,
+              "nhlPlayerId": 8478009,
+              "nhlGameId": 2023021100
+            },
+            {
+              "date": "2024-03-21",
+              "player": "Frederik Andersen",
+              "points": 14,
+              "nhlPlayerId": 8475883,
+              "nhlGameId": 2023021099
+            },
+            {
+              "date": "2024-03-24",
+              "player": "Ilya Sorokin",
+              "points": 0,
+              "nhlPlayerId": 8478009,
+              "nhlGameId": 2023021126
+            },
+            {
+              "date": "2024-03-24",
+              "player": "Frederik Andersen",
+              "points": 16,
+              "nhlPlayerId": 8475883,
+              "nhlGameId": 2023021127
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "year": 2025,
+      "round": 2,
+      "period": 48,
+      "leagueId": "ikr0y4idm0rhf8v7",
+      "status": "reconstructed",
+      "limit": 4,
+      "limitBasis": "Finals limit is 8 starts in the saved Fantrax rules; league owner confirms it was doubled for the final.",
+      "rulesUrl": "https://www.fantrax.com/newui/fantasy/leagueRulesSummary.go?leagueId=ikr0y4idm0rhf8v7",
+      "winner": 13,
+      "teams": [
+        {
+          "franchise": 8,
+          "name": "Skellige Sirens",
+          "exported": 314.5,
+          "reconstructed": 294.5,
+          "starts": [
+            {
+              "date": "2025-03-24",
+              "player": "Jake Oettinger",
+              "points": 20,
+              "nhlPlayerId": 8479979,
+              "nhlGameId": 2024021127
+            },
+            {
+              "date": "2025-03-25",
+              "player": "Mackenzie Blackwood",
+              "points": 8,
+              "nhlPlayerId": 8478406,
+              "nhlGameId": 2024021136
+            },
+            {
+              "date": "2025-03-26",
+              "player": "Jake Oettinger",
+              "points": 14,
+              "nhlPlayerId": 8479979,
+              "nhlGameId": 2024021141
+            },
+            {
+              "date": "2025-03-27",
+              "player": "Mackenzie Blackwood",
+              "points": 20,
+              "nhlPlayerId": 8478406,
+              "nhlGameId": 2024021149
+            },
+            {
+              "date": "2025-03-29",
+              "player": "Jake Oettinger",
+              "points": 16,
+              "nhlPlayerId": 8479979,
+              "nhlGameId": 2024021169
+            },
+            {
+              "date": "2025-03-29",
+              "player": "Mackenzie Blackwood",
+              "points": 4,
+              "nhlPlayerId": 8478406,
+              "nhlGameId": 2024021161
+            }
+          ]
+        },
+        {
+          "franchise": 13,
+          "name": "The Hamhung Hall Monitors",
+          "exported": 304,
+          "reconstructed": 304,
+          "starts": [
+            {
+              "date": "2025-03-27",
+              "player": "Linus Ullmark",
+              "points": 8,
+              "nhlPlayerId": 8476999,
+              "nhlGameId": 2024021144
+            },
+            {
+              "date": "2025-03-28",
+              "player": "Sergei Bobrovsky",
+              "points": 14,
+              "nhlPlayerId": 8475683,
+              "nhlGameId": 2024021153
+            },
+            {
+              "date": "2025-03-29",
+              "player": "Linus Ullmark",
+              "points": 14,
+              "nhlPlayerId": 8476999,
+              "nhlGameId": 2024021164
+            },
+            {
+              "date": "2025-03-30",
+              "player": "Sergei Bobrovsky",
+              "points": 0,
+              "nhlPlayerId": 8475683,
+              "nhlGameId": 2024021170
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

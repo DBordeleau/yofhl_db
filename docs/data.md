@@ -52,7 +52,7 @@ Admin sessions use an HttpOnly cookie scoped to `/admin`, with a 12-hour expiry.
    ```
 
    Without season arguments, the command imports every season found in the data directory. Multiple end years are accepted. The normal importer also processes supplied history files for those seasons.
-4. Resolve reported CSV/configuration mismatches before rerunning. Use `scoreOverrides` for known Fantrax playoff rescoring errors. Saved admin bracket corrections are included when validating the bracket.
+4. Resolve reported CSV/configuration mismatches before rerunning. Use `scoreOverrides` for known Fantrax playoff rescoring errors. An override with `verified: true` uses a reconstructed score and clears the public adjustment label; keep its evidence in [league/playoff-goalie-audit.json](../league/playoff-goalie-audit.json). Other overrides remain flagged placeholders. Saved admin bracket corrections are included when validating the bracket.
 5. Open `/admin`, sign in, and select the imported season. Set the championship roster, enter award winners, and review the bracket. The roster editor can start from the champion's end-of-season players, then add players dropped before the export.
 6. Check the import summary and the public season page. If importing into a hosted database, confirm the site cache was refreshed.
 
