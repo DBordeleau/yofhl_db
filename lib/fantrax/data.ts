@@ -113,7 +113,7 @@ export const getScoringLeaders = unstable_cache(async (seasonYear: number) => {
     const [players, archive] = await Promise.all([loadScoringLeaders(FANTRAX_LEAGUE_ID, seasonYear), getArchivedPlayerIds()]);
     const archiveIds = new Map(archive.map(player => [player.id.replace(/\*/g, ''), player.id]));
     return { fetchedAt: new Date().toISOString(), players: players.map(player => ({ ...player, archiveId: archiveIds.get(player.id) ?? null })) };
-}, ['fantrax-scoring-leaders', FANTRAX_LEAGUE_ID], { revalidate: DAY });
+}, ['fantrax-scoring-leaders-top-10-per-game', FANTRAX_LEAGUE_ID], { revalidate: DAY });
 
 export const getRosterStats = unstable_cache(async (seasonYear: number): Promise<RosterStats> => ({
     players: await loadRosterStats(FANTRAX_LEAGUE_ID, seasonYear), fetchedAt: new Date().toISOString(),

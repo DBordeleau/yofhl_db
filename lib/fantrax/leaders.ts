@@ -19,7 +19,7 @@ interface StatsPage {
 async function loadStatsTable(leagueId: string, seasonYear: number, roster = false) {
     const filter = roster ? 'ALL_TAKEN' : 'ALL';
     // shortcut: one page covers this league; add pagination if rosters ever exceed 1,000 players.
-    const limit = roster ? 1000 : 5;
+    const limit = roster ? 1000 : 10;
     async function request(season?: string): Promise<StatsPage> {
         const response = await fetch(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(12000),
@@ -52,11 +52,20 @@ async function loadStatsTable(leagueId: string, seasonYear: number, roster = fal
     return data;
 }
 
+function numericStat(value: string | undefined) {
+    if (typeof value !== 'string') throw new Error('Fantrax scoring stat is missing');
+    if (/^(?:-|—|N\/A)?$/.test(value.trim())) return null;
+    const number = Number(value.replace(/,/g, ''));
+    if (!Number.isFinite(number)) throw new Error('Fantrax scoring stat is invalid');
+    return number;
+}
+
 export async function loadScoringLeaders(leagueId: string, seasonYear: number) {
     const data = await loadStatsTable(leagueId, seasonYear);
     const pointsColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fpts');
+    const perGameColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fptsPerGame');
     const teamColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'status');
-    if (pointsColumn < 0 || teamColumn < 0) throw new Error('Fantrax scoring columns are missing');
+    if (pointsColumn < 0 || perGameColumn < 0 || teamColumn < 0) throw new Error('Fantrax scoring columns are missing');
     const seen = new Set<string>();
     return data.statsTable.map(row => {
         const player = row.scorer;
@@ -69,7 +78,7 @@ export async function loadScoringLeaders(leagueId: string, seasonYear: number) {
         seen.add(player.scorerId);
         const points = /^(?:-|—|N\/A)?$/.test(value.trim()) ? 0 : Number(value.replace(/,/g, ''));
         if (!Number.isFinite(points)) throw new Error('Fantrax scoring total is invalid');
-        return { id: player.scorerId, name: player.name, position: player.posShortNames, points, teamId: team.teamId ?? null, team: team.content ?? 'FA' };
+        return { id: player.scorerId, name: player.name, position: player.posShortNames, points, perGame: numericStat(row.cells?.[perGameColumn]?.content), teamId: team.teamId ?? null, team: team.content ?? 'FA' };
     }).filter(player => player.points > 0).sort((a, b) => b.points - a.points);
 }
 
@@ -79,17 +88,10 @@ export async function loadRosterStats(leagueId: string, seasonYear: number) {
     const perGameColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fptsPerGame');
     if (pointsColumn < 0 || perGameColumn < 0) throw new Error('Fantrax roster scoring columns are missing');
     const seen = new Set<string>();
-    const numeric = (value: string | undefined) => {
-        if (typeof value !== 'string') throw new Error('Fantrax roster stat is missing');
-        if (/^(?:-|—|N\/A)?$/.test(value.trim())) return null;
-        const number = Number(value.replace(/,/g, ''));
-        if (!Number.isFinite(number)) throw new Error('Fantrax roster stat is invalid');
-        return number;
-    };
     return Object.fromEntries(data.statsTable.map(row => {
         const id = row.scorer?.scorerId;
         if (typeof id !== 'string' || !id || seen.has(id)) throw new Error('Fantrax roster player is invalid');
         seen.add(id);
-        return [id, { points: numeric(row.cells?.[pointsColumn]?.content), perGame: numeric(row.cells?.[perGameColumn]?.content) }];
+        return [id, { points: numericStat(row.cells?.[pointsColumn]?.content), perGame: numericStat(row.cells?.[perGameColumn]?.content) }];
     }));
 }

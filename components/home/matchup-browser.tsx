@@ -64,7 +64,6 @@ export default function MatchupBrowser({ periods, seasonPeriods, selected, match
     const idleTeams = matchups.every(matchup => matchup.away.id && matchup.home.id) ? teams.filter(team => !playing.has(team.id)) : [];
     const href = (period: number) => `/?period=${period}#matchups`;
     const navigate = (period: number) => startTransition(() => router.push(href(period), { scroll: false }));
-    const status = phaseStatus(phase);
     const currentPeriod = current.period.number;
     const colour = (team?: Team) => (team?.franchiseId ? palettes[team.franchiseId] ?? suggestedPalettes[team.franchiseId] : null)?.primary ?? fallbackColours.primary;
 
@@ -139,8 +138,8 @@ export default function MatchupBrowser({ periods, seasonPeriods, selected, match
         </div></div> : null}
 
         <div className={styles.matchupMeta}>
-            <span>{pending ? 'Loading matchups…' : phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress' : 'Completed week'}<span aria-hidden="true"> / </span>{periodLabel(selected)}</span>
-            {selected.number !== currentPeriod ? <Link href={href(currentPeriod)} scroll={false}>{selected.number > currentPeriod && <Arrow direction="left" />} Back to current week {selected.number < currentPeriod && <Arrow />}</Link> : <span>All dates Eastern</span>}
+            <span>{pending ? 'Loading matchups…' : periodLabel(selected)}</span>
+            {selected.number !== currentPeriod ? <Link href={href(currentPeriod)} scroll={false}>{selected.number > currentPeriod && <Arrow direction="left" />} Back to current week {selected.number < currentPeriod && <Arrow />}</Link> : null}
         </div>
         <div className={styles.matchupGrid} style={{ opacity: pending ? .55 : 1 }}>
             {games.map((game, gameIndex) => {
@@ -150,7 +149,7 @@ export default function MatchupBrowser({ periods, seasonPeriods, selected, match
                 return <article id={game.id} className={styles.scoreCard} data-phase={phase} data-spotlight={spotlight === gameIndex ? '' : undefined} key={`${selected.number}-${game.id}`}>
                     <div className={styles.scoreCardTop}>
                         <span>Match {game.number}</span>
-                        <span className={styles.scoreStatus}>{phase === 'active' ? <span className={styles.liveDot} aria-hidden="true" /> : null}{phase === 'upcoming' ? shortDate(selected.startDate) : status}</span>
+                        {phase !== 'active' ? <span className={styles.scoreStatus}>{phase === 'upcoming' ? shortDate(selected.startDate) : 'Final'}</span> : null}
                     </div>
                     {SIDES.map(side => {
                         const team = game.sides[side];
