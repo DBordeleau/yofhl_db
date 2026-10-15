@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { periodLabel, periodPhase, publishedMatchups, rosterGroup, selectPeriod, weekName, type Period, type SnapshotPlayer } from './model';
+import { periodLabel, periodPhase, publishedMatchups, rosterGroup, selectPeriod, sortRosterPlayers, weekName, type Period, type RosterStats, type SnapshotPlayer } from './model';
 
 const periods: Period[] = [
     { number: 1, startDate: '2026-10-12T17:00:00.000Z', endDate: '2026-10-17T00:59:59.000Z' },
@@ -60,4 +60,24 @@ test('names regular-season weeks and the last three weeks of the season as the J
     assert.equal(weekName(24, season).full, 'Jagr Cup Playoff Quarterfinals');
     assert.equal(weekName(25, season).full, 'Jagr Cup Playoff Semifinals');
     assert.deepEqual(weekName(26, season), { short: 'Grand Finals', full: 'Jagr Cup Playoff Grand Finals', playoff: true });
+});
+
+test('orders each roster group by descending points, with alphabetical ties and missing stats last', () => {
+    const players: SnapshotPlayer[] = [
+        ['missing', 'Aaron Missing', 'D'], ['negative', 'Ben Negative', 'D'], ['zero', 'Charlie Zero', 'D'],
+        ['tie-z', 'Zach Tie', 'D'], ['leader', 'Evan Leader', 'D'], ['tie-a', 'Adam Tie', 'D'],
+        ['null', 'Alex Missing', 'D'], ['wing', 'Will Wing', 'LW'], ['minor', 'Mike Minor', 'MINORS'],
+    ].map(([id, name, position]) => ({ id, name, position, lineupPosition: position, nhlTeam: 'TOR', status: position === 'MINORS' ? 'MINORS' : 'ACTIVE', archiveId: null }));
+    const original = [...players];
+    const stats: RosterStats = { fetchedAt: '2026-10-14T00:00:00Z', players: Object.fromEntries([
+        ['negative', -2], ['zero', 0], ['tie-z', 10], ['leader', 20], ['tie-a', 10], ['null', null], ['wing', 30], ['minor', 40],
+    ].map(([id, points]) => [id, { points, perGame: null }])) };
+    const sorted = sortRosterPlayers(players, stats);
+    assert.deepEqual(sorted.filter(player => rosterGroup(player) === 'D').map(player => player.id),
+        ['leader', 'tie-a', 'tie-z', 'zero', 'negative', 'missing', 'null']);
+    assert.deepEqual(sorted.filter(player => rosterGroup(player) === 'LW').map(player => player.id), ['wing']);
+    assert.deepEqual(sorted.filter(player => rosterGroup(player) === 'MINORS').map(player => player.id), ['minor']);
+    assert.deepEqual(players, original);
+    assert.deepEqual(sortRosterPlayers(players, null).map(player => player.name), players.map(player => player.name).sort((a, b) => a.localeCompare(b)));
+    assert.deepEqual(sortRosterPlayers([], stats), []);
 });

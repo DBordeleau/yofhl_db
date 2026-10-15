@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import TeamBadge from '@/components/team-badge';
 import TeamBranding from '@/components/team-branding/team-branding';
-import { periodLabel, rosterGroup, shortDate, type Period, type RosterStats, type SnapshotPlayer, type SnapshotTeam } from '@/lib/fantrax/model';
+import { periodLabel, rosterGroup, shortDate, sortRosterPlayers, type Period, type RosterStats, type SnapshotPlayer, type SnapshotTeam } from '@/lib/fantrax/model';
 import { formatFpts, seasonLabel } from '@/lib/league';
 import styles from './home.module.css';
 import Arrow from '@/components/arrow';
@@ -39,7 +39,8 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId,
     const selectedIndex = Math.max(0, teams.findIndex(team => team.id === selectedId));
     const selected = teams[selectedIndex];
     if (!selected) return null;
-    const grouped = [...positions, ...additionalGroups].map(group => ({ ...group, players: selected.players.filter(player => rosterGroup(player) === group.key) }));
+    const players = sortRosterPlayers(selected.players, stats);
+    const grouped = [...positions, ...additionalGroups].map(group => ({ ...group, players: players.filter(player => rosterGroup(player) === group.key) }));
     const changeTeam = (direction: number) => setSelectedId(teams[(selectedIndex + direction + teams.length) % teams.length].id);
 
     return <section id="rosters" className={styles.rosterSection} aria-labelledby="roster-heading" tabIndex={-1}>

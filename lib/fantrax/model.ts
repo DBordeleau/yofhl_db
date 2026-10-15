@@ -19,6 +19,11 @@ export interface RosterStats {
     players: Record<string, { points: number | null; perGame: number | null }>;
 }
 
+export function sortRosterPlayers(players: SnapshotPlayer[], stats: RosterStats | null): SnapshotPlayer[] {
+    return [...players].sort((a, b) =>
+        (stats?.players[b.id]?.points ?? -Infinity) - (stats?.players[a.id]?.points ?? -Infinity) || a.name.localeCompare(b.name));
+}
+
 // Bench and IR players stay with their assigned position; minors remain separate.
 export function rosterGroup(player: SnapshotPlayer): string {
     if (['ACTIVE', 'RESERVE', 'INJURED_RESERVE'].includes(player.status)) {
