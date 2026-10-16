@@ -97,7 +97,7 @@ export default function SeasonDraft({ year, picks, hindsightEnabled = false, ini
                     Draft records are unavailable for {seasonLabel(year)}.
                 </p>
             ) : hindsightEnabled && view !== 'board' ? (
-                <DraftHindsight year={year} picks={picks} view={view} initialPick={initialPick} />
+                <DraftHindsight picks={picks} view={view} initialPick={initialPick} />
             ) : (
                 <>
                     <div className="mb-4 flex flex-col gap-3 3xl:flex-row 3xl:items-center 3xl:justify-between">

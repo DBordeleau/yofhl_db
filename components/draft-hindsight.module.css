@@ -1,10 +1,7 @@
 .review { color: #12182e; }
-.listHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.season { margin-bottom: 16px; font-size: 12px; font-weight: 650; color: #56627a; }
 .review select { width: 100%; min-height: 46px; border: 1px solid #c9d6e3; border-radius: 9px; padding: 8px 32px 8px 13px; background: #fff; font-size: 13px; font-weight: 650; color: #12182e; }
-.context { margin-bottom: 20px; font-size: 11px; color: #56627a; }
 .review :is(button, a, select, input, summary):focus-visible { outline: 3px solid #1f6fc2; outline-offset: 4px; }
-.spotlight { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 28px; padding: 28px; border-radius: 14px; background: linear-gradient(115deg, #121b31, #263a57); color: white; border-bottom: 4px solid #f0c75e; }
+.spotlight { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 28px; margin-bottom: 24px; padding: 28px; border-radius: 14px; background: linear-gradient(115deg, #121b31, #263a57); color: white; border-bottom: 4px solid #f0c75e; }
 .eyebrow { display: block; margin-bottom: 12px; font-size: 10px; font-weight: 750; letter-spacing: 1.5px; text-transform: uppercase; }
 .spotlight .eyebrow { color: #f0c75e; }
 .spotlight h3, .comparison h3 { font-size: clamp(22px, 2.7vw, 31px); line-height: 1.13; font-weight: 900; letter-spacing: -.7px; }
@@ -20,10 +17,7 @@
 .climb strong { font-size: 42px; line-height: 1.1; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -1.5px; }
 .climb div:nth-child(3) strong { color: #f0c75e; }
 .climb > span { color: #94abc9; }
-.climb > p { grid-column: 1 / -1; margin-top: 7px; font-size: 11px; color: #f0c75e; }
-.listHeading { margin: 24px 0 12px; }
-.listHeading h3, .revisit h3 { font-size: 16px; font-weight: 850; letter-spacing: -.3px; }
-.listHeading > span { font-size: 11px; color: #56627a; }
+.revisit h3 { font-size: 16px; font-weight: 850; letter-spacing: -.3px; }
 .table { overflow: hidden; border: 1px solid #dce5ee; border-radius: 12px; background: white; }
 .row { display: grid; grid-template-columns: 44px minmax(0,1fr) 56px 92px 58px; gap: 14px; align-items: center; padding: 15px 20px; border-bottom: 1px solid #e6edf4; font-variant-numeric: tabular-nums; }
 .row:last-child { border-bottom: 0; }
@@ -60,8 +54,7 @@
 .cellLabel { display: none; }
 .unranked { font-size: 12px; color: #56627a; }
 .regretControls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 20px; }
-.regretControls > label:first-child { flex: 1; min-width: 180px; font-size: 11px; font-weight: 700; color: #56627a; }
-.regretControls select { display: block; margin-top: 7px; }
+.regretControls select { flex: 1; min-width: 180px; }
 .checkbox { min-height: 46px; display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 650; }
 .checkbox input { width: 17px; height: 17px; accent-color: #1f6fc2; }
 .comparison { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); overflow: hidden; border: 1px solid #dce5ee; border-radius: 14px; }
@@ -87,11 +80,10 @@
 .revisit small { display: block; margin-top: 5px; color: #56627a; font-size: 10px; font-weight: 500; }
 .empty { padding: 36px 20px; border: 1px dashed #c9d6e3; border-radius: 12px; font-size: 13px; text-align: center; color: #56627a; }
 @media (min-width: 1280px) {
-    .season, .context, .rowMeta, .listHeading > span,
-    .draftedBy > span, .originalNumber .movement, .redraftHead, .unranked {
+    .rowMeta, .draftedBy > span, .originalNumber .movement, .redraftHead, .unranked {
         font-size: clamp(13px, .65vw, 16px);
     }
-    .review select, .checkbox, .showAll, .regretControls > label:first-child, .team {
+    .review select, .checkbox, .showAll, .team {
         font-size: clamp(15px, .75vw, 18px);
     }
     .selectionScore, .playerCell { font-size: clamp(18px, .9vw, 23px); }
@@ -102,17 +94,15 @@
     .originalSelection, .redraftSelection { padding: 20px 24px; }
     .draftedBy { margin-top: 12px; gap: 6px 9px; }
     .originalNumber { margin-top: 10px; }
-    .listHeading h3, .revisit h3 { font-size: 20px; }
+    .revisit h3 { font-size: 20px; }
     .row .desktop, .movement, .position, .gap, .alsoAvailable, .revisit button { font-size: 15px; }
     .eyebrow, .alsoAvailable small, .revisit small { font-size: 12px; }
     .row { grid-template-columns: 56px minmax(0,1fr) 72px 110px 66px; }
 }
 @media (max-width: 640px) {
-    .context { font-size: 10px; }
     .spotlight { grid-template-columns: 1fr; padding: 22px; gap: 22px; }
     .climb { justify-content: start; padding-top: 18px; border-top: 1px solid #ffffff26; }
     .climb strong { font-size: 37px; }
-    .listHeading > span { font-size: 10px; }
     .row { grid-template-columns: 28px minmax(0,1fr) 72px 32px; gap: 8px; padding: 13px 12px; }
     .row .desktop { display: none; }
     .mobile { display: inline; }

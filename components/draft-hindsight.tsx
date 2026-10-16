@@ -5,7 +5,7 @@ import { useState } from 'react';
 import TeamBadge from '@/components/team-badge';
 import type { SeasonDraftSelection } from '@/lib/history/model';
 import { draftRegrets, laterAlternatives, MIN_REGRET_GAP, rankDraft, redraftBoard, type DraftView } from '@/lib/draft/hindsight';
-import { formatFpts, seasonLabel, splitPositions } from '@/lib/league';
+import { formatFpts, splitPositions } from '@/lib/league';
 import styles from './draft-hindsight.module.css';
 
 const ordinalRules = new Intl.PluralRules('en', { type: 'ordinal' });
@@ -33,8 +33,8 @@ function Movement({ value, originalOverall }: { value: number; originalOverall?:
         aria-label={label} title={label}>{text}</span>;
 }
 
-export default function DraftHindsight({ year, picks, view, initialPick }: {
-    year: number; picks: SeasonDraftSelection[]; view: Exclude<DraftView, 'board'>;
+export default function DraftHindsight({ picks, view, initialPick }: {
+    picks: SeasonDraftSelection[]; view: Exclude<DraftView, 'board'>;
     initialPick?: number;
 }) {
     const [samePosition, setSamePosition] = useState(true);
@@ -57,15 +57,12 @@ export default function DraftHindsight({ year, picks, view, initialPick }: {
     }
 
     return <div className={styles.review}>
-        <p className={styles.season}>{seasonLabel(year)} · Full-season FPts</p>
-        {view === 'regrets' && <p className={styles.context}>Gaps of {MIN_REGRET_GAP}+ FPts only</p>}
-
         {view === 'regrets' ? <>
             <div className={styles.regretControls}>
-                <label>Review a pick<select value={reviewed?.overall ?? ''} onChange={e => review(Number(e.target.value))} disabled={!regrets.length}>
+                <select aria-label="Draft pick" value={reviewed?.overall ?? ''} onChange={e => review(Number(e.target.value))} disabled={!regrets.length}>
                     {!regrets.length && <option value="">No qualifying picks</option>}
                     {[...regrets].sort((a, b) => a.pick.overall - b.pick.overall).map(({ pick }) => <option key={pick.overall} value={pick.overall}>#{pick.overall} · {pick.player}</option>)}
-                </select></label>
+                </select>
                 <label className={styles.checkbox}><input type="checkbox" checked={samePosition} onChange={e => setSamePosition(e.target.checked)} /> Same position</label>
             </div>
             {reviewed ? <>
@@ -123,9 +120,8 @@ export default function DraftHindsight({ year, picks, view, initialPick }: {
         </> : <>
             {star && <div className={styles.spotlight}>
                 <div><span className={styles.eyebrow}>Biggest climb</span><h3><Player pick={star} /></h3><Team pick={star} /><p>{formatFpts(star.value)} FPts · {splitPositions(star.positions).join(' · ')}</p></div>
-                <div className={styles.climb}><div><span>Drafted</span><strong>#{star.overall}</strong></div><span aria-hidden="true">→</span><div><span>FPts rank</span><strong>#{star.rank}</strong></div><p>Up {star.movement} places</p></div>
+                <div className={styles.climb}><div><span>Drafted</span><strong>#{star.overall}</strong></div><span aria-hidden="true">→</span><div><span>FPts rank</span><strong>#{star.rank}</strong></div></div>
             </div>}
-            <div className={styles.listHeading}><h3>Biggest climbs</h3><span>Draft pick − FPts rank</span></div>
             {steals.length ? <div className={styles.table} role="table" aria-label="Draft steals">
                 <div role="row" className={`${styles.row} ${styles.tableHead}`}><span role="columnheader">Draft pick</span><span role="columnheader">Player</span><span role="columnheader" className={styles.desktop}>FPts rank</span><span role="columnheader">FPts</span><span role="columnheader">Rise</span></div>
                 {steals.slice(0, limit).map(p => <div role="row" className={styles.row} key={p.overall}>
