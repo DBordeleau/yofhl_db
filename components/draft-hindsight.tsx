@@ -33,31 +33,22 @@ function Movement({ value, originalOverall }: { value: number; originalOverall?:
         aria-label={label} title={label}>{text}</span>;
 }
 
-export default function DraftHindsight({ year, picks, view, team, onTeamChange, initialPick }: {
+export default function DraftHindsight({ year, picks, view, initialPick }: {
     year: number; picks: SeasonDraftSelection[]; view: Exclude<DraftView, 'board'>;
-    team: string; onTeamChange: (team: string) => void; initialPick?: number;
+    initialPick?: number;
 }) {
     const [samePosition, setSamePosition] = useState(true);
     const [selectedPick, setSelectedPick] = useState(initialPick ?? 0);
     const [limit, setLimit] = useState(10);
-    const teams = [...new Map(picks.filter(p => p.franchiseId !== null).map(p => [String(p.franchiseId), p.teamName!])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
-    const activeTeam = teams.some(([id]) => id === team) ? team : 'all';
     const ranked = rankDraft(picks);
-    const teamPicks = ranked.filter(p => activeTeam === 'all' || String(p.franchiseId) === activeTeam);
-    const steals = [...teamPicks].filter(p => p.movement > 0).sort((a, b) => b.movement - a.movement || b.value - a.value || a.overall - b.overall);
-    const regrets = draftRegrets(ranked, samePosition).filter(r => activeTeam === 'all' || String(r.pick.franchiseId) === activeTeam);
+    const steals = ranked.filter(p => p.movement > 0).sort((a, b) => b.movement - a.movement || b.value - a.value || a.overall - b.overall);
+    const regrets = draftRegrets(ranked, samePosition);
     const reviewed = (regrets.find(r => r.pick.overall === selectedPick) ?? regrets[0])?.pick;
     const alternatives = reviewed ? laterAlternatives(reviewed, ranked, samePosition) : [];
     const best = alternatives[0];
-    const board = redraftBoard(picks, ranked).filter(row => activeTeam === 'all' || String(row.original.franchiseId) === activeTeam);
+    const board = redraftBoard(picks, ranked);
     const star = steals[0];
 
-    function changeTeam(value: string) {
-        onTeamChange(value); setSelectedPick(0); setLimit(10);
-        const url = new URL(location.href);
-        url.searchParams.set('team', value); url.searchParams.delete('pick');
-        history.replaceState(null, '', url);
-    }
     function review(overall: number) {
         setSelectedPick(overall);
         const url = new URL(location.href);
@@ -66,15 +57,8 @@ export default function DraftHindsight({ year, picks, view, team, onTeamChange, 
     }
 
     return <div className={styles.review}>
-        <div className={styles.controls}>
-            <p className={styles.season}>{seasonLabel(year)} · Full-season FPts</p>
-            <label className={styles.teamFilter}><span>Original drafting team</span><select value={activeTeam} onChange={e => changeTeam(e.target.value)}>
-                <option value="all">All teams</option>{teams.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-            </select></label>
-        </div>
-        <div className={styles.context}>
-            <p>{view === 'regrets' ? `Gaps of ${MIN_REGRET_GAP}+ FPts only` : view === 'redraft' ? 'Teams shown made the original selections.' : `${ranked.length} of ${picks.filter(p => p.playerId).length} selected players ranked`}</p>
-        </div>
+        <p className={styles.season}>{seasonLabel(year)} · Full-season FPts</p>
+        {view === 'regrets' && <p className={styles.context}>Gaps of {MIN_REGRET_GAP}+ FPts only</p>}
 
         {view === 'regrets' ? <>
             <div className={styles.regretControls}>
@@ -116,10 +100,10 @@ export default function DraftHindsight({ year, picks, view, team, onTeamChange, 
         </> : view === 'redraft' ? <>
             <div className={styles.table} role="table" aria-label="Original draft versus hindsight redraft">
                 <div role="row" className={`${styles.redraftRow} ${styles.redraftHead}`}>
-                    <span role="columnheader">Draft slot</span><span role="columnheader">Original selection</span><span role="columnheader">Redraft by FPts</span>
+                    <span role="columnheader">Drafted</span><span role="columnheader">Original selection</span><span role="columnheader">Redraft by FPts</span>
                 </div>
                 {board.slice(0, limit).map(({ original, redrafted }) => <div role="row" className={styles.redraftRow} key={original.overall}>
-                    <span role="cell" className={styles.slot} aria-label={`Draft slot ${original.overall}`}><small className={styles.mobile}>Slot</small>#{original.overall}</span>
+                    <span role="cell" className={styles.slot} aria-label={`Drafted ${original.overall} overall`}><small className={styles.mobile}>Drafted</small>#{original.overall}</span>
                     <div role="cell" className={styles.originalSelection}>
                         <span className={styles.cellLabel}>Original selection</span>
                         {original.playerId ? <div className={styles.selectionScore}><Player pick={original} /><strong>{original.points === null ? '—' : formatFpts(original.points)}<small>FPts</small></strong></div> : <span className={styles.unranked}>No selection recorded</span>}
@@ -138,7 +122,7 @@ export default function DraftHindsight({ year, picks, view, team, onTeamChange, 
             {board.length > limit && <button type="button" className={styles.showAll} onClick={() => setLimit(board.length)}>Show all {board.length} draft slots</button>}
         </> : <>
             {star && <div className={styles.spotlight}>
-                <div><span className={styles.eyebrow}>Biggest climb{activeTeam !== 'all' ? ' · selected team' : ''}</span><h3><Player pick={star} /></h3><Team pick={star} /><p>{formatFpts(star.value)} FPts · {splitPositions(star.positions).join(' · ')}</p></div>
+                <div><span className={styles.eyebrow}>Biggest climb</span><h3><Player pick={star} /></h3><Team pick={star} /><p>{formatFpts(star.value)} FPts · {splitPositions(star.positions).join(' · ')}</p></div>
                 <div className={styles.climb}><div><span>Drafted</span><strong>#{star.overall}</strong></div><span aria-hidden="true">→</span><div><span>FPts rank</span><strong>#{star.rank}</strong></div><p>Up {star.movement} places</p></div>
             </div>}
             <div className={styles.listHeading}><h3>Biggest climbs</h3><span>Draft pick − FPts rank</span></div>
@@ -153,11 +137,5 @@ export default function DraftHindsight({ year, picks, view, team, onTeamChange, 
                 {steals.length > limit && <button type="button" className={styles.showAll} onClick={() => setLimit(steals.length)}>Show all {steals.length} climbers</button>}
             </div> : <p className={styles.empty}>No selections gained places in this view.</p>}
         </>}
-        <details className={styles.method}><summary>How this works</summary>
-            <p>FPts cover {seasonLabel(year)} only, regardless of roster moves. Missing stats are not treated as zero.</p>
-            <p>Ranks compare selected players with recorded stats across the whole class and stay the same when filtering a team. Empty draft slots are excluded. Equal FPts share a rank. Rise is the original overall pick minus that rank.</p>
-            <p>The redraft fills the original draft slots with players ordered by FPts. Teams identify the original drafting team, and the team filter shows that team’s original slots. Empty slots and selections without stats stay unassigned. Tied players keep their original order.</p>
-            <p>Regrets require a later selection to score at least {MIN_REGRET_GAP} more FPts. Same position uses the draft export. The redraft does not account for keeper decisions or roster requirements.</p>
-        </details>
     </div>;
 }

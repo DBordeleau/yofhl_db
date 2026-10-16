@@ -1,9 +1,6 @@
 .review { color: #12182e; }
-.controls, .context, .listHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.controls { margin-bottom: 12px; align-items: end; }
-.season { padding-bottom: 13px; font-size: 12px; font-weight: 650; color: #56627a; }
-.teamFilter { min-width: 230px; max-width: 100%; }
-.teamFilter > span { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 650; color: #56627a; }
+.listHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.season { margin-bottom: 16px; font-size: 12px; font-weight: 650; color: #56627a; }
 .review select { width: 100%; min-height: 46px; border: 1px solid #c9d6e3; border-radius: 9px; padding: 8px 32px 8px 13px; background: #fff; font-size: 13px; font-weight: 650; color: #12182e; }
 .context { margin-bottom: 20px; font-size: 11px; color: #56627a; }
 .review :is(button, a, select, input, summary):focus-visible { outline: 3px solid #1f6fc2; outline-offset: 4px; }
@@ -88,19 +85,15 @@
 .revisit button:hover { background: #eaf2fa; }
 .revisit button strong { text-align: right; font-size: 15px; color: #8a6410; font-variant-numeric: tabular-nums; }
 .revisit small { display: block; margin-top: 5px; color: #56627a; font-size: 10px; font-weight: 500; }
-.method { margin-top: 20px; font-size: 11px; line-height: 1.7; color: #56627a; }
-.method summary { cursor: pointer; width: fit-content; padding-block: 8px; font-weight: 650; }
-.method p { margin-top: 6px; max-width: 760px; }
 .empty { padding: 36px 20px; border: 1px dashed #c9d6e3; border-radius: 12px; font-size: 13px; text-align: center; color: #56627a; }
 @media (min-width: 1280px) {
-    .season, .teamFilter > span, .context, .method, .rowMeta, .listHeading > span,
+    .season, .context, .rowMeta, .listHeading > span,
     .draftedBy > span, .originalNumber .movement, .redraftHead, .unranked {
         font-size: clamp(13px, .65vw, 16px);
     }
     .review select, .checkbox, .showAll, .regretControls > label:first-child, .team {
         font-size: clamp(15px, .75vw, 18px);
     }
-    .teamFilter { min-width: 300px; }
     .selectionScore, .playerCell { font-size: clamp(18px, .9vw, 23px); }
     .selectionScore > strong, .points { font-size: clamp(20px, 1vw, 26px); }
     .selectionScore small { display: inline; margin-left: 6px; font-size: 12px; }
@@ -115,10 +108,7 @@
     .row { grid-template-columns: 56px minmax(0,1fr) 72px 110px 66px; }
 }
 @media (max-width: 640px) {
-    .controls { align-items: stretch; flex-direction: column; gap: 10px; }
-    .season { padding-bottom: 0; }
-    .teamFilter { width: 100%; min-width: 0; }
-    .context { gap: 6px; flex-direction: column; align-items: flex-start; font-size: 10px; }
+    .context { font-size: 10px; }
     .spotlight { grid-template-columns: 1fr; padding: 22px; gap: 22px; }
     .climb { justify-content: start; padding-top: 18px; border-top: 1px solid #ffffff26; }
     .climb strong { font-size: 37px; }

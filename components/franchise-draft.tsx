@@ -39,7 +39,7 @@ export default function FranchiseDraft({ picks, franchiseId, hindsightEnabled = 
             {hindsightEnabled && franchiseId && years.length > 0 && <div className="mb-4 rounded-2xl border border-line bg-white px-4 py-3">
                 <p className="mb-2 text-sm font-bold">Revisit a draft <span className="font-normal text-ink-muted">· Steals, regrets & redrafts</span></p>
                 <nav aria-label="Franchise draft retrospectives" className="flex flex-wrap gap-2">
-                    {years.map(year => <Link key={year} href={`/season/${year}?draft=steals&team=${franchiseId}#draft-class`}
+                    {years.map(year => <Link key={year} href={`/season/${year}?draft=steals#draft-class`}
                         className="inline-flex min-h-11 items-center rounded-xl border border-line px-3 text-sm font-bold text-rink-blue hover:border-rink-blue hover:bg-rink-wash">{seasonLabel(year)}</Link>)}
                 </nav>
             </div>}
