@@ -12,6 +12,8 @@ import TeamBadge from '@/components/team-badge';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import { getBannerSeasons, getChampionRoster, getSeasonDetail, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { getSeasonDraft } from '@/lib/data/history';
+import { getDraftHindsight } from '@/lib/data/draft-hindsight';
+import type { DraftView } from '@/lib/draft/hindsight';
 import { seasonLabel } from '@/lib/league';
 
 export async function generateMetadata({ params }: { params: Promise<{ year: string }> }) {
@@ -25,17 +27,26 @@ export async function generateStaticParams() {
 }
 
 // A season's champion, roster, bracket, standings, player leaders, and draft class.
-export default async function SeasonPage({ params }: { params: Promise<{ year: string }> }) {
+export default async function SeasonPage({ params, searchParams }: {
+    params: Promise<{ year: string }>;
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
     const { year } = await params;
     if (!/^\d{4}$/.test(year)) notFound();
     const seasonYear = Number(year);
     const season = (await getBannerSeasons()).find((s) => s.year === seasonYear);
     if (!season) notFound();
-    const [detail, leaders, draft] = await Promise.all([
+    const demoEnabled = process.env.NODE_ENV === 'development';
+    const [detail, leaders, draft, hindsight, query] = await Promise.all([
         getSeasonDetail(seasonYear),
         getSingleSeasonLeaderboard('all', 1, '', seasonYear),
         getSeasonDraft(seasonYear),
+        demoEnabled ? getDraftHindsight(seasonYear) : undefined,
+        demoEnabled ? searchParams : undefined,
     ]);
+    const draftView: DraftView = query?.draft === 'board' || query?.draft === 'regrets' || query?.draft === 'redraft' ? query.draft : 'steals';
+    const draftTeam = typeof query?.team === 'string' && draft.some(pick => String(pick.franchiseId) === query.team) ? query.team : undefined;
+    const draftPick = typeof query?.pick === 'string' && /^\d+$/.test(query.pick) ? Number(query.pick) : undefined;
     const playoffTeams = Array.from(new Set(detail.games.filter((g) => g.bracket === 'championship').flatMap((g) => [g.away.franchiseId, g.home.franchiseId])));
     const finalGame = detail.games.filter((g) => g.bracket === 'championship').sort((a, b) => b.round - a.round)[0];
     const cancelled = season.playoffStatus === 'cancelled';
@@ -102,7 +113,8 @@ export default async function SeasonPage({ params }: { params: Promise<{ year: s
                     playoffFranchiseIds={cancelled ? [] : playoffTeams}
                 />
                 <SeasonLeaders key={`leaders-${seasonYear}`} year={seasonYear} initial={leaders} />
-                <SeasonDraft key={`draft-${seasonYear}`} year={seasonYear} picks={draft} />
+                <SeasonDraft key={`draft-${seasonYear}-${draftView}-${draftTeam}-${draftPick}`} year={seasonYear} picks={draft}
+                    hindsight={hindsight} initialView={draftView} initialTeam={draftTeam} initialPick={draftPick} />
             </div>
         </div>
     );

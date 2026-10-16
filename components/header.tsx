@@ -29,6 +29,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
         { name: "Compare", href: "/compare", isActive: pathname.startsWith("/compare") },
         { name: "Teams", href: "/teams/stats", isActive: pathname.startsWith("/teams") },
         { name: "Seasons", href: "/season", isActive: pathname.startsWith("/season") },
+        ...(process.env.NODE_ENV === 'development' ? [{ name: "Rivalries", href: "/demo/rivalries", isActive: pathname.startsWith("/demo/rivalries") }] : []),
     ];
     const awardsActive = pathname.startsWith("/awards");
     const ownerActive = pathname.startsWith('/owner');

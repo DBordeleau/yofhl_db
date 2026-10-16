@@ -216,7 +216,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                     </section>
 
                     <TransactionHistory key={`team-history-${id}`} scope={scope} initial={transactions} seasons={historySeasons} />
-                    <FranchiseDraft key={`team-draft-${id}`} picks={draft} />
+                    <FranchiseDraft key={`team-draft-${id}`} picks={draft} franchiseId={id} hindsightEnabled={process.env.NODE_ENV === 'development'} />
                 </div>
             </div>
         </main>

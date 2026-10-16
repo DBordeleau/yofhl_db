@@ -6,6 +6,8 @@ import PaginationControls from '@/components/pagination-controls';
 import SearchBar from '@/components/search-bar';
 import TeamBadge from '@/components/team-badge';
 import TransactionIcon from '@/components/transaction-icon';
+import DraftHindsight from '@/components/draft-hindsight';
+import type { DraftHindsightData, DraftView } from '@/lib/draft/hindsight';
 import type { SeasonDraftSelection } from '@/lib/history/model';
 import { formatFpts, seasonLabel, splitPositions } from '@/lib/league';
 
@@ -28,9 +30,13 @@ function DraftingTeam({ pick, compact = false }: { pick: SeasonDraftSelection; c
     );
 }
 
-export default function SeasonDraft({ year, picks }: { year: number; picks: SeasonDraftSelection[] }) {
+export default function SeasonDraft({ year, picks, hindsight, initialView = 'steals', initialTeam, initialPick }: {
+    year: number; picks: SeasonDraftSelection[]; hindsight?: DraftHindsightData;
+    initialView?: DraftView; initialTeam?: string; initialPick?: number;
+}) {
+    const [view, setView] = useState<DraftView>(hindsight ? initialView : 'board');
     const [query, setQuery] = useState('');
-    const [team, setTeam] = useState('all');
+    const [team, setTeam] = useState(initialTeam ?? 'all');
     const [round, setRound] = useState<number | null>(null);
     const [sort, setSort] = useState<{ field: SortField; direction: 'asc' | 'desc' }>({ field: 'overall', direction: 'asc' });
     const [page, setPage] = useState(1);
@@ -76,10 +82,23 @@ export default function SeasonDraft({ year, picks }: { year: number; picks: Seas
                     {seasonLabel(year)}{picks.length > 0 && ` · ${rounds.length} rounds`}
                 </span>
             </div>
+            {hindsight && picks.length > 0 && <nav aria-label="Draft views" className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                {([['board', 'Original picks'], ['steals', 'Steals'], ['regrets', 'Regrets'], ['redraft', 'Redraft']] as const).map(([value, label]) => (
+                    <button key={value} type="button" aria-pressed={view === value} className={pill(view === value)} onClick={() => {
+                        setView(value);
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('draft', value);
+                        window.history.replaceState(null, '', url);
+                    }}>{label}</button>
+                ))}
+            </nav>}
             {!picks.length ? (
                 <p className="rounded-3xl border-2 border-dashed border-line-strong px-6 py-10 text-center text-sm font-semibold text-ink-muted">
                     Draft records are unavailable for {seasonLabel(year)}.
                 </p>
+            ) : hindsight && view !== 'board' ? (
+                <DraftHindsight year={year} picks={picks} data={hindsight} view={view} team={team}
+                    onTeamChange={value => filter(() => setTeam(value))} initialPick={initialPick} />
             ) : (
                 <>
                     <div className="mb-4 flex flex-col gap-3 3xl:flex-row 3xl:items-center 3xl:justify-between">
