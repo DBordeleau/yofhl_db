@@ -1,10 +1,9 @@
 .review { color: #12182e; }
 .controls, .context, .listHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.controls { margin-bottom: 12px; }
-.window { display: flex; padding: 4px; border: 1px solid #dce5ee; border-radius: 9px; background: #eaf0f6; }
-.window button { min-height: 38px; padding: 7px 15px; border-radius: 6px; color: #56627a; font-size: 12px; font-weight: 750; }
-.window button[aria-pressed='true'] { background: #fff; color: #12182e; box-shadow: 0 1px 4px #12182e18; }
+.controls { margin-bottom: 12px; align-items: end; }
+.season { padding-bottom: 13px; font-size: 12px; font-weight: 650; color: #56627a; }
 .teamFilter { min-width: 230px; max-width: 100%; }
+.teamFilter > span { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 650; color: #56627a; }
 .review select { width: 100%; min-height: 46px; border: 1px solid #c9d6e3; border-radius: 9px; padding: 8px 32px 8px 13px; background: #fff; font-size: 13px; font-weight: 650; color: #12182e; }
 .context { margin-bottom: 20px; font-size: 11px; color: #56627a; }
 .review :is(button, a, select, input, summary):focus-visible { outline: 3px solid #1f6fc2; outline-offset: 4px; }
@@ -44,6 +43,24 @@
 .movement[data-direction='same'] { color: #6b778e; }
 .mobile { display: none; }
 .showAll { min-height: 46px; width: 100%; background: #f4f8fb; color: #1f6fc2; font-size: 12px; font-weight: 750; }
+.redraftRow { display: grid; grid-template-columns: 64px minmax(0,1fr) minmax(0,1fr); border-bottom: 1px solid #dce5ee; }
+.redraftRow:last-child { border-bottom: 0; }
+.redraftHead { background: #edf2f7; font-size: 11px; font-weight: 750; color: #56627a; }
+.redraftHead > span { padding: 14px 20px; }
+.redraftHead > span:first-child { padding-inline: 10px; text-align: center; }
+.slot { padding: 23px 6px; text-align: center; font-size: 18px; font-weight: 800; color: #60728b; font-variant-numeric: tabular-nums; }
+.originalSelection, .redraftSelection { min-width: 0; padding: 20px; }
+.redraftSelection { border-left: 1px solid #dce5ee; background: #f4f8fb; }
+.selectionScore { display: flex; justify-content: space-between; align-items: start; gap: 14px; font-size: 15px; }
+.selectionScore > a { min-width: 0; overflow-wrap: anywhere; }
+.selectionScore > strong { flex-shrink: 0; text-align: right; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.selectionScore small { display: block; font-size: 9px; font-weight: 550; color: #56627a; }
+.draftedBy { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; margin-top: 10px; color: #56627a; }
+.draftedBy > span { font-size: 10px; }
+.draftedBy .team { margin-top: 0; }
+.originalNumber { display: block; margin-top: 14px; font-size: 11px; color: #56627a; }
+.cellLabel { display: none; }
+.unranked { font-size: 12px; color: #56627a; }
 .regretControls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 20px; }
 .regretControls > label:first-child { flex: 1; min-width: 180px; font-size: 11px; font-weight: 700; color: #56627a; }
 .regretControls select { display: block; margin-top: 7px; }
@@ -76,7 +93,7 @@
 .empty { padding: 36px 20px; border: 1px dashed #c9d6e3; border-radius: 12px; font-size: 13px; text-align: center; color: #56627a; }
 @media (max-width: 640px) {
     .controls { align-items: stretch; flex-direction: column; gap: 10px; }
-    .window { width: fit-content; }
+    .season { padding-bottom: 0; }
     .teamFilter { width: 100%; min-width: 0; }
     .context { gap: 6px; flex-direction: column; align-items: flex-start; font-size: 10px; }
     .spotlight { grid-template-columns: 1fr; padding: 22px; gap: 22px; }
@@ -98,4 +115,14 @@
     .alternative { border-left: 0; border-top: 1px solid #ebdfb6; }
     .total { margin-top: 18px; }
     .revisit button { grid-template-columns: 32px minmax(0,1fr) auto; gap: 9px; padding-inline: 10px; }
+    .redraftRow { grid-template-columns: 42px minmax(0,1fr); }
+    .redraftHead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .slot { grid-row: span 2; padding-top: 16px; font-size: 16px; }
+    .slot small { display: block; margin-bottom: 4px; font-size: 9px; font-weight: 550; }
+    .originalSelection, .redraftSelection { grid-column: 2; padding: 14px; }
+    .redraftSelection { border-left: 0; border-top: 1px solid #e6edf4; }
+    .cellLabel { display: block; margin-bottom: 8px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #56627a; }
+    .selectionScore { gap: 10px; font-size: 13px; }
+    .selectionScore > strong { font-size: 14px; }
+    .draftedBy, .originalNumber { margin-top: 8px; }
 }

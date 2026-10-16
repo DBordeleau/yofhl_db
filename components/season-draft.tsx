@@ -7,7 +7,7 @@ import SearchBar from '@/components/search-bar';
 import TeamBadge from '@/components/team-badge';
 import TransactionIcon from '@/components/transaction-icon';
 import DraftHindsight from '@/components/draft-hindsight';
-import type { DraftHindsightData, DraftView } from '@/lib/draft/hindsight';
+import type { DraftView } from '@/lib/draft/hindsight';
 import type { SeasonDraftSelection } from '@/lib/history/model';
 import { formatFpts, seasonLabel, splitPositions } from '@/lib/league';
 
@@ -30,11 +30,11 @@ function DraftingTeam({ pick, compact = false }: { pick: SeasonDraftSelection; c
     );
 }
 
-export default function SeasonDraft({ year, picks, hindsight, initialView = 'steals', initialTeam, initialPick }: {
-    year: number; picks: SeasonDraftSelection[]; hindsight?: DraftHindsightData;
+export default function SeasonDraft({ year, picks, hindsightEnabled = false, initialView = 'steals', initialTeam, initialPick }: {
+    year: number; picks: SeasonDraftSelection[]; hindsightEnabled?: boolean;
     initialView?: DraftView; initialTeam?: string; initialPick?: number;
 }) {
-    const [view, setView] = useState<DraftView>(hindsight ? initialView : 'board');
+    const [view, setView] = useState<DraftView>(hindsightEnabled ? initialView : 'board');
     const [query, setQuery] = useState('');
     const [team, setTeam] = useState(initialTeam ?? 'all');
     const [round, setRound] = useState<number | null>(null);
@@ -75,14 +75,14 @@ export default function SeasonDraft({ year, picks, hindsight, initialView = 'ste
     );
 
     return (
-        <section id="draft-class" aria-labelledby="draft-class-title" className="w-full scroll-mt-6">
+        <section id="draft-class" aria-labelledby="draft-class-title" className="w-full scroll-mt-28 xl:scroll-mt-6">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 id="draft-class-title" className="font-wide text-lg font-extrabold uppercase md:text-xl">Draft Class</h2>
                 <span className="text-sm font-semibold text-ink-muted">
                     {seasonLabel(year)}{picks.length > 0 && ` · ${rounds.length} rounds`}
                 </span>
             </div>
-            {hindsight && picks.length > 0 && <nav aria-label="Draft views" className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            {hindsightEnabled && picks.length > 0 && <nav aria-label="Draft views" className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {([['board', 'Original picks'], ['steals', 'Steals'], ['regrets', 'Regrets'], ['redraft', 'Redraft']] as const).map(([value, label]) => (
                     <button key={value} type="button" aria-pressed={view === value} className={pill(view === value)} onClick={() => {
                         setView(value);
@@ -96,8 +96,8 @@ export default function SeasonDraft({ year, picks, hindsight, initialView = 'ste
                 <p className="rounded-3xl border-2 border-dashed border-line-strong px-6 py-10 text-center text-sm font-semibold text-ink-muted">
                     Draft records are unavailable for {seasonLabel(year)}.
                 </p>
-            ) : hindsight && view !== 'board' ? (
-                <DraftHindsight year={year} picks={picks} data={hindsight} view={view} team={team}
+            ) : hindsightEnabled && view !== 'board' ? (
+                <DraftHindsight year={year} picks={picks} view={view} team={team}
                     onTeamChange={value => filter(() => setTeam(value))} initialPick={initialPick} />
             ) : (
                 <>

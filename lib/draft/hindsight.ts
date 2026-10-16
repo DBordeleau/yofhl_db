@@ -2,16 +2,13 @@ import type { SeasonDraftSelection } from '../history/model';
 import { splitPositions } from '../league';
 
 export type DraftView = 'board' | 'steals' | 'regrets' | 'redraft';
-export type DraftWindow = 'season' | 'since';
-export interface DraftProduction { playerId: string; year: number; points: number }
-export interface DraftHindsightData { latestYear: number; production: DraftProduction[] }
+export const MIN_REGRET_GAP = 100;
 export interface RankedPick extends SeasonDraftSelection { value: number; rank: number; movement: number }
 
-export function rankDraft(picks: SeasonDraftSelection[], production: DraftProduction[], window: DraftWindow): RankedPick[] {
+export function rankDraft(picks: SeasonDraftSelection[]): RankedPick[] {
     const ranked = picks.flatMap(pick => {
         if (!pick.playerId) return [];
-        const seasons = production.filter(p => p.playerId === pick.playerId && p.year >= pick.year);
-        const value = window === 'season' ? pick.points : seasons.length ? seasons.reduce((sum, s) => sum + Math.round(s.points * 100), 0) / 100 : null;
+        const value = pick.points;
         return value === null ? [] : [{ ...pick, value, rank: 0, movement: 0 }];
     }).sort((a, b) => b.value - a.value || a.overall - b.overall);
     ranked.forEach((pick, index) => {
@@ -22,9 +19,19 @@ export function rankDraft(picks: SeasonDraftSelection[], production: DraftProduc
     return ranked;
 }
 
+export function redraftBoard(picks: SeasonDraftSelection[], ranked: RankedPick[]) {
+    const eligibleSlots = new Set(ranked.map(pick => pick.overall));
+    let next = 0;
+    // Preserve empty/unranked slots and assign each ranked player exactly once, before team filtering.
+    return [...picks].sort((a, b) => a.overall - b.overall).map(original => ({
+        original,
+        redrafted: eligibleSlots.has(original.overall) ? ranked[next++] : null,
+    }));
+}
+
 export function laterAlternatives(pick: RankedPick, ranked: RankedPick[], samePosition: boolean) {
     const positions = splitPositions(pick.positions);
-    return ranked.filter(other => other.overall > pick.overall && other.value > pick.value
+    return ranked.filter(other => other.overall > pick.overall && Math.round((other.value - pick.value) * 100) >= MIN_REGRET_GAP * 100
         && (!samePosition || splitPositions(other.positions).some(position => positions.includes(position))));
 }
 

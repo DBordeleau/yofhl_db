@@ -12,7 +12,6 @@ import TeamBadge from '@/components/team-badge';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import { getBannerSeasons, getChampionRoster, getSeasonDetail, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { getSeasonDraft } from '@/lib/data/history';
-import { getDraftHindsight } from '@/lib/data/draft-hindsight';
 import type { DraftView } from '@/lib/draft/hindsight';
 import { seasonLabel } from '@/lib/league';
 
@@ -37,11 +36,10 @@ export default async function SeasonPage({ params, searchParams }: {
     const season = (await getBannerSeasons()).find((s) => s.year === seasonYear);
     if (!season) notFound();
     const demoEnabled = process.env.NODE_ENV === 'development';
-    const [detail, leaders, draft, hindsight, query] = await Promise.all([
+    const [detail, leaders, draft, query] = await Promise.all([
         getSeasonDetail(seasonYear),
         getSingleSeasonLeaderboard('all', 1, '', seasonYear),
         getSeasonDraft(seasonYear),
-        demoEnabled ? getDraftHindsight(seasonYear) : undefined,
         demoEnabled ? searchParams : undefined,
     ]);
     const draftView: DraftView = query?.draft === 'board' || query?.draft === 'regrets' || query?.draft === 'redraft' ? query.draft : 'steals';
@@ -114,7 +112,7 @@ export default async function SeasonPage({ params, searchParams }: {
                 />
                 <SeasonLeaders key={`leaders-${seasonYear}`} year={seasonYear} initial={leaders} />
                 <SeasonDraft key={`draft-${seasonYear}-${draftView}-${draftTeam}-${draftPick}`} year={seasonYear} picks={draft}
-                    hindsight={hindsight} initialView={draftView} initialTeam={draftTeam} initialPick={draftPick} />
+                    hindsightEnabled={demoEnabled} initialView={draftView} initialTeam={draftTeam} initialPick={draftPick} />
             </div>
         </div>
     );
