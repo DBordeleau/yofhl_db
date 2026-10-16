@@ -8,6 +8,9 @@ import { draftRegrets, laterAlternatives, MIN_REGRET_GAP, rankDraft, redraftBoar
 import { formatFpts, seasonLabel, splitPositions } from '@/lib/league';
 import styles from './draft-hindsight.module.css';
 
+const ordinalRules = new Intl.PluralRules('en', { type: 'ordinal' });
+const ordinalSuffixes: Record<string, string> = { one: 'st', two: 'nd', few: 'rd', other: 'th' };
+
 function Player({ pick }: { pick: SeasonDraftSelection }) {
     return <Link href={`/player/${encodeURIComponent(pick.playerId!)}`} className={styles.player}>{pick.player}</Link>;
 }
@@ -21,7 +24,7 @@ function Team({ pick }: { pick: SeasonDraftSelection }) {
 
 function Movement({ value, originalOverall }: { value: number; originalOverall?: number }) {
     const spots = `${Math.abs(value)} ${Math.abs(value) === 1 ? 'spot' : 'spots'}`;
-    const origin = originalOverall === undefined ? '' : ` from ${originalOverall} overall`;
+    const origin = originalOverall === undefined ? '' : ` from ${originalOverall}${ordinalSuffixes[ordinalRules.select(originalOverall)]} overall`;
     const label = `${value === 0 ? 'Unchanged' : `${value > 0 ? 'Up' : 'Down'} ${spots}`}${origin}`;
     return <span className={styles.movement} data-direction={value > 0 ? 'up' : value < 0 ? 'down' : 'same'}
         aria-label={label} title={label}>{originalOverall !== undefined ? `${value > 0 ? '↑' : value < 0 ? '↓' : '—'} ${spots}${origin}` : value > 0 ? `+${value}` : value < 0 ? `−${-value}` : '—'}</span>;
