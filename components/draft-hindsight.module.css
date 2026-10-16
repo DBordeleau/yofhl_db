@@ -58,7 +58,8 @@
 .draftedBy { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; margin-top: 10px; color: #56627a; }
 .draftedBy > span { font-size: 10px; }
 .draftedBy .team { margin-top: 0; }
-.originalNumber { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 14px; font-size: 11px; color: #56627a; }
+.originalNumber { display: block; margin-top: 14px; }
+.originalNumber .movement { white-space: normal; font-size: 11px; }
 .cellLabel { display: none; }
 .unranked { font-size: 12px; color: #56627a; }
 .regretControls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 20px; }
