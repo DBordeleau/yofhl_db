@@ -24,10 +24,13 @@ function Team({ pick }: { pick: SeasonDraftSelection }) {
 
 function Movement({ value, originalOverall }: { value: number; originalOverall?: number }) {
     const spots = `${Math.abs(value)} ${Math.abs(value) === 1 ? 'spot' : 'spots'}`;
-    const origin = originalOverall === undefined ? '' : ` from ${originalOverall}${ordinalSuffixes[ordinalRules.select(originalOverall)]} overall`;
-    const label = `${value === 0 ? 'Unchanged' : `${value > 0 ? 'Up' : 'Down'} ${spots}`}${origin}`;
+    const originalPosition = originalOverall === undefined ? '' : `${originalOverall}${ordinalSuffixes[ordinalRules.select(originalOverall)]} overall`;
+    const origin = originalPosition ? ` from ${originalPosition}` : '';
+    const unchanged = `No change${originalPosition ? ` · ${originalPosition}` : ''}`;
+    const label = value === 0 ? unchanged : `${value > 0 ? 'Up' : 'Down'} ${spots}${origin}`;
+    const text = value === 0 ? unchanged : originalOverall !== undefined ? `${value > 0 ? '↑' : '↓'} ${spots}${origin}` : value > 0 ? `+${value}` : `−${-value}`;
     return <span className={styles.movement} data-direction={value > 0 ? 'up' : value < 0 ? 'down' : 'same'}
-        aria-label={label} title={label}>{originalOverall !== undefined ? `${value > 0 ? '↑' : value < 0 ? '↓' : '—'} ${spots}${origin}` : value > 0 ? `+${value}` : value < 0 ? `−${-value}` : '—'}</span>;
+        aria-label={label} title={label}>{text}</span>;
 }
 
 export default function DraftHindsight({ year, picks, view, team, onTeamChange, initialPick }: {
@@ -124,7 +127,11 @@ export default function DraftHindsight({ year, picks, view, team, onTeamChange, 
                     </div>
                     <div role="cell" className={styles.redraftSelection}>
                         <span className={styles.cellLabel}>Redraft by FPts</span>
-                        {redrafted ? <><div className={styles.selectionScore}><Player pick={redrafted} /><strong>{formatFpts(redrafted.value)}<small>FPts</small></strong></div><span className={styles.originalNumber}><Movement value={redrafted.overall - original.overall} originalOverall={redrafted.overall} /></span></> : <span className={styles.unranked}>{original.playerId ? 'Unranked · no season stats' : 'Empty slot'}</span>}
+                        {redrafted ? <>
+                            <div className={styles.selectionScore}><Player pick={redrafted} /><strong>{formatFpts(redrafted.value)}<small>FPts</small></strong></div>
+                            <div className={styles.draftedBy}><span>Originally drafted by</span><Team pick={redrafted} /></div>
+                            <span className={styles.originalNumber}><Movement value={redrafted.overall - original.overall} originalOverall={redrafted.overall} /></span>
+                        </> : <span className={styles.unranked}>{original.playerId ? 'Unranked · no season stats' : 'Empty slot'}</span>}
                     </div>
                 </div>)}
             </div>
