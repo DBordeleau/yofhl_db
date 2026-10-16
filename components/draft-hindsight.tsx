@@ -19,9 +19,10 @@ function Team({ pick }: { pick: SeasonDraftSelection }) {
     </span>;
 }
 
-function Movement({ value }: { value: number }) {
+function Movement({ value, arrows = false }: { value: number; arrows?: boolean }) {
+    const label = value === 0 ? 'Unchanged' : `${value > 0 ? 'Up' : 'Down'} ${Math.abs(value)} ${Math.abs(value) === 1 ? 'place' : 'places'}`;
     return <span className={styles.movement} data-direction={value > 0 ? 'up' : value < 0 ? 'down' : 'same'}
-        aria-label={value > 0 ? `Up ${value} places` : value < 0 ? `Down ${-value} places` : 'Unchanged'}>{value > 0 ? `+${value}` : value < 0 ? `−${-value}` : '—'}</span>;
+        aria-label={label} title={label}>{value === 0 ? '—' : arrows ? `${value > 0 ? '↑' : '↓'} ${Math.abs(value)}` : value > 0 ? `+${value}` : `−${-value}`}</span>;
 }
 
 export default function DraftHindsight({ year, picks, view, team, onTeamChange, initialPick }: {
@@ -118,7 +119,7 @@ export default function DraftHindsight({ year, picks, view, team, onTeamChange, 
                     </div>
                     <div role="cell" className={styles.redraftSelection}>
                         <span className={styles.cellLabel}>Redraft by FPts</span>
-                        {redrafted ? <><div className={styles.selectionScore}><Player pick={redrafted} /><strong>{formatFpts(redrafted.value)}<small>FPts</small></strong></div><span className={styles.originalNumber}>Originally picked #{redrafted.overall}</span></> : <span className={styles.unranked}>{original.playerId ? 'Unranked · no season stats' : 'Empty slot'}</span>}
+                        {redrafted ? <><div className={styles.selectionScore}><Player pick={redrafted} /><strong>{formatFpts(redrafted.value)}<small>FPts</small></strong></div><span className={styles.originalNumber}><span>Originally picked #{redrafted.overall}</span><Movement value={redrafted.overall - original.overall} arrows /></span></> : <span className={styles.unranked}>{original.playerId ? 'Unranked · no season stats' : 'Empty slot'}</span>}
                     </div>
                 </div>)}
             </div>

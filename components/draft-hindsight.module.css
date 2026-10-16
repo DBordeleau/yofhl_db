@@ -37,7 +37,7 @@
 .rowMeta { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 10px; color: #56627a; }
 .row .desktop { color: #56627a; font-size: 12px; }
 .points { font-size: 17px; font-weight: 850; }
-.movement { display: inline-block; font-size: 12px; font-weight: 800; }
+.movement { display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 800; }
 .movement[data-direction='up'] { color: #176442; }
 .movement[data-direction='down'] { color: #b02a3e; }
 .movement[data-direction='same'] { color: #6b778e; }
@@ -58,7 +58,7 @@
 .draftedBy { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; margin-top: 10px; color: #56627a; }
 .draftedBy > span { font-size: 10px; }
 .draftedBy .team { margin-top: 0; }
-.originalNumber { display: block; margin-top: 14px; font-size: 11px; color: #56627a; }
+.originalNumber { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 14px; font-size: 11px; color: #56627a; }
 .cellLabel { display: none; }
 .unranked { font-size: 12px; color: #56627a; }
 .regretControls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 20px; }
