@@ -17,7 +17,7 @@ const PAGE_SIZE = 24;
 // matches the team column layout of the stat tables above
 const GRID = 'grid grid-cols-[42px_minmax(0,1fr)_64px_40px] items-center gap-2 px-3 md:grid-cols-[52px_minmax(0,1.1fr)_minmax(0,1fr)_90px_54px] md:gap-3 md:px-5';
 const pill = (active: boolean) =>
-    `inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rink-blue md:min-w-12 md:px-4 ${active ? 'border-rink-blue bg-rink-blue text-white' : 'border-line-strong bg-white text-ink-soft hover:border-rink-blue hover:text-rink-blue'}`;
+    `inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rink-blue md:min-w-12 md:px-4 xl:text-base 3xl:min-h-12 3xl:px-5 3xl:text-lg ${active ? 'border-rink-blue bg-rink-blue text-white' : 'border-line-strong bg-white text-ink-soft hover:border-rink-blue hover:text-rink-blue'}`;
 
 function DraftingTeam({ pick, compact = false }: { pick: SeasonDraftSelection; compact?: boolean }) {
     if (pick.franchiseId === null) return <span className="text-xs font-semibold text-ink-faint">No team recorded</span>;
@@ -77,8 +77,8 @@ export default function SeasonDraft({ year, picks, hindsightEnabled = false, ini
     return (
         <section id="draft-class" aria-labelledby="draft-class-title" className="w-full scroll-mt-28 xl:scroll-mt-6">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="draft-class-title" className="font-wide text-lg font-extrabold uppercase md:text-xl">Draft Class</h2>
-                <span className="text-sm font-semibold text-ink-muted">
+                <h2 id="draft-class-title" className="font-wide text-lg font-extrabold uppercase md:text-xl xl:text-2xl 3xl:text-3xl">Draft Class</h2>
+                <span className="text-sm font-semibold text-ink-muted xl:text-base 3xl:text-lg">
                     {seasonLabel(year)}{picks.length > 0 && ` · ${rounds.length} rounds`}
                 </span>
             </div>

@@ -19,18 +19,32 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     const pathname = usePathname();
     const owner = useOwnerNavigation();
     const [isMenuOpen, setIsMenuOpen] = useState(false); // mobile menu state
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [openDropdown, setOpenDropdown] = useState<'awards' | 'compare' | null>(null);
+    const isDropdownOpen = openDropdown === 'awards';
+    const isCompareOpen = openDropdown === 'compare';
     const dropdownRef = useRef<HTMLLIElement>(null);
     const mobileDropdownRef = useRef<HTMLLIElement>(null);
+    const compareRef = useRef<HTMLLIElement>(null);
+    const mobileCompareRef = useRef<HTMLLIElement>(null);
 
     const navItems = [
         { name: "Home", href: "/", isActive: pathname === "/" },
         { name: "Leaderboards", href: "/stats/all-time/all", isActive: pathname.startsWith("/stats") || pathname.startsWith("/player") },
-        { name: "Compare", href: "/compare", isActive: pathname.startsWith("/compare") },
+        { name: "Compare", href: "/compare", isActive: pathname.startsWith("/compare") || pathname.startsWith("/demo/rivalries") },
         { name: "Teams", href: "/teams/stats", isActive: pathname.startsWith("/teams") },
         { name: "Seasons", href: "/season", isActive: pathname.startsWith("/season") },
-        ...(process.env.NODE_ENV === 'development' ? [{ name: "Rivalries", href: "/demo/rivalries", isActive: pathname.startsWith("/demo/rivalries") }] : []),
     ];
+    const compareItems = [
+        { name: 'Players', href: '/compare', active: pathname.startsWith('/compare') },
+        ...(process.env.NODE_ENV === 'development' ? [{ name: 'Teams', href: '/demo/rivalries', active: pathname.startsWith('/demo/rivalries') }] : []),
+    ];
+    const compareLinks = compareItems.map(item => <li key={item.name}>
+        <Link href={item.href} aria-current={item.active ? 'page' : undefined}
+            onClick={() => { setOpenDropdown(null); setIsMenuOpen(false); }}
+            className={`flex min-h-12 items-center rounded-xl px-4 text-base font-semibold hover:bg-rink-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-rink-blue ${item.active ? 'bg-rink-wash text-rink-blue' : 'text-ink'}`}>
+            {item.name}
+        </Link>
+    </li>);
     const awardsActive = pathname.startsWith("/awards");
     const ownerActive = pathname.startsWith('/owner');
     const ownerLink = (
@@ -49,18 +63,22 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
     ];
 
     useEffect(() => {
-        setIsDropdownOpen(false);
+        setOpenDropdown(null);
         setIsMenuOpen(false);
     }, [pathname]);
 
-    // close the awards dropdown on outside click or escape
+    // Both navigation disclosures close on outside click or Escape.
     useEffect(() => {
-        if (!isDropdownOpen) return;
+        if (!openDropdown) return;
+        const refs = openDropdown === 'awards' ? [dropdownRef, mobileDropdownRef] : [compareRef, mobileCompareRef];
         const onClick = (e: MouseEvent) => {
-            if (!dropdownRef.current?.contains(e.target as Node) && !mobileDropdownRef.current?.contains(e.target as Node)) setIsDropdownOpen(false);
+            if (!refs.some(ref => ref.current?.contains(e.target as Node))) setOpenDropdown(null);
         };
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setIsDropdownOpen(false);
+            if (e.key === "Escape") {
+                setOpenDropdown(null);
+                refs.find(ref => ref.current?.getClientRects().length)?.current?.querySelector('button')?.focus();
+            }
         };
         document.addEventListener("mousedown", onClick);
         document.addEventListener("keydown", onKey);
@@ -68,10 +86,10 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
             document.removeEventListener("mousedown", onClick);
             document.removeEventListener("keydown", onKey);
         };
-    }, [isDropdownOpen]);
+    }, [openDropdown]);
 
     const linkClass = (active: boolean) =>
-        `relative inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-[15px] font-semibold transition-colors hover:bg-rink-wash hover:text-ink lg:px-2.5 xl:px-3.5 ${active
+        `relative inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-[15px] font-semibold transition-colors hover:bg-rink-wash hover:text-ink lg:px-2.5 xl:px-3.5 3xl:min-h-12 3xl:text-lg ${active
             ? "text-ink after:absolute after:inset-x-3.5 after:bottom-1 after:h-[3px] after:rounded-full after:bg-rink-red"
             : "text-ink-soft"
         }`;
@@ -99,7 +117,16 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
 
                 {/* desktop/large display nav */}
                 <ul className="hidden items-center gap-0.5 lg:flex">
-                    {navItems.map((item) => (
+                    {navItems.map((item) => item.name === 'Compare' ? (
+                        <li key={item.name} className="relative" ref={compareRef}>
+                            <button type="button" className={linkClass(item.isActive)}
+                                aria-expanded={isCompareOpen} aria-controls="compare-links-desktop"
+                                onClick={() => setOpenDropdown(isCompareOpen ? null : 'compare')}>
+                                Compare {chevron(isCompareOpen)}
+                            </button>
+                            {isCompareOpen && <ul id="compare-links-desktop" className="absolute left-0 z-10 mt-2 w-48 rounded-2xl border border-line bg-white p-1.5 shadow-card">{compareLinks}</ul>}
+                        </li>
+                    ) : (
                         <li key={item.name}>
                             <Link href={item.href} className={linkClass(item.isActive)} aria-current={item.isActive ? "page" : undefined}>
                                 {item.name}
@@ -109,7 +136,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                     <li className="relative" ref={dropdownRef}>
                         <button
                             type="button"
-                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            onClick={() => setOpenDropdown(isDropdownOpen ? null : 'awards')}
                             className={linkClass(awardsActive)}
                             aria-expanded={isDropdownOpen}
                             aria-haspopup="true"
@@ -168,7 +195,16 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                         className="overflow-hidden border-t border-line-soft bg-white lg:hidden"
                     >
                         <ul className="flex flex-col px-4 pb-4 pt-2">
-                            {navItems.map((item) => (
+                            {navItems.map((item) => item.name === 'Compare' ? (
+                                <li key={item.name} ref={mobileCompareRef}>
+                                    <button type="button" className={`${linkClass(item.isActive)} min-h-12 w-full text-[17px] after:!right-auto after:w-6`}
+                                        aria-expanded={isCompareOpen} aria-controls="compare-links-mobile"
+                                        onClick={() => setOpenDropdown(isCompareOpen ? null : 'compare')}>
+                                        Compare {chevron(isCompareOpen)}
+                                    </button>
+                                    {isCompareOpen && <ul id="compare-links-mobile" className="ml-3.5 border-l-2 border-line-soft pl-2">{compareLinks}</ul>}
+                                </li>
+                            ) : (
                                 <li key={item.name}>
                                     <Link href={item.href} className={`${linkClass(item.isActive)} min-h-12 w-full text-[17px] after:!right-auto after:w-6`}>
                                         {item.name}
@@ -178,7 +214,7 @@ const Header: React.FC<{ awards: AwardType[] }> = ({ awards }) => {
                             <li ref={mobileDropdownRef}>
                                 <button
                                     type="button"
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    onClick={() => setOpenDropdown(isDropdownOpen ? null : 'awards')}
                                     className={`${linkClass(awardsActive)} min-h-12 w-full text-[17px] after:!right-auto after:w-6`}
                                     aria-expanded={isDropdownOpen}
                                 >

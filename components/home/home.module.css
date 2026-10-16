@@ -3,7 +3,7 @@
 .home :is(section, aside)[id] { scroll-margin-top: 24px; }
 .hero { position: relative; overflow: clip; color: white; background: #101d32; isolation: isolate; }
 .hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #101d32 6%, #101d32e8 35%, #101d3278 64%, #101d3220); pointer-events: none; }
-.heroInner, .content { max-width: 1200px; margin-inline: auto; padding-inline: 32px; }
+.heroInner, .content { max-width: var(--page-width); margin-inline: auto; padding-inline: 32px; }
 .heroInner { position: relative; display: grid; grid-template-columns: 1.35fr 1fr; align-items: center; min-height: 435px; }
 .heroCopy { position: relative; z-index: 2; padding-block: 42px; }
 .hero h1 { animation: heroEnter .75s .13s cubic-bezier(.2,.7,.2,1) both; font-size: clamp(76px, 8vw, 104px); font-weight: 950; font-stretch: 120%; text-transform: uppercase; line-height: 1; letter-spacing: -.055em; }
@@ -213,7 +213,7 @@
 .emptyPosition { padding-block: 18px; color: #7a889a; font-size: 13px; }
 .rosterFooter { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 28px; border-top: 1px solid #dce4ec; color: #758498; font-size: 11px; }
 @media (min-width: 1024px) {
-    .home { --dock-height: 50px; --dock-content: 1136px; }
+    .home { --dock-height: 50px; --dock-content: calc(var(--page-width) - 64px); }
     .home :is(section, aside)[id], .scoreCard { scroll-margin-top: calc(var(--dock-height) + 24px); }
     .ticker:is([data-dock='docked'], [data-dock='undocking']) {
         position: fixed; z-index: 60; inset: 0 0 auto; height: var(--dock-height); border-radius: 0;
@@ -235,10 +235,12 @@
 @keyframes trophyEnter { from { opacity: 0; transform: translateY(25px) rotate(-5deg) scale(.94); } to { opacity: 1; transform: translateY(0) rotate(4deg) scale(1); } }
 @keyframes rinkEnter { from { opacity: 0; transform: translateX(36px) rotate(-9deg) scale(1.03); } }
 @media (min-width: 1800px) {
-    .heroInner, .content { max-width: 1500px; }
     .heroInner { min-height: 480px; } .hero h1 { font-size: 120px; } .heroRink { width: 1200px; height: 552px; top: -35px; }
-    .home { --dock-content: 1436px; } .heroTrophy { width: 430px; height: 430px; } .standingsTable { font-size: 15px; }
+    .heroTrophy { width: 430px; height: 430px; } .standingsTable { font-size: 18px; }
     .matchupGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .matchupGrid .scoreCard:nth-child(n) { grid-column: auto; } .scoreValue { font-size: 28px; }
+    .scoreTeamName, .playerIdentity { font-size: 20px; }
+    .sectionNav a, .standingsRecord, .standingsPoints, .playerStats dd { font-size: 17px; }
+    .playerClub, .playerStats dt, .rosterFooter, .standingsFooter, .matchupMeta { font-size: 13px; }
 }
 @media (max-width: 1100px) {
     .matchupGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .matchupGrid .scoreCard:nth-child(n) { grid-column: auto; } .matchupGrid .scoreCard:nth-child(odd):last-child { grid-column: 1 / -1; }

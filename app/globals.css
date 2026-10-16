@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 html {
+  --page-width: clamp(1200px, 92vw, 2240px);
   overflow-x: hidden;
 }
 

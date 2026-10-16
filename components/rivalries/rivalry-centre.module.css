@@ -1,4 +1,4 @@
-.page { max-width: 1240px; margin: 0 auto; padding: 36px 28px 56px; }
+.page { max-width: var(--page-width); margin: 0 auto; padding: 36px 32px 56px; }
 .heading { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; }
 .heading h1 { font-size: clamp(36px, 5vw, 56px); line-height: 1; font-weight: 950; letter-spacing: -2.5px; font-stretch: expanded; }
 .heading h1 span { color: #c8102e; }
@@ -98,6 +98,25 @@
 .showTrades { display: block; width: 100%; padding: 13px; border-top: 1px solid #dce5ee; font-size: 12px; font-weight: 750; color: #1f6fc2; background: #f8fafc; }
 .empty { padding: 8px 24px 27px; font-size: 13px; color: #56627a; line-height: 1.7; }
 .footer { margin-top: 24px; color: #56627a; font-size: 10px; line-height: 1.8; }
+@media (min-width: 1280px) {
+    .scoreboard { grid-template-columns: minmax(0,1fr) clamp(260px, 14vw, 360px) minmax(0,1fr); }
+    .teamIdentity h2 { max-width: 560px; font-size: clamp(28px, 1.6vw, 40px); }
+    .teamSurface { min-height: 330px; }
+    .selectors select, .segmented button { font-size: 17px; }
+    .selectors label, .owner, .headToHeadPoints span, .score p, .scopeBar > p,
+    .discover > span, .discover button, .gameMeta, .gameScore > div > span,
+    .historicalNames, .caption, .sectionHeading > span, .records thead th,
+    .records tbody th, .seasonPoints th, .seasonPoints td, .tradeDate time,
+    .tradeDate span, .tradeSides h3, .footer { font-size: clamp(13px, .65vw, 16px); }
+    .eyebrow { max-width: 180px; font-size: 13px; }
+    .headToHeadPoints strong { font-size: 38px; }
+    .numbers strong { font-size: clamp(64px, 3.2vw, 82px); }
+    .numbers { gap: 24px; }
+    .sectionHeading h2 { font-size: 26px; }
+    .records td { font-size: 22px; }
+    .seasonHeading h3, .tradeSides li, .showTrades { font-size: 17px; }
+    .gameScore strong { font-size: 38px; }
+}
 .footer a { text-decoration: underline; text-underline-offset: 2px; }
 @media (max-width: 900px) {
     .scoreboard { grid-template-columns: minmax(0,1fr) 192px minmax(0,1fr); }
