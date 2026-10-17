@@ -1,8 +1,8 @@
 import { randomInt } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
-import { pickWinner, publicLottery, type LotteryEntry, type LotteryRecord, type LotteryResponse, type LotteryTeam } from './model';
-import { drawQuery, lotteryColumns, lotteryLogosQuery } from './queries';
+import { pickWinner, publicLottery, type LotteryRecord, type LotteryResponse, type LotteryTeam } from './model';
+import { drawQuery, lotteryColumns, publicLotteryQuery } from './queries';
 
 export const getLotteryTeams = () => rows<LotteryTeam>(sql`
     select f.id, coalesce(m.name, f.display_name) as name, coalesce(t.abbreviation, left(coalesce(m.name, f.display_name), 3)) as abbreviation,
@@ -22,23 +22,15 @@ export const getLotteryHistory = () => rows<LotteryRecord>(sql`
     where is_current = false and cancelled_at is null order by starts_at desc limit 10`);
 
 export async function getPublicLottery(id?: string): Promise<LotteryResponse> {
-    let record = id
-        ? (await rows<LotteryRecord>(sql`select ${lotteryColumns} from league.draft_lotteries where id = ${id} and cancelled_at is null`))[0] ?? null
-        : await getCurrentLottery();
     // Database time also governs saves and drawing, keeping concurrent instances on one clock.
-    let [clock] = await rows<{ now: string }>(sql`select clock_timestamp() as now`);
-    if (record && record.winnerId === null && new Date(record.startsAt).getTime() <= new Date(clock.now).getTime()) {
+    const read = async (eventId?: string) => (await rows<{ record: LotteryRecord | null; now: string }>(publicLotteryQuery(eventId)))[0];
+    let { record, now } = await read(id);
+    if (record && record.winnerId === null && new Date(record.startsAt).getTime() <= new Date(now).getTime()) {
         const candidate = pickWinner(record.entries, randomInt(10_000));
         // Compare-and-set: only one request can persist the draw. A concurrent edit invalidates
         // this version; a concurrent draw wins once, and every other viewer reads its result.
         await rows(drawQuery(record.id, record.version, candidate));
-        record = (await rows<LotteryRecord>(sql`select ${lotteryColumns} from league.draft_lotteries
-            where id = ${record.id} and cancelled_at is null`))[0] ?? null;
-        [clock] = await rows<{ now: string }>(sql`select clock_timestamp() as now`);
+        ({ record, now } = await read(record.id));
     }
-    if (record) {
-        record = { ...record, entries: await rows<LotteryEntry>(lotteryLogosQuery(record.entries)) };
-        [clock] = await rows<{ now: string }>(sql`select clock_timestamp() as now`);
-    }
-    return { serverNow: new Date(clock.now).toISOString(), lottery: record ? publicLottery(record, new Date(clock.now).getTime()) : null };
+    return { serverNow: new Date(now).toISOString(), lottery: record ? publicLottery(record, new Date(now).getTime()) : null };
 }

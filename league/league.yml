@@ -28,8 +28,8 @@ franchises:
 
   - id: 3
     eras:
-      - { from: 2019, to: 2019, name: Scranton The Electric Gritty, abbreviations: [STEG], owner: Jeremy Weaver, logo: /logos/scranton_logo.jpg }
-      - { from: 2020, to: 2020, name: Scranton The Electric City, abbreviations: [STEC], owner: Jeremy Weaver, logo: /logos/scranton_logo.jpg }
+      - { from: 2019, to: 2019, name: Scranton The Electric Gritty, abbreviations: [STEG], owner: Jamie Molloy, logo: /logos/scranton_logo.jpg }
+      - { from: 2020, to: 2020, name: Scranton The Electric City, abbreviations: [STEC], owner: Jamie Molloy, logo: /logos/scranton_logo.jpg }
       - { from: 2021, name: Hooterville Honkers, abbreviations: [HH], owner: Jeremy Weaver, logo: /logos/hooterville_honkers.webp }
 
   - id: 4
@@ -38,7 +38,7 @@ franchises:
 
   - id: 5
     eras:
-      - { from: 2019, name: Jagrtown Icefellas, abbreviations: [JAGR], owner: Nick Kavanagh, logo: /jagrlogo.png }
+      - { from: 2019, name: Jagrtown Ice Fellas, abbreviations: [JAGR], owner: Nick Kavanagh, logo: /jagrlogo.png }
 
   - id: 6
     eras:
@@ -63,20 +63,20 @@ franchises:
   - id: 10
     folded: 2026
     eras:
-      - { from: 2019, to: 2024, name: Andromeda Space Invaders, abbreviations: [ASI], owner: Cameron Bowie, logo: /logos/andromeda_space_invaders_logo.jpg }
+      - { from: 2019, to: 2024, name: Andromeda Space Invaders, abbreviations: [ASI], owner: Raul Gonzalez, logo: /logos/andromeda_space_invaders_logo.jpg }
       - { from: 2025, to: 2026, name: Retro Phenoms, abbreviations: [RP], owner: Cameron Bowie, logo: /logos/retro_phenoms_logo.jpg }
 
   - id: 11
     folded: 2023
     eras:
-      - { from: 2019, to: 2019, name: James May, abbreviations: [NFLD] }
-      - { from: 2020, to: 2023, name: Montreal Re-Habs, abbreviations: [NFLD], logo: /logos/montreal_rehabs_logo.jpg }
+      - { from: 2019, to: 2019, name: James May, abbreviations: [NFLD], owner: James May }
+      - { from: 2020, to: 2023, name: Montreal Re-Habs, abbreviations: [NFLD], owner: James May, logo: /logos/montreal_rehabs_logo.jpg }
 
   - id: 12
     folded: 2023
     eras:
-      - { from: 2019, to: 2019, name: Drunk Gallyways, abbreviations: [DGWY] }
-      - { from: 2020, to: 2021, name: M.A.A.R city, abbreviations: [MAC], logo: /logos/maar_city_logo.jpg }
+      - { from: 2019, to: 2019, name: Drunk Gallyways, abbreviations: [DGWY], owner: Matt Marr }
+      - { from: 2020, to: 2021, name: M.A.A.R city, abbreviations: [MAC], owner: Matt Marr, logo: /logos/maar_city_logo.jpg }
       - { from: 2022, to: 2023, name: North Kariya Nukes, abbreviations: [NKN], logo: /logos/north_kariya_nukes_logo.jpg }
 
   - id: 13

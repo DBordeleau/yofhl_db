@@ -1,3 +1,4 @@
+import { publicJson } from '@/lib/public-json';
 import { NextResponse } from 'next/server';
 import { getHistory } from '@/lib/data/history';
 import type { HistoryKind } from '@/lib/history/model';
@@ -17,5 +18,5 @@ export async function GET(request: Request) {
         || (season !== null && (!Number.isInteger(season) || season < 1900 || season > 2200))) {
         return NextResponse.json({ error: 'Invalid history filter' }, { status: 400 });
     }
-    return NextResponse.json(await getHistory({ playerId: playerId ?? undefined, franchiseId }, kind as HistoryKind, season, page));
+    return publicJson(await getHistory({ playerId: playerId ?? undefined, franchiseId }, kind as HistoryKind, season, page));
 }

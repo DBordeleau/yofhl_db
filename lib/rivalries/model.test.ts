@@ -42,11 +42,29 @@ test('head-to-head points follow team orientation and the selected stage, includ
         { ...game, id: 5, home: 8, homeScore: 999 },
     ];
     const regular = pairSummary(games.filter(g => g.stage === 'regular'), 4, 5);
-    assert.deepEqual([regular.pointsA,regular.pointsB,regular.ties], [50.5,50.5,1]);
+    assert.deepEqual([regular.pointsA,regular.pointsB,regular.ties], [50.5,50.5,0]);
+    assert.deepEqual(regular.meetings.map(item => item.id), [1,2]);
     assert.notEqual(regular.closest?.id, 3, 'zero-game break ties should not become closest-finish highlights');
     const playoff = pairSummary(games.filter(g => g.stage === 'playoff'), 5, 4);
     assert.deepEqual([playoff.pointsA,playoff.pointsB], [110,100]);
     assert.equal(pairSummary([], 4, 5).pointsA, 0);
+});
+test('excludes 0–0 meetings in both stages while keeping one-sided shutouts and scored ties', () => {
+    for (const stage of ['regular', 'playoff'] as const) {
+        const result = pairSummary([
+            { ...game, id: 1, stage, awayScore: 0, homeScore: 0, winner: null },
+            { ...game, id: 2, stage, away: 5, home: 4, awayScore: 0, homeScore: 0, winner: 4 },
+            { ...game, id: 3, stage, awayScore: 0, homeScore: 10, winner: 5, adjusted: false },
+            { ...game, id: 4, stage, awayScore: 10, homeScore: 0, winner: 4, adjusted: false },
+            { ...game, id: 5, stage, awayScore: 10, homeScore: 10, winner: null, adjusted: false },
+        ], 4, 5);
+        assert.deepEqual(result.meetings.map(item => item.id), [3, 4, 5]);
+        assert.deepEqual([result.winsA, result.winsB, result.pointsA, result.pointsB], [1, 1, 20, 20]);
+        assert.equal(result.ties, stage === 'regular' ? 1 : 0);
+        assert.equal(result.undecided, stage === 'playoff' ? 1 : 0);
+        assert.equal(result.closest?.id, stage === 'regular' ? 5 : 3);
+        assert.equal(pairSummary([{ ...game, stage, awayScore: 0, homeScore: 0 }], 4, 5).meetings.length, 0);
+    }
 });
 test('only includes direct transfers between the selected franchises in a multi-team trade', () => {
     const assets = [{ id: '1', from: 4, to: 5, label: 'A', playerId: 'a' }, { id: '2', from: 5, to: 8, label: 'B', playerId: 'b' }, { id: '3', from: 8, to: 4, label: 'C', playerId: 'c' }, { id: '4', from: null, to: 5, label: 'Unknown', playerId: null }];

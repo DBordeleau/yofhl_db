@@ -1,7 +1,7 @@
 import type { SeasonDraftSelection } from '../history/model';
 import { splitPositions } from '../league';
 
-export type DraftView = 'board' | 'steals' | 'regrets' | 'redraft';
+export type DraftView = 'board' | 'hindsight' | 'redraft';
 export const MIN_REGRET_GAP = 100;
 export interface RankedPick extends SeasonDraftSelection { value: number; rank: number; movement: number }
 
@@ -17,6 +17,13 @@ export function rankDraft(picks: SeasonDraftSelection[]): RankedPick[] {
         pick.movement = pick.overall - pick.rank;
     });
     return ranked;
+}
+
+// Logarithmic rank gain makes each place gained worth more near the top of the class.
+export function topSteals(ranked: RankedPick[], limit = 10) {
+    return ranked.filter(pick => pick.movement > 0)
+        .sort((a, b) => Math.log(b.overall / b.rank) - Math.log(a.overall / a.rank) || b.value - a.value || a.overall - b.overall)
+        .slice(0, limit);
 }
 
 export function redraftBoard(picks: SeasonDraftSelection[], ranked: RankedPick[]) {
@@ -37,6 +44,7 @@ export function laterAlternatives(pick: RankedPick, ranked: RankedPick[], samePo
 
 export function draftRegrets(ranked: RankedPick[], samePosition: boolean) {
     return ranked.flatMap(pick => {
+        if (!pick.regretEligible) return [];
         const alternative = laterAlternatives(pick, ranked, samePosition)[0];
         return alternative ? [{ pick, alternative, gap: Math.round((alternative.value - pick.value) * 100) / 100 }] : [];
     }).sort((a, b) => b.gap - a.gap || a.pick.overall - b.pick.overall);

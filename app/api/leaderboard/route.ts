@@ -1,3 +1,4 @@
+import { publicJson } from '@/lib/public-json';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllTimeLeaderboard, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { LEADERBOARD_POSITIONS } from '@/lib/league';
@@ -21,5 +22,5 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'season must be an end year between 1900 and 2200 in single-season mode' }, { status: 400 });
     }
     const data = mode === 'all-time' ? await getAllTimeLeaderboard(position, page, q) : await getSingleSeasonLeaderboard(position, page, q, season);
-    return NextResponse.json(data);
+    return publicJson(data);
 }

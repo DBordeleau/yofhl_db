@@ -1,7 +1,10 @@
 'use client';
 
+import { playerHref } from '@/lib/player-url';
+
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createResultCache } from '@/lib/result-cache';
 import TeamBadge from '@/components/team-badge';
 import TransactionIcon from '@/components/transaction-icon';
 import type { HistoryAsset, HistoryEvent, HistoryKind, HistoryPage, HistoryScope, HistoryTeam } from '@/lib/history/model';
@@ -15,7 +18,7 @@ const dateLabel = (date: string) => new Intl.DateTimeFormat('en-US', { month: 's
 
 function AssetName({ asset, highlighted }: { asset: HistoryAsset; highlighted: boolean }) {
     return <span className={`min-w-0 ${highlighted ? 'font-extrabold text-ink' : 'font-semibold text-ink-soft'}`}>
-        {asset.playerId ? <Link href={`/player/${encodeURIComponent(asset.playerId)}`} className="hover:text-rink-blue hover:underline">{asset.label}</Link> : <span className="text-sm">{asset.label}</span>}
+        {asset.playerId ? <Link href={playerHref(asset.playerId)} className="hover:text-rink-blue hover:underline">{asset.label}</Link> : <span className="text-sm">{asset.label}</span>}
     </span>;
 }
 function TeamName({ team }: { team: HistoryTeam }) {
@@ -98,6 +101,14 @@ function EventCard({ event, scope }: { event: HistoryEvent; scope: HistoryScope 
     );
 }
 
+const historyUrl = (franchiseId: number | undefined, playerId: string | undefined, kind: HistoryKind, season: string, page: number) => {
+    const params = new URLSearchParams({ kind, page: String(page) });
+    if (franchiseId) params.set('franchise', String(franchiseId));
+    if (playerId) params.set('player', playerId);
+    if (season !== 'all') params.set('season', season);
+    return `/api/history?${params}`;
+};
+
 export default function TransactionHistory({ scope, initial, seasons }: { scope: HistoryScope; initial: HistoryPage; seasons: number[] }) {
     const defaultKind: HistoryKind = scope.franchiseId ? 'trade' : 'all';
     const [kind, setKind] = useState<HistoryKind>(defaultKind);
@@ -108,6 +119,11 @@ export default function TransactionHistory({ scope, initial, seasons }: { scope:
     const [error, setError] = useState(false);
     const [retry, setRetry] = useState(0);
     const { franchiseId, playerId } = scope;
+    const results = useMemo(() => {
+        const cache = createResultCache<HistoryPage>();
+        cache.set(historyUrl(franchiseId, playerId, defaultKind, 'all', 1), initial);
+        return cache;
+    }, [franchiseId, playerId, defaultKind, initial]);
     const changePage = (next: number) => {
         setPage(next);
         document.getElementById('transactions')?.scrollIntoView({ block: 'start' });
@@ -117,20 +133,17 @@ export default function TransactionHistory({ scope, initial, seasons }: { scope:
         : [{ kind: 'all', label: 'All moves' }, { kind: 'trade', label: 'Trades' }, { kind: 'free_agent', label: 'FA claims' }, { kind: 'draft', label: 'Draft' }];
 
     useEffect(() => {
-        if (kind === defaultKind && season === 'all' && page === 1 && retry === 0) { setData(initial); setLoading(false); setError(false); return; }
         const controller = new AbortController();
-        const params = new URLSearchParams({ kind, page: String(page) });
-        if (franchiseId) params.set('franchise', String(franchiseId));
-        if (playerId) params.set('player', playerId);
-        if (season !== 'all') params.set('season', season);
-        setLoading(true);
+        const url = historyUrl(franchiseId, playerId, kind, season, page);
+        const saved = results.get(url);
+        setLoading(!saved);
         setError(false);
-        fetch(`/api/history?${params}`, { signal: controller.signal })
-            .then((response) => { if (!response.ok) throw new Error('History request failed'); return response.json(); })
+        if (saved) { setData(saved); return; }
+        results.load(url, controller.signal)
             .then((result: HistoryPage) => { if (!controller.signal.aborted) { setData(result); setLoading(false); } })
             .catch(() => { if (!controller.signal.aborted) { setError(true); setLoading(false); } });
         return () => controller.abort();
-    }, [kind, season, page, retry, franchiseId, playerId, defaultKind, initial]);
+    }, [kind, season, page, retry, franchiseId, playerId, results]);
 
     return (
         <section id="transactions" className="mt-9 scroll-mt-6" aria-labelledby="transactions-title">

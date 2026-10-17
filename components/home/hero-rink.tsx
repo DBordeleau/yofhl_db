@@ -1,7 +1,7 @@
 import styles from './home.module.css';
 
-export default function HeroRink() {
-    return <svg className={styles.heroRink} viewBox="0 0 1000 460" fill="none" aria-hidden="true">
+export default function HeroRink({ className = styles.heroRink }: { className?: string }) {
+    return <svg className={className} viewBox="0 0 1000 460" fill="none" aria-hidden="true">
         <defs>
             <linearGradient id="rink-ice" x1="0" y1="0" x2="1000" y2="460" gradientUnits="userSpaceOnUse">
                 <stop stopColor="#b8d4e7" /><stop offset=".5" stopColor="#f0f8ff" /><stop offset="1" stopColor="#a7c5dc" />

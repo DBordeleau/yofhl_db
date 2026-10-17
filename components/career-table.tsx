@@ -92,7 +92,7 @@ const CareerTable: FC<CareerTableProps> = ({ careerStats, awardsByYear }) => {
                         >
                             <span role="cell" className="flex min-w-0 flex-col gap-1 py-3 lg:flex-row lg:items-center lg:gap-2.5">
                                 <span className="flex flex-wrap items-center gap-2.5 lg:shrink-0 lg:flex-nowrap">
-                                    <span className="tabular whitespace-nowrap text-[17px] font-extrabold">{seasonLabel(stat.Year)}</span>
+                                    <Link href={`/season/${stat.Year}`} className="tabular whitespace-nowrap text-[17px] font-extrabold underline-offset-[3px] hover:text-rink-blue hover:underline">{seasonLabel(stat.Year)}</Link>
                                     {stat.Champion && <ChampionBadge />}
                                 </span>
                                 {!!awardCount && <span className="flex flex-wrap items-center gap-1 lg:shrink-0 lg:flex-nowrap">

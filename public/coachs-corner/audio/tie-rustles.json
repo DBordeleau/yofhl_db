@@ -1,0 +1,68 @@
+[
+  {
+    "id": "19291",
+    "name": "Sleeve rustle",
+    "file": "tie-sleeve.wav",
+    "start": 0.48,
+    "duration": 0.36,
+    "source": {
+      "id": "19291",
+      "author": "martian",
+      "page": "https://freesound.org/people/martian/sounds/19291/",
+      "preview": "https://cdn.freesound.org/previews/19/19291_84709-hq.mp3",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-10-17T20:04:52.935Z",
+      "sourceFormat": "Freesound high-quality MP3 preview",
+      "sha256": "2c603f049ce9ab459515d4bedabb758fbd9d5c39e96cf106b659882157a2f2ae"
+    },
+    "filter": "highpass=f=180,lowpass=f=6000,afade=t=in:d=0.012,afade=t=out:st=0.305:d=0.055",
+    "gain": 2.866807148506055,
+    "rmsDb": -26,
+    "peakDb": -6.600838777932153
+  },
+  {
+    "id": "435292",
+    "name": "Cloth rustle 7",
+    "file": "tie-cloth-7.wav",
+    "start": 49.44,
+    "duration": 0.4,
+    "source": {
+      "id": "435292",
+      "author": "zazz.sound.design",
+      "page": "https://freesound.org/people/zazz.sound.design/sounds/435292/",
+      "preview": "https://cdn.freesound.org/previews/435/435292_726853-hq.mp3",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-10-17T20:05:06.953Z",
+      "sourceFormat": "Freesound high-quality MP3 preview",
+      "sha256": "426e5e8b6e055b0a77c71aa05e18c1ac3ec1ad152aa7e8ceb19f60e08d0ceea3"
+    },
+    "filter": "highpass=f=180,lowpass=f=6000,afade=t=in:d=0.012,afade=t=out:st=0.345:d=0.055",
+    "gain": 5.168176142912417,
+    "rmsDb": -26,
+    "peakDb": -10.036433454871707
+  },
+  {
+    "id": "435296",
+    "name": "Cloth rustle 8",
+    "file": "tie-cloth-8.wav",
+    "start": 2.53,
+    "duration": 0.46,
+    "source": {
+      "id": "435296",
+      "author": "zazz.sound.design",
+      "page": "https://freesound.org/people/zazz.sound.design/sounds/435296/",
+      "preview": "https://cdn.freesound.org/previews/435/435296_726853-hq.mp3",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-10-17T20:05:19.804Z",
+      "sourceFormat": "Freesound high-quality MP3 preview",
+      "sha256": "9595050ad949eac73fbe2b35f560201e235cd0fe4da4e839400d07598be18674"
+    },
+    "filter": "highpass=f=180,lowpass=f=6000,afade=t=in:d=0.012,afade=t=out:st=0.405:d=0.055",
+    "gain": 2.3890047790819784,
+    "rmsDb": -26,
+    "peakDb": -9.66909059754881
+  }
+]

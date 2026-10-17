@@ -1,3 +1,4 @@
+import { publicJson } from '@/lib/public-json';
 import { NextResponse } from 'next/server';
 import { getAwardWinners } from '@/lib/data/league';
 import { awardFromSlug } from '@/lib/league';
@@ -6,5 +7,5 @@ import { awardFromSlug } from '@/lib/league';
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
     const data = await getAwardWinners(awardFromSlug((await params).slug));
     if (!data) return NextResponse.json({ error: 'Award not found' }, { status: 404 });
-    return NextResponse.json(data);
+    return publicJson(data);
 }

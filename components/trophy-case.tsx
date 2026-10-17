@@ -3,6 +3,7 @@
 import React, { FC, useEffect, useRef, useState } from 'react';
 import { animate, motion, useMotionValue, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
+import SeasonLinks from '@/components/season-links';
 import { TrophyArt } from '@/components/trophy-icons';
 import TrophySparkles from '@/components/trophy-sparkles';
 import { awardHref, getAwardDefinition } from '@/lib/awards';
@@ -37,7 +38,7 @@ const TrophyTile: FC<{ item: TrophyItem; index: number; large?: boolean; active?
         </span>
         <Link href={awardHref(item.name)} tabIndex={active ? undefined : -1} className={`font-wide relative mt-2 font-extrabold uppercase leading-tight underline-offset-4 hover:text-gold-light hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-light ${large ? 'text-sm' : 'text-xs'}`}>{getAwardDefinition(item.name)?.label ?? item.name}</Link>
         <span className="text-xs text-[#AFC0D8]">{item.detail}</span>
-        <span className="tabular text-[13px] font-extrabold text-gold-light">{item.season}</span>
+        <span className="tabular text-[13px] font-extrabold text-gold-light"><SeasonLinks text={item.season} tabIndex={active ? undefined : -1} className="rounded-sm underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-light" /></span>
     </div>
 );
 

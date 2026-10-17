@@ -2,6 +2,6 @@
 // `out` is for links that leave the site; internal links point left, right, or down.
 const GLYPHS = { left: '←', right: '→', down: '↓', out: '↗' } as const;
 
-export default function Arrow({ direction = 'right', className = '' }: { direction?: keyof typeof GLYPHS; className?: string }) {
-    return <span aria-hidden="true" className={`nudge-arrow nudge-${direction} ${className}`}>{GLYPHS[direction]}</span>;
+export default function Arrow({ direction = 'right', animated = true, className = '' }: { direction?: keyof typeof GLYPHS; animated?: boolean; className?: string }) {
+    return <span aria-hidden="true" className={`${animated ? `nudge-arrow nudge-${direction}` : 'inline-block'} ${className}`}>{GLYPHS[direction]}</span>;
 }

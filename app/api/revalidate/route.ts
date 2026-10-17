@@ -1,6 +1,7 @@
 import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { LEAGUE_TAG } from '@/lib/data/db';
+import { FANTRAX_TAG } from '@/lib/fantrax/cache-policy';
 
 // POST /api/revalidate with "Authorization: Bearer <REVALIDATE_SECRET>" clears every cached league
 // query and page. The importer calls this after loading a season.
@@ -10,5 +11,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     revalidateTag(LEAGUE_TAG);
+    if (new URL(request.url).searchParams.get('external') === '1') revalidateTag(FANTRAX_TAG);
     return NextResponse.json({ revalidated: true });
 }

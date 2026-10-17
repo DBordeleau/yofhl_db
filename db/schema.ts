@@ -19,6 +19,7 @@ import { sql } from 'drizzle-orm';
 import type { LotteryEntry } from '@/lib/lottery/model';
 import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 import type { TeamColours } from '@/lib/team-branding';
+import type { DraftDevelopmentFacts } from '@/lib/draft/development';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -172,6 +173,7 @@ export const draftPicks = league.table('draft_picks', {
     playerName: text('player_name'),
     positions: text('positions').notNull(),
     draftedOn: date('drafted_on').notNull(),
+    developmentFacts: jsonb('development_facts').$type<DraftDevelopmentFacts>(),
     sourceTime: text('source_time').notNull(), // the export omits AM/PM; don't invent an exact instant
     sourceFile: text('source_file').notNull(),
 }, (t) => [primaryKey({ columns: [t.seasonYear, t.overall] }), index('draft_picks_player').on(t.playerId), index('draft_picks_franchise').on(t.franchiseId, t.seasonYear)]);
@@ -297,3 +299,19 @@ export const franchiseRecords = league.materializedView('franchise_records', {
     championships: integer('championships').array().notNull(), // season years
     finals: integer('finals').array().notNull(), // season years reached the final (won or lost)
 }).existing();
+
+// Coach's Corner episodes: screenplay scripts written in the admin (format in docs/coachs-corner.md).
+// Drafts have no published_at; the public page shows published episodes, newest first.
+export const coachsCornerEpisodes = league.table('coachs_corner_episodes', {
+    id: serial('id').primaryKey(),
+    slug: text('slug').notNull().unique(),
+    title: text('title').notNull(),
+    season: integer('season'),
+    week: integer('week'),
+    script: text('script').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    players: jsonb('players').$type<import('../lib/coachs-corner/teams').StudioPlayer[]>(),
+    publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (t) => [index('coachs_corner_published').on(t.publishedAt)]);

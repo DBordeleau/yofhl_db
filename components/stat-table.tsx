@@ -1,5 +1,7 @@
 'use client'
 
+import { playerHref } from '@/lib/player-url';
+
 import React, { FC, ReactNode, useState } from 'react';
 import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
@@ -163,7 +165,7 @@ const StatTable: FC<StatTableProps> = ({
                                 )}
                                 <span role="cell" className="flex min-w-0 flex-col gap-0.5 py-2.5">
                                     <span className="flex flex-wrap items-center gap-2">
-                                        <Link href={`/player/${player.ID}`} className="text-[15px] font-bold text-ink underline-offset-[3px] hover:text-rink-blue hover:underline md:text-[17px]">
+                                        <Link href={playerHref(player.ID)} className="text-[15px] font-bold text-ink underline-offset-[3px] hover:text-rink-blue hover:underline md:text-[17px]">
                                             {player.Player ?? 'N/A'}
                                         </Link>
                                         <CupRow count={cups} />

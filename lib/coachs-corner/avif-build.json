@@ -1,0 +1,233 @@
+{
+  "recipe": "{\"options\":{\"quality\":65,\"effort\":4,\"chromaSubsampling\":\"4:4:4\"},\"sharp\":\"0.35.5\",\"heif\":\"1.23.5\"}",
+  "files": {
+    "robots-v2/don-angry-talk-640.avif": {
+      "inputHash": "db4099f9a8386c0a3c2e030bc3ce4848a9013b3ffcad6aca0c17b7de4750d9b3",
+      "width": 640,
+      "height": 640,
+      "outputHash": "d872ca672438c251729f1fc4ac6bb0dcfadfc7c7048d5c47da61d34568ce91fe"
+    },
+    "robots-v2/don-angry-talk.avif": {
+      "inputHash": "db4099f9a8386c0a3c2e030bc3ce4848a9013b3ffcad6aca0c17b7de4750d9b3",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "2c24a8c6fdfb8dfab0d1e11bfd849324b9abcea763eb5f5008b7c72a4e9a0fc8"
+    },
+    "robots-v2/don-default-640.avif": {
+      "inputHash": "807ab028f0532c75b35664da9e5271e11a07f38adb4cf8326f685be6f37f3d70",
+      "width": 640,
+      "height": 640,
+      "outputHash": "4208061c026174096f3753bb2f4fce75e403e1cef8682b84a90aaef35e73230a"
+    },
+    "robots-v2/don-default.avif": {
+      "inputHash": "807ab028f0532c75b35664da9e5271e11a07f38adb4cf8326f685be6f37f3d70",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "0df144e6d7f63732dc881776f3c6a187b28344d94e1c08c4b17a94c58a8c0ddf"
+    },
+    "robots-v2/don-lean-camera-640.avif": {
+      "inputHash": "d8eae64585bb451c4dcd31c845af70631aec7aeb7ccc62d2b18d771c839b3045",
+      "width": 640,
+      "height": 640,
+      "outputHash": "bb174bb1c2b2f1d87db4f1b3499e3852ddf71c21f943c9749e24cf1918f26b41"
+    },
+    "robots-v2/don-lean-camera.avif": {
+      "inputHash": "d8eae64585bb451c4dcd31c845af70631aec7aeb7ccc62d2b18d771c839b3045",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "fbc997db8ade50d0633e24055b68b531077848b8e0107e5aca3fa85693e83ab6"
+    },
+    "robots-v2/don-mic-remove-640.avif": {
+      "inputHash": "966ae154fae82913de86712e61b0b35055cc9cf0736db79c4a6568730b53876b",
+      "width": 640,
+      "height": 640,
+      "outputHash": "367216c05206f2554e49e397198210e5e206d01ee887190fd0b913666634ffbb"
+    },
+    "robots-v2/don-mic-remove.avif": {
+      "inputHash": "966ae154fae82913de86712e61b0b35055cc9cf0736db79c4a6568730b53876b",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "c5c71ddef8ec9157344016ee580476feb4773e81f58d2381279f3ad067b58a1c"
+    },
+    "robots-v2/don-pause-640.avif": {
+      "inputHash": "d01a68ecf2db36875541ea560877f7d22ca50becfe29e8625518ba640856e75d",
+      "width": 640,
+      "height": 640,
+      "outputHash": "afd21a733f6ec2cf440bfa0ae14308898426350151adfbf8fa4759d0514603e8"
+    },
+    "robots-v2/don-pause.avif": {
+      "inputHash": "d01a68ecf2db36875541ea560877f7d22ca50becfe29e8625518ba640856e75d",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "b950e4d1d1437932775652ecb2be5de8e3540840a90fda576f054d0355e7ceb8"
+    },
+    "robots-v2/don-point-640.avif": {
+      "inputHash": "9c61376cf87f14a79b542d604e30ff80157b071c4ad1ed4fa2a18bf27db617c2",
+      "width": 640,
+      "height": 640,
+      "outputHash": "96672afff591fb1d3e2e6a4d8fb799221176a7f6a7dd8c9a62e35563a38dd508"
+    },
+    "robots-v2/don-point-talk-640.avif": {
+      "inputHash": "cc72d00121c0d1bfb8791c21e03fb5ca918414c54579349894e05dfe8a2f9ceb",
+      "width": 640,
+      "height": 640,
+      "outputHash": "29faff256f1c68933b0603a1514237f929a4b6f7940c8d0005e709d730e62778"
+    },
+    "robots-v2/don-point-talk.avif": {
+      "inputHash": "cc72d00121c0d1bfb8791c21e03fb5ca918414c54579349894e05dfe8a2f9ceb",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "ea97e620a60d7ad1fd19068b48c63b36082abab60f8752f545d9619d945708f9"
+    },
+    "robots-v2/don-point.avif": {
+      "inputHash": "9c61376cf87f14a79b542d604e30ff80157b071c4ad1ed4fa2a18bf27db617c2",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "2bb56d233d877494a0c0a66377fafe0c10052b88e9599cf11134ed452b0aa83c"
+    },
+    "robots-v2/don-stare-640.avif": {
+      "inputHash": "d43783ec4e3453271ccdd09be7b911cc5143ecf4607865689e7dfca85b9a0817",
+      "width": 640,
+      "height": 640,
+      "outputHash": "a02ecc365c7897342c318cb4999290a068f81d24e06b6ee31ba4d4fcaeef70d0"
+    },
+    "robots-v2/don-stare.avif": {
+      "inputHash": "d43783ec4e3453271ccdd09be7b911cc5143ecf4607865689e7dfca85b9a0817",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "0b288df4f343f463c58ec4b58fa42fc8af4a5606183fe6bcf210867c9ffb8526"
+    },
+    "robots-v2/don-surprised-640.avif": {
+      "inputHash": "72b618b8e079770fd93272d1de1ee3c135fc945461051e63e02144da79f00bb0",
+      "width": 640,
+      "height": 640,
+      "outputHash": "cd6e5177be11a2bfaabcd734616abca8318580aaed544a6a1a9127d385b02540"
+    },
+    "robots-v2/don-surprised.avif": {
+      "inputHash": "72b618b8e079770fd93272d1de1ee3c135fc945461051e63e02144da79f00bb0",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "1677af3ca082eb5599339f82f5cd62840a1d1b3604e373918bf9291bf3f14011"
+    },
+    "robots-v2/don-talk-640.avif": {
+      "inputHash": "9b5bcebb624d3fdff0dfc1539fe7b662f1098a59e90ecffad83d0882609e5389",
+      "width": 640,
+      "height": 640,
+      "outputHash": "9adf2aa3ea5dd9f802ad5d4576cc23d597c72fa0fa57291822592e98b211863a"
+    },
+    "robots-v2/don-talk.avif": {
+      "inputHash": "9b5bcebb624d3fdff0dfc1539fe7b662f1098a59e90ecffad83d0882609e5389",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "879cdf02434e6f45941cddb8573182df99eb486b834d186ffbd06af49dcdfc84"
+    },
+    "robots-v2/don-thumbs-up-640.avif": {
+      "inputHash": "4c334c4bd97ba3e832680cf665db335652ab89b8373df23cf8c54668751f5917",
+      "width": 640,
+      "height": 640,
+      "outputHash": "ab20c8fa5c6a1c9ae7353777e59adfb7b216c664e91879444aeb66eaff8ce8cd"
+    },
+    "robots-v2/don-thumbs-up-talk-640.avif": {
+      "inputHash": "2f15d57f359dbeb16b1fcb43d2d661b64419d3f93583e0d3dfb1e1c5a256058b",
+      "width": 640,
+      "height": 640,
+      "outputHash": "3e65e525d4784ce6c3618a7084224bae6fb004c26111103b5cc86ad0940ff1a3"
+    },
+    "robots-v2/don-thumbs-up-talk.avif": {
+      "inputHash": "2f15d57f359dbeb16b1fcb43d2d661b64419d3f93583e0d3dfb1e1c5a256058b",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "6d70ba0693f9b79eab5302c57549213d2880676f528f3fa02e4896738bc48b53"
+    },
+    "robots-v2/don-thumbs-up.avif": {
+      "inputHash": "4c334c4bd97ba3e832680cf665db335652ab89b8373df23cf8c54668751f5917",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "a8e4ad8d640493759bd67bd6ad11c8a8f5a2626cc136a76ae9f034dedb4d3704"
+    },
+    "robots-v2/don-tie-adjust-640.avif": {
+      "inputHash": "ff5faad17be6bbaac0b981cac006cc10ceb92bd5733dd30610048d09370927d5",
+      "width": 640,
+      "height": 640,
+      "outputHash": "63d33bbd0deff8b8ea434a177ace7a3e51ad1578e26a30a5196e7c0a0bd3321f"
+    },
+    "robots-v2/don-tie-adjust.avif": {
+      "inputHash": "ff5faad17be6bbaac0b981cac006cc10ceb92bd5733dd30610048d09370927d5",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "7a50d9d4a6a787606ba1db40b7304418ef45fa2070f3cebc365dbb8eb588655c"
+    },
+    "robots-v2/ron-default-640.avif": {
+      "inputHash": "cd6c276612f0410f384c21be506e8e6e30b3ec4f053cbb75ea79c53077a8e393",
+      "width": 640,
+      "height": 640,
+      "outputHash": "6fcc0d599835efa0c6c6e6bef08d181bb00066aca0c7bbe0f39c68f7aff0d347"
+    },
+    "robots-v2/ron-default.avif": {
+      "inputHash": "cd6c276612f0410f384c21be506e8e6e30b3ec4f053cbb75ea79c53077a8e393",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "35379ce68e027d8eafe0a15940ca2985d77ec7455ffd7d568f95a8d3088f7aed"
+    },
+    "robots-v2/ron-look-down-640.avif": {
+      "inputHash": "e14d786ceb165e86a8998deae6d95df7d411d3e49c2d6b19adbc3f50be6a99f0",
+      "width": 640,
+      "height": 640,
+      "outputHash": "e6c0c7ca367149b6f723e917e71ffb392dbe5582b9f6c887ce00c6534d8f6bc8"
+    },
+    "robots-v2/ron-look-down.avif": {
+      "inputHash": "e14d786ceb165e86a8998deae6d95df7d411d3e49c2d6b19adbc3f50be6a99f0",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "616bb7da59da7970979aa93e2135d5f4409c6696124d86a9db8aa226e969c0e3"
+    },
+    "robots-v2/ron-skeptical-talk-640.avif": {
+      "inputHash": "9fcfb47e6744786aa7a074a344eaba1b1a7eef8fb5c7d991403f3d6c06cdf8a4",
+      "width": 640,
+      "height": 640,
+      "outputHash": "7e37ad6df5d7a0706f1478e976f57cae9e55d507a21d871f6209fbb3cf7091ef"
+    },
+    "robots-v2/ron-skeptical-talk.avif": {
+      "inputHash": "9fcfb47e6744786aa7a074a344eaba1b1a7eef8fb5c7d991403f3d6c06cdf8a4",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "23379b6df8de3808131d48136e4bd364f97ba6678396be527008e6c1c7ddc5d9"
+    },
+    "robots-v2/ron-surprised-640.avif": {
+      "inputHash": "b73a4af695ea2c1bb79b61398807211179265b627daa83212c521a6462059bbb",
+      "width": 640,
+      "height": 640,
+      "outputHash": "ce81181f64e16ad83dac0be64d2169bcb0ebca4c2afdeae91bf01b1300ce3dca"
+    },
+    "robots-v2/ron-surprised.avif": {
+      "inputHash": "b73a4af695ea2c1bb79b61398807211179265b627daa83212c521a6462059bbb",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "cc0e7ef262ce2e256bacfef464a642e333137712b27d6c83d4cfa78c4ae65286"
+    },
+    "robots-v2/ron-talk-640.avif": {
+      "inputHash": "5edd20ee0cc7e225d648092810931ea7dadd229e708bebc6ba4f21921f43fd2f",
+      "width": 640,
+      "height": 640,
+      "outputHash": "1d73ce5e4458d913628a78bc6b7ac9e2347b615951bd93c690338ee71604e433"
+    },
+    "robots-v2/ron-talk.avif": {
+      "inputHash": "5edd20ee0cc7e225d648092810931ea7dadd229e708bebc6ba4f21921f43fd2f",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "8dde187b430f467b80d12a1a8e030f783c1d7b11d4a2248a0b48b17584df63fb"
+    },
+    "robots-v2/ron-warning-640.avif": {
+      "inputHash": "d58fcf9fca79b3fb4ecaee94c5e7cf8c94661fb1e955d1eeb62210658cca5771",
+      "width": 640,
+      "height": 640,
+      "outputHash": "68b29e05ec23a37392935bf4b3bb19f6b3970eb6c23094aaba9a6d24ffd0c799"
+    },
+    "robots-v2/ron-warning.avif": {
+      "inputHash": "d58fcf9fca79b3fb4ecaee94c5e7cf8c94661fb1e955d1eeb62210658cca5771",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "8d657dbf2dcae4de7f34ebbb00c2fd672e434ad418af8c55e7f6cfc85a3a5172"
+    }
+  }
+}

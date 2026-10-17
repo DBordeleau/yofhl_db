@@ -6,15 +6,14 @@ import { redirect } from 'next/navigation';
 import * as schema from '@/db/schema';
 import { checkCredentials, endSession, requireAdmin, startSession } from '@/lib/admin/auth';
 import { searchSeasonPlayers } from '@/lib/admin/data';
-import { getDb, LEAGUE_TAG, rows } from '@/lib/data/db';
+import { getDb, rows } from '@/lib/data/db';
+import { curatedEditEffects, type CuratedEdit } from '@/lib/data/cache-tags';
 
-// after any curated edit: recompute the derived views and drop every cached public page
-const afterWrite = async () => {
+const afterWrite = async (kind: CuratedEdit, year: number) => {
     const db = getDb();
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.season_results`);
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.player_careers`);
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.franchise_records`);
-    revalidateTag(LEAGUE_TAG);
+    const { views, tags } = curatedEditEffects(kind, year);
+    for (const view of views) await db.execute(sql`REFRESH MATERIALIZED VIEW league.${sql.identifier(view)}`);
+    for (const tag of tags) revalidateTag(tag);
     revalidatePath('/admin', 'layout');
 };
 
@@ -65,7 +64,7 @@ export async function saveRoster(year: number, playerIds: string[]) {
     } else {
         await deleteOld;
     }
-    await afterWrite();
+    await afterWrite('roster', year);
     return { saved: ids.length };
 }
 
@@ -94,7 +93,7 @@ export async function saveAwards(year: number, picks: { award: string; playerId:
         }
     }
     if (statements.length) await db.batch(statements as [typeof statements[number], ...typeof statements]);
-    await afterWrite();
+    await afterWrite('awards', year);
     return { saved: winners.length };
 }
 
@@ -139,6 +138,6 @@ export async function saveMatchup(year: number, matchupId: number, winner: 'scor
             updateGame,
         ]);
     }
-    await afterWrite();
+    await afterWrite('matchup', year);
     return { saved: true };
 }

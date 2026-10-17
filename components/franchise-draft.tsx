@@ -1,5 +1,7 @@
 'use client';
 
+import { playerHref } from '@/lib/player-url';
+
 import Link from 'next/link';
 import { useState } from 'react';
 import TransactionIcon from '@/components/transaction-icon';
@@ -56,7 +58,7 @@ export default function FranchiseDraft({ picks, franchiseId, hindsightEnabled = 
                     </div>
                     {visible.map((pick) => <div key={`${pick.year}-${pick.overall}`} role="row" className="grid grid-cols-[40px_minmax(0,1fr)_64px_36px] items-center gap-2 border-b border-line-soft px-4 py-4 last:border-0 hover:bg-rink-wash/40 sm:grid-cols-[70px_minmax(0,1fr)_90px_90px_60px] md:px-5">
                         <div role="cell"><span className="font-narrow tabular text-xl font-extrabold text-gold-deep">#{pick.overall}</span><span className="mt-1 block text-[10px] font-bold uppercase text-ink-muted">Rd {pick.round}</span></div>
-                        <div role="cell" className="min-w-0">{pick.playerId ? <Link href={`/player/${encodeURIComponent(pick.playerId)}`} className="text-sm font-extrabold hover:text-rink-blue hover:underline md:text-base">{pick.player}</Link> : <span className="text-xs font-semibold text-ink-muted">No player recorded</span>}<div className="mt-1 text-xs text-ink-muted">{pick.positions.replaceAll(',', ' · ')}<span className="block sm:hidden">{seasonLabel(pick.year)}</span></div></div>
+                        <div role="cell" className="min-w-0">{pick.playerId ? <Link href={playerHref(pick.playerId)} className="text-sm font-extrabold hover:text-rink-blue hover:underline md:text-base">{pick.player}</Link> : <span className="text-xs font-semibold text-ink-muted">No player recorded</span>}<div className="mt-1 text-xs text-ink-muted">{pick.positions.replaceAll(',', ' · ')}<span className="block sm:hidden">{seasonLabel(pick.year)}</span></div></div>
                         <span role="cell" className="hidden text-xs font-semibold text-ink-muted sm:block">{seasonLabel(pick.year)}</span>
                         <span role="cell" className="tabular text-right text-sm font-extrabold">{pick.points === null ? <span className="text-ink-faint" title="No season stats available">—</span> : formatFpts(pick.points)}</span>
                         <span role="cell" className="tabular text-right text-xs font-semibold text-ink-muted">{pick.fpg === null ? '—' : pick.fpg.toFixed(2)}</span>

@@ -1,60 +1,38 @@
-import { FC } from 'react';
+'use client';
+
+import { useState, type CSSProperties } from 'react';
 import Image from 'next/image';
+import { artworkBounds } from '@/lib/team-logo';
+import styles from './team-badge.module.css';
 
 interface TeamBadgeProps {
     logo: string | null;
     abbreviation: string | null;
     teamName: string | null;
-    size: number; // px, also sets image resolution
-    sizeClass?: string; // responsive width/height classes that override size
+    size: number;
+    sizeClass?: string;
+    // Legacy emphasis values now apply depth to the artwork, without circular rings.
     ring?: 'gold' | 'glow' | 'none';
     priority?: boolean;
 }
 
-// shrink long abbreviations (e.g. TEEHAW) so they fit inside the circle
-const monogramSize = (size: number, abbreviation: string | null) => {
-    const length = Math.max(abbreviation?.length ?? 1, 3);
-    return Math.max(6.5, Math.round(Math.min(size * 0.22, (size * 0.76) / (length * 0.8)) * 2) / 2);
-};
 
-// white circular badge with the team logo, or the abbreviation when a team has no logo yet
-const TeamBadge: FC<TeamBadgeProps> = ({ logo, abbreviation, teamName, size, sizeClass, ring = 'gold', priority = false }) => {
-    // artwork in /logos/ carries its own background, so it fills the circle instead of sitting inset on white
-    const fill = logo?.startsWith('/logos/') ?? false;
-    const scale = fill ? 1 : 0.78;
-    const ringClass =
-        ring === 'glow'
-            ? 'shadow-[0_0_0_4px_#F0C75E,0_0_40px_rgba(240,199,94,.35),0_16px_32px_rgba(0,0,0,.35)]'
-            : ring === 'gold'
-                ? 'shadow-[0_0_0_3px_rgba(240,199,94,.85),0_8px_18px_rgba(0,0,0,.3)]'
-                : 'shadow-[inset_0_0_0_1px_#DCE5EE]';
+export default function TeamBadge({ logo, abbreviation, teamName, size, sizeClass, ring = 'none', priority = false }: TeamBadgeProps) {
+    const [failedSource, setFailedSource] = useState<string | null>(null);
+    const bounds = logo ? artworkBounds[logo] : undefined;
+    const fit = bounds ? {
+        '--mark-ratio': bounds[4] / bounds[5],
+        '--mark-width': `${bounds[0] / bounds[4] * 100}%`,
+        '--mark-left': `${-bounds[2] / bounds[4] * 100}%`,
+        '--mark-top': `${-bounds[3] / bounds[5] * 100}%`,
+    } as CSSProperties : undefined;
+    const resolution = Math.ceil(size * (bounds ? bounds[0] / Math.max(bounds[4], bounds[5]) : 1));
+    const fallbackSize = Math.max(6.5, Math.min(size * .3, size * 1.1 / Math.max(abbreviation?.length ?? 1, 3)));
 
-    return (
-        <span
-            className={`relative flex flex-none items-center justify-center overflow-hidden rounded-full bg-white ${ringClass} ${sizeClass ?? ''}`}
-            style={sizeClass ? undefined : { width: size, height: size }}
-        >
-            {logo ? (
-                <Image
-                    src={logo}
-                    alt={teamName ? `${teamName} logo` : ''}
-                    width={Math.round(size * scale)}
-                    height={Math.round(size * scale)}
-                    className={fill ? 'object-cover' : 'object-contain'}
-                    style={{ width: `${scale * 100}%`, height: `${scale * 100}%` }}
-                    priority={priority}
-                />
-            ) : (
-                <span
-                    className="font-wide font-black uppercase tracking-tight text-ink"
-                    style={{ fontSize: monogramSize(size, abbreviation) }}
-                    aria-label={teamName ?? undefined}
-                >
-                    {abbreviation}
-                </span>
-            )}
-        </span>
-    );
-};
-
-export default TeamBadge;
+    return <span className={`${styles.badge} ${sizeClass ?? ''}`} style={sizeClass ? undefined : { width: size, height: size }} data-team-mark="" data-emphasis={ring}>
+        {logo && failedSource !== logo ? <span className={styles.artwork} style={fit} data-fitted={bounds ? '' : undefined}>
+            <Image src={logo} alt={teamName ? `${teamName} logo` : ''} width={bounds?.[0] ?? size} height={bounds?.[1] ?? size}
+                sizes={`${resolution}px`} priority={priority} onError={() => setFailedSource(logo)} />
+        </span> : <span className={styles.monogram} style={{ fontSize: fallbackSize }} role="img" aria-label={teamName ?? abbreviation ?? 'Team'}>{abbreviation ?? '?'}</span>}
+    </span>;
+}

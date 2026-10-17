@@ -69,8 +69,10 @@ function shade(hex: string, strength: number) {
     return `rgb(${rgb.join(' ')})`;
 }
 
+export const brandMotif = (colours: TeamColours) => teamMotif(colours.treatment, colours.secondary, colours.tertiary, shade(colours.primary, 0.45), colours.primary);
+
 export function colourVariables(colours: TeamColours): CSSProperties {
-    const motif = teamMotif(colours.treatment, colours.secondary, colours.tertiary, shade(colours.primary, 0.45), colours.primary);
+    const motif = brandMotif(colours);
     return {
         '--team-primary': colours.primary,
         '--team-secondary': colours.secondary,

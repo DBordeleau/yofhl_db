@@ -1,0 +1,47 @@
+{
+  "version": 3,
+  "bibleVersion": 3,
+  "authority": "Owner's character brief and accepted opening-week pilot. New draft material requires user acceptance before promotion.",
+  "episodes": [
+    {
+      "slug": "opening-week",
+      "script": "lib/coachs-corner/pilot.ts",
+      "notes": ".agents/skills/produce-coachs-corner/references/annotated-pilot.md",
+      "approval": "Owner accepted the refined opening-week late revision on 2026-10-17: okay looks good make this the new episode 1.",
+      "approvedAt": "2026-10-17",
+      "revision": "Medicine Hat / McKenna cadence revision, with the louder shared Ron mix",
+      "previousScript": "assets/coachs-corner/editorial/approved/opening-week/revisions/before-mckenna-2026-10-17/script.txt",
+      "date": "2026-10-15",
+      "archivedScript": "assets/coachs-corner/editorial/approved/opening-week/script.txt",
+      "feedback": "assets/coachs-corner/editorial/approved/opening-week/feedback.md"
+    }
+  ],
+  "pronunciations": [
+    { "name": "Gavin McKenna", "donName": "McKenney", "episode": "opening-week", "anchor": "McKenney goes first", "note": "An incidental flub. Verify birthplace separately; the pilot's spelling does not establish origin." },
+    { "name": "Ivar Stenberg", "donName": "Stenborg", "episode": "opening-week", "anchor": "this Stenborg fella" },
+    { "name": "William Nylander", "donName": "Noodles", "episode": "opening-week", "anchor": "little Noodles and Hishner", "note": "Established nickname. Nationality does not establish birthplace." },
+    { "name": "Nico Hischier", "donName": "Hishner", "episode": "opening-week", "anchor": "little Noodles and Hishner" }
+  ],
+  "threads": [
+    { "id": "wilson-favourite", "kind": "favourite", "description": "Don admires Tom Wilson's size and net-front play and is appalled at his 76th-overall draft position.", "sourceEpisode": "opening-week", "anchor": "SEVENTY-SIXTH", "lastUsed": "opening-week", "reuse": "Return when current events justify it. The historical draft position must not become a new weekly fact or mandatory ending." },
+    { "id": "hoots-assists", "kind": "episode-joke", "description": "Don objects to Hooterville leading with one goal and eighteen assists.", "sourceEpisode": "opening-week", "anchor": "ONE GOAL, RON", "lastUsed": "opening-week", "reuse": "Historical callback only. Refresh the facts before making another shooting complaint." },
+    { "id": "group-chat-lineups", "kind": "episode-joke", "description": "Don scolds owners for talking about picks and then forgetting lineups.", "sourceEpisode": "opening-week", "anchor": "Set your lineups", "lastUsed": "opening-week", "reuse": "A fictional general admonition, not evidence that any named owner neglected a lineup." }
+  ],
+  "predictions": [],
+  "preferences": [
+    { "rule": "Don is patriotic, belligerent, direct and erratic; Ron is polite, media trained and primarily there to rein him in.", "source": "Owner's workflow request", "scope": "show" },
+    { "rule": "Don mispronounces every player born outside North America. Verify birthplace and preserve canonical names for Ron and graphics.", "source": "Owner's workflow request", "scope": "show" },
+    {
+      "id": "canadian-junior-clubs",
+      "rule": "Don loves naming Canadian players' junior clubs, takes sincere pride in those towns and organizations, and treats their junior background as proof he knows the player. Verify the history and use this when relevant, not as a mandatory joke every episode. Do not invent a personal coaching relationship.",
+      "source": "Owner's explicit opening-week late-revision request in this chat, 2026-10-17",
+      "scope": "show",
+      "approvedAt": "2026-10-17",
+      "approval": "User explicitly approved this character guidance in the initial late-revision request, then accepted the refined screenplay as Episode 1 on 2026-10-17.",
+      "sourceEpisode": "opening-week",
+      "anchor": "Medicine Hat Tigers. Loved watching him there. Those hands. The Hat!",
+      "application": "lib/coachs-corner/pilot.ts",
+      "reuse": "Relevant Canadian-player history only. The requested Medicine Hat recollection and resentment about McKenna's 2025–26 Penn State move do not establish a permanent feud or personal coaching history."
+    }
+  ]
+}

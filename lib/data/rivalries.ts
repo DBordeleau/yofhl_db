@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
+import { leagueTags } from './cache-tags';
 import { getFranchiseCards } from './league';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
 import type { RivalryGame, RivalrySeason, RivalryTrade } from '@/lib/rivalries/model';
@@ -31,7 +32,7 @@ export const getRivalryData = cached(async () => {
             where e.kind = 'trade' and ${visibleTransactionEvents}
             group by e.id order by e.occurred_on desc, e.id`),
     ]);
-    // Local demo snapshot, verified against every team's archived record and points.
+    // Regular-season snapshot, verified against every team's archived record and points.
     const regularGames: RivalryGame[] = regularSeason.games.map(game => ({ ...game, stage: 'regular' }));
     return { teams, games: [...games, ...regularGames], seasons, trades };
-}, 'rivalry-demo-v2');
+}, 'rivalry-history-v2', [leagueTags.rivalries]);

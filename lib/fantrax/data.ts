@@ -1,11 +1,12 @@
 import { unstable_cache } from 'next/cache';
+import { cache } from 'react';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
 import { playerName, publishedMatchups, type LeagueSnapshot, type MatchupScores, type Period, type RosterStats, type ScheduledMatchup } from './model';
-import { loadRosterStats, loadScoringLeaders } from './leaders';
+import { discoverScoringSeason, loadRosterStats, loadScoringLeaders } from './leaders';
+import { DAY, FANTRAX_TAG, scoresAreArchived } from './cache-policy';
+import { FANTRAX_LEAGUE_ID } from './config';
 
-export const FANTRAX_LEAGUE_ID = 'rf5o9cu2mutybszr';
-export const FANTRAX_LEAGUE_URL = `https://www.fantrax.com/fantasy/league/${FANTRAX_LEAGUE_ID}/home`;
-const DAY = 86400;
+export { FANTRAX_LEAGUE_ID, FANTRAX_LEAGUE_URL } from './config';
 
 // Fantrax team IDs belong to this season; archive franchise IDs persist across seasons and renames.
 const FRANCHISE_IDS: Record<string, number> = {
@@ -51,25 +52,29 @@ const normalizePeriod = (period: Period): Period => ({
 // Cache the data and its actual fetch time together. Refresh on the next visit after 24 hours;
 // no cron, client polling, persistent worker, or database writes are needed.
 async function loadFantrax() {
-    const [info, rosters, standings, players] = await Promise.all([
+    const [info, rosters, standings] = await Promise.all([
         request<LeagueInfo>('getLeagueInfo', { leagueId: FANTRAX_LEAGUE_ID, excludePlayerInfo: 'true' }),
         request<RosterResponse>('getTeamRosters', { leagueId: FANTRAX_LEAGUE_ID }),
         request<Standing[]>('getStandings', { leagueId: FANTRAX_LEAGUE_ID }),
-        request<Record<string, PlayerInfo>>('getPlayerIds', { sport: 'NHL' }),
     ]);
     if (!info.teamInfo || !info.scoringPeriods?.length || !rosters.rosters || !Array.isArray(standings)) {
         throw new Error('Fantrax returned an incomplete league snapshot');
     }
-    // Only rostered players leave this cache. The full NHL directory is about a megabyte.
-    const rosteredPlayers = Object.fromEntries(Object.values(rosters.rosters).flatMap(roster =>
-        roster.rosterItems.map(item => [item.id, players[item.id] ?? null])));
-    return { info, rosters, standings, players: rosteredPlayers, fetchedAt: new Date().toISOString() };
+    return { info, rosters, standings, fetchedAt: new Date().toISOString() };
 }
-const getDailyFantrax = unstable_cache(loadFantrax, ['fantrax-daily', FANTRAX_LEAGUE_ID], { revalidate: DAY });
+const getDailyFantrax = unstable_cache(loadFantrax, ['fantrax-daily-v2', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG] });
+async function loadPlayerDirectory() {
+    const players = await request<Record<string, PlayerInfo>>('getPlayerIds', { sport: 'NHL' });
+    if (!players || !Object.keys(players).length || !Object.values(players).every(player =>
+        typeof player?.name === 'string' && typeof player.position === 'string')) throw new Error('Fantrax returned an invalid player directory');
+    return players;
+}
+const getPlayerDirectory = unstable_cache(loadPlayerDirectory, ['fantrax-player-directory', 'NHL'], { revalidate: 7 * DAY, tags: [FANTRAX_TAG] });
 
 export async function getLeagueSnapshot(options: { fresh?: boolean } = {}): Promise<LeagueSnapshot> {
-    const [source, franchises, archivePlayers] = await Promise.all([
+    const [source, franchises, archivePlayers, players] = await Promise.all([
         options.fresh ? loadFantrax() : getDailyFantrax(), getFranchiseCards(), getArchivedPlayerIds(),
+        options.fresh ? loadPlayerDirectory() : getPlayerDirectory(),
     ]);
     const archiveIds = new Map(archivePlayers.map(player => [player.id.replace(/\*/g, ''), player.id]));
     const teams = Object.entries(source.info.teamInfo).map(([id, team]) => {
@@ -82,10 +87,10 @@ export async function getLeagueSnapshot(options: { fresh?: boolean } = {}): Prom
             logo: franchise?.LogoUrl ?? null, owner: franchise?.Owner ?? null,
             rank: standing?.rank ?? null, record: standing?.points ?? null, points: standing?.totalPointsFor ?? null,
             players: (source.rosters.rosters[id]?.rosterItems ?? []).map(item => ({
-                id: item.id, name: playerName(source.players[item.id]?.name ?? item.id),
-                position: source.players[item.id]?.position ?? item.position,
+                id: item.id, name: playerName(players[item.id]?.name ?? item.id),
+                position: players[item.id]?.position ?? item.position,
                 lineupPosition: item.position,
-                nhlTeam: source.players[item.id]?.team ?? '—', status: item.status,
+                nhlTeam: players[item.id]?.team ?? '—', status: item.status,
                 archiveId: archiveIds.get(item.id) ?? null,
             })).sort((a,b) => a.name.localeCompare(b.name)),
         };
@@ -101,20 +106,47 @@ export async function getLeagueSnapshot(options: { fresh?: boolean } = {}): Prom
     };
 }
 
-export const getMatchupScores = unstable_cache(async (period: number): Promise<MatchupScores> => {
+async function loadMatchupScores(period: number): Promise<MatchupScores> {
     const scores = await request<Omit<MatchupScores, 'fetchedAt'>>('getMatchupScores', {
         leagueId: FANTRAX_LEAGUE_ID, period: String(period),
     });
-    if (!Array.isArray(scores.matchups) || scores.period !== period) throw new Error('Fantrax returned invalid matchup scores');
+    if (!Array.isArray(scores.matchups) || !scores.matchups.length || scores.period !== period ||
+        !scores.matchups.every(matchup => [matchup.away, matchup.home].every(team =>
+            typeof team?.teamId === 'string' && !!team.teamId && Number.isFinite(team.score) && Number.isFinite(team.gamesPlayed)))) {
+        throw new Error('Fantrax returned invalid matchup scores');
+    }
     return { ...scores, fetchedAt: new Date().toISOString() };
-}, ['fantrax-matchup-scores', FANTRAX_LEAGUE_ID], { revalidate: DAY });
+}
+const getDailyScores = unstable_cache(loadMatchupScores, ['fantrax-matchup-scores', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG] });
+const getArchivedScores = unstable_cache(loadMatchupScores, ['fantrax-final-scores', FANTRAX_LEAGUE_ID], { revalidate: false, tags: [FANTRAX_TAG] });
+export async function getMatchupScores(period: number): Promise<MatchupScores | null> {
+    const source = await getDailyFantrax();
+    const raw = source.info.scoringPeriods.find(item => item.number === period);
+    if (!raw) throw new RangeError('Unknown scoring period');
+    const normalized = normalizePeriod(raw);
+    if (Date.now() < Date.parse(normalized.startDate)) return null;
+    // Fetch once more after the correction window before retaining a final result.
+    return scoresAreArchived(normalized.endDate) ? getArchivedScores(period) : getDailyScores(period);
+}
 
-export const getScoringLeaders = unstable_cache(async (seasonYear: number) => {
-    const [players, archive] = await Promise.all([loadScoringLeaders(FANTRAX_LEAGUE_ID, seasonYear), getArchivedPlayerIds()]);
+// Resolve outside the daily caches: nested unstable_cache calls bypass the inner cache.
+const getCachedScoringSeason = unstable_cache(discoverScoringSeason, ['fantrax-scoring-season'], { revalidate: 7 * DAY, tags: [FANTRAX_TAG] });
+// Next supplies React.cache in server renders; standalone scripts use React 18.
+const getScoringSeason = typeof cache === 'function' ? cache(getCachedScoringSeason) : getCachedScoringSeason;
+
+const getDailyLeaders = unstable_cache(async (seasonYear: number, seasonCode: string) => {
+    const [players, archive] = await Promise.all([loadScoringLeaders(FANTRAX_LEAGUE_ID, seasonYear, seasonCode), getArchivedPlayerIds()]);
     const archiveIds = new Map(archive.map(player => [player.id.replace(/\*/g, ''), player.id]));
     return { fetchedAt: new Date().toISOString(), players: players.map(player => ({ ...player, archiveId: archiveIds.get(player.id) ?? null })) };
-}, ['fantrax-scoring-leaders-top-10-per-game', FANTRAX_LEAGUE_ID], { revalidate: DAY });
+}, ['fantrax-scoring-leaders-top-10-per-game', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG] });
 
-export const getRosterStats = unstable_cache(async (seasonYear: number): Promise<RosterStats> => ({
-    players: await loadRosterStats(FANTRAX_LEAGUE_ID, seasonYear), fetchedAt: new Date().toISOString(),
-}), ['fantrax-roster-stats', FANTRAX_LEAGUE_ID], { revalidate: DAY });
+const getDailyRosterStats = unstable_cache(async (seasonYear: number, seasonCode: string): Promise<RosterStats> => ({
+    players: await loadRosterStats(FANTRAX_LEAGUE_ID, seasonYear, seasonCode), fetchedAt: new Date().toISOString(),
+}), ['fantrax-roster-stats', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG] });
+
+export async function getScoringLeaders(seasonYear: number) {
+    return getDailyLeaders(seasonYear, await getScoringSeason(FANTRAX_LEAGUE_ID, seasonYear));
+}
+export async function getRosterStats(seasonYear: number) {
+    return getDailyRosterStats(seasonYear, await getScoringSeason(FANTRAX_LEAGUE_ID, seasonYear));
+}

@@ -1,3 +1,4 @@
+import { playerHref } from '@/lib/player-url';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
@@ -7,6 +8,7 @@ import MatchupBrowser from '@/components/home/matchup-browser';
 import RosterBrowser from '@/components/home/roster-browser';
 import HeroRink from '@/components/home/hero-rink';
 import SectionLink from '@/components/home/section-link';
+import { PLAYOFF_TEAMS } from '@/lib/fantrax/config';
 import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores, getRosterStats, getScoringLeaders } from '@/lib/fantrax/data';
 import { periodPhase, selectPeriod, shortDate } from '@/lib/fantrax/model';
 import { formatFpts, seasonLabel } from '@/lib/league';
@@ -18,18 +20,16 @@ export const metadata: Metadata = {
     description: 'Ye Olde Fantasy Hockey League standings, matchups, rosters, scoring leaders, and season history.',
 };
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ period?: string | string[]; roster?: string | string[] }> }) {
-    const [params, snapshot] = await Promise.all([
-        searchParams,
-        getLeagueSnapshot().catch(() => null),
-    ]);
+export const revalidate = 300;
+
+export default async function HomePage() {
+    const snapshot = await getLeagueSnapshot().catch(() => null);
     const now = Date.now();
-    const period = snapshot ? selectPeriod(snapshot.scoringPeriods, typeof params.period === 'string' ? params.period : undefined, now) : null;
+    const period = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
     const current = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
     const loadScores = (item: typeof period) => item && periodPhase(item, now) !== 'upcoming' ? getMatchupScores(item.number).catch(() => null) : null;
-    const [scores, currentScores, leaders, rosterStats] = await Promise.all([
+    const [scores, leaders, rosterStats] = await Promise.all([
         loadScores(period),
-        current?.number === period?.number ? null : loadScores(current),
         snapshot ? getScoringLeaders(snapshot.seasonYear).catch(error => { console.error('Fantrax scoring leaders unavailable:', error); return null; }) : null,
         snapshot ? getRosterStats(snapshot.seasonYear).catch(error => { console.error('Fantrax roster stats unavailable:', error); return null; }) : null,
     ]);
@@ -39,14 +39,16 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     const updated = snapshot ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(snapshot.fetchedAt)) : null;
     const totalGames = snapshot?.teams.some(team => team.record && team.record !== '0-0-0');
     const seasonPeriods = snapshot?.scoringPeriods.map(item => item.number) ?? [];
-    const rosterFranchiseId = typeof params.roster === 'string' && /^\d+$/.test(params.roster) ? Number(params.roster) : undefined;
+    const playoffTeams = snapshot ? PLAYOFF_TEAMS : 0;
+    const seasonYear = snapshot ? snapshot.seasonYear + 1 : null;
 
     return <main className={styles.home}>
         <section className={styles.hero} aria-labelledby="home-heading">
             <HeroRink />
             <div className={styles.heroInner}>
                 <div className={styles.heroCopy}>
-                    <h1 id="home-heading">YOFHL<br /><span>{season}</span></h1>
+                    <p className={styles.heroKicker}>Ye Olde Fantasy Hockey League</p>
+                    <h1 id="home-heading">YOFHL <span>{season}</span></h1>
                     <div className={styles.heroActions}><Link href="/stats/all-time/all" className={styles.historyButton}>Explore league history <Arrow /></Link><SectionLink href="#current-season" className={styles.seasonButton}>Current season <Arrow direction="down" /></SectionLink></div>
                 </div>
                 <div className={styles.heroArt}>
@@ -61,18 +63,25 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <span className={styles.updateLabel}>{updated ? <>Updated {updated} ET</> : 'Snapshot temporarily unavailable'}</span>
             </div>
 
-            {snapshot && period && current ? <MatchupBrowser periods={snapshot.scoringPeriods} seasonPeriods={seasonPeriods} selected={period} matchups={snapshot.schedule.find(item => item.period === period.number)?.matchupList ?? []} scores={scores} current={{ period: current, matchups: snapshot.schedule.find(item => item.period === current.number)?.matchupList ?? [], scores: current.number === period.number ? scores : currentScores }} teams={snapshot.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} now={now} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
+            {snapshot && period && current ? <MatchupBrowser periods={snapshot.scoringPeriods} seasonPeriods={seasonPeriods} schedule={snapshot.schedule} current={{ period: current, matchups: snapshot.schedule.find(item => item.period === current.number)?.matchupList ?? [], scores }} teams={snapshot.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} now={now} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
 
             <div className={styles.leagueGrid}>
                 <section id="standings" aria-labelledby="standings-heading" tabIndex={-1}>
                     <div className={styles.sectionHeading}><h2 id="standings-heading">Standings</h2></div>
                     <div className={styles.standingsPanel}>
-                        {snapshot ? <table className={styles.standingsTable}><caption className="sr-only">{season} YOFHL standings. {preseason ? 'Season has not started; all teams are tied.' : ''}</caption><thead><tr><th scope="col"><span className="sr-only">Rank</span>#</th><th scope="col">Team</th><th scope="col">W–L–T</th><th scope="col"><abbr title="Fantasy points for">FPts</abbr></th></tr></thead><tbody>
-                            {snapshot.teams.map(team => <tr key={team.id}>
-                                <td className={styles.standingsRank}>{preseason || !totalGames ? '—' : team.rank ?? '—'}</td>
-                                <th scope="row">{team.franchiseId ? <Link href={`/teams/${team.franchiseId}`} className={styles.standingTeam}><TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={34} ring="none" /><span>{team.name}</span></Link> : <span>{team.name}</span>}</th>
-                                <td className={styles.standingsRecord}>{team.record ?? '—'}</td><td className={styles.standingsPoints}>{team.points == null ? '—' : formatFpts(team.points)}</td>
-                            </tr>)}
+                        {snapshot ? <table className={styles.standingsTable}><caption className="sr-only">{season} YOFHL standings. {preseason ? 'Season has not started; all teams are tied.' : ''} {playoffTeams ? `The top ${playoffTeams} teams make the playoffs.` : ''}</caption><thead><tr><th scope="col"><span className="sr-only">Rank</span>#</th><th scope="col">Team</th><th scope="col">W–L–T</th><th scope="col"><abbr title="Fantasy points for">FPts</abbr></th></tr></thead><tbody>
+                            {snapshot.teams.flatMap((team, index) => {
+                                const name = <span className={styles.standingName}><span>{team.name}</span></span>;
+                                const row = <tr key={team.id}>
+                                    <td className={styles.standingsRank}>{preseason || !totalGames ? '—' : team.rank ?? '—'}</td>
+                                    <th scope="row">{team.franchiseId ? <Link href={`/teams/${team.franchiseId}`} className={styles.standingTeam}><TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={36} ring="none" />{name}</Link> : name}</th>
+                                    <td className={styles.standingsRecord}>{team.record ?? '—'}</td><td className={styles.standingsPoints}>{team.points == null ? '—' : formatFpts(team.points)}</td>
+                                </tr>;
+                                // the caption already says how many teams make it, so the line itself is decoration
+                                return index === playoffTeams - 1 && index < snapshot.teams.length - 1
+                                    ? [row, <tr key="playoff-line" className={styles.playoffLine} aria-hidden="true"><td colSpan={4}><span>Playoffs</span></td></tr>]
+                                    : [row];
+                            })}
                         </tbody></table> : <p className={styles.emptyState}>Standings will return when the league snapshot is available.</p>}
                         <div className={styles.standingsFooter}><span>{preseason || !totalGames ? 'No games played yet' : null}</span><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer">View on fantrax <Arrow direction="out" /></a></div>
                     </div>
@@ -89,7 +98,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                                     <span className={styles.leaderRank} aria-label={`Rank ${index + 1}`}>{index + 1}</span>
                                     {team?.franchiseId ? <Link className={styles.leaderLogo} href={`/teams/${team.franchiseId}`} aria-label={`${team.name} team page`}>{logo}</Link> : logo}
                                     <div className={styles.leaderDetails}>
-                                        {player.archiveId ? <Link className={styles.leaderName} href={`/player/${encodeURIComponent(player.archiveId)}`}>{player.name}</Link> : <span className={styles.leaderName}>{player.name}</span>}
+                                        {player.archiveId ? <Link className={styles.leaderName} href={playerHref(player.archiveId)}>{player.name}</Link> : <span className={styles.leaderName}>{player.name}</span>}
                                         <span className={styles.leaderPosition}>{player.position.replace(/,/g, ' · ')}</span>
                                     </div>
                                     <div className={styles.leaderStats}>
@@ -103,9 +112,29 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 </section>
             </div>
 
-            {snapshot ? <RosterBrowser key={rosterFranchiseId ?? 'default'} teams={snapshot.teams} rosterPeriod={snapshot.rosterPeriod} initialFranchiseId={rosterFranchiseId} stats={rosterStats} seasonYear={snapshot.seasonYear} /> : null}
+            {snapshot ? <RosterBrowser teams={snapshot.teams} rosterPeriod={snapshot.rosterPeriod} stats={rosterStats} /> : null}
 
-            <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading"><div><h2 id="archive-heading">This league has history.</h2><Link href="/stats/all-time/all" className={styles.historyButton}>Explore league history <Arrow /></Link></div><div className={styles.archiveLinks}><Link href="/season">Seasons <Arrow /></Link><Link href="/awards">Awards <Arrow /></Link><Link href="/teams/stats">Franchise records <Arrow /></Link></div></section>
+            <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading">
+                <div className={styles.archiveBackdrop} aria-hidden="true">
+                    <span className={styles.archivePanel} /><span className={styles.archiveRed} /><span className={styles.archiveGold} />
+                    <div className={styles.archiveDots}><div className={styles.archiveSweep} /></div>
+                </div>
+                <div className={styles.archiveIntro}><h2 id="archive-heading">This league has history.</h2><Link href="/stats/all-time/all" className={styles.historyButton}>Explore league history <Arrow /></Link></div>
+                <nav className={styles.archiveTiles} aria-label="League history">
+                    <Link href="/season" className={styles.archiveTile}>
+                        <span className={styles.archiveVisual} aria-hidden="true">{seasonYear ? <span className={styles.archiveYears}><b>{seasonLabel(seasonYear)}</b><i>{seasonLabel(seasonYear - 1)}</i><i>{seasonLabel(seasonYear - 2)}</i></span> : null}</span>
+                        <span className={styles.archiveLabel}>Seasons</span>
+                    </Link>
+                    <Link href="/awards" className={styles.archiveTile}>
+                        <span className={`${styles.archiveVisual} ${styles.archiveTrophies}`} aria-hidden="true">{['Jagr Cup', 'Wayne Gretzky Award', 'Hasek Trophy'].map(award => <TrophyArt key={award} award={award} className={styles.archiveTrophy} sizes="96px" />)}</span>
+                        <span className={styles.archiveLabel}>Awards</span>
+                    </Link>
+                    <Link href="/records" className={styles.archiveTile}>
+                        <span className={`${styles.archiveVisual} ${styles.archiveRanks}`} aria-hidden="true">{[100, 76, 58].map((width, index) => <span key={width}><b>{`0${index + 1}`}</b><i><em style={{ width: `${width}%` }} /></i></span>)}</span>
+                        <span className={styles.archiveLabel}>Record book</span>
+                    </Link>
+                </nav>
+            </section>
 
             <footer className={styles.footer}><span><strong>YOFHL</strong> Ye Olde Fantasy Hockey League</span><span>League data from Fantrax.</span></footer>
         </div>

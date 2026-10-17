@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
+import { leagueTags } from './cache-tags';
 import { parseTeamColours, type TeamColours } from '../team-branding';
 
 export const getTeamBranding = cached(async (): Promise<Record<number, TeamColours>> => {
@@ -10,4 +11,4 @@ export const getTeamBranding = cached(async (): Promise<Record<number, TeamColou
         const colours = parseTeamColours(team.branding, team.id);
         return colours ? [[team.id, colours]] : [];
     }));
-}, 'team-branding');
+}, 'team-branding', [leagueTags.branding]);

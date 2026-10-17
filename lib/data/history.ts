@@ -1,7 +1,9 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
+import { leagueTags } from './cache-tags';
 import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
+import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/development';
 
 export const getFranchiseHonors = cached(async (id: number): Promise<FranchiseHonors> => {
     const [primeMinisters, awards] = await Promise.all([
@@ -22,7 +24,7 @@ export const getFranchiseHonors = cached(async (id: number): Promise<FranchiseHo
             order by a.season_year desc, at.sort_order, p.name`),
     ]);
     return { primeMinisters, awards };
-}, 'franchise-honors');
+}, 'franchise-honors', [leagueTags.awards]);
 
 export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`
     select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",
@@ -34,9 +36,10 @@ export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql
     where d.franchise_id = ${id}
     order by d.season_year desc, d.overall`), 'franchise-draft');
 
-export const getSeasonDraft = cached((year: number) => rows<SeasonDraftSelection>(sql`
+type SeasonDraftRow = Omit<SeasonDraftSelection, 'regretEligible'> & { draftedOn: string; developmentFacts: DraftDevelopmentFacts | null };
+const getSeasonDraftRows = cached((year: number) => rows<SeasonDraftRow>(sql`
     select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",
-           coalesce(p.name, d.player_name) as player, d.positions,
+           coalesce(p.name, d.player_name) as player, d.positions, d.drafted_on::text as "draftedOn", d.development_facts as "developmentFacts",
            d.franchise_id as "franchiseId", d.team_name as "teamName",
            t.abbreviation as "teamAbbreviation", t.logo_url as "teamLogo",
            ps.fpts::float8 as points, ps.fpg::float8 as fpg
@@ -45,7 +48,13 @@ export const getSeasonDraft = cached((year: number) => rows<SeasonDraftSelection
     left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
     left join league.team_seasons t on t.franchise_id = d.franchise_id and t.season_year = d.season_year
     where d.season_year = ${year}
-    order by d.overall`), 'season-draft-v2');
+    order by d.overall`), 'season-draft-v3-development');
+
+export async function getSeasonDraft(year: number): Promise<SeasonDraftSelection[]> {
+    return (await getSeasonDraftRows(year)).map(({ draftedOn, developmentFacts, ...pick }) => ({
+        ...pick, regretEligible: draftRegretEligible({ ...pick, draftedOn }, developmentFacts),
+    }));
+}
 
 export const getHistorySeasons = cached(async (scope: HistoryScope) => {
     const found = await rows<{ year: number }>(sql`

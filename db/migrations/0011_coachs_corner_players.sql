@@ -1,0 +1,1 @@
+ALTER TABLE "league"."coachs_corner_episodes" ADD COLUMN "players" jsonb;

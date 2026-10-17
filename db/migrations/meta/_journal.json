@@ -64,6 +64,27 @@
       "when": 1791161513390,
       "tag": "0008_team_branding",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792184592421,
+      "tag": "0009_draft_development",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792259628426,
+      "tag": "0010_coachs_corner",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792270985477,
+      "tag": "0011_coachs_corner_players",
+      "breakpoints": true
     }
   ]
 }

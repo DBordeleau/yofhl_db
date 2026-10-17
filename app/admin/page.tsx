@@ -31,6 +31,10 @@ export default async function AdminHome() {
                 <div><p className="font-wide text-lg font-extrabold">Teams & owners</p><p className="mt-1 text-sm text-ink-soft">Edit team names and logos, and generate owner invitation codes.</p></div>
                 <Arrow className="text-2xl" />
             </Link>
+            <Link href="/admin/coachs-corner" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice">
+                <div><p className="font-wide text-lg font-extrabold">Coach’s Corner</p><p className="mt-1 text-sm text-ink-soft">Write, preview and publish this week’s Don and Ron segment.</p></div>
+                <Arrow className="text-2xl" />
+            </Link>
             <Link href="/admin/lottery" className="mb-6 flex items-center justify-between gap-4 rounded-2xl bg-ink p-5 text-white hover:bg-[#232C4A]">
                 <div><p className="font-wide text-lg font-extrabold">Draft lottery</p><p className="mt-1 text-sm text-slate-300">Schedule the live event, set odds and build the draft order.</p></div>
                 <Arrow className="text-2xl" />

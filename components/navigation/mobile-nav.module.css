@@ -1,0 +1,18 @@
+.shell { display: none; }
+.bar { position: fixed; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 5px 8px calc(5px + env(safe-area-inset-bottom)); border-top: 1px solid #dce5ee; background: #fff; box-shadow: 0 -8px 24px #12182e0a; z-index: 60; }
+.bar a, .bar button { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; min-height: 56px; border-radius: 12px; color: #56627a; font-size: 11px; font-weight: 750; }
+.bar svg { width: 21px; height: 21px; }
+.bar [aria-current], .bar [data-active], .bar [aria-expanded=true] { color: #1f6fc2; background: #eef4fa; }
+.bar :focus-visible { outline: 3px solid #1f6fc2; outline-offset: -3px; }
+.links { display: grid; border: 1px solid #dce5ee; border-radius: 15px; overflow: hidden; background: white; }
+.links a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; min-height: 62px; }
+.links a + a { border-top: 1px solid #e6edf4; }
+.links a:hover { background: #eef4fa; }
+.links strong, .links small { display: block; }
+.links small { margin-top: 3px; color: #56627a; font-size: 12px; }
+.account { margin-top: 16px; }
+@media (max-width: 1023px) {
+    .shell { display: block; }
+    :global(body):has(.shell) { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+    :global(body:has(#public-search:focus, #compare-search:focus, [data-header-search-open])) .bar { display: none; }
+}

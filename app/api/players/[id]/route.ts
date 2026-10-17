@@ -1,3 +1,4 @@
+import { publicJson } from '@/lib/public-json';
 import { NextResponse } from 'next/server';
 import { getPlayer } from '@/lib/data/league';
 
@@ -5,5 +6,5 @@ import { getPlayer } from '@/lib/data/league';
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
     const player = await getPlayer(decodeURIComponent((await params).id));
     if (!player) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
-    return NextResponse.json(player);
+    return publicJson(player);
 }

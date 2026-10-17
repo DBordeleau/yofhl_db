@@ -50,11 +50,13 @@ The room includes a pulsing live indicator and animated pick and row reveals. Re
 
 The lottery page renders dynamically. `/api/lottery` uses `Cache-Control: no-store, max-age=0` and bypasses the shared league cache.
 
-- The room refreshes after each response, waiting one second during the live event and within 15 seconds of the start, or 15 seconds otherwise.
-- A failed request shows a reconnecting state and retries after 2.5 seconds. Requests time out after ten seconds. Returning to the tab or coming back online triggers a refresh.
+- The room refreshes after each response, waiting one second during the live event and within 15 seconds of the start, or 15 seconds otherwise. Polling and the local display clock stop once the server confirms completion. Reload the page to see a subsequently scheduled event.
+- Hidden tabs pause room requests and clock updates. Returning to a visible, unfinished room or coming back online triggers a refresh. A failed request shows a reconnecting state and retries after 2.5 seconds. Requests time out after ten seconds.
 - The navigation summary checks every 30 seconds while visible and when the tab becomes visible again. The link includes the event's Eastern calendar year (for example, **2026 Draft Lottery**). Its badge changes from a countdown to **Live**, then **Concluded** five minutes after the scheduled start, independently of the draw animation. For the October 4, 2026 event, that is 7:35 PM Eastern. The local display clock updates every second, so it does not wait for the next summary request to change the badge.
 
 This is HTTP polling, with no WebSocket server or cron job to provision. A disconnected viewer catches up to the saved result on the next successful request. The application still depends on Vercel and Neon being available; the code does not guarantee uninterrupted delivery.
+
+An ordinary public read retrieves the event, current logos, and database time in one query. A draw adds the guarded write and one fresh read of the persisted result, preserving concurrent-draw protection and timed disclosure.
 
 To check a deployment, open the public room and inspect `/api/lottery?summary=1`. Use the admin preview to check animations and the concluded layout. Run rehearsals that schedule actual events against a separate database, since even a public read can settle a scheduled draw after its start.
 
@@ -67,7 +69,8 @@ To check a deployment, open the public room and inspect `/api/lottery?summary=1`
 | [lib/lottery/data.ts](../lib/lottery/data.ts) | Active franchise lookup and public event reads |
 | [app/admin/lottery/actions.ts](../app/admin/lottery/actions.ts) | Authenticated scheduling and cancellation |
 | [components/lottery/lottery-room.tsx](../components/lottery/lottery-room.tsx) | Shared public and preview presentation |
-| [components/lottery/use-lottery.ts](../components/lottery/use-lottery.ts) | Room polling, clock synchronization, and retry behavior |
+| [lib/lottery/polling.ts](../lib/lottery/polling.ts) | Room polling, visibility, clock synchronization, and retry behavior |
+| [components/lottery/use-lottery.ts](../components/lottery/use-lottery.ts) | React subscription to the room data and clock |
 | [components/admin/lottery-preview.tsx](../components/admin/lottery-preview.tsx) | Local playback controls and sample event |
 
 `npm run test:lottery` covers odds, timezone boundaries, reveal timing, result disclosure, order, saved logos, and database race/deadline behavior. Database tests use in-memory PGlite and do not connect to the league database.

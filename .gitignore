@@ -14,6 +14,9 @@
 
 # testing
 /coverage
+/.cache/
+/output/
+/.codex-remote-attachments/
 
 # local PGlite database (DATABASE_URL_V2=pglite:.pglite)
 /.pglite
@@ -43,3 +46,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Private, local draft companion data and build
+/companion/.data/
+/companion/.next/
+
+# Local NHL metadata cache used during imports.
+/.cache/draft-development/
+
+# Local audio tools and source previews; edited comparison clips live in public/.
+/.cache/audio-tools/
+/.cache/freesound/
+/.cache/coachs-corner-verify-*/
+
+# Working episode packets may contain private league notes. Approved continuity is tracked separately.
+/local/coachs-corner/

@@ -23,7 +23,8 @@ export const roundLabel = (game: RivalryGame) => game.stage === 'regular' ? `Per
 export const gameScore = (game: RivalryGame, team: number) => game.away === team ? game.awayScore : game.homeScore;
 
 export function rivalryGames(games: RivalryGame[], a: number, b: number) {
-    return games.filter(game => (game.away === a && game.home === b) || (game.away === b && game.home === a))
+    return games.filter(game => (game.awayScore !== 0 || game.homeScore !== 0)
+        && ((game.away === a && game.home === b) || (game.away === b && game.home === a)))
         .sort((x, y) => y.year - x.year || y.round - x.round);
 }
 
@@ -34,7 +35,7 @@ export function directAssets(trade: RivalryTrade, a: number, b: number) {
 export function pairSummary(games: RivalryGame[], a: number, b: number) {
     const meetings = rivalryGames(games, a, b);
     // Adjusted scores preserve the recorded winner, but cannot establish a real margin.
-    const closest = meetings.filter(game => !game.adjusted && (game.winner !== null || (game.stage === 'regular' && (game.awayScore !== 0 || game.homeScore !== 0))))
+    const closest = meetings.filter(game => !game.adjusted && (game.winner !== null || game.stage === 'regular'))
         .sort((x, y) => Math.abs(x.awayScore - x.homeScore) - Math.abs(y.awayScore - y.homeScore))[0] ?? null;
     return { meetings, closest, winsA: meetings.filter(game => game.winner === a).length, winsB: meetings.filter(game => game.winner === b).length,
         pointsA: meetings.reduce((sum, game) => sum + Math.round(gameScore(game, a) * 100), 0) / 100,

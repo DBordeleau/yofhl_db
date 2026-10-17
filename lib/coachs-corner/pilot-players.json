@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Tom Wilson",
+    "headshot": "https://fantraximg.com/si/headshots/NHL/hs02noj_96_9.png",
+    "nhlTeam": "WSH",
+    "positions": [
+      "RW"
+    ],
+    "season": 2026,
+    "fpts": 372,
+    "fpg": 5.17,
+    "games": null
+  },
+  {
+    "name": "William Nylander",
+    "headshot": "https://fantraximg.com/si/headshots/NHL/hs02yjj_96_9.png",
+    "nhlTeam": "TOR",
+    "positions": [
+      "RW"
+    ],
+    "season": 2026,
+    "fpts": 378.25,
+    "fpg": 5.82,
+    "games": null
+  },
+  {
+    "name": "Nico Hischier",
+    "headshot": "https://fantraximg.com/si/headshots/NHL/hs0457f_96_8.png",
+    "nhlTeam": "NJD",
+    "positions": [
+      "C"
+    ],
+    "season": 2026,
+    "fpts": 382.25,
+    "fpg": 4.66,
+    "games": null
+  }
+]

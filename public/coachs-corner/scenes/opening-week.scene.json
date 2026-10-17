@@ -1,0 +1,2095 @@
+{
+  "$schema": "../scene.schema.json",
+  "schemaVersion": 1,
+  "id": "opening-week",
+  "title": "Coach's Corner: draft and opening matchups",
+  "assetManifest": "/coachs-corner/robots-v2/manifest.json",
+  "timing": {
+    "mode": "text",
+    "wordUnit": "whitespace-token",
+    "autoPunctuationPauses": false,
+    "defaultDelivery": "normal",
+    "defaultWpm": 180,
+    "defaultRunHoldMs": 0,
+    "defaultLineHoldMs": 180,
+    "poseTransitionMs": 120,
+    "mouthTransitionMs": 70,
+    "mouthCycleMs": 190
+  },
+  "accessibility": {
+    "reducedMotion": "disable-motion",
+    "keepTypography": true
+  },
+  "characters": {
+    "don": {
+      "name": "Don",
+      "seat": "left",
+      "idlePose": "don-default",
+      "talkPose": "don-talk"
+    },
+    "ron": {
+      "name": "Ron",
+      "seat": "right",
+      "idlePose": "ron-default",
+      "talkPose": "ron-talk"
+    }
+  },
+  "deliveryStyles": {
+    "normal": {
+      "typography": {
+        "fontScale": 1,
+        "fontWeight": 500,
+        "fontStyle": "normal"
+      },
+      "textMotion": {
+        "effect": "none",
+        "offsetPx": 0,
+        "rotationDeg": 0,
+        "hz": 0
+      },
+      "characterMotion": {
+        "effect": "bob",
+        "offsetPx": 0.9,
+        "rotationDeg": 0.15,
+        "hz": 6
+      }
+    },
+    "yell": {
+      "typography": {
+        "fontScale": 1.32,
+        "fontWeight": 800,
+        "fontStyle": "normal"
+      },
+      "textMotion": {
+        "effect": "shake",
+        "offsetPx": 1.4,
+        "rotationDeg": 0.2,
+        "hz": 9
+      },
+      "characterMotion": {
+        "effect": "shake",
+        "offsetPx": 2.5,
+        "rotationDeg": 0.55,
+        "hz": 9
+      }
+    },
+    "deadpan": {
+      "typography": {
+        "fontScale": 1,
+        "fontWeight": 500,
+        "fontStyle": "normal"
+      },
+      "textMotion": {
+        "effect": "none",
+        "offsetPx": 0,
+        "rotationDeg": 0,
+        "hz": 0
+      },
+      "characterMotion": {
+        "effect": "none",
+        "offsetPx": 0,
+        "rotationDeg": 0,
+        "hz": 0
+      }
+    },
+    "firm": {
+      "typography": {
+        "fontScale": 1.08,
+        "fontWeight": 700,
+        "fontStyle": "normal"
+      },
+      "textMotion": {
+        "effect": "none",
+        "offsetPx": 0,
+        "rotationDeg": 0,
+        "hz": 0
+      },
+      "characterMotion": {
+        "effect": "bob",
+        "offsetPx": 0.5,
+        "rotationDeg": 0.1,
+        "hz": 5
+      }
+    },
+    "mocking": {
+      "typography": {
+        "fontScale": 1,
+        "fontWeight": 500,
+        "fontStyle": "italic"
+      },
+      "textMotion": {
+        "effect": "none",
+        "offsetPx": 0,
+        "rotationDeg": 0,
+        "hz": 0
+      },
+      "characterMotion": {
+        "effect": "bob",
+        "offsetPx": 1.1,
+        "rotationDeg": 0.25,
+        "hz": 5
+      }
+    },
+    "warm": {
+      "typography": {
+        "fontScale": 1,
+        "fontWeight": 600,
+        "fontStyle": "normal"
+      },
+      "textMotion": {
+        "effect": "none",
+        "offsetPx": 0,
+        "rotationDeg": 0,
+        "hz": 0
+      },
+      "characterMotion": {
+        "effect": "bob",
+        "offsetPx": 0.8,
+        "rotationDeg": 0.15,
+        "hz": 5
+      }
+    }
+  },
+  "initialState": {
+    "poses": {
+      "don": "don-point",
+      "ron": "ron-default"
+    },
+    "props": {
+      "monitorPower": "off"
+    }
+  },
+  "events": [
+    {
+      "id": "direction-01",
+      "type": "stage",
+      "poses": {
+        "don": "don-point",
+        "ron": "ron-default"
+      },
+      "props": {
+        "monitorPower": "off"
+      },
+      "transitionMs": 0,
+      "durationMs": 450,
+      "caption": "clear",
+      "direction": "Don is already pointing at a monitor that isn’t on."
+    },
+    {
+      "id": "line-001",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 172,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-point"
+      },
+      "afterPose": "ron-default",
+      "ending": "interrupted",
+      "interruptedBy": "don",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "The YOFHL draft was Saturday, and we’ve got the opening matchups—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-002",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 192,
+      "pose": "don-point-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-point",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Yeah.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " And put the thing up.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " The other thing.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " With the kid.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " No, that’s the standings.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " I don’t want the standings.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-003",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 152,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-point"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "The draft.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-004",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 184,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "interrupted",
+      "interruptedBy": "ron",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "THE DRAFT.",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 165,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " That’s what I said.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Now, McKenney goes first—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-005",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 145,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "McKenna.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-006",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 184,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "I KNOW THE KID.",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 177,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Terrific kid.",
+          "delivery": "warm",
+          "wpm": 164,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " And then Boldy.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Good player.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Then this Stenborg fella goes third.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-007",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 156,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Ivar Stenberg.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-008",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 197,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "interrupted",
+      "interruptedBy": "ron",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "Yeah.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " And you’ve got fellas sitting there, played in the league, can help you ",
+          "holdAfterMs": 0
+        },
+        {
+          "text": "NOW,",
+          "delivery": "firm",
+          "wpm": 140,
+          "holdAfterMs": 0
+        },
+        {
+          "text": " and Jeremy’s taking a kid because some guy on the computer says—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-009",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 164,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "It’s a keeper league.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-010",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 184,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "self-cutoff",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "I KNOW IT’S A KEEPER LEAGUE, RON.",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 198,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " You think I came in here and didn’t know that?",
+          "delivery": "firm",
+          "wpm": 198,
+          "holdAfterMs": 170
+        },
+        {
+          "text": " I’ve been doing this—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "direction-02",
+      "type": "stage",
+      "poses": {
+        "don": "don-tie-adjust",
+        "ron": "ron-default"
+      },
+      "transitionMs": 180,
+      "durationMs": 1250,
+      "caption": "clear",
+      "direction": "Adjusts tie. Looks down at an empty patch of desk."
+    },
+    {
+      "id": "line-011",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "deadpan",
+      "wpm": 134,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-pause",
+      "ending": "complete",
+      "holdAfterMs": 300,
+      "runs": [
+        {
+          "text": "Who took him?",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-012",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 162,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-pause"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Jeremy.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Hooterville.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-013",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "deadpan",
+      "wpm": 156,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Yeah.",
+          "holdAfterMs": 240
+        },
+        {
+          "text": " Well.",
+          "holdAfterMs": 300
+        },
+        {
+          "text": " We’ll get to him.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-014",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 162,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-stare"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "We’re on him now.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-015",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 174,
+      "pose": "don-point-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-point",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "No, put up Wilson.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-016",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 168,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-point"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Tom Wilson went seventy-sixth.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-017",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 194,
+      "pose": "don-point-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-point",
+      "ending": "interrupted",
+      "interruptedBy": "ron",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "SEVENTY-SIXTH!",
+          "delivery": "yell",
+          "pose": "don-surprised",
+          "wpm": 130,
+          "holdAfterMs": 350
+        },
+        {
+          "text": " There.",
+          "holdAfterMs": 180
+        },
+        {
+          "text": " There’s your league.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Right there.",
+          "holdAfterMs": 180
+        },
+        {
+          "text": " Seventy-six.",
+          "holdAfterMs": 200
+        },
+        {
+          "text": " Big fella.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Goes to the net.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Nobody wants him.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Everybody wants little Noodles and Hishner—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-018",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 176,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Nylander and Hischier are very good players.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-019",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 195,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "DID I SAY THEY WEREN’T?",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 202,
+          "holdAfterMs": 150
+        },
+        {
+          "text": " You do this every week.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " I say Wilson’s a good player and now I hate everybody.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-020",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 174,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "interrupted",
+      "interruptedBy": "don",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "You called them—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-021",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 180,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Eric got him.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Good for Eric.",
+          "delivery": "warm",
+          "pose": "don-thumbs-up-talk",
+          "wpm": 162,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Smart.",
+          "delivery": "warm",
+          "pose": "don-thumbs-up-talk",
+          "wpm": 162,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Now who’s Eric playing?",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-022",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 170,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Andrew.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " The Hall Monitors.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-023",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 140,
+      "pose": "don-surprised",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 250,
+      "runs": [
+        {
+          "text": "The what?",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-024",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 158,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-stare"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "Hamhung Hall Monitors.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "direction-03",
+      "type": "stage",
+      "poses": {
+        "don": "don-stare",
+        "ron": "ron-default"
+      },
+      "transitionMs": 100,
+      "durationMs": 1900,
+      "caption": "keep",
+      "direction": "Don stares."
+    },
+    {
+      "id": "line-025",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "deadpan",
+      "wpm": 130,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-stare",
+      "ending": "complete",
+      "holdAfterMs": 260,
+      "runs": [
+        {
+          "text": "Alright.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-026",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 166,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-stare"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Andrew’s slightly ahead.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-027",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "deadpan",
+      "wpm": 160,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Well, there you go.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-028",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 164,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "You just said Eric was smart.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-029",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 177,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "He ",
+          "holdAfterMs": 0
+        },
+        {
+          "text": "IS",
+          "delivery": "firm",
+          "wpm": 135,
+          "holdAfterMs": 0
+        },
+        {
+          "text": " smart.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Doesn’t mean he’s winning.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " You can be smart and lose.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " I coached Boston.",
+          "delivery": "deadpan",
+          "wpm": 148,
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "direction-04",
+      "type": "stage",
+      "poses": {
+        "don": "don-stare",
+        "ron": "ron-look-down"
+      },
+      "transitionMs": 180,
+      "durationMs": 1150,
+      "caption": "keep",
+      "direction": "Ron looks down."
+    },
+    {
+      "id": "line-030",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 145,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-look-down"
+      },
+      "afterPose": "don-stare",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Don’t start.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-031",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 158,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-stare"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "I didn’t say anything.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-032",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 185,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "interrupted",
+      "interruptedBy": "ron",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "You were going to.",
+          "delivery": "deadpan",
+          "wpm": 153,
+          "holdAfterMs": 450
+        },
+        {
+          "text": "\nNow Jagrtown.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Nick.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " He’s got the most points, right?",
+          "holdAfterMs": 170
+        },
+        {
+          "text": " Him and the Skittle—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-033",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 158,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Skellige Sirens.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Monike.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-034",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 194,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Yeah.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " They’re right there together.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Couple points.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " But Nick’s played five more games!",
+          "delivery": "firm",
+          "wpm": 198,
+          "holdAfterMs": 120
+        },
+        {
+          "text": " FIVE!",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 120,
+          "holdAfterMs": 260
+        },
+        {
+          "text": " Don’t sit there telling everybody what a genius you are.",
+          "delivery": "firm",
+          "wpm": 205,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " You’ve had five more guys go out!",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 205,
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-035",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 164,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Five more player games.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-036",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "yell",
+      "wpm": 190,
+      "pose": "don-angry-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "WHAT DID I JUST SAY?",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-037",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 162,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "It’s a close matchup.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-038",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "deadpan",
+      "wpm": 177,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "It’s very close.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " I just said that.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Good matchup.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Leave it alone.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "direction-05",
+      "type": "pause",
+      "poses": {
+        "don": "don-pause",
+        "ron": "ron-default"
+      },
+      "transitionMs": 180,
+      "durationMs": 2800,
+      "caption": "clear",
+      "direction": "Long pause."
+    },
+    {
+      "id": "line-039",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "deadpan",
+      "wpm": 118,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 300,
+      "runs": [
+        {
+          "text": "Paddyville.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-040",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 170,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Pat’s trailing Dillon by quite a bit.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-041",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 189,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Yeah, I saw that.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Forty-something.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Lucifers.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " You name your team that, you better show up.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " You can’t be the Lucifers and get pushed around all night.",
+          "delivery": "firm",
+          "wpm": 185,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Call yourself the Pat Something.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " The Pats.",
+          "delivery": "deadpan",
+          "wpm": 145,
+          "holdAfterMs": 230
+        },
+        {
+          "text": " Then nobody expects anything.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-042",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 174,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Kyle Connor was his first pick.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-043",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "warm",
+      "wpm": 180,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "self-cutoff",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "Good player.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Shoots.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " I like him.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Doesn’t fool around.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " See, that’s what I’m—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "direction-06",
+      "type": "stage",
+      "poses": {
+        "don": "don-point",
+        "ron": "ron-surprised"
+      },
+      "transitionMs": 60,
+      "durationMs": 60,
+      "caption": "clear",
+      "direction": "Points suddenly."
+    },
+    {
+      "id": "line-044",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 170,
+      "pose": "don-point-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-point",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "HOOTERVILLE.",
+          "delivery": "yell",
+          "wpm": 145,
+          "holdAfterMs": 120
+        },
+        {
+          "text": " Go back.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-045",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 174,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-point"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Jeremy’s ahead of New Purrsey.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-046",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "yell",
+      "wpm": 135,
+      "pose": "don-angry-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 280,
+      "runs": [
+        {
+          "text": "ONE GOAL.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-047",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 158,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Eighteen assists.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-048",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 184,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "ONE GOAL, RON.",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 155,
+          "holdAfterMs": 240
+        },
+        {
+          "text": " Whole team.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Everybody’s out there going, ",
+          "holdAfterMs": 0
+        },
+        {
+          "text": "“Here, you take it.",
+          "delivery": "mocking",
+          "wpm": 168,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " No, you take it.”",
+          "delivery": "mocking",
+          "wpm": 168,
+          "holdAfterMs": 140
+        },
+        {
+          "text": " SHOOT THE DAMN THING.",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 187,
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-049",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 150,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "They’re winning.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-050",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "yell",
+      "wpm": 210,
+      "pose": "don-angry-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "That’s what makes it worse!",
+          "holdAfterMs": 120
+        },
+        {
+          "text": " Dan!",
+          "holdAfterMs": 120
+        },
+        {
+          "text": " You’re losing to this!",
+          "holdAfterMs": 120
+        },
+        {
+          "text": " The whole team’s afraid to shoot and you’re sitting there behind them!",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "direction-07",
+      "type": "stage",
+      "poses": {
+        "don": "don-lean-camera",
+        "ron": "ron-default"
+      },
+      "transitionMs": 180,
+      "durationMs": 260,
+      "caption": "clear",
+      "direction": "Leans into camera."
+    },
+    {
+      "id": "line-051",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 151,
+      "pose": "don-lean-camera",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "I wouldn’t say a WORD in the group chat.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Nothing.",
+          "delivery": "deadpan",
+          "wpm": 120,
+          "holdAfterMs": 240
+        },
+        {
+          "text": " Put the phone in a drawer.",
+          "holdAfterMs": 240
+        },
+        {
+          "text": " You’re done talking until somebody scores.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-052",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 176,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Carolina’s also ahead of West Texas.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-053",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "normal",
+      "wpm": 186,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "interrupted",
+      "interruptedBy": "ron",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "Brian.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Yeah.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Twice the hits.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " I saw that.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " That’s what happens.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " You go in there, finish your check—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-054",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 170,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "There are other scoring categories.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-055",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "deadpan",
+      "wpm": 150,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 240,
+      "runs": [
+        {
+          "text": "Oh, here we go.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-056",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 172,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "interrupted",
+      "interruptedBy": "don",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "I’m just—",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-057",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 177,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "No, you don’t like hitting.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Never have.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-058",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 163,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "We’re discussing fantasy hockey.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-059",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "yell",
+      "wpm": 178,
+      "pose": "don-angry-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "AND THEY’RE LOSING AT IT.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-060",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 174,
+      "pose": "ron-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Kaley’s still got until Monday.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-061",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "yell",
+      "wpm": 207,
+      "pose": "don-angry-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "Well, good!",
+          "holdAfterMs": 120
+        },
+        {
+          "text": " Get going!",
+          "holdAfterMs": 120
+        },
+        {
+          "text": " Everybody’s got until Monday!",
+          "holdAfterMs": 120
+        },
+        {
+          "text": " Why are we sitting here handing out trophies on Thursday?",
+          "delivery": "firm",
+          "pose": "don-talk",
+          "wpm": 195,
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-062",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "deadpan",
+      "wpm": 143,
+      "pose": "ron-skeptical-talk",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "We aren’t.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-063",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "deadpan",
+      "wpm": 151,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "Alright then.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "direction-08",
+      "type": "stage",
+      "poses": {
+        "don": "don-mic-remove",
+        "ron": "ron-default"
+      },
+      "transitionMs": 180,
+      "durationMs": 950,
+      "caption": "clear",
+      "direction": "Starts removing microphone."
+    },
+    {
+      "id": "line-064",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "normal",
+      "wpm": 180,
+      "pose": "ron-warning",
+      "listenerPoses": {
+        "don": "don-mic-remove"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 180,
+      "runs": [
+        {
+          "text": "We’ve got twenty seconds.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-065",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 169,
+      "pose": "don-lean-camera",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "interrupted",
+      "interruptedBy": "ron",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "I want to say one thing.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " You boys.",
+          "holdAfterMs": 180
+        },
+        {
+          "text": " Set your lineups.",
+          "holdAfterMs": 220
+        },
+        {
+          "text": " All this talk.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " All week.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Trades, prospects, whatever.",
+          "holdAfterMs": 140
+        },
+        {
+          "text": " Then Sunday it’s ",
+          "holdAfterMs": 0
+        },
+        {
+          "text": "“Oh, I was busy.”",
+          "delivery": "mocking",
+          "wpm": 147,
+          "holdAfterMs": 140
+        },
+        {
+          "text": "\nYou weren’t busy Saturday when you were telling everybody their picks were horsesh—",
+          "delivery": "firm",
+          "wpm": 200,
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-066",
+      "type": "say",
+      "speaker": "ron",
+      "delivery": "firm",
+      "wpm": 140,
+      "pose": "ron-warning",
+      "listenerPoses": {
+        "don": "don-default"
+      },
+      "afterPose": "ron-default",
+      "ending": "complete",
+      "holdAfterMs": 100,
+      "runs": [
+        {
+          "text": "Don.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "line-067",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "firm",
+      "wpm": 174,
+      "pose": "don-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-default",
+      "ending": "complete",
+      "holdAfterMs": 0,
+      "runs": [
+        {
+          "text": "BAD PICKS.",
+          "delivery": "yell",
+          "pose": "don-angry-talk",
+          "wpm": 173,
+          "holdAfterMs": 160
+        },
+        {
+          "text": " I said bad picks.",
+          "holdAfterMs": 0
+        }
+      ]
+    },
+    {
+      "id": "direction-09",
+      "type": "stage",
+      "poses": {
+        "don": "don-thumbs-up",
+        "ron": "ron-default"
+      },
+      "transitionMs": 160,
+      "durationMs": 320,
+      "caption": "clear",
+      "direction": "Thumbs up."
+    },
+    {
+      "id": "line-068",
+      "type": "say",
+      "speaker": "don",
+      "delivery": "warm",
+      "wpm": 132,
+      "pose": "don-thumbs-up-talk",
+      "listenerPoses": {
+        "ron": "ron-default"
+      },
+      "afterPose": "don-thumbs-up",
+      "ending": "complete",
+      "holdAfterMs": 1500,
+      "runs": [
+        {
+          "text": "Wilson.",
+          "holdAfterMs": 300
+        },
+        {
+          "text": " Seventy-sixth.",
+          "holdAfterMs": 350
+        },
+        {
+          "text": " Unbelievable.",
+          "holdAfterMs": 0
+        }
+      ]
+    }
+  ]
+}

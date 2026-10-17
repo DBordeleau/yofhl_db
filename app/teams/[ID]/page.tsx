@@ -1,3 +1,4 @@
+import { playerHref } from '@/lib/player-url';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FadeIn from '@/components/fade-in';
@@ -17,6 +18,11 @@ import { getFranchise, getFranchiseCards, type FranchiseSeason } from '@/lib/dat
 import { getFranchiseDraft, getFranchiseHonors, getHistory, getHistorySeasons } from '@/lib/data/history';
 import { formatFpts, seasonLabel, teamSeasonHref, winPercentage } from '@/lib/league';
 import Arrow from '@/components/arrow';
+import ExploreNext from '@/components/explore-next';
+import ShareButton from '@/components/share/share-button';
+import { teamShareCard } from '@/lib/share/model';
+import { teamComparisonHref } from '@/lib/compare/state';
+import { getBannerSeasons } from '@/lib/data/league';
 
 export async function generateStaticParams() {
     return (await getFranchiseCards()).map((t) => ({ ID: String(t.ID) }));
@@ -40,9 +46,12 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
     const team = Number.isInteger(id) ? await getFranchise(id) : null;
     if (!team) notFound();
     const scope = { franchiseId: id };
-    const [honors, draft, transactions, historySeasons] = await Promise.all([
-        getFranchiseHonors(id), getFranchiseDraft(id), getHistory(scope, 'trade'), getHistorySeasons(scope),
+    const [honors, draft, transactions, historySeasons, archive] = await Promise.all([
+        getFranchiseHonors(id), getFranchiseDraft(id), getHistory(scope, 'trade'), getHistorySeasons(scope), getBannerSeasons(),
     ]);
+    const availableYears = new Set(archive.filter(season => season.team || season.playoffStatus === 'cancelled').map(season => season.year));
+    const recentCup = [...team.championships].filter(year => availableYears.has(year)).sort((a, b) => b - a)[0];
+    const recentSeason = team.seasons.filter(season => availableYears.has(season.year)).sort((a, b) => b.year - a.year)[0];
 
     const bestRecord = [...team.seasons].filter((s) => s.wins + s.losses + s.ties > 0)
         .sort((a, b) => winPercentage(b) - winPercentage(a) || b.wins - a.wins)[0];
@@ -70,6 +79,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
             <Link href="/teams/stats" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink-muted hover:text-rink-blue">
                 <Arrow direction="left" /> All teams
             </Link>
+            <div className="mb-4"><ShareButton card={teamShareCard(team)} /></div>
             <FadeIn>
                 <TeamBranding as="section" teamId={team.id} data-brand-layout="profile" className="navy-spotlight relative overflow-hidden rounded-3xl text-white" aria-label="Franchise overview">
                     <div data-brand-part="surface" className="flex flex-col items-center gap-6 px-5 py-8 text-center md:flex-row md:gap-9 md:px-10 md:py-10 md:text-left lg:min-h-[248px] lg:pr-72">
@@ -173,7 +183,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                                     <div className="pt-4">
                                         <dt className={`${labelClass} text-ink-muted`}>All-time points leader</dt>
                                         <dd className="mt-1">
-                                            <Link href={`/player/${encodeURIComponent(leadingPlayer.ID)}`} className="font-wide text-lg font-extrabold hover:text-rink-blue hover:underline">{leadingPlayer.Player}</Link>
+                                            <Link href={playerHref(leadingPlayer.ID)} className="font-wide text-lg font-extrabold hover:text-rink-blue hover:underline">{leadingPlayer.Player}</Link>
                                             <span className="tabular mt-1 block text-sm text-ink-muted">{formatFpts(leadingPlayer.FPts)} FPts with this franchise</span>
                                         </dd>
                                     </div>
@@ -216,7 +226,14 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                     </section>
 
                     <TransactionHistory key={`team-history-${id}`} scope={scope} initial={transactions} seasons={historySeasons} />
-                    <FranchiseDraft key={`team-draft-${id}`} picks={draft} franchiseId={id} hindsightEnabled={process.env.NODE_ENV === 'development'} />
+                    <FranchiseDraft key={`team-draft-${id}`} picks={draft} franchiseId={id} hindsightEnabled />
+                    <ExploreNext currentHref={`/teams/${id}`} links={[
+                        { href: teamComparisonHref(id), title: `Compare ${team.name}`, reason: 'Choose an opponent and explore their rivalry' },
+                        leadingPlayer ? { href: playerHref(leadingPlayer.ID), title: leadingPlayer.Player, reason: 'The franchise’s all-time scoring leader' } : null,
+                        recentCup ? { href: `/season/${recentCup}`, title: seasonLabel(recentCup), reason: 'Their latest Jagr Cup championship' }
+                            : recentSeason ? { href: `/season/${recentSeason.year}`, title: seasonLabel(recentSeason.year), reason: 'Their latest available season' } : null,
+                        { href: '/teams/stats', title: 'All franchises', reason: 'See how this team ranks across league history' },
+                    ]} />
                 </div>
             </div>
         </main>

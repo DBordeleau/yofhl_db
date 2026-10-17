@@ -65,7 +65,7 @@ type Asset = typeof schema.transactionAssets.$inferInsert;
 export interface HistoryImport {
     events: (typeof schema.transactionEvents.$inferInsert)[];
     assets: Asset[];
-    picks: (typeof schema.draftPicks.$inferInsert)[];
+    picks: (typeof schema.draftPicks.$inferInsert & { nhlTeam?: string })[];
     players: { id: string; name: string }[];
     transactionFiles: string[];
     draftYears: number[];
@@ -164,7 +164,7 @@ export function prepareHistory(dataDir: string, config: LeagueConfig, years?: nu
             const playerId = row[5] ? row[0] : null;
             if (playerId) used.add(playerId);
             if (playerId && !row[7]) throw new Error(`${file}: player at pick ${number} has no team`);
-            result.picks.push({ seasonYear: year, overall: number, round, pick, franchiseId: row[7] ? franchiseFor(config, row[7], year) : null, teamName: row[7] || null, playerId, playerName: row[5] || null, positions: row[4], draftedOn: exportDate(row[8]).occurredOn, sourceTime: row[8], sourceFile: path.basename(file) });
+            result.picks.push({ seasonYear: year, overall: number, round, pick, franchiseId: row[7] ? franchiseFor(config, row[7], year) : null, teamName: row[7] || null, playerId, playerName: row[5] || null, positions: row[4], nhlTeam: row[6], draftedOn: exportDate(row[8]).occurredOn, sourceTime: row[8], sourceFile: path.basename(file) });
         });
     }
     result.players = [...used].map((id) => ({ id, name: identities.get(id)! }));

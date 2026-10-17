@@ -5,7 +5,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { sql } from 'drizzle-orm';
 import { hashCode, invitation, teamName } from './model';
-import { claimTeamQuery, issueInviteQuery, managedTeamsQuery, rateLimitQuery, saveTeamQuery, updateTeamQuery } from './queries';
+import { claimTeamQuery, issueInviteQuery, managedTeamsQuery, ownedTeamQuery, rateLimitQuery, saveTeamQuery, updateTeamQuery } from './queries';
 
 test('owner permissions, invitations, concurrency and import preservation', async () => {
     const client = new PGlite();
@@ -23,6 +23,8 @@ test('owner permissions, invitations, concurrency and import preservation', asyn
         const claims = await Promise.all(['a', 'b'].map((uid) => db.execute(claimTeamQuery(hashCode(second), uid, `${uid}@example.test`))));
         assert.equal(claims.reduce((n, result) => n + result.rows.length, 0), 1, 'exactly one concurrent claim wins');
         const owner = claims[0].rows.length ? 'a' : 'b';
+        assert.deepEqual((await db.execute(ownedTeamQuery(owner))).rows.map(team => team.id), [1]);
+        assert.equal((await db.execute(ownedTeamQuery('unclaimed'))).rows.length, 0, 'private lookup does not return another owner’s team');
         assert.equal((await db.execute(issueInviteQuery(1, hashCode(first)))).rows.length, 0, 'cannot re-invite a claimed team');
         assert.equal((await db.execute(claimTeamQuery(hashCode(second), 'c', 'c@example.test'))).rows.length, 0, 'consumed code cannot claim');
         await db.execute(issueInviteQuery(2, hashCode(first)));
@@ -43,6 +45,7 @@ test('owner permissions, invitations, concurrency and import preservation', asyn
         const [afterImport] = (await db.execute(managedTeamsQuery)).rows;
         assert.equal(afterImport.name, 'Admin name'); assert.equal(afterImport.logo, '/admin.webp'); assert.equal(afterImport.ownerUid, owner);
         await db.execute(sql`update league.franchises set folded_after_season = 2027 where id = 1`);
+        assert.equal((await db.execute(ownedTeamQuery(owner))).rows.length, 0, 'private lookup excludes folded teams');
         assert.equal((await db.execute(updateTeamQuery(1, version + 2, 'Owner edit', null, owner, false))).rows.length, 0, 'former owner cannot edit folded team');
 
         assert.equal((await db.execute(rateLimitQuery('test'))).rows[0].attempts, 1);
