@@ -763,10 +763,14 @@ async function drawAward(kit: Kit, card: AwardShareCard) {
 // Loaded only after Share opens. The PNG never leaves this browser unless the visitor shares it.
 export async function renderShareCard(card: ShareCard, palettes: Palettes = {}): Promise<Blob> {
     const family = getComputedStyle(document.body).fontFamily;
-    await Promise.race([
-        Promise.all(['italic 900 40px', '900 40px', '800 40px', '700 40px'].map(font => document.fonts.load(`${font} ${family}`))),
-        new Promise(resolve => setTimeout(resolve, 2000)),
-    ]);
+    let fontTimeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+        await Promise.race([
+            // Fonts are optional: a failed download must still allow canvas to use the fallback family.
+            Promise.allSettled(['italic 900 40px', '900 40px', '800 40px', '700 40px'].map(async font => document.fonts.load(`${font} ${family}`))),
+            new Promise(resolve => { fontTimeout = setTimeout(resolve, 2000); }),
+        ]);
+    } finally { clearTimeout(fontTimeout); }
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
@@ -786,6 +790,6 @@ export async function renderShareCard(card: ShareCard, palettes: Palettes = {}):
     footer(kit, card.kind === 'episode' ? `${SHARE_SITE}${card.href}` : SHARE_SITE);
     return new Promise((resolve, reject) => {
         try { canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not create the image.')), 'image/png'); }
-        catch { reject(new Error('Artwork could not be exported. Copy the page link instead.')); }
+        catch (cause) { reject(new Error('Artwork could not be exported. Copy the page link instead.', { cause })); }
     });
 }

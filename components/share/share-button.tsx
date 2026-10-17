@@ -39,7 +39,11 @@ function ShareDialog({ card, title, onClose }: { card: ShareCard; title: string;
             if (cancelled) return;
             preview = URL.createObjectURL(blob);
             setRendered({ key, blob, preview });
-        }).catch(() => { if (!cancelled) setFailed(true); });
+        }).catch(error => {
+            if (cancelled) return;
+            console.error('Share card generation failed.', error);
+            setFailed(true);
+        });
         return () => { cancelled = true; if (preview) URL.revokeObjectURL(preview); };
     }, [key, retry, palettes]);
     const ready = rendered?.key === key ? rendered : null;
