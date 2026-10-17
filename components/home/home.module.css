@@ -358,7 +358,13 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
 @keyframes trophyEnter { from { opacity: 0; transform: translateY(25px) rotate(-5deg) scale(.94); } to { opacity: 1; transform: translateY(0) rotate(4deg) scale(1); } }
 @keyframes archiveSweep { 0% { -webkit-mask-position: 100% 0; mask-position: 100% 0; } 55%, 100% { -webkit-mask-position: 0 0; mask-position: 0 0; } }
 @keyframes rinkEnter { from { opacity: 0; transform: translateX(36px) rotate(-9deg) scale(1.03); } }
+/* wide desktops: the Coach's Corner studio takes the gap between the wordmark and the Cup */
+@media (min-width: 1680px) {
+    .heroInner[data-studio] { grid-template-columns: auto minmax(0, 1fr) 400px; column-gap: 40px; }
+}
 @media (min-width: 1800px) {
+    .heroInner[data-studio] { grid-template-columns: auto minmax(0, 1fr) 420px; }
+    .heroInner[data-studio] .heroTrophy { width: 420px; height: 420px; }
     .heroInner { min-height: 480px; } .hero h1 { font-size: 160px; } .heroRink { width: 1200px; height: 552px; top: -35px; }
     .heroTrophy { width: 430px; height: 430px; } .standingsTable { font-size: 18px; }
     .sectionNav a, .standingsRecord, .standingsPoints { font-size: 17px; }
