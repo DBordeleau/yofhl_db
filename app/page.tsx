@@ -7,10 +7,12 @@ import { TrophyArt } from '@/components/trophy-icons';
 import MatchupBrowser from '@/components/home/matchup-browser';
 import RosterBrowser from '@/components/home/roster-browser';
 import HeroRink from '@/components/home/hero-rink';
+import HeroStudio from '@/components/home/hero-studio';
 import SectionLink from '@/components/home/section-link';
 import { PLAYOFF_TEAMS } from '@/lib/fantrax/config';
 import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores, getRosterStats, getScoringLeaders } from '@/lib/fantrax/data';
 import { periodPhase, selectPeriod, shortDate } from '@/lib/fantrax/model';
+import { getPublishedEpisodes } from '@/lib/data/coachs-corner';
 import { formatFpts, seasonLabel } from '@/lib/league';
 import styles from '@/components/home/home.module.css';
 import Arrow from '@/components/arrow';
@@ -28,11 +30,13 @@ export default async function HomePage() {
     const period = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
     const current = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
     const loadScores = (item: typeof period) => item && periodPhase(item, now) !== 'upcoming' ? getMatchupScores(item.number).catch(() => null) : null;
-    const [scores, leaders, rosterStats] = await Promise.all([
+    const [scores, leaders, rosterStats, episodes] = await Promise.all([
         loadScores(period),
         snapshot ? getScoringLeaders(snapshot.seasonYear).catch(error => { console.error('Fantrax scoring leaders unavailable:', error); return null; }) : null,
         snapshot ? getRosterStats(snapshot.seasonYear).catch(error => { console.error('Fantrax roster stats unavailable:', error); return null; }) : null,
+        getPublishedEpisodes().catch(error => { console.error("Coach's Corner episodes unavailable:", error); return []; }),
     ]);
+    const latestEpisode = episodes[0];
     const opening = snapshot?.scoringPeriods[0];
     const preseason = opening ? now < Date.parse(opening.startDate) : false;
     const season = snapshot ? seasonLabel(snapshot.seasonYear + 1) : 'Current season';
@@ -45,12 +49,13 @@ export default async function HomePage() {
     return <main className={styles.home}>
         <section className={styles.hero} aria-labelledby="home-heading">
             <HeroRink />
-            <div className={styles.heroInner}>
+            <div className={styles.heroInner} data-studio={latestEpisode ? '' : undefined}>
                 <div className={styles.heroCopy}>
                     <p className={styles.heroKicker}>Ye Olde Fantasy Hockey League</p>
                     <h1 id="home-heading">YOFHL <span>{season}</span></h1>
                     <div className={styles.heroActions}><Link href="/stats/all-time/all" className={styles.historyButton}>Explore league history <Arrow /></Link><SectionLink href="#current-season" className={styles.seasonButton}>Current season <Arrow direction="down" /></SectionLink></div>
                 </div>
+                {latestEpisode ? <HeroStudio episode={latestEpisode} /> : null}
                 <div className={styles.heroArt}>
                     <TrophyArt award="Jagr Cup" className={styles.heroTrophy} sizes="(max-width: 360px) 150px, (max-width: 600px) 190px, (max-width: 800px) 280px, (max-width: 1100px) 330px, (min-width: 1800px) 430px, 390px" priority title="The Jagr Cup" />
                 </div>
