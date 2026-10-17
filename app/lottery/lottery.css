@@ -66,22 +66,8 @@
   letter-spacing: 1.5px;
   color: #d5dedb;
 }
-.lottery-status i {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  flex: none;
-  border-radius: 50%;
-  background: #a2c5b7;
-  box-shadow: 0 0 12px #a2c5b755;
-}
 .lottery-status.is-live {
   color: #ff989d;
-}
-.lottery-status.is-live i {
-  background: #f25260;
-  box-shadow: 0 0 12px #f2526077;
-  animation: lottery-pulse 2s ease infinite;
 }
 .lottery-hero {
   display: grid;
@@ -140,15 +126,6 @@
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.3px;
-}
-.lottery-live-dot {
-  width: 9px;
-  height: 9px;
-  flex: none;
-  border-radius: 50%;
-  background: #f25260;
-  box-shadow: 0 0 0 4px #f252601a, 0 0 14px #f2526055;
-  animation: lottery-pulse 2s ease-in-out infinite;
 }
 .lottery-live-message p {
   color: var(--lottery-muted);
@@ -657,11 +634,6 @@
 @keyframes lottery-orbit {
   to {
     transform: translate(-50%, -50%) rotate(360deg);
-  }
-}
-@keyframes lottery-pulse {
-  50% {
-    opacity: 0.45;
   }
 }
 @keyframes lottery-star {

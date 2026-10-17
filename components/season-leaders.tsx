@@ -1,17 +1,26 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createResultCache } from '@/lib/result-cache';
 import AwardLegend from '@/components/award-legend';
 import PaginationControls from '@/components/pagination-controls';
 import StatTable from '@/components/stat-table';
 import type { LeaderboardPage } from '@/lib/data/league';
 import { LEADERBOARD_POSITIONS, seasonLabel } from '@/lib/league';
 
+const leadersUrl = (year: number, position: string, page: number) =>
+    `/api/leaderboard?${new URLSearchParams({ mode: 'single-season', season: String(year), position, page: String(page) })}`;
+
 export default function SeasonLeaders({ year, initial }: { year: number; initial: LeaderboardPage }) {
     const [result, setResult] = useState({ position: 'all', data: initial });
     const [pending, setPending] = useState(false);
     const [failed, setFailed] = useState<{ position: string; page: number } | null>(null);
     const request = useRef<AbortController | null>(null);
+    const results = useMemo(() => {
+        const cache = createResultCache<LeaderboardPage>();
+        cache.set(leadersUrl(year, 'all', 1), initial);
+        return cache;
+    }, [year, initial]);
 
     useEffect(() => () => request.current?.abort(), []);
 
@@ -22,13 +31,7 @@ export default function SeasonLeaders({ year, initial }: { year: number; initial
         setPending(true);
         setFailed(null);
         try {
-            let data = initial;
-            if (position !== 'all' || page !== 1) {
-                const params = new URLSearchParams({ mode: 'single-season', season: String(year), position, page: String(page) });
-                const response = await fetch(`/api/leaderboard?${params}`, { signal: controller.signal });
-                if (!response.ok) throw new Error('Could not load season leaders');
-                data = await response.json();
-            }
+            const data = await results.load(leadersUrl(year, position, page), controller.signal);
             if (!controller.signal.aborted) setResult({ position, data });
         } catch {
             if (!controller.signal.aborted) setFailed({ position, page });

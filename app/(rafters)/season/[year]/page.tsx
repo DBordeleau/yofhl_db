@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import FadeIn from '@/components/fade-in';
 import PageContents from '@/components/page-contents';
 import contentsStyles from '@/components/page-contents.module.css';
 import PlayoffBracket from '@/components/playoff-bracket';
@@ -13,6 +12,10 @@ import { JagrCupIcon } from '@/components/trophy-icons';
 import { getBannerSeasons, getChampionRoster, getSeasonDetail, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { getSeasonDraft } from '@/lib/data/history';
 import { seasonLabel } from '@/lib/league';
+import ExploreNext from '@/components/explore-next';
+import ShareButton from '@/components/share/share-button';
+import { seasonShareCard } from '@/lib/share/model';
+import { playerHref } from '@/lib/player-url';
 
 export async function generateMetadata({ params }: { params: Promise<{ year: string }> }) {
     const { year } = await params;
@@ -25,22 +28,29 @@ export async function generateStaticParams() {
 }
 
 // A season's champion, roster, bracket, standings, player leaders, and draft class.
-export default async function SeasonPage({ params }: { params: Promise<{ year: string }> }) {
+export default async function SeasonPage({ params }: {
+    params: Promise<{ year: string }>;
+}) {
     const { year } = await params;
     if (!/^\d{4}$/.test(year)) notFound();
     const seasonYear = Number(year);
-    const season = (await getBannerSeasons()).find((s) => s.year === seasonYear);
+    const archive = await getBannerSeasons();
+    const season = archive.find((s) => s.year === seasonYear);
     if (!season) notFound();
-    const [detail, leaders, draft] = await Promise.all([
+    const cancelled = season.playoffStatus === 'cancelled';
+    const [detail, leaders, draft, champ] = await Promise.all([
         getSeasonDetail(seasonYear),
         getSingleSeasonLeaderboard('all', 1, '', seasonYear),
         getSeasonDraft(seasonYear),
+        cancelled ? null : getChampionRoster(seasonYear),
     ]);
     const playoffTeams = Array.from(new Set(detail.games.filter((g) => g.bracket === 'championship').flatMap((g) => [g.away.franchiseId, g.home.franchiseId])));
     const finalGame = detail.games.filter((g) => g.bracket === 'championship').sort((a, b) => b.round - a.round)[0];
-    const cancelled = season.playoffStatus === 'cancelled';
-    const champ = cancelled ? null : await getChampionRoster(seasonYear);
     if (!cancelled && !champ) notFound();
+    const availableYears = archive.filter(row => row.team || row.playoffStatus === 'cancelled').map(row => row.year).sort((a, b) => a - b);
+    const previous = availableYears.filter(value => value < seasonYear).at(-1);
+    const next = availableYears.find(value => value > seasonYear);
+    const leader = leaders.rows[0];
     const sections = [
         { id: 'season-overview', label: cancelled ? 'Overview' : 'Champion & roster' },
         ...(!cancelled && detail.games.length ? [{ id: 'playoffs', label: 'Playoffs' }] : []),
@@ -55,7 +65,8 @@ export default async function SeasonPage({ params }: { params: Promise<{ year: s
             <PageContents key={seasonYear} title={season.label} contentId="season-sections" sections={sections} />
             <div id="season-sections" className={`${contentsStyles.sections} flex flex-col gap-10`}>
                 <div id="season-overview">
-                    {champ ? <FadeIn
+                    <div className="mb-4"><ShareButton card={seasonShareCard(season, champ?.rows)} /></div>
+                    {champ ? <div
                         key={champ.year}
                         // wide screens: champion header becomes a sticky rail beside the roster
                         className="3xl:grid 3xl:grid-cols-[460px_minmax(0,880px)] 3xl:items-start 3xl:justify-center 3xl:gap-16"
@@ -87,12 +98,12 @@ export default async function SeasonPage({ params }: { params: Promise<{ year: s
                                 </p>
                             )}
                         </div>
-                    </FadeIn> : (
-                        <FadeIn key={seasonYear} className="rounded-3xl border-2 border-dashed border-line-strong px-6 py-12 text-center">
+                    </div> : (
+                        <div key={seasonYear} className="rounded-3xl border-2 border-dashed border-line-strong px-6 py-12 text-center">
                             <div className="text-xs font-bold uppercase tracking-[.2em] text-ink-muted">{season.label}</div>
                             <h1 className="font-wide mt-2 text-2xl font-extrabold uppercase">Playoffs cancelled</h1>
                             <p className="mt-2 text-ink-muted">The {season.label} playoffs were cancelled due to the COVID-19 pandemic.</p>
-                        </FadeIn>
+                        </div>
                     )}
                 </div>
                 {!cancelled && <PlayoffBracket games={detail.games} />}
@@ -103,6 +114,12 @@ export default async function SeasonPage({ params }: { params: Promise<{ year: s
                 />
                 <SeasonLeaders key={`leaders-${seasonYear}`} year={seasonYear} initial={leaders} />
                 <SeasonDraft key={`draft-${seasonYear}`} year={seasonYear} picks={draft} />
+                <ExploreNext currentHref={`/season/${seasonYear}`} links={[
+                    season.franchiseId && !cancelled ? { href: `/teams/${season.franchiseId}`, title: season.team!, reason: 'Explore the champion’s franchise history' } : null,
+                    leader ? { href: playerHref(leader.ID), title: leader.Player, reason: 'This season’s fantasy points leader' } : null,
+                    previous ? { href: `/season/${previous}`, title: seasonLabel(previous), reason: 'Previous available season' } : null,
+                    next ? { href: `/season/${next}`, title: seasonLabel(next), reason: 'Next available season' } : null,
+                ]} />
             </div>
         </div>
     );

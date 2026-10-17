@@ -2,7 +2,7 @@
 
 The YOFHL league archive and live draft lottery, built with Next.js and PostgreSQL. The site combines Fantrax season exports with league-maintained championship rosters, awards, franchise identities, and playoff corrections.
 
-[Live site](https://yofhl-db.vercel.app) · [Data and maintenance](docs/data.md) · [Draft lottery](docs/lottery.md)
+[Live site](https://www.yofhl.com) · [Data and maintenance](docs/data.md) · [Draft lottery](docs/lottery.md)
 
 ## What the app does
 
@@ -12,7 +12,8 @@ The YOFHL league archive and live draft lottery, built with Next.js and PostgreS
 | `/stats/all-time/all` | Searchable career leaderboard, with position filters and 25 players per page |
 | `/stats/single-season/all` | Single-season leaderboard with the same filters |
 | `/player/<Fantrax ID>` | Career stats, awards, championships, points chart, and transaction history |
-| `/compare` | Player comparisons and points charts |
+| `/compare/players` | Player comparisons and points charts |
+| `/compare/teams` | Head-to-head matchups, franchise records, season points, and trading history |
 | `/teams/stats` | Franchise cards sorted by Jagr Cups, wins, points for, or finals appearances |
 | `/teams/<franchise ID>` | Records, former names, trophy case, seasons, leaders, trades, and draft history, with section navigation |
 | `/season` and `/season/<end year>` | Season history, championship rosters, standings, playoff brackets, player leaders, and searchable draft classes |
@@ -74,6 +75,9 @@ npm run test:history
 npm run test:owners
 npm run test:snapshot
 npm run test:keepers
+npm run test:performance
+npm run test:data
+npm run test:browsing
 ```
 
 The test suites use Node's test runner and in-memory PGlite for database cases. They do not connect to the league database. They cover lottery timing, odds, disclosure and concurrency, plus history parsing, identity matching and repeat imports. UI changes also need a browser check on the affected pages.
@@ -107,7 +111,21 @@ The build reads league data while generating pages, so it needs a reachable Neon
 
 The app uses Next.js 15.5, React 18, TypeScript, Tailwind CSS, Framer Motion, and Recharts. PostgreSQL data lives in the `league` schema. Runtime queries use Drizzle with the Neon HTTP driver; import scripts use Postgres.js or PGlite. Exact dependency versions and commands are in [package.json](package.json).
 
-Player pages render per request from cached data. Fantrax IDs contain `*`, which cannot be used in static page filenames on Windows.
+Player URLs omit Fantrax's surrounding `*` characters so their pages can be cached on Windows too. The 50 leading profiles build ahead of time; other profiles cache on first visit. Old starred URLs redirect to the same player, and database IDs stay unchanged.
+
+The homepage uses five-minute page revalidation. Matchup-week selection runs in the browser and fetches only scores, preserving week links and browser history. Historical leaderboard and transaction filters keep up to 32 results for one minute per mounted view. Successful public archive JSON responses can stay at the CDN for 60 seconds; private endpoints and errors are not given public cache headers. After an edit, an already cached JSON result can remain visible for up to two minutes across the CDN and browser caches (less when CDN `Age` is available).
+
+Public Fantrax snapshots and current scores refresh daily. The player directory and verified scoring-season selector refresh weekly. Scores are fetched once more seven days after a matchup ends, then retained until cache eviction or an explicit refresh. An authenticated `POST /api/revalidate?external=1` clears these Fantrax caches as well as the archive caches when historical corrections need to appear. No external calls were added to archive season pages. See [companion cache refresh](companion/README.md#data-and-setup) for the separate local draft tool.
+
+Public archive search opens inline in the top bar on every public page. Results appear below the input; Arrow keys select, Enter opens a match, and Escape dismisses. The mobile Search button focuses the same input without navigating. Optional full results use `/search?q=...&type=players&page=2`; `type` also accepts `teams`, `awards`, and `seasons`, or defaults to all four. Former team identities and current or older award names are searchable. Award results show their trophy artwork and link to the award's winners page.
+
+Search prioritizes exact names and whole words, then prefixes, substrings, and conservative single-typo matches. Among equally good player matches, career fantasy points put established players first: `mcd` leads with Connor McDavid and `quinn` with Quinn Hughes. Ranking uses the existing archive rather than an external popularity service. Search matches a single cached public directory on the server; typing never fetches Fantrax data. Two characters and a 200 ms debounce (250 ms on the full results page) limit requests, and result links do not prefetch profiles. There is no My Team feature or saved-team preference.
+
+Player comparisons use repeated IDs: `/compare/players?player=004cq&player=00454&metric=fpg`. Up to five unique players retain URL order; omitting the metric selects fantasy points. Team comparisons retain `/compare/teams?a=4&b=5&stage=regular`. Both support browser Back/Forward. Shared links restore selections against the latest archive data rather than storing an immutable data snapshot.
+
+Share opens a browser-generated 1200×630 PNG on player, franchise, season, and comparison pages. Copy link always remains available; supported browsers also expose native image sharing. Award and game pages offer link sharing. Images are created only after Share opens, use local or CORS-enabled artwork with text fallbacks, and are never uploaded or stored by the app. Social networks cannot discover these temporary PNGs as automatic link-preview images; send the image and link together.
+
+The browsing feature requires **$0 in additional hosting services**: no new dependencies, search subscription, schema migration, image service, storage writes, or paid plan. Existing Vercel and Neon free-tier quotas still apply to requests and traffic. Keep accounts on their free plans; do not enable paid overflow to support this feature. See the [implementation and verification record](docs/browsing-and-sharing-plan.md#implementation-record) for measured cache size, checks, and remaining device checks.
 
 ## Deployment
 
@@ -115,7 +133,7 @@ The GitHub repository is connected to the Vercel project `yofhl-db`. Its product
 
 Configure the [environment variables](docs/data.md#environment) for each Vercel environment. Preview and production deployments use whichever database their variables identify. A preview pointed at the production database can write production data through admin actions or a lottery request after its start time.
 
-The build command is `next build`. Deployments do not run database migrations or import CSVs. Review and apply required migrations with `npm run db:migrate` against the intended database before deploying code that depends on them. Imports and admin edits have their own [cache refresh behavior](docs/data.md#cache-and-derived-data).
+The build command is `npm run build`, including the Coach's Corner asset preparation step. Deployments do not run database migrations or import CSVs. Review and apply required migrations with `npm run db:migrate` against the intended database before deploying code that depends on them. Imports and admin edits have their own [cache refresh behavior](docs/data.md#cache-and-derived-data).
 
 For lottery setup, rehearsal, timing, and recovery behavior, use the [draft lottery guide](docs/lottery.md). Award artwork and stored-name mappings are documented in [public/trophies/README.md](public/trophies/README.md).
 

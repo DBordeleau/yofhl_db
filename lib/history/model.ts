@@ -32,6 +32,7 @@ export interface DraftSelection {
     fpg: number | null;
 }
 export interface SeasonDraftSelection extends DraftSelection {
+    regretEligible: boolean;
     franchiseId: number | null;
     teamName: string | null;
     teamAbbreviation: string | null;

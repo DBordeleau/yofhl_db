@@ -1,0 +1,74 @@
+[
+  {
+    "id": "616850",
+    "name": "CRT click",
+    "file": "tv-crt-click.wav",
+    "start": 0.89,
+    "duration": 0.32,
+    "highpass": 120,
+    "lowpass": 4800,
+    "source": {
+      "id": "616850",
+      "author": "TRP",
+      "page": "https://freesound.org/people/TRP/sounds/616850/",
+      "preview": "https://cdn.freesound.org/previews/616/616850_97550-hq.mp3",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-10-17T20:21:45.670Z",
+      "sourceFormat": "Freesound high-quality MP3 preview",
+      "sha256": "9a1447ef4a628886d76379717a53db6308c8b16bd160cecf1ef8ea6a172ce5a2"
+    },
+    "filter": "highpass=f=120,lowpass=f=4800,afade=t=in:d=0.004,afade=t=out:st=0.275:d=0.045",
+    "gain": 1.1534401037419677,
+    "rmsDb": -28,
+    "peakDb": -14.769187513407815
+  },
+  {
+    "id": "693860",
+    "name": "Relay snap",
+    "file": "tv-relay-snap.wav",
+    "start": 0.205,
+    "duration": 0.24,
+    "highpass": 160,
+    "lowpass": 5500,
+    "source": {
+      "id": "693860",
+      "author": "Fission9",
+      "page": "https://freesound.org/people/Fission9/sounds/693860/",
+      "preview": "https://cdn.freesound.org/previews/693/693860_9395330-hq.mp3",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-10-17T20:21:46.847Z",
+      "sourceFormat": "Freesound high-quality MP3 preview",
+      "sha256": "99478f4fa49cd769198caafb38278c54347183a371c83987f1fe6bab85c987a9"
+    },
+    "filter": "highpass=f=160,lowpass=f=5500,afade=t=in:d=0.004,afade=t=out:st=0.195:d=0.045",
+    "gain": 0.6050222174623946,
+    "rmsDb": -28,
+    "peakDb": -11.03950958514963
+  },
+  {
+    "id": "786065",
+    "name": "Channel fuzz",
+    "file": "tv-channel-fuzz.wav",
+    "start": 0.52,
+    "duration": 0.22,
+    "highpass": 280,
+    "lowpass": 4200,
+    "source": {
+      "id": "786065",
+      "author": "mrs4turn",
+      "page": "https://freesound.org/people/mrs4turn/sounds/786065/",
+      "preview": "https://cdn.freesound.org/previews/786/786065_16821052-hq.mp3",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "retrieved": "2026-10-17T20:21:49.833Z",
+      "sourceFormat": "Freesound high-quality MP3 preview",
+      "sha256": "46594c51401f4b1fc94ea3ac3a13cc7f343c1e6f6f1e7641398f0b9abe55f070"
+    },
+    "filter": "highpass=f=280,lowpass=f=4200,afade=t=in:d=0.004,afade=t=out:st=0.175:d=0.045",
+    "gain": 1.3924014923619137,
+    "rmsDb": -28,
+    "peakDb": -13.779179949162515
+  }
+]

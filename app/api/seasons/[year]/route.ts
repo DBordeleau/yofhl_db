@@ -1,3 +1,4 @@
+import { publicJson } from '@/lib/public-json';
 import { NextResponse } from 'next/server';
 import { getBannerSeasons, getChampionRoster } from '@/lib/data/league';
 
@@ -7,5 +8,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ yea
     const season = (await getBannerSeasons()).find((s) => s.year === year);
     if (!season) return NextResponse.json({ error: 'Season not found' }, { status: 404 });
     const roster = season.team ? await getChampionRoster(year) : null;
-    return NextResponse.json({ ...season, championshipRoster: roster?.rows ?? [] });
+    return publicJson({ ...season, championshipRoster: roster?.rows ?? [] });
 }

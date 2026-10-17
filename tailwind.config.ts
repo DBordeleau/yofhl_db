@@ -8,7 +8,7 @@ export default {
   ],
   theme: {
     extend: {
-      // 1440p and 4K-at-150% monitors report ~2560px, so widen layouts there instead of centring a 1200px column
+      // Wide layouts adapt to the browser's CSS viewport, including display scaling.
       screens: {
         '3xl': '1800px',
         '4xl': '2400px',
@@ -56,9 +56,9 @@ export default {
       },
       maxWidth: {
         board: '780px',
-        page: '1200px',
-        'page-3xl': '1560px',
-        'page-4xl': '1880px',
+        page: 'var(--page-width)',
+        'page-3xl': 'var(--page-width)',
+        'page-4xl': 'var(--page-width)',
       },
     },
   },

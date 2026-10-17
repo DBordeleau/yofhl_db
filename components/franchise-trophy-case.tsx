@@ -1,3 +1,4 @@
+import { playerHref } from '@/lib/player-url';
 import Link from 'next/link';
 import { TrophyArt, JagrCupIcon } from '@/components/trophy-icons';
 import { awardHref, getAwardDefinition } from '@/lib/awards';
@@ -51,7 +52,7 @@ export default function FranchiseTrophyCase({ franchiseId, championships, honors
                             </span>
                         </summary>
                         <ul className="mx-4 border-t border-line-soft py-2">
-                            {wins.map((win) => <li key={`${win.year}-${win.playerId}`} className="flex items-baseline justify-between gap-3 py-2 text-sm"><Link className="font-bold hover:text-rink-blue hover:underline" href={`/player/${encodeURIComponent(win.playerId)}`}>{win.player}</Link><span className="shrink-0 text-xs text-ink-muted">{seasonLabel(win.year)}</span></li>)}
+                            {wins.map((win) => <li key={`${win.year}-${win.playerId}`} className="flex items-baseline justify-between gap-3 py-2 text-sm"><Link className="font-bold hover:text-rink-blue hover:underline" href={playerHref(win.playerId)}>{win.player}</Link><span className="shrink-0 text-xs text-ink-muted">{seasonLabel(win.year)}</span></li>)}
                         </ul>
                         <Link href={awardHref(name)} className="mx-4 mb-4 inline-block text-xs font-bold text-rink-blue hover:underline">Award history <Arrow /></Link>
                     </details>)}

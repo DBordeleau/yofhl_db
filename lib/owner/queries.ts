@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { TeamColours } from '../team-branding';
 
-export const managedTeamsQuery = sql`
+const teamsQuery = (ownerUid?: string) => sql`
     select f.id, coalesce(m.name, t.name, f.display_name) as name,
            coalesce(m.logo_url, t.logo_url, f.logo_url) as logo,
            coalesce(t.abbreviation, '') as abbreviation,
@@ -12,7 +12,11 @@ export const managedTeamsQuery = sql`
     left join league.team_management m on m.franchise_id = f.id
     left join lateral (select name, logo_url, abbreviation from league.team_seasons
         where franchise_id = f.id order by season_year desc limit 1) t on true
+    ${ownerUid === undefined ? sql`` : sql`where m.owner_uid = ${ownerUid} and f.folded_after_season is null`}
     order by f.folded_after_season is not null, f.id`;
+
+export const managedTeamsQuery = teamsQuery();
+export const ownedTeamQuery = (uid: string) => teamsQuery(uid);
 
 // One atomic update consumes the invitation and binds the team. The unique owner UID
 // also prevents two concurrent claims by the same account from claiming two teams.

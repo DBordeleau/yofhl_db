@@ -1,0 +1,7 @@
+.dialog { width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 22px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #dce5ee; border-radius: 22px; color: #12182e; background: #f4f8fb; box-shadow: 0 24px 90px #12182e66; }
+.dialog::backdrop { background: #0c162ba8; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.heading h2 { font-size: 23px; font-weight: 800; }
+.heading button { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border: 1px solid #dce5ee; border-radius: 12px; background: white; }
+.dialog :is(button, a, input):focus-visible { outline: 3px solid #1f6fc2; outline-offset: 2px; }
+@media (max-width: 420px) { .dialog { padding: 16px; } }

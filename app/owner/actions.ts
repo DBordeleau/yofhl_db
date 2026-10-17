@@ -5,14 +5,14 @@ import { sql } from 'drizzle-orm';
 import { put, del } from '@vercel/blob';
 import sharp from 'sharp';
 import { isAdmin, requireAdmin } from '@/lib/admin/auth';
-import { rows, LEAGUE_TAG } from '@/lib/data/db';
+import { rows } from '@/lib/data/db';
+import { leagueTags, teamIdentityTags } from '@/lib/data/cache-tags';
 import { clearOwnerSession, freshOwnerToken, limitOwnerAction, ownerSession, requireSameOrigin, startOwnerSession } from '@/lib/owner/auth';
 import { hashCode, invitation, teamName, type ManagedTeam } from '@/lib/owner/model';
 import { claimTeamQuery, issueInviteQuery, managedTeamsQuery, saveTeamQuery, updateTeamQuery, saveBrandingQuery } from '@/lib/owner/queries';
 import { parseTeamColours } from '@/lib/team-branding';
 
 const refresh = () => {
-    revalidateTag(LEAGUE_TAG);
     revalidatePath('/owner');
     revalidatePath('/admin/teams');
     revalidatePath('/owner/branding');
@@ -29,9 +29,9 @@ export async function saveTeamBranding(id: number, version: number, value: unkno
     await limitOwnerAction('save-branding', user?.uid ?? 'admin');
     const result = await rows(saveBrandingQuery(id, version, branding, user?.uid ?? null, admin));
     if (!result.length) return { error: 'This team changed or you no longer have access. Reload the page before saving.' };
+    revalidateTag(leagueTags.branding);
     refresh();
     revalidatePath(`/admin/teams/${id}/branding`);
-    revalidatePath('/', 'layout');
     return { saved: true };
 }
 
@@ -124,6 +124,7 @@ export async function saveTeam(form: FormData) {
         if (uploaded) await del(uploaded).catch(() => {});
         return { error: 'This team changed while you were saving. Reload before trying again.' };
     }
+    for (const tag of teamIdentityTags(id)) revalidateTag(tag);
     refresh();
     // Only delete uploads owned by this feature, never checked-in historical artwork.
     try {

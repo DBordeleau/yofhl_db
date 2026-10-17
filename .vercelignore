@@ -1,0 +1,11 @@
+# Local tools, private work packets, and review output are not deployment inputs.
+.env*
+.cache/
+.claude/
+.codex/
+.codex-remote-attachments/
+.impeccable/
+output/
+local/
+companion/.data/
+companion/.next/

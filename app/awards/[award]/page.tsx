@@ -1,12 +1,15 @@
+import { playerHref } from '@/lib/player-url';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AwardTable from '@/components/award-table';
 import RinkDivider from '@/components/rink-divider';
 import { TrophyArt } from '@/components/trophy-icons';
-import { AWARDS, awardHref, getAwardDefinition } from '@/lib/awards';
+import { AWARDS, getAwardDefinition } from '@/lib/awards';
 import { getAwardTypes, getAwardWinners, getTeamAwardWinners } from '@/lib/data/league';
 import { awardFromSlug, awardSlug, seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
+import ExploreNext from '@/components/explore-next';
+import { getBannerSeasons } from '@/lib/data/league';
 
 export async function generateStaticParams() {
     const names = new Set([...AWARDS.map((award) => award.name), ...(await getAwardTypes()).map((award) => award.name)]);
@@ -29,8 +32,10 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
     if (!data) notFound();
     const { award, winners } = data;
     const latest = winners[0];
-    const latestHref = latest?.PlayerID ? `/player/${encodeURIComponent(latest.PlayerID)}` : latest?.TeamID ? `/teams/${latest.TeamID}` : null;
+    const latestHref = latest?.PlayerID ? playerHref(latest.PlayerID) : latest?.TeamID ? `/teams/${latest.TeamID}` : null;
     const label = definition?.label ?? award.label;
+    const latestSeason = latest && (await getBannerSeasons()).find(season => season.year === latest.Year && (season.team || season.playoffStatus === 'cancelled'));
+    const href = `/awards/${awardSlug(award.name)}`;
 
     return (
         <main className="mx-auto max-w-page px-4 pb-16 pt-5 md:px-8 md:pt-8 3xl:max-w-page-3xl 4xl:max-w-page-4xl">
@@ -60,9 +65,14 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                     <h2 id="winners-title" className="font-wide text-xl font-extrabold uppercase md:text-2xl">Past winners</h2>
                     <span className="text-xs font-semibold text-ink-muted">{winners.length} awarded</span>
                 </div>
-                <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'} />
+                <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'}
+                    award={{ id: definition?.id ?? null, name: award.name, label, honor: definition?.honor ?? award.description, image: definition?.image ?? null }} />
             </section>
-            <div className="mt-8 text-center"><Link href={awardHref('jagr-cup') === awardHref(award.name) ? '/season' : '/awards'} className="inline-flex min-h-11 items-center text-sm font-bold text-rink-blue hover:underline">{definition?.id === 'jagr-cup' ? 'Visit the championship rafters' : 'Explore all league awards'} <Arrow className="ml-2" /></Link></div>
+            <ExploreNext currentHref={href} links={[
+                latestHref ? { href: latestHref, title: latest.Winner, reason: `Latest winner · ${seasonLabel(latest.Year)}` } : null,
+                latestSeason ? { href: `/season/${latestSeason.year}`, title: latestSeason.label, reason: 'Explore the latest award-winning season' } : null,
+                { href: '/awards', title: 'All league awards', reason: 'Discover the league’s other honors' },
+            ]} />
         </main>
     );
 }

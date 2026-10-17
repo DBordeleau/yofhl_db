@@ -1,0 +1,16 @@
+.badge {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    margin-left: 6px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: #c8102e;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}

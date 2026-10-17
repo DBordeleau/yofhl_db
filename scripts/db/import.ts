@@ -4,6 +4,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
 import { connect, refreshViews, type Db } from './lib/connect';
 import { prepareHistory, writeHistory } from './lib/history';
+import { enrichDraftDevelopment } from './lib/draft-development';
 import { parsePlayerStats, parsePlayoffs, parseStandings, type PlayerStatRow, type StandingRow } from './lib/fantrax';
 import {
     eraFor,
@@ -203,8 +204,10 @@ const prepareSeason = (config: LeagueConfig, files: SeasonFiles, errors: string[
                 if (team === game.awayFranchise) game.awayScore = o.score;
                 else if (team === game.homeFranchise) game.homeScore = o.score;
                 else return;
-                game.scoreAdjusted = true;
-                game.note = o.note;
+                if (!o.verified) {
+                    game.scoreAdjusted = true;
+                    game.note = o.note;
+                }
                 applied.add(i);
             });
             game.winnerFranchise =
@@ -441,6 +444,7 @@ const main = async () => {
             return;
         }
 
+        await enrichDraftDevelopment(db, history.picks);
         console.log(`Importing ${years.map(seasonLabel).join(', ')} into ${label}`);
         await writeLeague(db, config);
 

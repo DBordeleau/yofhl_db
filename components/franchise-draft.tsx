@@ -1,5 +1,7 @@
 'use client';
 
+import { playerHref } from '@/lib/player-url';
+
 import Link from 'next/link';
 import { useState } from 'react';
 import TransactionIcon from '@/components/transaction-icon';
@@ -7,7 +9,9 @@ import type { DraftSelection } from '@/lib/history/model';
 import { formatFpts, seasonLabel } from '@/lib/league';
 
 type Sort = 'points' | 'fpg' | 'overall' | 'player' | 'year';
-export default function FranchiseDraft({ picks }: { picks: DraftSelection[] }) {
+export default function FranchiseDraft({ picks, franchiseId, hindsightEnabled = false }: {
+    picks: DraftSelection[]; franchiseId?: number; hindsightEnabled?: boolean;
+}) {
     const [season, setSeason] = useState('all');
     const [sort, setSort] = useState<Sort>('points');
     const [query, setQuery] = useState('');
@@ -34,6 +38,13 @@ export default function FranchiseDraft({ picks }: { picks: DraftSelection[] }) {
     return (
         <section id="draft-history" className="mt-9 scroll-mt-6" aria-labelledby="draft-title">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2"><h2 id="draft-title" className="font-wide text-xl font-extrabold uppercase">Draft history</h2><p className="text-sm text-ink-muted">{picks.filter((p) => p.playerId).length} selections · {years.length} draft classes</p></div>
+            {hindsightEnabled && franchiseId && years.length > 0 && <div className="mb-4 rounded-2xl border border-line bg-white px-4 py-3">
+                <p className="mb-2 text-sm font-bold">Revisit a draft <span className="font-normal text-ink-muted">· Steals, regrets & redrafts</span></p>
+                <nav aria-label="Franchise draft retrospectives" className="flex flex-wrap gap-2">
+                    {years.map(year => <Link key={year} href={`/season/${year}?draft=steals#draft-class`}
+                        className="inline-flex min-h-11 items-center rounded-xl border border-line px-3 text-sm font-bold text-rink-blue hover:border-rink-blue hover:bg-rink-wash">{seasonLabel(year)}</Link>)}
+                </nav>
+            </div>}
             <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
                 <div className="grid gap-3 border-b border-line-soft bg-ice p-4 sm:grid-cols-[1fr_auto_auto] md:p-5">
                     <label className="min-w-0 text-xs font-bold text-ink-muted">Player<input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Search draft picks" className={`${selectClass} mt-1 block w-full`} /></label>
@@ -47,7 +58,7 @@ export default function FranchiseDraft({ picks }: { picks: DraftSelection[] }) {
                     </div>
                     {visible.map((pick) => <div key={`${pick.year}-${pick.overall}`} role="row" className="grid grid-cols-[40px_minmax(0,1fr)_64px_36px] items-center gap-2 border-b border-line-soft px-4 py-4 last:border-0 hover:bg-rink-wash/40 sm:grid-cols-[70px_minmax(0,1fr)_90px_90px_60px] md:px-5">
                         <div role="cell"><span className="font-narrow tabular text-xl font-extrabold text-gold-deep">#{pick.overall}</span><span className="mt-1 block text-[10px] font-bold uppercase text-ink-muted">Rd {pick.round}</span></div>
-                        <div role="cell" className="min-w-0">{pick.playerId ? <Link href={`/player/${encodeURIComponent(pick.playerId)}`} className="text-sm font-extrabold hover:text-rink-blue hover:underline md:text-base">{pick.player}</Link> : <span className="text-xs font-semibold text-ink-muted">No player recorded</span>}<div className="mt-1 text-xs text-ink-muted">{pick.positions.replaceAll(',', ' · ')}<span className="block sm:hidden">{seasonLabel(pick.year)}</span></div></div>
+                        <div role="cell" className="min-w-0">{pick.playerId ? <Link href={playerHref(pick.playerId)} className="text-sm font-extrabold hover:text-rink-blue hover:underline md:text-base">{pick.player}</Link> : <span className="text-xs font-semibold text-ink-muted">No player recorded</span>}<div className="mt-1 text-xs text-ink-muted">{pick.positions.replaceAll(',', ' · ')}<span className="block sm:hidden">{seasonLabel(pick.year)}</span></div></div>
                         <span role="cell" className="hidden text-xs font-semibold text-ink-muted sm:block">{seasonLabel(pick.year)}</span>
                         <span role="cell" className="tabular text-right text-sm font-extrabold">{pick.points === null ? <span className="text-ink-faint" title="No season stats available">—</span> : formatFpts(pick.points)}</span>
                         <span role="cell" className="tabular text-right text-xs font-semibold text-ink-muted">{pick.fpg === null ? '—' : pick.fpg.toFixed(2)}</span>

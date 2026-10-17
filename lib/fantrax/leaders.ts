@@ -16,7 +16,7 @@ interface StatsPage {
 }
 
 // shortcut: Fantrax's website stats endpoint is undocumented; replace it when a supported player-stats API is available.
-async function loadStatsTable(leagueId: string, seasonYear: number, roster = false) {
+async function loadStatsTable(leagueId: string, seasonYear: number, roster = false, seasonCode?: string) {
     const filter = roster ? 'ALL_TAKEN' : 'ALL';
     // shortcut: one page covers this league; add pagination if rosters ever exceed 1,000 players.
     const limit = roster ? 1000 : 10;
@@ -41,7 +41,7 @@ async function loadStatsTable(leagueId: string, seasonYear: number, roster = fal
     }
 
     const seasonName = `${seasonYear}-${String(seasonYear + 1).slice(-2)} Reg Season - YTD`;
-    let data = await request();
+    let data = await request(seasonCode);
     if (data.displayedSeasonOrProjection?.name !== seasonName) {
         const season = data.seasonOrProjections.find(item => item.name === seasonName);
         if (!season) throw new Error('Fantrax did not offer current-season scoring totals');
@@ -60,8 +60,12 @@ function numericStat(value: string | undefined) {
     return number;
 }
 
-export async function loadScoringLeaders(leagueId: string, seasonYear: number) {
-    const data = await loadStatsTable(leagueId, seasonYear);
+export async function discoverScoringSeason(leagueId: string, seasonYear: number) {
+    return (await loadStatsTable(leagueId, seasonYear)).displayedSeasonOrProjection.code;
+}
+
+export async function loadScoringLeaders(leagueId: string, seasonYear: number, seasonCode?: string) {
+    const data = await loadStatsTable(leagueId, seasonYear, false, seasonCode);
     const pointsColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fpts');
     const perGameColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fptsPerGame');
     const teamColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'status');
@@ -82,8 +86,8 @@ export async function loadScoringLeaders(leagueId: string, seasonYear: number) {
     }).filter(player => player.points > 0).sort((a, b) => b.points - a.points);
 }
 
-export async function loadRosterStats(leagueId: string, seasonYear: number) {
-    const data = await loadStatsTable(leagueId, seasonYear, true);
+export async function loadRosterStats(leagueId: string, seasonYear: number, seasonCode?: string) {
+    const data = await loadStatsTable(leagueId, seasonYear, true, seasonCode);
     const pointsColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fpts');
     const perGameColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fptsPerGame');
     if (pointsColumn < 0 || perGameColumn < 0) throw new Error('Fantrax roster scoring columns are missing');

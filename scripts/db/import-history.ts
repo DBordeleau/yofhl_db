@@ -1,6 +1,7 @@
 import { prepareHistory, writeHistory } from './lib/history';
 import { loadLeagueConfig } from './lib/league-config';
 import { connect } from './lib/connect';
+import { enrichDraftDevelopment } from './lib/draft-development';
 
 async function main() {
     const prepared = prepareHistory(process.env.YOFHL_DATA_DIR ?? 'data', loadLeagueConfig());
@@ -10,6 +11,7 @@ async function main() {
     const connection = await connect();
     try {
         await connection.migrate();
+        await enrichDraftDevelopment(connection.db, prepared.picks);
         await writeHistory(connection.db, prepared);
         console.log('History imported atomically. Existing standings, awards, rosters and lotteries were preserved.');
         const site = process.env.SITE_URL;

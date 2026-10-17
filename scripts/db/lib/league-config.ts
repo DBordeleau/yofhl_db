@@ -25,6 +25,7 @@ export interface ScoreOverride {
     team: string; // abbreviation
     score: number;
     note: string;
+    verified?: boolean; // Reconstructed from game-level evidence, rather than a placeholder winning score.
 }
 
 export interface LeagueConfig {

@@ -58,7 +58,7 @@ export function LotteryPresentation({ event, now, error = false, preview = false
             <div className="lottery-masthead">
                 <Link href="/" className="lottery-wordmark" aria-label="YOFHL home">YOFHL<span>THE DRAFT LOTTERY</span></Link>
                 {event && !waiting && <span className={`lottery-status ${event.phase !== 'complete' ? 'is-live' : ''}`}>
-                    <i aria-hidden="true" />{event.phase === 'complete' ? 'Results' : 'Live'}
+                    {event.phase === 'complete' ? 'Results' : 'Live'}
                 </span>}
             </div>
             {error && <div role="status" className="lottery-connection">Connection interrupted. Reconnecting automatically — the saved draw will not change.</div>}
@@ -77,7 +77,7 @@ export function LotteryPresentation({ event, now, error = false, preview = false
                                 {waiting ? <motion.div key="countdown" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: reduced ? 0 : -10 }} transition={{ duration: reduced ? 0.15 : 0.5 }}>
                                     <Countdown remaining={remaining} />
                                 </motion.div> : <motion.div key={event.phase === 'complete' ? 'complete' : 'live'} className="lottery-live-message" initial={{ opacity: 0, y: reduced ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduced ? 0.15 : 0.7, ease: revealEase }}>
-                                    <span>{event.phase !== 'complete' && <i className="lottery-live-dot" aria-hidden="true" />}{event.phase === 'complete' ? 'Lottery concluded' : 'The lottery is live'}</span>
+                                    <span>{event.phase === 'complete' ? 'Lottery concluded' : 'The lottery is live'}</span>
                                     {event.phase === 'complete' && <p>The final draft order is below.</p>}
                                 </motion.div>}
                             </AnimatePresence>

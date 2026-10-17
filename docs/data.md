@@ -52,7 +52,7 @@ Admin sessions use an HttpOnly cookie scoped to `/admin`, with a 12-hour expiry.
    ```
 
    Without season arguments, the command imports every season found in the data directory. Multiple end years are accepted. The normal importer also processes supplied history files for those seasons.
-4. Resolve reported CSV/configuration mismatches before rerunning. Use `scoreOverrides` for known Fantrax playoff rescoring errors. Saved admin bracket corrections are included when validating the bracket.
+4. Resolve reported CSV/configuration mismatches before rerunning. Use `scoreOverrides` for known Fantrax playoff rescoring errors. An override with `verified: true` uses a reconstructed score and clears the public adjustment label; keep its evidence in [league/playoff-goalie-audit.json](../league/playoff-goalie-audit.json). Other overrides remain flagged placeholders. Saved admin bracket corrections are included when validating the bracket.
 5. Open `/admin`, sign in, and select the imported season. Set the championship roster, enter award winners, and review the bracket. The roster editor can start from the champion's end-of-season players, then add players dropped before the export.
 6. Check the import summary and the public season page. If importing into a hosted database, confirm the site cache was refreshed.
 
@@ -123,6 +123,14 @@ Team transaction feeds start on Trades. Player feeds include all history kinds. 
 
 Historical season summaries live at `/season/<end year>`. Their Draft class section includes all recorded draft slots, historical drafting team names, player links, and full-season FPts and FP/G. Readers can search players, filter by team or round, and sort by pick order or stats. Seasons without an export show an unavailable-records message. `/season` opens the latest completed season; former `/champions` URLs permanently redirect to the corresponding season routes.
 
+Draft regrets exclude everyone age 22 or younger on the fantasy draft date, skaters age 23–24 with fewer than 82 prior NHL regular-season games, and goalies age 23–25 with fewer than 50 prior NHL appearances. Age always uses the actual birth date and draft date. Young players remain on the board, in steals and redrafts, and among later alternatives.
+
+Both season imports and history imports automatically prepare these facts before replacing league data. NHL birth dates, player IDs, and any required pre-draft experience are saved in `draft_picks.development_facts` in the same transaction as the picks. Reimports reuse matching facts, and subsequent seasons reuse player identities and birth dates. Only missing facts require the public NHL search and player endpoints. Rate-limited requests back off; unresolved identities or unavailable data stop the import before league data is replaced. Fix the reported record or retry the import. The history `--dry-run` remains a local CSV validation and does not fetch NHL data.
+
+For players who share a name, `league/nhl-player-ids.json` records verified Fantrax-to-NHL identities. These IDs remain valid across seasons; this is not an annual metadata list. If a new ambiguous name stops an import, verify the correct NHL identity and add it here before retrying.
+
+The website reads development facts through its existing draft query, with no external calls, extra database queries, scheduled jobs, or paid services. Import cache invalidation makes new seasons available without a metadata deployment. Picks without verified facts are omitted from regrets until imported successfully. Migration `0009_draft_development` adds the column and backfills the existing drafts. Local response caches in `.cache/draft-development/` are ignored by Git and separated by import season; they are not required by the website. `priorNhlGames` can be null when age alone determines eligibility.
+
 The ambiguous `2019-2020 Trades.csv` batch stamped `Sun Oct 20, 2019, 11:05PM` is intentionally hidden from feeds, counts, pagination, and season filters at the league owner's request. [lib/history/visibility.ts](../lib/history/visibility.ts) matches its source file and timestamp, so reimporting keeps it hidden. The source rows remain stored. The separate 3:30 PM Josi trade and same-time free-agent claims remain visible.
 
 ## Live draft lottery
@@ -131,11 +139,13 @@ See the [draft lottery guide](lottery.md) for scheduling, preview controls, reve
 
 ## Cache and derived data
 
-Most public league and history queries use the shared `league` cache tag with no timed expiry in production. Development bypasses this query cache. Clearing it makes the next request read fresh data.
+Most public league and history queries have no timed expiry in production. They all carry the `league` tag for full imports, with additional tags for interactive edits. Development bypasses this query cache. Invalidating a tag makes its readers fetch fresh data on their next request.
+
+Roster, award, and matchup edits invalidate the edited season and their affected cross-season summaries. Other seasons' query results, draft classes, and transaction histories stay cached. Team name/logo edits invalidate that franchise and the collections that include its current identity. Colour edits invalidate only the branding query. Account claims do not invalidate public league data. The dependencies are defined in `lib/data/cache-tags.ts`; add tags to both readers and edit handlers when introducing a new cached aggregate.
 
 `POST /api/revalidate` requires `Authorization: Bearer <REVALIDATE_SECRET>`. It clears the league cache; it does not import data or refresh materialized views. Import and logo-sync scripts call it only when both `SITE_URL` and `REVALIDATE_SECRET` are set.
 
-The full season importer and roster, award, or bracket admin edits refresh these materialized views before invalidating cached data:
+The full season importer refreshes all three materialized views before invalidating cached data:
 
 | View | Contents |
 | --- | --- |
@@ -143,7 +153,7 @@ The full season importer and roster, award, or bracket admin edits refresh these
 | `player_careers` | Career totals, FP/G, positions, championships, awards, and all-time rank |
 | `franchise_records` | Regular-season record, points, championship seasons, and finals appearances |
 
-`season_results` must refresh before `franchise_records`, which reads it. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
+Roster and award edits refresh only `player_careers`. Matchup edits refresh `season_results` and then `franchise_records`, which reads it. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
 
 The lottery uses uncached reads and server time instead of the league cache. Its endpoint sets `Cache-Control: no-store, max-age=0`; a request at or after the scheduled start can persist the draw. See the [draw and viewer behavior](lottery.md#draw-and-viewer-behavior).
 
@@ -200,6 +210,7 @@ The award gallery includes two team trophies as well as the six individual award
 | `npm run db:migrate` | Apply committed migrations without importing league data |
 | `npm run db:generate` | Generate a migration after changing `db/schema.ts`; review the SQL before applying it |
 | `npm run test:lottery` | Run model and in-memory database tests for the lottery |
+| `npm run test:data` | Verify cache reuse, edit invalidation, and materialized-view updates against in-memory Postgres |
 | `npm run test:history` | Run parser, identity, grouping, repeat-import, and rollback tests |
 | `npm run db:verify` | Legacy migration comparison against old-site API shapes; not current-site verification |
 

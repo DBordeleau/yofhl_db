@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
+import { leagueTags } from './cache-tags';
 
 // Every query the site makes. Each is cached until the next import or admin edit (see ./db).
 // Field names in PascalCase match what the existing table components already expect.
@@ -139,6 +140,11 @@ export interface AwardWinner {
     Team: string | null;
     TeamID: number | null;
     Owner?: string | null;
+    // Season context for share cards: the player's season, or the team's record for team honours.
+    TeamLogo?: string | null;
+    FPts?: number | null;
+    FPG?: number | null;
+    Record?: string | null;
 }
 
 // leaderboard queries return the filtered total on every row; drop it from the rows themselves
@@ -162,6 +168,7 @@ export const getBannerSeasons = cached(
             left join league.owners o on o.id = t.owner_id
             order by s.year`),
     'banner-seasons',
+    [leagueTags.banners],
 );
 
 export const getAwardTypes = cached(
@@ -183,7 +190,7 @@ export const getAllTimeLeaderboard = cached(async (position: string, page: numbe
         limit ${PAGE_SIZE} offset ${(page - 1) * PAGE_SIZE}`);
     const total = data[0]?.total ?? 0;
     return { rows: data.map(withoutTotal), page, total, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
-}, 'leaderboard-all-time');
+}, 'leaderboard-all-time', [leagueTags.careerLeaderboard]);
 
 export const getSingleSeasonLeaderboard = cached(async (position: string, page: number, q: string, season: number | null = null): Promise<LeaderboardPage> => {
     const pos = toPosition(position);
@@ -212,11 +219,14 @@ export const getSingleSeasonLeaderboard = cached(async (position: string, page: 
         total,
         pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
     };
-}, 'leaderboard-single-season');
+}, 'leaderboard-single-season', (_position, _page, _q, season = null) => [season === null ? leagueTags.seasonLeaderboard : leagueTags.season(season)]);
 
 export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null> => {
-    const [player] = await rows<{ id: string; name: string }>(sql`select id, name from league.players where id = ${id}`);
+    const [player] = await rows<{ id: string; name: string }>(sql`
+        select id, name from league.players where id = ${id} or id = ${`*${id}*`}
+        order by (id = ${id}) desc limit 1`);
     if (!player) return null;
+    id = player.id;
 
     const [career, playerStats, awards, championships] = await Promise.all([
         rows<{ rank: number; total: number; fpg: number; seasons: number; positions: string[]; team_id: number | null; team_name: string | null; team_logo: string | null; team_abbreviation: string | null }>(sql`
@@ -267,7 +277,7 @@ export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null
         awards,
         championships,
     };
-}, 'player');
+}, 'player', [leagueTags.players]);
 
 // most-viewed profiles are built ahead of time; everyone else is built on first visit
 export const getTopPlayerIds = cached(
@@ -299,7 +309,7 @@ export const getChampionRoster = cached(async (year: number): Promise<ChampionRo
         where c.season_year = ${year}
         order by ps.fpts desc nulls last, p.name`);
     return { ...season, rows: roster };
-}, 'champion-roster');
+}, 'champion-roster', year => [leagueTags.season(year)]);
 
 export const getFranchiseCards = cached(
     () =>
@@ -317,6 +327,7 @@ export const getFranchiseCards = cached(
             left join league.owners o on o.id = t.owner_id
             order by fr.wins desc`),
     'franchise-cards',
+    [leagueTags.franchiseCards],
 );
 
 export const getFranchise = cached(async (id: number): Promise<FranchiseDetail | null> => {
@@ -369,21 +380,23 @@ export const getFranchise = cached(async (id: number): Promise<FranchiseDetail |
             order by t.season_year desc`),
     ]);
     return { ...franchise, leaders, seasons };
-}, 'franchise');
+}, 'franchise', id => [leagueTags.franchiseDetails, leagueTags.franchise(id)]);
 
 export const getAwardWinners = cached(async (name: string) => {
     const [award] = await rows<AwardType>(sql`select name, label, description from league.award_types where name = ${name}`);
     if (!award) return null;
     const winners = await rows<AwardWinner>(sql`
-        select a.season_year as "Year", p.name as "Winner", p.id as "PlayerID", t.name as "Team", t.franchise_id as "TeamID"
+        select a.season_year as "Year", p.name as "Winner", p.id as "PlayerID", t.name as "Team", t.franchise_id as "TeamID",
+               t.logo_url as "TeamLogo", ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG"
         from league.awards a
         join league.award_types at on at.id = a.award_type_id
         join league.players p on p.id = a.player_id
         left join league.team_seasons t on t.id = a.team_season_id
+        left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = a.season_year
         where at.name = ${name}
         order by a.season_year desc`);
     return { award, winners };
-}, 'award-winners');
+}, 'award-winners-v2', [leagueTags.awards]);
 
 // Team honours use the same championship and scoring records as franchise trophy cases.
 export const getTeamAwardWinners = cached(async (award: 'jagr-cup' | 'prime-minister') => {
@@ -394,12 +407,14 @@ export const getTeamAwardWinners = cached(async (award: 'jagr-cup' | 'prime-mini
                 and other.fpts_for >= t.fpts_for)`;
     return rows<AwardWinner>(sql`
         select t.season_year as "Year", t.name as "Winner", '' as "PlayerID",
-               t.name as "Team", t.franchise_id as "TeamID", o.name as "Owner"
+               t.name as "Team", t.franchise_id as "TeamID", o.name as "Owner", t.logo_url as "TeamLogo",
+               t.fpts_for::float8 as "FPts", null::float8 as "FPG",
+               t.wins || '–' || t.losses || case when t.ties > 0 then '–' || t.ties else '' end as "Record"
         from league.team_seasons t
         left join league.owners o on o.id = t.owner_id
         where ${criterion}
         order by t.season_year desc`);
-}, 'team-award-winners');
+}, 'team-award-winners-v2', award => award === 'jagr-cup' ? [leagueTags.cups] : []);
 
 export const searchPlayers = cached(
     (q: string) =>
@@ -499,4 +514,4 @@ export const getSeasonDetail = cached(async (year: number): Promise<SeasonDetail
             note: g.note,
         })),
     };
-}, 'season-detail');
+}, 'season-detail', year => [leagueTags.season(year)]);

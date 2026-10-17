@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadRosterStats, loadScoringLeaders } from './leaders';
+import { discoverScoringSeason, loadRosterStats, loadScoringLeaders } from './leaders';
 
 const season = { code: 'SEASON_current_YEAR_TO_DATE', name: '2026-27 Reg Season - YTD', timeframeTypeCode: 'YEAR_TO_DATE' };
 const table = () => ({
@@ -15,6 +15,32 @@ const table = () => ({
     ],
 });
 const response = (data: unknown) => Response.json({ responses: [{ data }] });
+
+test('a verified selector skips projection discovery for leaders and rosters', async t => {
+    const calls: Record<string, unknown>[] = [];
+    t.mock.method(globalThis, 'fetch', async (_url: string, init: RequestInit) => {
+        const input = JSON.parse(init.body as string).msgs[0].data;
+        calls.push(input);
+        return response(input.statusOrTeamFilter === 'ALL_TAKEN' ? rosterTable() : table());
+    });
+    const code = await discoverScoringSeason('league', 2026);
+    await loadScoringLeaders('league', 2026, code);
+    await loadRosterStats('league', 2026, code);
+    assert.equal(calls.length, 3);
+    assert.equal(calls[1].seasonOrProjection, season.code);
+    assert.equal(calls[2].seasonOrProjection, season.code);
+});
+
+test('a stale selector is recovered using verified current-season metadata', async t => {
+    let calls = 0;
+    t.mock.method(globalThis, 'fetch', async (_url: string, init: RequestInit) => {
+        calls++;
+        const code = JSON.parse(init.body as string).msgs[0].data.seasonOrProjection;
+        return response(code === season.code ? table() : { ...table(), displayedSeasonOrProjection: { ...season, name: 'Projected - Season' } });
+    });
+    assert.equal((await loadScoringLeaders('league', 2026, 'obsolete')).length, 2);
+    assert.equal(calls, 2);
+});
 
 test('loads current league-scored skaters and goalies directly from Fantrax without archive imports', async t => {
     t.mock.method(globalThis, 'fetch', async (_url: string, init: RequestInit) => {
