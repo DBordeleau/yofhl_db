@@ -35,7 +35,6 @@ export default function HeroStudio({ episode }: { episode: EpisodeSummary }) {
         <Link href="/coachs-corner" className={styles.monitor} aria-label={label}>
             <span className={styles.screen}>
                 <span className={styles.slabs}>
-                    <span className={styles.show}>Coach&rsquo;s Corner</span>
                     {episode.week !== null && <span className={styles.week}>Week {episode.week}</span>}
                     <span className={styles.badge}><NewEpisodeBadge episodeKey={episodeSeenKey(episode)} /></span>
                 </span>
@@ -46,8 +45,10 @@ export default function HeroStudio({ episode }: { episode: EpisodeSummary }) {
                 </span>
             </span>
         </Link>
-        <span className={styles.desk} aria-hidden="true" />
+        {/* the hosts sit between the desktop and the desk front, which hides where their artwork ends */}
+        <span className={styles.deskTop} aria-hidden="true" />
         <Host pose="don-point-talk" className={`${styles.host} ${styles.don}`} />
         <Host pose="ron-skeptical-talk" className={`${styles.host} ${styles.ron}`} />
+        <span className={styles.deskFront} aria-hidden="true"><span className={styles.deskSlab}>Coach&rsquo;s Corner</span></span>
     </div></div>;
 }
