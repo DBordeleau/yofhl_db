@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { rows } from '../data/db';
 import { COACHS_CORNER_TAG, episodeTag, getStudioPlayers } from '../data/coachs-corner';
 import { hasErrors, parseScript, playerRefs } from './script';
-import { compile, INTRO_MS } from './timeline';
+import { compile } from './timeline';
 
 export interface EpisodeInput { id: number | null; slug: string; script: string; publish?: boolean }
 export interface EpisodeWrite { id: number; slug: string; oldSlug: string | null; publicChanged: boolean }
@@ -42,7 +42,8 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
     const title = script.meta.title || 'Untitled episode';
     const season = script.meta.season ?? null;
     const week = script.meta.week ?? null;
-    const duration = Math.round(tl.showEnd - INTRO_MS);
+    // the length the player shows: the bumper counts, the end card after the last line does not
+    const duration = Math.round(tl.showEnd);
     try {
         const [row] = input.id !== null ? await rows<EpisodeWrite>(sql`
             with previous as materialized (

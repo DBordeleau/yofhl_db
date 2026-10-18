@@ -4,11 +4,11 @@
 @media (min-width: 1680px) {
     .studio { --spill: #3f6fd6; position: relative; align-self: stretch; display: flex; justify-content: center; }
     /* the monitor, desk and hosts stay one grouped set however wide the column gets */
-    .set { --front: clamp(40px, 9.5cqw, 54px); --surface: clamp(12px, 2.8cqw, 16px); --don: clamp(200px, 52cqw, 264px); --ron: clamp(190px, 49cqw, 248px); --bleed-l: -15cqw; --bleed-r: -13cqw; position: relative; display: flex; flex-direction: column; align-items: center; width: min(100%, 560px); container-type: inline-size; }
+    .set { position: relative; display: flex; flex-direction: column; align-items: center; width: min(100%, 560px); container-type: inline-size; }
 
     /* blue light from the screen falling across the ice */
     .studio::before { content: ''; position: absolute; z-index: -1; left: 50%; top: 22%; width: min(130%, 800px); height: 80%; transform: translateX(-50%); background: radial-gradient(closest-side, color-mix(in srgb, var(--spill) 26%, transparent), transparent); opacity: .8; transition: opacity .4s; pointer-events: none; animation: spillOn 1s .95s ease-out backwards; }
-    .studio:has(.monitor:is(:hover, :focus-visible))::before { opacity: 1; }
+    .set:has(.monitor:is(:hover, :focus-visible))::before { opacity: 1; }
 
     .rig { display: flex; justify-content: space-between; width: 56%; height: clamp(26px, 7cqw, 40px); animation: monitorDrop .8s .3s cubic-bezier(.2, .8, .25, 1.12) backwards; }
     .rig i { position: relative; width: 2px; background: linear-gradient(90deg, #8b9ab0, #3f4e66); }
@@ -25,7 +25,9 @@
     .screen::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, #ffffff17 0, #ffffff05 34%, transparent 34.2%), repeating-linear-gradient(0deg, #ffffff08 0 1px, transparent 1px 3px); pointer-events: none; }
 
     .slabs { position: absolute; top: 7%; left: 5%; right: 5%; display: flex; align-items: stretch; height: clamp(22px, 5.6cqw, 27px); }
-    .week { display: flex; align-items: center; padding: 1px 20px 0 12px; background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 100%, 0 100%); font-family: var(--font-cc-italic), Archivo, sans-serif; font-size: clamp(10px, 2.6cqw, 12.5px); font-style: italic; font-weight: 900; font-stretch: 122%; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #5a0010; }
+    .show, .week { display: flex; align-items: center; font-family: var(--font-cc-italic), Archivo, sans-serif; font-style: italic; font-weight: 900; font-stretch: 122%; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+    .show { padding: 1px 20px 0 12px; background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 100%, 0 100%); font-size: clamp(10px, 2.6cqw, 12.5px); text-shadow: 0 1px 1px #5a0010; }
+    .week { margin-left: -9px; padding: 1px 16px 0 17px; background: #050c18; clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%); color: #c3e3f7; font-size: clamp(10px, 2.4cqw, 12px); font-variant-numeric: tabular-nums; }
     .badge { display: flex; align-items: center; margin-left: auto; }
     .badge > span { margin-left: 0; box-shadow: 0 2px 8px #02060f80; }
 
@@ -36,23 +38,13 @@
     .runtime { margin-left: 3px; padding-left: 11px; border-left: 1px solid #ffffff59; font-weight: 700; font-variant-numeric: tabular-nums; color: #ffe0e5; }
     .monitor:hover .play, .monitor:focus-visible .play { background: #e01535; transform: scale(1.05); }
 
-    /* the show's own desk: a lit desktop behind the hosts and a lacquered front panel that hides where their artwork ends */
-    .deskTop { position: absolute; z-index: 0; left: var(--bleed-l); right: var(--bleed-r); bottom: calc(var(--front) - 1px); height: var(--surface); background: linear-gradient(180deg, #3a4c85, #1e2a52 30%, #141d3c); clip-path: polygon(2.5% 0, 97.5% 0, 100% 100%, 0 100%); }
-    .deskTop::before { content: ''; position: absolute; inset: 0 2.5% auto; height: 2px; background: #bed2ff59; }
-    /* contact shadows where the hands rest, and the screen's spill pooling in the middle */
-    .deskTop::after { content: ''; position: absolute; inset: 0; background: radial-gradient(16% 90% at 22% 100%, #02040cb3, transparent 70%), radial-gradient(16% 90% at 80% 100%, #02040cb3, transparent 70%), linear-gradient(90deg, transparent 30%, color-mix(in srgb, var(--spill) 30%, transparent) 50%, transparent 70%); }
-    .deskFront { position: absolute; z-index: 3; left: var(--bleed-l); right: var(--bleed-r); bottom: 0; display: grid; place-items: center; height: var(--front); background: radial-gradient(40% 100% at 50% 0, color-mix(in srgb, var(--spill) 34%, transparent), transparent 70%), linear-gradient(100deg, transparent 16%, #c8dcff17 22%, transparent 29%, transparent 68%, #c8dcff0f 73%, transparent 78%), linear-gradient(180deg, #4a5d99 0 2px, #1b2650 2px, #0f1734 55%, #070b1d); clip-path: polygon(0 0, 100% 0, 99% 100%, 1% 100%); box-shadow: 0 -10px 24px -12px #000; }
-    /* arena banner stripes across the front */
-    .deskFront::after { content: ''; position: absolute; left: 1%; right: 1%; bottom: 22%; height: 9%; background: linear-gradient(#c8102e 0 35.7%, #e9eef5 35.7% 64.3%, #3d8bda 64.3%); opacity: .85; }
-    .deskSlab { position: relative; z-index: 1; margin-bottom: 5%; padding: .2em 1.15em .14em; background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); font-family: var(--font-cc-italic), Archivo, sans-serif; font-size: clamp(12px, 3cqw, 16px); font-style: italic; font-weight: 900; font-stretch: 125%; letter-spacing: -.01em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 1px 1px #5a0010; }
-
-    /* each host's lowest 14% sits behind the desk front, so the hands rest on its lip */
-    .host { position: absolute; z-index: 1; width: var(--don); height: auto; aspect-ratio: 1; bottom: calc(var(--front) - var(--don) * .14); transform-origin: 50% 90%; filter: drop-shadow(0 10px 14px #02060f99); pointer-events: none; transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
+    /* the hosts sit behind a lacquered desk, whose front hides their lower edge, that runs off both sides of the column */
+    .desk { position: absolute; z-index: 2; bottom: 0; left: -16cqw; right: -14cqw; height: clamp(26px, 7cqw, 36px); border-radius: 6px 6px 0 0; background: linear-gradient(180deg, transparent 0 3px, #34457e 3px, #22305f 9px, #0f1736 10px, #0b1230 60%, #080d22), linear-gradient(90deg, #ffffff0d, transparent 30%, transparent 70%, #ffffff0d); box-shadow: inset 0 3px 0 #c8102e, 0 -12px 30px -14px #000; }
+    .host { position: absolute; z-index: 1; bottom: calc(clamp(26px, 7cqw, 36px) - 12px); width: clamp(200px, 52cqw, 264px); height: auto; aspect-ratio: 1; filter: drop-shadow(0 14px 18px #02060fb0); pointer-events: none; transition: transform .45s cubic-bezier(.2, .7, .2, 1); }
     .don { left: -13cqw; animation: hostRise .7s 1.15s cubic-bezier(.2, .8, .25, 1) backwards; }
-    .ron { right: -10cqw; width: var(--ron); bottom: calc(var(--front) - var(--ron) * .14); animation: hostRise .7s 1.28s cubic-bezier(.2, .8, .25, 1) backwards; }
-    /* hovering the monitor: both lean toward it, pivoting at the desk so nothing lifts off it */
-    .set:has(.monitor:is(:hover, :focus-visible)) .don { transform: translateX(4px) rotate(2deg); }
-    .set:has(.monitor:is(:hover, :focus-visible)) .ron { transform: translateX(-3px) rotate(-1.6deg); transition-delay: .08s; }
+    .ron { right: -10cqw; width: clamp(190px, 49cqw, 248px); animation: hostRise .7s 1.28s cubic-bezier(.2, .8, .25, 1) backwards; }
+    .set:has(.monitor:is(:hover, :focus-visible)) .don { transform: translate(5px, -6px) rotate(-1.5deg); }
+    .set:has(.monitor:is(:hover, :focus-visible)) .ron { transform: translate(-3px, -4px) rotate(1deg); transition-delay: .08s; }
 }
 
 @media (min-width: 1800px) {
@@ -61,8 +53,9 @@
 @media (min-width: 2400px) {
     .set { width: min(100%, 640px); }
     .monitor { width: min(100%, 560px); padding: 11px; }
-    .set { --don: clamp(200px, 52cqw, 284px); --ron: clamp(190px, 49cqw, 266px); --front: 60px; --surface: 18px; }
-    .slabs { height: 32px; } .week { font-size: 15px; } .deskSlab { font-size: 18px; }
+    .host { width: clamp(200px, 52cqw, 284px); }
+    .ron { width: clamp(190px, 49cqw, 266px); }
+    .slabs { height: 32px; } .show { font-size: 15px; } .week { font-size: 14px; }
     .title { font-size: 38px; }
     .play { height: 52px; font-size: 17px; }
     .rig { height: 48px; }

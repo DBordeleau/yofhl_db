@@ -3,7 +3,7 @@ import { unstable_cache } from 'next/cache';
 import { PILOT_SCRIPT, PILOT_SLUG } from '@/lib/coachs-corner/pilot';
 import pilotPlayers from '@/lib/coachs-corner/pilot-players.json';
 import { parseScript, playerRefs } from '@/lib/coachs-corner/script';
-import { compile, INTRO_MS } from '@/lib/coachs-corner/timeline';
+import { compile } from '@/lib/coachs-corner/timeline';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import playerPortraits from '@/lib/records/player-portraits.json';
 import { fallbackColours } from '@/lib/team-branding';
@@ -19,6 +19,7 @@ export interface EpisodeSummary {
     title: string;
     season: number | null;
     week: number | null;
+    /** the length the player shows, intro bumper included */
     durationMs: number;
     publishedAt: string | null;
 }
@@ -33,7 +34,7 @@ const pilot = (): Episode => {
     const { meta, showEnd } = compile(script);
     return {
         slug: PILOT_SLUG, title: meta.title, season: meta.season ?? null, week: meta.week ?? null,
-        durationMs: showEnd - INTRO_MS, publishedAt: meta.date ? `${meta.date}T12:00:00Z` : null, script: PILOT_SCRIPT, players: pilotPlayers,
+        durationMs: showEnd, publishedAt: meta.date ? `${meta.date}T12:00:00Z` : null, script: PILOT_SCRIPT, players: pilotPlayers,
     };
 };
 
@@ -48,13 +49,13 @@ export const getPublishedEpisodes = cached(async (): Promise<EpisodeSummary[]> =
     if (found.some(r => r.slug === PILOT_SLUG)) return found;
     const p = pilot();
     return [...found, { slug: p.slug, title: p.title, season: p.season, week: p.week, durationMs: p.durationMs, publishedAt: p.publishedAt }];
-}, 'coachs-corner-episodes-v3', [COACHS_CORNER_TAG]);
+}, 'coachs-corner-episodes-v4', [COACHS_CORNER_TAG]);
 
 export const getPublishedEpisode = cached(async (slug: string): Promise<Episode | null> => {
     const [row] = await rows<Episode>(sql`select ${summary}, script, players from league.coachs_corner_episodes where slug = ${slug} limit 1`);
     if (row?.publishedAt) return row;
     return slug === PILOT_SLUG ? pilot() : null;
-}, 'coachs-corner-episode-v4', slug => [episodeTag(slug)]);
+}, 'coachs-corner-episode-v5', slug => [episodeTag(slug)]);
 
 // ---------- admin ----------
 
