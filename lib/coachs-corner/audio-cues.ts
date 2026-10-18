@@ -1,4 +1,4 @@
-import { CHARACTERS, type CharacterId, type Delivery } from './cast';
+import { CHARACTERS, gestureAction, type CharacterId, type Delivery } from './cast';
 import { firedBetween, INTRO_MS, type Timeline } from './timeline';
 import type { SoundId } from './sound-bank';
 
@@ -51,7 +51,7 @@ export function compileAudioCues(tl: Timeline): AudioCue[] {
     for (const m of tl.monitor) if (m.t > 0) cues.push({ t: m.t, id: 'monitor' });
     for (const p of tl.punches) if (p.who === 'don') cues.push({ t: p.t, id: 'thud' });
     // Only this physical action gets Foley. Mouth swaps and automatic rest poses stay silent.
-    for (const g of tl.gestures.don) if (g.t >= INTRO_MS && g.value === 'tie') cues.push({ t: g.t, id: 'tie' });
+    for (const g of tl.gestures.don) if (g.t >= INTRO_MS && gestureAction(g.value) === 'tie') cues.push({ t: g.t, id: 'tie' });
     return cues.sort((a, b) => a.t - b.t);
 }
 

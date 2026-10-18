@@ -1,6 +1,8 @@
 # Coach's Corner assets
 
-Use [robots-v2](robots-v2/) for the Coach's Corner segment: 19 transparent poses (13 Don, 6 Ron), as 1254 × 1254 PNG originals and 640 px / 1254 px AVIF and WebP exports. The player prefers AVIF and falls back to the original WebP. Run `npm run coachs:assets` after artwork edits; see [generation and rollback instructions](../../docs/coachs-corner.md#avif-artwork-and-rollback).
+Use [robots-v2](robots-v2/) for the Coach's Corner segment: 36 transparent poses, comprising 15 regular Don poses, 15 Halloween Don poses and 6 Ron poses. Each has a 1254 × 1254 PNG original and 640 px / 1254 px AVIF and WebP exports. The player prefers AVIF and falls back to the original WebP. Run `npm run coachs:assets` after artwork edits; see [generation and rollback instructions](../../docs/coachs-corner.md#avif-artwork-and-rollback).
+
+Don's original red floral suit is the normal/default wardrobe. The [suit selection rules](../../docs/coachs-corner.md#dons-suits) cover the default and explicit variants; the [Halloween suit guide](robots-v2/halloween-2026.md) covers the seasonal pose set and screenplay usage.
 
 Don sits on the left and faces right. Ron sits on the right and faces left.
 

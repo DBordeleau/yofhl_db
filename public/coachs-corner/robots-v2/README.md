@@ -1,8 +1,10 @@
 # Coach's Corner robot poses
 
-19 transparent cutouts: 13 Don poses and 6 Ron poses. Don sits on the left and faces slightly right; Ron sits on the right and faces slightly left. Don's camera-lean pose turns toward the audience.
+36 transparent cutouts: 15 regular Don poses, 15 Halloween Don poses and 6 Ron poses. Don sits on the left and faces slightly right; Ron sits on the right and faces slightly left. Don's camera-lean pose turns toward the audience.
 
-The set follows your illustrated robot reference, with silver faceplates, cyan screen eyes and sculpted white hair. Don has the connected wraparound moustache and goatee and a red, gold and ivory floral suit.
+The [Halloween suit set](halloween-2026.md) covers every Don pose. Open its [pose viewer](halloween-preview.html) or read its [generation prompts](prompts-halloween-2026.json). Select `halloween-*` gestures explicitly in a screenplay to use this wardrobe.
+
+Both suits preserve the illustrated robot reference, with silver faceplates, cyan screen eyes, sculpted white hair and Don's connected wraparound moustache and goatee. His original red, gold and ivory floral suit is the normal/default wardrobe. See [Don's suits](../../../docs/coachs-corner.md#dons-suits) for selection rules. The manifest pins `defaultWardrobes.don` to `normal`; existing `don-*` assets and unprefixed gestures keep that suit.
 
 ## Files
 
@@ -10,9 +12,9 @@ The set follows your illustrated robot reference, with silver faceplates, cyan s
 - WebP files keep the same dimensions and alpha, with quality set to 94 for smaller downloads.
 - Both WebP sizes have generated AVIF equivalents. The player prefers AVIF and falls back to WebP; `npm run coachs:assets` builds and versions these static files.
 - `preview.html` lets you select poses, check light and dark backgrounds, and step through the script cues. It is a catalog preview, not the current player's mouth animation.
-- `manifest.json` lists every asset, its use, dimensions and website URL.
+- `manifest.json` lists every asset, its wardrobe, use, dimensions and website URL, plus the default wardrobe and variant prompt records.
 - `cue-sheet.json` maps 48 script beats to pose IDs. Match these to your eventual voice track.
-- `prompts.json` records the final prompt set. Images were made with the built-in image_gen tool.
+- `prompts.json` records the original suit and Ron prompts; `prompts-halloween-2026.json` records the Halloween edits. Images were made with the built-in image_gen tool.
 
 ## Place the characters
 
@@ -40,7 +42,8 @@ Use `don-stare` after "Hamhung Hall Monitors" and `don-pause` before "Paddyville
 
 | Character | Pose IDs |
 | --- | --- |
-| Don | default, talk, point, point-talk, angry-talk, surprised, stare, pause, tie-adjust, lean-camera, mic-remove, thumbs-up, thumbs-up-talk |
+| Normal Don, default suit | default, talk, point, point-talk, angry-talk, surprised, stare, pause, tie-adjust, lean-camera, mic-remove, thumbs-up, thumbs-up-talk, desk-pound, desk-pound-ready |
+| Halloween Don | The same 15 suffixes, prefixed with `don-halloween-` |
 | Ron | default, talk, skeptical-talk, look-down, warning, surprised |
 
 Each ID has its character prefix, for example `don-point-talk.webp`.

@@ -11,6 +11,9 @@ const MOUTH_CLIPS: Record<string, string> = {
     'don-talk': 'ellipse(11% 10% at 54% 41%)',
     'don-point-talk': 'ellipse(11% 10% at 49% 41%)',
     'don-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
+    'don-halloween-talk': 'ellipse(11% 10% at 54% 41%)',
+    'don-halloween-point-talk': 'ellipse(11% 10% at 49% 41%)',
+    'don-halloween-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
     'ron-talk': 'ellipse(14% 8% at 45% 43%)',
 };
 

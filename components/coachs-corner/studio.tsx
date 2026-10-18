@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Artwork, { HostArtwork } from './artwork';
-import { CAST, CHARACTERS, type CharacterId } from '@/lib/coachs-corner/cast';
+import { CAST, CHARACTERS, gestureAction, type CharacterId } from '@/lib/coachs-corner/cast';
 import type { CaptionFrame, Frame, HostFrame, Line, Timeline } from '@/lib/coachs-corner/timeline';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
@@ -120,8 +120,9 @@ function Flashes({ active }: { active: boolean }) {
 
 const Host = memo(function Host({ who, host, art }: { who: CharacterId; host: HostFrame; art: string[] }) {
     const prevGesture = useRef(host.gesture);
-    const pound = who === 'don' && host.gesture === 'pound';
-    const deskAction = pound || (who === 'don' && host.gesture === 'pound-ready');
+    const action = gestureAction(host.gesture);
+    const pound = who === 'don' && action === 'pound';
+    const deskAction = pound || (who === 'don' && action === 'pound-ready');
     // mouth flaps swap fast; a new gesture blends a touch slower
     const fade = deskAction ? 0 : prevGesture.current === host.gesture ? 55 : 150;
     prevGesture.current = host.gesture;

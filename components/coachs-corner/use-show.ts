@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CHARACTERS } from '@/lib/coachs-corner/cast';
+import { CHARACTERS, gestureAction } from '@/lib/coachs-corner/cast';
 import { frameAt, INTRO_MS, type Frame, type Timeline } from '@/lib/coachs-corner/timeline';
 import { audioCuesBetween, compileAudioCues } from '@/lib/coachs-corner/audio-cues';
 import type { ShowAudio } from './audio';
@@ -16,7 +16,7 @@ export const frameSignature = (f: Frame) => {
         const c = f.captions[who];
         s += `|${h.gesture}${h.open ? 1 : 0}${h.motion ?? '-'}${h.flinch ? 1 : 0}|${c ? `${c.line}.${c.shown}.${c.active ? 1 : 0}${c.knocked ? 1 : 0}` : '-'}`;
         // Publish the short contact animation, then return to sparse updates.
-        if (who === 'don' && h.gesture === 'pound') s += `|impact:${Math.min(10, Math.floor(h.gestureMs / 16))}`;
+        if (who === 'don' && gestureAction(h.gesture) === 'pound') s += `|impact:${Math.min(10, Math.floor(h.gestureMs / 16))}`;
     }
     return s;
 };

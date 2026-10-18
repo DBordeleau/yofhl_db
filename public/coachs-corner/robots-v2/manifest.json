@@ -38,6 +38,18 @@
     [
       "ron-default",
       "ron-talk"
+    ],
+    [
+      "don-halloween-default",
+      "don-halloween-talk"
+    ],
+    [
+      "don-halloween-point",
+      "don-halloween-point-talk"
+    ],
+    [
+      "don-halloween-thumbs-up",
+      "don-halloween-thumbs-up-talk"
     ]
   ],
   "assets": [
@@ -53,7 +65,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1848262,
-      "webpBytes": 355710
+      "webpBytes": 355710,
+      "wardrobe": "normal"
     },
     {
       "id": "don-talk",
@@ -67,7 +80,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1832350,
-      "webpBytes": 345476
+      "webpBytes": 345476,
+      "wardrobe": "normal"
     },
     {
       "id": "don-point",
@@ -81,7 +95,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1839303,
-      "webpBytes": 349278
+      "webpBytes": 349278,
+      "wardrobe": "normal"
     },
     {
       "id": "don-point-talk",
@@ -95,7 +110,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1850041,
-      "webpBytes": 355122
+      "webpBytes": 355122,
+      "wardrobe": "normal"
     },
     {
       "id": "don-angry-talk",
@@ -109,7 +125,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1813018,
-      "webpBytes": 343282
+      "webpBytes": 343282,
+      "wardrobe": "normal"
     },
     {
       "id": "don-surprised",
@@ -123,7 +140,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1825546,
-      "webpBytes": 347654
+      "webpBytes": 347654,
+      "wardrobe": "normal"
     },
     {
       "id": "don-stare",
@@ -137,7 +155,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1823069,
-      "webpBytes": 342456
+      "webpBytes": 342456,
+      "wardrobe": "normal"
     },
     {
       "id": "don-pause",
@@ -151,7 +170,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1823113,
-      "webpBytes": 344008
+      "webpBytes": 344008,
+      "wardrobe": "normal"
     },
     {
       "id": "don-tie-adjust",
@@ -165,7 +185,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1734864,
-      "webpBytes": 323504
+      "webpBytes": 323504,
+      "wardrobe": "normal"
     },
     {
       "id": "don-lean-camera",
@@ -179,7 +200,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 2055242,
-      "webpBytes": 367572
+      "webpBytes": 367572,
+      "wardrobe": "normal"
     },
     {
       "id": "don-mic-remove",
@@ -193,7 +215,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1781308,
-      "webpBytes": 332540
+      "webpBytes": 332540,
+      "wardrobe": "normal"
     },
     {
       "id": "don-thumbs-up",
@@ -207,7 +230,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1857573,
-      "webpBytes": 353132
+      "webpBytes": 353132,
+      "wardrobe": "normal"
     },
     {
       "id": "don-thumbs-up-talk",
@@ -221,7 +245,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1843599,
-      "webpBytes": 359610
+      "webpBytes": 359610,
+      "wardrobe": "normal"
     },
     {
       "id": "ron-default",
@@ -319,7 +344,8 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1780910,
-      "webpBytes": 283208
+      "webpBytes": 283208,
+      "wardrobe": "normal"
     },
     {
       "id": "don-desk-pound-ready",
@@ -333,7 +359,301 @@
       "width": 1254,
       "height": 1254,
       "pngBytes": 1703796,
-      "webpBytes": 279004
+      "webpBytes": 279004,
+      "wardrobe": "normal"
+    },
+    {
+      "id": "don-halloween-default",
+      "character": "don",
+      "label": "Halloween / Default / listening",
+      "mouth": "closed",
+      "use": "Listening between ordinary lines.",
+      "png": "don-halloween-default.png",
+      "webp": "don-halloween-default.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-default.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1837518,
+      "webpBytes": 348846,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-default",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "1e32dad30cbdb2bca47c22a211e83230b8dfe651a5efeb56403f261474506e8f"
+    },
+    {
+      "id": "don-halloween-talk",
+      "character": "don",
+      "label": "Halloween / Talking",
+      "mouth": "open",
+      "use": "Most of Don’s dialogue.",
+      "png": "don-halloween-talk.png",
+      "webp": "don-halloween-talk.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-talk.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1815629,
+      "webpBytes": 355668,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-talk",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "3e7f5c0e4448b452bda0becb38ffe1f13f58c13f6f5be6070fe8316e72912f47"
+    },
+    {
+      "id": "don-halloween-point",
+      "character": "don",
+      "label": "Halloween / Pointing / mouth closed",
+      "mouth": "closed",
+      "use": "Opening silent point toward the monitor.",
+      "png": "don-halloween-point.png",
+      "webp": "don-halloween-point.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-point.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1876289,
+      "webpBytes": 362932,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-point",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "dd49688826f0a962215c414cb28faa46d54165a8343bc7623e1ad6e2a175b5e4"
+    },
+    {
+      "id": "don-halloween-point-talk",
+      "character": "don",
+      "label": "Halloween / Pointing / talking",
+      "mouth": "open",
+      "use": "The draft interruption, Wilson praise, and sudden HOOTERVILLE callback.",
+      "png": "don-halloween-point-talk.png",
+      "webp": "don-halloween-point-talk.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-point-talk.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1874744,
+      "webpBytes": 371784,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-point-talk",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "0fe473a2ceec28329e9a9da11c6dad571507a679076058acb1ee1472c72e819e"
+    },
+    {
+      "id": "don-halloween-angry-talk",
+      "character": "don",
+      "label": "Halloween / Angry talking / shouting",
+      "mouth": "open",
+      "use": "Keeper-league outburst, ONE GOAL, and AND THEY’RE LOSING AT IT.",
+      "png": "don-halloween-angry-talk.png",
+      "webp": "don-halloween-angry-talk.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-angry-talk.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1809791,
+      "webpBytes": 351718,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-angry-talk",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "b3a862ded307724505d9535b4c31204b2a067cabdd4bd24809f819ee6c7f7dcc"
+    },
+    {
+      "id": "don-halloween-surprised",
+      "character": "don",
+      "label": "Halloween / Surprised / incredulous",
+      "mouth": "open",
+      "use": "SEVENTY-SIXTH!",
+      "png": "don-halloween-surprised.png",
+      "webp": "don-halloween-surprised.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-surprised.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1803194,
+      "webpBytes": 350608,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-surprised",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "927b4c67ed49c4a95a29a054d9f640bfead30d87aaa9a95621e5fcfd3c521433"
+    },
+    {
+      "id": "don-halloween-stare",
+      "character": "don",
+      "label": "Halloween / Deadpan stare at Ron",
+      "mouth": "closed",
+      "use": "The silence after Hamhung Hall Monitors and suspicious looks at Ron.",
+      "png": "don-halloween-stare.png",
+      "webp": "don-halloween-stare.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-stare.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1778135,
+      "webpBytes": 343400,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-stare",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "67fde7dfc5317d2f0200df60ee350b20bebcff1356bb632e40d0079d8d624807"
+    },
+    {
+      "id": "don-halloween-pause",
+      "character": "don",
+      "label": "Halloween / Long pause / lost train of thought",
+      "mouth": "closed",
+      "use": "The long pause before Paddyville and a lost train of thought.",
+      "png": "don-halloween-pause.png",
+      "webp": "don-halloween-pause.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-pause.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1811844,
+      "webpBytes": 355740,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-pause",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "8a0c64942a4e608a1acea8e17a42e3fe96001bfaab9c92af29407655755bc074"
+    },
+    {
+      "id": "don-halloween-tie-adjust",
+      "character": "don",
+      "label": "Halloween / Adjusting tie / looking down",
+      "mouth": "closed",
+      "use": "Tie adjustment before Who took him?",
+      "png": "don-halloween-tie-adjust.png",
+      "webp": "don-halloween-tie-adjust.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-tie-adjust.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1749736,
+      "webpBytes": 330672,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-tie-adjust",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "bfcb9b700e578d3f8553a1a19528c71b847f447b8183f0c8db9b252a47951488"
+    },
+    {
+      "id": "don-halloween-lean-camera",
+      "character": "don",
+      "label": "Halloween / Leaning toward camera / stern talking",
+      "mouth": "open",
+      "use": "The direct-to-camera group-chat warning.",
+      "png": "don-halloween-lean-camera.png",
+      "webp": "don-halloween-lean-camera.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-lean-camera.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 2022821,
+      "webpBytes": 363168,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-lean-camera",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "42bbba4721f6154d44528d438d5f32d72392e0522cfb0ecf669d3fbcbb2ae6a5"
+    },
+    {
+      "id": "don-halloween-mic-remove",
+      "character": "don",
+      "label": "Halloween / Unclipping microphone",
+      "mouth": "closed",
+      "use": "Starts removing the microphone.",
+      "png": "don-halloween-mic-remove.png",
+      "webp": "don-halloween-mic-remove.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-mic-remove.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1752204,
+      "webpBytes": 333018,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-mic-remove",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "216bb7f8dbfd54f9fbf18d54b869408f4383af4f6b362fb0a5b1c1b300ca4600"
+    },
+    {
+      "id": "don-halloween-thumbs-up",
+      "character": "don",
+      "label": "Halloween / Smiling thumbs-up",
+      "mouth": "smile",
+      "use": "Silent approving smile and the final hold.",
+      "png": "don-halloween-thumbs-up.png",
+      "webp": "don-halloween-thumbs-up.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-thumbs-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1827178,
+      "webpBytes": 361146,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-thumbs-up",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "256c2074844d6742e40cb4514b75720cfe5c8229c1903b88b26fff96d5c61133"
+    },
+    {
+      "id": "don-halloween-thumbs-up-talk",
+      "character": "don",
+      "label": "Halloween / Smiling thumbs-up / talking",
+      "mouth": "open",
+      "use": "Good for Eric and Wilson. Seventy-sixth. Unbelievable.",
+      "png": "don-halloween-thumbs-up-talk.png",
+      "webp": "don-halloween-thumbs-up-talk.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-thumbs-up-talk.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1834355,
+      "webpBytes": 362368,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-thumbs-up-talk",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "ade0f320f424a5c95edf9b0128a7bb5960d58cbd32c5332df2babfafc02be13e"
+    },
+    {
+      "id": "don-halloween-desk-pound",
+      "character": "don",
+      "label": "Halloween / Desk pound / silent contact",
+      "mouth": "closed",
+      "use": "One short silent desk impact. Explicit sfx: desk-pound; return to a speaking pose afterward.",
+      "png": "don-halloween-desk-pound.png",
+      "webp": "don-halloween-desk-pound.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-desk-pound.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1786338,
+      "webpBytes": 351266,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-desk-pound",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "b218eee94b61e04739f44701770b0332be172da791e51709a204890ab43265b4"
+    },
+    {
+      "id": "don-halloween-desk-pound-ready",
+      "character": "don",
+      "label": "Halloween / Desk pound / short anticipation",
+      "mouth": "closed",
+      "use": "Brief closed-mouth fist lift before pound. No sound until contact.",
+      "png": "don-halloween-desk-pound-ready.png",
+      "webp": "don-halloween-desk-pound-ready.webp",
+      "url": "/coachs-corner/robots-v2/don-halloween-desk-pound-ready.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1719706,
+      "webpBytes": 325786,
+      "wardrobe": "halloween-2026",
+      "sourcePose": "don-desk-pound-ready",
+      "generationRecord": "prompts-halloween-2026.json",
+      "sha256": "034b5103ed7309b5e8c48df0b066e5277e51fa3118b3c3e0da1948c050113865"
     }
-  ]
+  ],
+  "wardrobes": {
+    "normal": {
+      "character": "don",
+      "label": "Normal/default: original red, gold and ivory floral suit",
+      "poseCount": 15,
+      "gesturePrefix": "",
+      "preview": "preview.html",
+      "prompts": "prompts.json"
+    },
+    "halloween-2026": {
+      "character": "don",
+      "createdDate": "2026-10-18",
+      "poseCount": 15,
+      "preview": "halloween-preview.html",
+      "prompts": "prompts-halloween-2026.json",
+      "label": "Halloween: purple suit with pumpkins, ghosts and bats",
+      "gesturePrefix": "halloween-",
+      "approvedAt": "2026-10-18"
+    }
+  },
+  "defaultWardrobes": {
+    "don": "normal"
+  }
 }

@@ -92,6 +92,34 @@ A line starting with `[` holds cues for the moment between lines: `[don: stare, 
 
 `lean` (Don leaning into the camera) automatically cuts to a close-up while he talks. The image IDs and closed/open mouth pairs live in `lib/coachs-corner/cast.ts`. New poses also need generated files and, for a mouth pair, a face clip; follow [Adding or replacing artwork](#adding-or-replacing-artwork).
 
+### Don's suits
+
+Don has multiple suits. The original red, gold and ivory floral suit is pinned as his **normal/default suit**. Use it whenever the episode brief does not request another wardrobe. A seasonal date alone does not change the default.
+
+| Wardrobe ID | Suit | Artwork IDs | Screenplay gestures |
+| --- | --- | --- | --- |
+| `normal` | Original red, gold and ivory floral, default | Existing `don-*` IDs, such as `don-default` and `don-point` | Unprefixed `rest`, `point`, `angry`, etc. |
+| `halloween-2026` | Purple with pumpkins, ghosts and bats | `don-halloween-*` | Explicit `halloween-rest`, `halloween-point`, `halloween-angry`, etc. |
+
+The [asset manifest](../public/coachs-corner/robots-v2/manifest.json) records `defaultWardrobes.don` as `normal` and labels every Don pose with its wardrobe. This is catalog metadata; the runtime mappings live in `cast.ts`. Preserve the existing normal asset IDs and unprefixed gesture mappings when adding suits so old scripts keep their appearance. There is no episode-wide suit setting or automatic calendar switch.
+
+The owner accepted the Halloween artwork on October 18, 2026 and explicitly requested that the old suit remain the default/normal suit. This accepts the artwork and wardrobe rule; the local asset audition is not an approved episode.
+
+Don's Halloween suit has the same 12 gestures and 15 illustrations. Add `halloween-` to a Don gesture, such as `halloween-rest`, `halloween-point`, `halloween-angry`, or `halloween-pound-ready`. The three talking pairs use the same fixed-body mouth animation as the normal suit. Lean close-ups, tie rustle and desk contact work with either outfit. The [Halloween guide](../public/coachs-corner/robots-v2/halloween-2026.md) links its preview and exact generation prompts.
+
+Choose a Halloween gesture for the opening picture and each Don line, inline cue, delivery span that names a gesture, and `then` pose. Setting `[don: halloween-rest]` alone does not carry the suit into later dialogue. Lines without an explicit gesture still use the normal suit's delivery defaults. Open-mouth expressions return to `halloween-rest`; closed-mouth poses hold their seasonal pose. Existing episodes and the shared opening/closing bumper retain the normal suit.
+
+```text
+[don: halloween-rest, ron: rest]
+DON (halloween-point): I dressed for the occasion.
+RON: I can see that.
+[don: halloween-tie, 700ms]
+DON (halloween-angry, yell): It's a good suit!
+[don: halloween-pound-ready, 220ms]
+[don: halloween-pound, sfx: desk-pound, 480ms]
+DON (halloween-rest, then halloween-stare): Anyway.
+```
+
 ### Camera and sound
 
 `cam:` takes `wide`, `don`, `ron`, `close don`, `close ron`, `monitor` or `auto`. An explicit shot holds until the next one; `auto` goes back to the automatic director (wide, close-ups on `lean`, punch-ins on yells).
@@ -148,7 +176,7 @@ Retain the WebP sources and their hashed copies: they provide browser compatibil
 
 The conversion is lossy. Local 1920 × 1080 fullscreen comparisons showed no obvious colour shifts or transparency halos; 200% inspection showed slight smoothing in fine shading and edges. Treat this as a visual judgement, not a promise of pixel identity. To repeat the comparison, run `npm run test:coachs:production -- --keep --art-review`, then open `/art-review` on the local test server. That comparison route, its forced WebP example and its deliberately broken AVIF fixture exist only in the disposable build. They never ship as application routes.
 
-Mouth pairs are separate illustrations with small differences in their clothing. Swapping the complete illustrations on every syllable makes the suits shimmer. The player now holds the closed-mouth body and overlays only the talking mouth region. Actual gesture changes still replace the full pose. This applies to AVIF and WebP, uses the existing files, and does not change script timing or add downloads. The comparison route's **Mouth motion** view shows whole-image swapping beside the fixed-body rendering for all four mouth pairs. Review the face clip boundaries in `components/coachs-corner/artwork.tsx` when replacing or adding mouth-pair illustrations.
+Mouth pairs are separate illustrations with small differences in their clothing. Swapping the complete illustrations on every syllable makes the suits shimmer. The player now holds the closed-mouth body and overlays only the talking mouth region. Actual gesture changes still replace the full pose. This applies to AVIF and WebP, uses the existing files, and does not change script timing or add downloads. The comparison route's **Mouth motion** view shows whole-image swapping beside the fixed-body rendering for all seven mouth pairs, including Don's three Halloween pairs. Review the face clip boundaries in `components/coachs-corner/artwork.tsx` when replacing or adding mouth-pair illustrations.
 
 The final release check on 2026-10-17 passed 59 feature tests, an optimized production build with type checking, and eight production publishing/cache checks against disposable Postgres. Browser checks across the artwork and TV-border revisions covered the complete 4:32 pilot at 1.5×, fullscreen, a 390 px layout, pause/resume, seeking, line navigation, mute, speed changes, replay, AVIF failure recovery and forced WebP rendering. All 38 AVIF files decoded at their expected dimensions. A before/after browser-frame comparison confirmed the clothing stays steady with the mouth overlay. These checks used the desktop in-app browser; physical devices and Safari were not tested. The production migration status is recorded above; the feature remains undeployed by this review.
 

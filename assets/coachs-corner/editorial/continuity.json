@@ -29,6 +29,15 @@
   ],
   "predictions": [],
   "preferences": [
+    {
+      "id": "don-default-suit",
+      "rule": "Don has multiple suits. His original red, gold and ivory floral suit is the normal/default wardrobe; use another suit only when the episode brief selects it.",
+      "source": "Owner's Halloween artwork acceptance and workflow request in this chat, 2026-10-18",
+      "scope": "show",
+      "approvedAt": "2026-10-18",
+      "approval": "Looks good can you get the artwork committed and update workflow documentation so agents understand don has multiple suits now and pin the old one as the default/normal suit",
+      "application": "docs/coachs-corner.md#dons-suits"
+    },
     { "rule": "Don is patriotic, belligerent, direct and erratic; Ron is polite, media trained and primarily there to rein him in.", "source": "Owner's workflow request", "scope": "show" },
     { "rule": "Don mispronounces every player born outside North America. Verify birthplace and preserve canonical names for Ron and graphics.", "source": "Owner's workflow request", "scope": "show" },
     {

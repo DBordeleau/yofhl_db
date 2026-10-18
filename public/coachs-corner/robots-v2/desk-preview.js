@@ -67,7 +67,7 @@ function updateDeskPose(host, id) {
   const foreground = document.getElementById(host + 'Foreground');
   const actor = foreground.parentElement;
   foreground.src = id + '.webp';
-  const mask = deskPoseMasks[id];
+  const mask = deskPoseMasks[id.replace('don-halloween-', 'don-')];
   actor.style.setProperty('--hand-mask', mask ? 'url(#desk-arms-' + mask + ')' : 'inset(65% 0 0)');
   actor.style.setProperty('--contact-left', mask === 'tie' || mask === 'warning' ? '43%' : '4%');
   actor.style.setProperty('--contact-width', mask ? '53%' : '92%');

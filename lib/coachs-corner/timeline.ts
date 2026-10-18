@@ -1,4 +1,4 @@
-import { CAST, CHARACTERS, DELIVERIES, gestureAfter, type CharacterId, type Delivery, type Motion, type Shot, type Sound } from './cast';
+import { CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, type CharacterId, type Delivery, type Motion, type Shot, type Sound } from './cast';
 import type { Cue, Graphic, Meta, Script, Span } from './script';
 
 // Compiles a parsed script into an absolute-time timeline, then answers "what does the studio look
@@ -316,7 +316,7 @@ export function frameAt(tl: Timeline, t: number): Frame {
     let shot: Shot = shotKey;
     if (shotKey === 'auto') {
         shot = 'wide';
-        for (const who of CHARACTERS) if (hosts[who].gesture === 'lean' && line >= 0 && tl.lines[line].speaker === who) shot = `close ${who}` as Shot;
+        for (const who of CHARACTERS) if (gestureAction(hosts[who].gesture) === 'lean' && line >= 0 && tl.lines[line].speaker === who) shot = `close ${who}` as Shot;
     }
 
     return {

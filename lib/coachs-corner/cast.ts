@@ -35,6 +35,7 @@ export const CAST: Record<CharacterId, Character> = {
         seat: 'left',
         colour: '#C8102E',
         gestures: {
+            // Normal/default suit: preserve these unprefixed mappings when adding wardrobes.
             rest: { closed: art('don-default'), open: art('don-talk') },
             point: { closed: art('don-point'), open: art('don-point-talk') },
             thumbs: { closed: art('don-thumbs-up'), open: art('don-thumbs-up-talk') },
@@ -47,6 +48,18 @@ export const CAST: Record<CharacterId, Character> = {
             mic: { closed: art('don-mic-remove') },
             pound: { closed: art('don-desk-pound') },
             'pound-ready': { closed: art('don-desk-pound-ready') },
+            'halloween-rest': { closed: art('don-halloween-default'), open: art('don-halloween-talk') },
+            'halloween-point': { closed: art('don-halloween-point'), open: art('don-halloween-point-talk') },
+            'halloween-thumbs': { closed: art('don-halloween-thumbs-up'), open: art('don-halloween-thumbs-up-talk') },
+            'halloween-angry': { open: art('don-halloween-angry-talk'), after: 'halloween-rest' },
+            'halloween-surprised': { open: art('don-halloween-surprised'), after: 'halloween-rest' },
+            'halloween-lean': { open: art('don-halloween-lean-camera'), after: 'halloween-rest' },
+            'halloween-stare': { closed: art('don-halloween-stare') },
+            'halloween-pause': { closed: art('don-halloween-pause') },
+            'halloween-tie': { closed: art('don-halloween-tie-adjust') },
+            'halloween-mic': { closed: art('don-halloween-mic-remove') },
+            'halloween-pound': { closed: art('don-halloween-desk-pound') },
+            'halloween-pound-ready': { closed: art('don-halloween-desk-pound-ready') },
         },
         deliveryGestures: { yell: 'angry' },
         voice: { base: 118, spread: 34, wave: 'sawtooth', grit: 0.5 },
@@ -86,9 +99,14 @@ export const GESTURE_ALIASES: Record<string, string> = {
 
 export const resolveGesture = (who: CharacterId, name: string): string | null => {
     const key = name.toLowerCase().replace(/^(don|ron)-/, '');
-    const id = GESTURE_ALIASES[key] ?? key;
+    const prefix = key.startsWith('halloween-') ? 'halloween-' : '';
+    const base = key.slice(prefix.length);
+    const id = prefix + (GESTURE_ALIASES[base] ?? base);
     return CAST[who].gestures[id] ? id : null;
 };
+
+/** Wardrobe variants share the same physical action, camera direction and Foley. */
+export const gestureAction = (gesture: string) => gesture.replace(/^halloween-/, '');
 
 export const gestureAfter = (who: CharacterId, gesture: string) => {
     const g = CAST[who].gestures[gesture];

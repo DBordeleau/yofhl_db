@@ -13,6 +13,8 @@ Work from the repository root. Read [the show bible](references/show-bible.md), 
 
 The owner's regular release is Monday evening, recapping the previous Monday through Sunday, with a reviewed draft ready several hours before posting. For a recap or workflow rehearsal, read [weekly recap and rehearsal](references/weekly-recap.md) before selecting facts. Use the Toronto air date as the default slug and the actual Fantrax matchup period as the script week. An existing episode folder means resume its work, not overwrite it. Read [production mechanics](references/production.md) to create the fact packet and local draft. Resolve missing facts before basing jokes on them. A live export observes data now; it cannot reconstruct a past cutoff.
 
+Don has multiple suits. His original red, gold and ivory floral suit is the normal/default wardrobe. Before writing cues for a themed episode or requesting costume artwork, read [Don's suits](../../../docs/coachs-corner.md#dons-suits) and record the selected wardrobe in `brief.md`.
+
 ## Produce
 
 Act as producer. When subagents are available, delegate one writer/researcher, one visual artist, and one sound designer. Once the screenplay exists, release the writer slot and delegate a fresh independent editor. Keep at most three workers active alongside the producer. With fewer slots, sequence the same responsibilities. Tell the user when review could not be independent.
