@@ -246,6 +246,8 @@ const lastAt = <T>(items: T[], t: number, time: (item: T) => number) => {
 
 export interface HostFrame {
     gesture: string;
+    /** Show time since this pose began; physical beats freeze and seek with playback. */
+    gestureMs: number;
     open: boolean;
     /** body motion while words are coming out */
     motion: Motion | null;
@@ -286,7 +288,8 @@ export function frameAt(tl: Timeline, t: number): Frame {
     const captions = {} as Frame['captions'];
     for (const who of CHARACTERS) {
         const g = tl.gestures[who];
-        const gesture = g[Math.max(0, lastAt(g, t, k => k.t))]?.value ?? 'rest';
+        const gestureKey = g[Math.max(0, lastAt(g, t, k => k.t))];
+        const gesture = gestureKey?.value ?? 'rest';
         const f = tl.flaps[who];
         const fi = lastAt(f, t, x => x[0]);
         const open = fi >= 0 && t < f[fi][1];
@@ -294,7 +297,7 @@ export function frameAt(tl: Timeline, t: number): Frame {
         const vi = lastAt(v, t, x => x.t0);
         const speaking = vi >= 0 && t < v[vi].t1 ? v[vi] : null;
         hosts[who] = {
-            gesture, open,
+            gesture, gestureMs: Math.max(0, t - (gestureKey?.t ?? 0)), open,
             motion: speaking ? DELIVERIES[speaking.delivery].motion : null,
             delivery: speaking?.delivery ?? null,
             flinch: !!punch && punch.who !== who && t - tl.punches[punch.index].t < 520,

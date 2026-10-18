@@ -9,12 +9,14 @@ import type { ShowAudio } from './audio';
 // One requestAnimationFrame clock drives the show. The frame is a pure function of time, so React
 // only re-renders when something visible changes (a word lands, a mouth opens, a pose changes).
 
-const signature = (f: Frame) => {
+export const frameSignature = (f: Frame) => {
     let s = `${f.phase}|${f.monitor}|${f.shot}|${f.punch?.index ?? -1}|${f.line}|${Math.ceil(f.clock / 1000)}`;
     for (const who of CHARACTERS) {
         const h = f.hosts[who];
         const c = f.captions[who];
         s += `|${h.gesture}${h.open ? 1 : 0}${h.motion ?? '-'}${h.flinch ? 1 : 0}|${c ? `${c.line}.${c.shown}.${c.active ? 1 : 0}${c.knocked ? 1 : 0}` : '-'}`;
+        // Publish the short contact animation, then return to sparse updates.
+        if (who === 'don' && h.gesture === 'pound') s += `|impact:${Math.min(10, Math.floor(h.gestureMs / 16))}`;
     }
     return s;
 };
@@ -44,7 +46,7 @@ export function useShow(tl: Timeline, { sound: soundOn, startAt, audio }: { soun
     const [playing, setPlaying] = useState(false);
     const [started, setStarted] = useState(startAt !== undefined);
     const [rate, setRate] = useState(1);
-    const sigRef = useRef(signature(frame));
+    const sigRef = useRef(frameSignature(frame));
     const listeners = useRef(new Set<(t: number) => void>());
     const soundRef = useRef(soundOn);
     soundRef.current = soundOn;
@@ -54,7 +56,7 @@ export function useShow(tl: Timeline, { sound: soundOn, startAt, audio }: { soun
     const publish = useCallback((t: number, force = false) => {
         // before the first play the studio shows its opening picture, not the bumper
         const f = frameAt(tl, t);
-        const sig = signature(f);
+        const sig = frameSignature(f);
         if (force || sig !== sigRef.current) {
             sigRef.current = sig;
             setFrame(f);

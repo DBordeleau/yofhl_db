@@ -45,6 +45,8 @@ export const CAST: Record<CharacterId, Character> = {
             pause: { closed: art('don-pause') },
             tie: { closed: art('don-tie-adjust') },
             mic: { closed: art('don-mic-remove') },
+            pound: { closed: art('don-desk-pound') },
+            'pound-ready': { closed: art('don-desk-pound-ready') },
         },
         deliveryGestures: { yell: 'angry' },
         voice: { base: 118, spread: 34, wave: 'sawtooth', grit: 0.5 },
@@ -75,6 +77,8 @@ export const GESTURE_ALIASES: Record<string, string> = {
     'lean-camera': 'lean', camera: 'lean',
     'tie-adjust': 'tie',
     'mic-remove': 'mic',
+    'desk-pound': 'pound',
+    'desk-pound-ready': 'pound-ready',
     'look-down': 'down', smirk: 'down',
     'skeptical-talk': 'skeptical',
     stop: 'warning',
@@ -148,5 +152,5 @@ export const SPEEDS: Record<string, number> = { fast: 1.3, faster: 1.55, slow: 0
 export const SHOTS = ['auto', 'wide', 'don', 'ron', 'monitor', 'close don', 'close ron'] as const;
 export type Shot = typeof SHOTS[number];
 
-export const SOUNDS = ['horn', 'whistle', 'buzzer', 'organ', 'sting', 'thud'] as const;
+export const SOUNDS = ['horn', 'whistle', 'buzzer', 'organ', 'sting', 'thud', 'desk-pound'] as const;
 export type Sound = typeof SOUNDS[number];

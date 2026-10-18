@@ -1,0 +1,22 @@
+Use $produce-coachs-corner to produce Monday's YOFHL Coach's Corner recap.
+
+Air date: [YYYY-MM-DD, Monday, America/Toronto]
+Review deadline, if any: [optional time in Toronto]
+
+Recap the previous Monday through Sunday. For a new episode, use the air-date slug and --recap to capture a fresh fact packet. If the folder exists, inspect and resume it, preserving its work and checking snapshot freshness. Confirm Sunday's results are settled before describing winners; label anything still provisional. Keep the rehearsal's facts separate.
+
+Aim for a reviewed, playable local draft within roughly two hours, ready several hours before my Monday evening post. Around four minutes is a guide; keep it tighter when the material works.
+
+My notes for this episode:
+- Must include: [topics, players, teams, or specific events]
+- Optional angles or jokes: [suggestions, or leave blank]
+- Context, links, or facts to check: [details, or leave blank]
+- Avoid or handle carefully: [boundaries, or leave blank]
+
+Use these notes to choose the angle and supporting stories. Account for every required topic, verify factual premises, and flag anything you cannot support.
+
+Follow the updated skill and rehearsal lessons. Give one writer both voices, use a fresh independent editor, and delegate asset work where needed. Read the show bible, accepted pilot and approved continuity directly. Keep Don's shifts between warmth, irritation, defensiveness and confusion motivated by the exchange; let Ron correct and redirect him. Reuse catalog assets when they fit the scene.
+
+Revise the weakest exchange before handing it to me. Generate and integrate any missing media the scene needs, validate the exact draft, run its audio scan and watch the full player at normal speed. Distinguish technical checks from listening judgment.
+
+Leave the local dev server running and the episode unpublished. Give me the preview URL, actual runtime, a short editorial summary, unresolved issues and timestamps for any new effects. Save an up-to-date handoff with the script hash, fact window, changed asset versions and decisions so a fresh thread can make late edits quickly.

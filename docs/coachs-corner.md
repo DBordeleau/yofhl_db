@@ -4,9 +4,11 @@ A weekly animated segment at `/coachs-corner`: robot Don and Ron argue about the
 
 ## Writing an episode
 
-For weekly agent production, invoke the repository skill with: **Use $produce-coachs-corner to produce this week's episode and deliver a reviewed local draft.** Its [show bible](../.agents/skills/produce-coachs-corner/references/show-bible.md), [annotated pilot](../.agents/skills/produce-coachs-corner/references/annotated-pilot.md) and [production instructions](../.agents/skills/produce-coachs-corner/references/production.md) preserve the characters and explain the handoffs.
+For weekly agent production, invoke the repository skill with: **Use $produce-coachs-corner to produce Monday's recap of the previous Monday through Sunday, with a reviewed local draft ready several hours before the evening post.** Its [show bible](../.agents/skills/produce-coachs-corner/references/show-bible.md), [annotated pilot](../.agents/skills/produce-coachs-corner/references/annotated-pilot.md) and [production instructions](../.agents/skills/produce-coachs-corner/references/production.md) preserve the characters and explain the handoffs. The [recap and rehearsal guide](../.agents/skills/produce-coachs-corner/references/weekly-recap.md) covers the calendar, independent editorial pass, feedback and late revisions.
 
 `npm run coachs:prepare -- --slug <slug>` captures fresh league facts and creates a local episode folder. Add `--period <n>` to select a scoring period and `--players "Name,Name"` for NHL birthplace and prior-season YOFHL fantasy stats. After writing graphics, run `npm run coachs:stats -- --slug <slug>` to discover every player/gap participant and freeze their archived stats without refreshing the live matchup snapshot. It defaults to the episode's previous season; `--season <ending-year>` selects an explicitly older comparison. `npm run coachs:check -- --slug <slug>` checks the script, assets and same-season comparisons. Open `/coachs-corner/local/<slug>` on the dev server to watch the draft, inspect review notes, and reload file edits. `/coachs-corner/local` lists local drafts. These routes are available only in local development and never publish. Use `--pilot` with prepare for an offline reference episode; it is labelled historical and contains no current facts.
+
+For Monday recaps, add `--recap` to prepare instead of `--period`. It selects the previous Toronto Monday/Sunday week before and after Fantrax's Monday rollover. Raw API phase and timestamps stay intact; check Sunday results before calling a matchup final. A new chat starts from the producer's `handoff.md` beside the script, containing the exact source/hash, snapshot, covered dates, runtime, review notes and preview URL.
 
 Working files live under the ignored `local/coachs-corner/episodes/`. Accepted continuity lives in `assets/coachs-corner/editorial/continuity.json`; agents promote new recurring material only after user acceptance. Archive capture uses read-only database access from the normal `.env`/`.env.local` environment, with `DATABASE_URL_V2` preferred over `DATABASE_URL`. Player records retain archive provenance separately from birthplace evidence. Missing archive records remain unknown and require a documented fallback; exact games played are unavailable in this archive and are not estimated from rounded FP/G.
 
@@ -85,7 +87,7 @@ A line starting with `[` holds cues for the moment between lines: `[don: stare, 
 
 | Host | Gestures |
 | --- | --- |
-| Don | rest, point, thumbs, angry, surprised, lean, stare, pause, tie, mic |
+| Don | rest, point, thumbs, angry, surprised, lean, stare, pause, tie, mic, pound-ready, pound |
 | Ron | rest, skeptical, warning, surprised, down |
 
 `lean` (Don leaning into the camera) automatically cuts to a close-up while he talks. The image IDs and closed/open mouth pairs live in `lib/coachs-corner/cast.ts`. New poses also need generated files and, for a mouth pair, a face clip; follow [Adding or replacing artwork](#adding-or-replacing-artwork).
@@ -94,7 +96,7 @@ A line starting with `[` holds cues for the moment between lines: `[don: stare, 
 
 `cam:` takes `wide`, `don`, `ron`, `close don`, `close ron`, `monitor` or `auto`. An explicit shot holds until the next one; `auto` goes back to the automatic director (wide, close-ups on `lean`, punch-ins on yells).
 
-`sfx:` takes `horn`, `whistle`, `buzzer`, `organ`, `sting` or `thud`, all synthesized in the browser. Each host gets articulated robot syllables in his own voice. Quiet studio ambience runs under the dialogue, and Don's tie adjustment triggers the cloth rustle 7 recording. Every episode opens with a six-second bumper over the theme (`public/coachs-corner/coachs_corner_theme.mp3`), cut to its hits. Sound is on unless the viewer mutes it; the mute is remembered.
+`sfx:` takes `horn`, `whistle`, `buzzer`, `organ`, `sting`, `thud` or `desk-pound`. The first six are synthesized in the browser; `desk-pound` is an original, offline-synthesized dry impact WAV. For a restrained hit, use `[don: pound-ready, 220ms]` followed by `[don: pound, sfx: desk-pound, 480ms]`, then explicitly return to a speaking pose. The short lift precedes contact; the contact pose has a tiny settle and two brief impact marks. Motion follows show time, so pause and seek preserve its phase; reduced-motion mode omits the settle and marks. The poses alone are silent, and no new mouth pair is needed for this closed-mouth beat. Each host gets articulated robot syllables in his own voice. Quiet studio ambience runs under the dialogue, and Don's tie adjustment triggers the cloth rustle 7 recording. Every episode opens with a six-second bumper over the theme (`public/coachs-corner/coachs_corner_theme.mp3`), cut to its hits. Sound is on unless the viewer mutes it; the mute is remembered.
 
 ### Monitor graphics
 
@@ -184,7 +186,7 @@ Run `node scripts/coachs-corner/verify-mobile.mjs` against a running local app. 
 
 ## Episode audio
 
-The approved studio mix is the default for every episode, including the complete first episode at `/coachs-corner/opening-week`. It uses Don's softened robot voice at 120%, Ron at 150%, studio ambience at 45%, cloth rustle 7, and the original synthesized TV switch at 100%. The intro theme stays; there is no background music during dialogue. Audio is generated from each episode's full script, so new episodes inherit this mix without separate sound authoring.
+The approved studio mix is the default for every episode, including the complete first episode at `/coachs-corner/opening-week`. It uses Don's softened robot voice at 120%, Ron at 200%, studio ambience at 45%, cloth rustle 7, and the original synthesized TV switch at 100%. The intro theme stays; there is no background music during dialogue. Audio is generated from each episode's full script, so new episodes inherit this mix without separate sound authoring.
 
 ### Audio A/B preview
 
@@ -192,7 +194,7 @@ The approved studio mix is the default for every episode, including the complete
 
 Switch A/B during playback to keep the same playhead. The passage buttons replay the opening, dialogue, Don's outburst, or the lead-in to the tie adjustment. The five sliders change mix B. Under **Swap individual sounds**, choose a local WAV, MP3, or OGG for either host, the room, the tie, or the monitor. Files are decoded locally and never uploaded. File selections and levels last until the tab reloads. Reset restores that sound's built-in source and level.
 
-The default episode mix has Don at 120%, Ron at 150%, and studio ambience at 45%. Ron's larger boost brings his normal speaking voice forward; the lower room level keeps the hiss behind the dialogue.
+The default episode mix has Don at 120%, Ron at 200%, and studio ambience at 45%. Ron's larger boost brings his normal speaking voice forward; the lower room level keeps the hiss behind the dialogue.
 
 Don's voice uses a low sawtooth buzz, softened attacks and moderate pitch accents. His vowel body is longer and fuller than the sharply articulated revision, with reduced rasp, formant emphasis and high frequencies. His yell retains extra energy with a gentler pitch break. Ron uses a smoother triangle tone, small pitch changes and softer word accents. Short envelopes leave space between syllables; word starts receive more emphasis than inner syllables. Punctuation resolves a phrase, while an unfinished line holds its pitch and clips its tail. Taking over an unfinished line gives Don an extra attack; Ron stays restrained. These are stylized robot syllables, not text-to-speech recordings.
 

@@ -306,6 +306,34 @@
       "height": 1254,
       "pngBytes": 1425463,
       "webpBytes": 227838
+    },
+    {
+      "id": "don-desk-pound",
+      "character": "don",
+      "label": "Desk pound / silent contact",
+      "mouth": "closed",
+      "use": "One short silent desk impact. Explicit sfx: desk-pound; return to a speaking pose afterward.",
+      "png": "don-desk-pound.png",
+      "webp": "don-desk-pound.webp",
+      "url": "/coachs-corner/robots-v2/don-desk-pound.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1780910,
+      "webpBytes": 283208
+    },
+    {
+      "id": "don-desk-pound-ready",
+      "character": "don",
+      "label": "Desk pound / short anticipation",
+      "mouth": "closed",
+      "use": "Brief closed-mouth fist lift before pound. No sound until contact.",
+      "png": "don-desk-pound-ready.png",
+      "webp": "don-desk-pound-ready.webp",
+      "url": "/coachs-corner/robots-v2/don-desk-pound-ready.webp",
+      "width": 1254,
+      "height": 1254,
+      "pngBytes": 1703796,
+      "webpBytes": 279004
     }
   ]
 }

@@ -1,0 +1,72 @@
+{
+  "file": "/coachs-corner/audio/desk-pound.wav",
+  "description": "One short, dull desk impact: irregular low body, dry broadband contact, and no pitched or metallic ring.",
+  "origin": "Original deterministic offline synthesis; no external audio source or text-to-sound generator.",
+  "generator": "scripts/audio/generate-desk-pound.mjs",
+  "generatorSha256": "810f2019650e8af882f626f94047924d8a63ebdbc396eaaab332636efe2b3a99",
+  "regenerate": "node scripts/audio/generate-desk-pound.mjs",
+  "sha256": "ed9104aff856c61316db8bab7453114cf5ab4fe4467c9f65dfae272f23a85f4f",
+  "encoding": {
+    "codec": "pcm_s16le",
+    "channels": 1,
+    "sampleRate": 48000,
+    "bitsPerSample": 16
+  },
+  "recipe": {
+    "revision": 2,
+    "sampleRate": 48000,
+    "durationSeconds": 0.28,
+    "impactAtSeconds": 0.01,
+    "attackSeconds": 0.00045,
+    "fadeOutAtSeconds": 0.15,
+    "silenceAtSeconds": 0.23,
+    "peakTargetDbfs": -10,
+    "seed": 20261018,
+    "bodyNoise": {
+      "amplitude": 3.4,
+      "decaySeconds": 0.022,
+      "lowpassHz": 850
+    },
+    "contactNoise": {
+      "amplitude": 0.72,
+      "decaySeconds": 0.0036,
+      "lowpassHz": 4200
+    },
+    "pressurePulse": {
+      "amplitude": 0.28,
+      "centerSeconds": 0.007,
+      "widthSeconds": 0.0028
+    },
+    "highpassHz": 45,
+    "lowpassHz": 4700,
+    "recommendedBankGain": 0.8
+  },
+  "normalizationGain": 0.32938912585272584,
+  "measurements": {
+    "durationSeconds": 0.28,
+    "sampleCount": 13440,
+    "bytes": 26924,
+    "peakDbfs": -10.000126940172311,
+    "rmsDbfs": -31.409105591719317,
+    "dcOffset": -1.1353265671502976e-7,
+    "lastNonzeroAtSeconds": 0.19997916666666668,
+    "trailingSilenceSeconds": 0.08
+  },
+  "ffmpeg": {
+    "command": "node scripts/audio/ffmpeg.mjs -i public/coachs-corner/audio/desk-pound.wav -af astats=metadata=1:reset=0 -f null -",
+    "peakDbfs": -9.999862,
+    "rmsDbfs": -31.408841,
+    "sampleCount": 13440,
+    "durationSeconds": 0.28
+  },
+  "integration": {
+    "suggestedSoundId": "desk-pound",
+    "recommendedBankGain": 0.8,
+    "sampleEffectGate": 0.25,
+    "masterGain": 0.38,
+    "estimatedPeakBeforeCompressorDbfs": -32.38385509455648,
+    "cue": "One explicit sfx:desk-pound during the silent desk-pound pose after Ron says \"You did.\", before Don says \"I looked at the rest!\".",
+    "note": "10 ms source lead-in clears the engine fade-in. Revision 2 replaces the rejected pitched modal knock with aperiodic impact noise. Preserve existing thud. Final voice balance and once-only firing need in-episode validation."
+  },
+  "listening": "No subjective listening review performed by the generator; measurements only."
+}

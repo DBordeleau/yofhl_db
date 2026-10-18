@@ -61,3 +61,7 @@ next-env.d.ts
 
 # Working episode packets may contain private league notes. Approved continuity is tracked separately.
 /local/coachs-corner/
+
+# Temporary browser audio diagnostic can embed an unpublished screenplay.
+/public/coachs-corner/episode-scan-temp.html
+/public/coachs-corner/episode-scan-temp.js

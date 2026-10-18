@@ -25,6 +25,30 @@
       "height": 1254,
       "outputHash": "0df144e6d7f63732dc881776f3c6a187b28344d94e1c08c4b17a94c58a8c0ddf"
     },
+    "robots-v2/don-desk-pound-640.avif": {
+      "inputHash": "557c354fe8a3a07e307557f55fb22efdde57c742bc1197119f60ddd31968f4dd",
+      "width": 640,
+      "height": 640,
+      "outputHash": "8562e062f73db56edd9b5b2c31dd7aef385a31ce4a4f7d5277a94b967be04387"
+    },
+    "robots-v2/don-desk-pound-ready-640.avif": {
+      "inputHash": "0d465591c9e0331d4cee034e5dc76ed4b47d8bc028db9ce75e81ae33bd439e8e",
+      "width": 640,
+      "height": 640,
+      "outputHash": "17499be1761a47348577aca60b2f5c61b90b1639ee713dac46ca37056ef19044"
+    },
+    "robots-v2/don-desk-pound-ready.avif": {
+      "inputHash": "0d465591c9e0331d4cee034e5dc76ed4b47d8bc028db9ce75e81ae33bd439e8e",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "b7dd1642d5154df05036ec83353bee5a95be8e2859b08ebc995bdde6861f9674"
+    },
+    "robots-v2/don-desk-pound.avif": {
+      "inputHash": "557c354fe8a3a07e307557f55fb22efdde57c742bc1197119f60ddd31968f4dd",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "2ed5a0edc1a3c228b80ef5797493acff1889d335630840e34585583c4db8fdd4"
+    },
     "robots-v2/don-lean-camera-640.avif": {
       "inputHash": "d8eae64585bb451c4dcd31c845af70631aec7aeb7ccc62d2b18d771c839b3045",
       "width": 640,

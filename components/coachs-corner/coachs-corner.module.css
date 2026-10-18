@@ -348,6 +348,22 @@
 .breath { animation: breathe 3.9s ease-in-out infinite alternate; }
 .host[data-who='ron'] .breath { animation-duration: 4.7s; animation-delay: -1.3s; }
 
+/* Keep the head still during the small anticipation/contact action. */
+.host[data-desk-action] .breath { animation: none; }
+.host[data-desk-action] .body { transform: translateY(var(--contact-y, 0%)); }
+.deskImpact {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+    fill: none;
+    stroke: #c5cfdf;
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
 @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.007) translateY(-.15%); } }
 
 .body img {
@@ -1636,6 +1652,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .host[data-desk-action] .body { transform: none; }
+    .deskImpact { display: none; }
     .world { transition: none; }
     .punch, .jolt, .host, .breath, .body, .plate, .word > span, .picture, .cut, .chyron, .gVs, .gPickNo, .gPickWho, .gStatValue, .gList li, .gCompare li, .gNum, .gShot, .gPlayerText, .gHeart, .gLeads, .gGap li, .bumper, .bumper * {
         animation: none !important;

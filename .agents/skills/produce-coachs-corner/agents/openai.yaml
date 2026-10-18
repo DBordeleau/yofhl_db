@@ -1,4 +1,4 @@
 interface:
   display_name: "Produce Coach's Corner"
   short_description: "Create a consistent weekly Don and Ron episode"
-  default_prompt: "Use $produce-coachs-corner to produce this week's episode and deliver a reviewed, playable draft on the local dev server."
+  default_prompt: "Use $produce-coachs-corner to produce Monday's recap of the previous Monday through Sunday. Deliver a reviewed, playable local draft with a handoff record several hours before the evening post."

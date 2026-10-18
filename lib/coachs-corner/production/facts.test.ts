@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { captureFacts, lookupFeaturedPlayer, birthRegion, parseFactPacket, referencePacket } from './facts';
+import { captureFacts, lookupFeaturedPlayer, birthRegion, parseFactPacket, referencePacket, selectRecapPeriod } from './facts';
 import type { LeagueConfig } from '../../../scripts/db/lib/league-config';
 
 const config: LeagueConfig = { franchises: [
@@ -26,6 +26,71 @@ const mockFetch = (data: ReturnType<typeof fixtures>, calls: string[] = []): typ
     const result = data[url.pathname.split('/').at(-1)! as keyof typeof data];
     return new Response(JSON.stringify(result), { status: result ? 200 : 404 });
 };
+
+const weeklyPeriods = [
+    { number: 1, startDate: '2026-10-12T13:00:00-04:00', endDate: '2026-10-19T18:59:59-04:00' },
+    { number: 2, startDate: '2026-10-19T19:00:00-04:00', endDate: '2026-10-26T18:59:59-04:00' },
+    { number: 3, startDate: '2026-10-26T19:00:00-04:00', endDate: '2026-11-02T18:59:59-05:00' },
+];
+
+test('recap selects the previous Toronto Monday through Sunday before and after the Monday API rollover', () => {
+    for (const now of ['2026-10-19T00:00:00-04:00', '2026-10-19T14:00:00-04:00',
+        '2026-10-19T18:59:59-04:00', '2026-10-19T19:00:00-04:00', '2026-10-20T14:00:00-04:00',
+        '2026-10-25T23:59:59-04:00']) {
+        assert.deepEqual(selectRecapPeriod([...weeklyPeriods].reverse(), Date.parse(now)), {
+            period: weeklyPeriods[0], startDate: '2026-10-12', endDate: '2026-10-18',
+        });
+    }
+    assert.equal(selectRecapPeriod(weeklyPeriods, Date.parse('2026-10-26T00:00:00-04:00')).period.number, 2);
+});
+
+test('recap uses Toronto calendar dates across DST and accepts a Sunday calendar end', () => {
+    assert.equal(selectRecapPeriod(weeklyPeriods, Date.parse('2026-11-02T04:59:59Z')).period.number, 2);
+    const selected = selectRecapPeriod(weeklyPeriods, Date.parse('2026-11-02T05:00:00Z'));
+    assert.equal(selected.period.number, 3);
+    assert.equal(selected.startDate, '2026-10-26');
+    assert.equal(selected.endDate, '2026-11-01');
+    const sundayEnd = { ...weeklyPeriods[2], endDate: '2026-11-01T23:59:59-05:00' };
+    assert.equal(selectRecapPeriod([sundayEnd], Date.parse('2026-11-02T12:00:00-05:00')).period, sundayEnd);
+});
+
+test('recap refuses season-start rehearsals, daily periods, irregular weeks and ambiguous matches', () => {
+    for (const now of ['2026-10-12T14:00:00-04:00', '2026-10-18T23:59:59-04:00']) {
+        assert.throws(() => selectRecapPeriod(weeklyPeriods, Date.parse(now)), /Use --period <n>.*provisional rehearsal/);
+    }
+    const monday = Date.parse('2026-10-19T14:00:00-04:00');
+    for (const periods of [[], [{ ...weeklyPeriods[0], endDate: '2026-10-13T17:59:59-04:00' }],
+        [{ ...weeklyPeriods[0], endDate: '2026-10-26T18:59:59-04:00' }],
+        [weeklyPeriods[0], { ...weeklyPeriods[0], number: 99 }]]) {
+        assert.throws(() => selectRecapPeriod(periods, monday), /Cannot identify one weekly scoring period/);
+    }
+});
+
+test('recap capture preserves raw Fantrax phase and legacy default selection', async t => {
+    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-10-19T14:00:00-04:00') });
+    const data = fixtures();
+    data.getLeagueInfo.scoringPeriods = weeklyPeriods;
+    data.getLeagueInfo.matchups[0].period = 1;
+    data.getMatchupScores.period = 1;
+    const before = await captureFacts(config, { recap: true, fetcher: mockFetch(data) });
+    assert.equal(before.period?.number, 1);
+    assert.equal(before.phase, 'active');
+    assert.match(before.limitations[0], /2026-10-12 through 2026-10-18.*does not confirm final scores/);
+    t.mock.timers.setTime(Date.parse('2026-10-19T18:59:59-04:00'));
+    assert.equal((await captureFacts(config, { recap: true, fetcher: mockFetch(data) })).phase, 'active');
+    t.mock.timers.setTime(Date.parse('2026-10-19T19:00:00-04:00'));
+    const after = await captureFacts(config, { recap: true, fetcher: mockFetch(data) });
+    assert.equal(after.period?.number, 1);
+    assert.equal(after.phase, 'complete');
+    data.getMatchupScores.period = 2;
+    assert.equal((await captureFacts(config, { fetcher: mockFetch(data) })).period?.number, 2);
+});
+
+test('conflicting explicit recap period fails before sources are fetched', async () => {
+    const calls: string[] = [];
+    await assert.rejects(captureFacts(config, { recap: true, period: 1, fetcher: mockFetch(fixtures(), calls) }), /Choose --recap or --period/);
+    assert.deepEqual(calls, []);
+});
 
 test('fresh capture preserves score units, missing categories, provenance and distinct roster calendar', async () => {
     const calls: string[] = [];

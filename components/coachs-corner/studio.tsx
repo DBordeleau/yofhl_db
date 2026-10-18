@@ -120,16 +120,27 @@ function Flashes({ active }: { active: boolean }) {
 
 const Host = memo(function Host({ who, host, art }: { who: CharacterId; host: HostFrame; art: string[] }) {
     const prevGesture = useRef(host.gesture);
+    const pound = who === 'don' && host.gesture === 'pound';
+    const deskAction = pound || (who === 'don' && host.gesture === 'pound-ready');
     // mouth flaps swap fast; a new gesture blends a touch slower
-    const fade = prevGesture.current === host.gesture ? 55 : 150;
+    const fade = deskAction ? 0 : prevGesture.current === host.gesture ? 55 : 150;
     prevGesture.current = host.gesture;
+    // A tiny compression at contact, followed by one settle. Show-time sampling
+    // keeps this aligned with the sound across pause, scrub and playback speeds.
+    const impact = pound ? Math.max(0, 1 - host.gestureMs / 160) : 0;
+    const settle = pound && host.gestureMs < 140 ? 0.3 * Math.pow(1 - host.gestureMs / 140, 2) : 0;
     return (
-        <div className={styles.host} data-who={who} data-flinch={host.flinch || undefined}>
+        <div className={styles.host} data-who={who} data-flinch={host.flinch || undefined} data-desk-action={deskAction || undefined}>
             <div className={styles.breath}>
-                <div className={styles.body} data-motion={host.motion ?? undefined} style={{ '--fade': `${fade}ms` } as React.CSSProperties}>
+                <div className={styles.body} data-motion={host.motion ?? undefined} style={{ '--fade': `${fade}ms`, '--contact-y': `${settle}%` } as React.CSSProperties}>
                     <HostArtwork who={who} gesture={host.gesture} open={host.open} art={art} />
                 </div>
             </div>
+            {impact > 0 && <svg className={styles.deskImpact} viewBox="0 0 1254 1254" aria-hidden="true" style={{ opacity: impact * 0.65 }}>
+                <g transform={`translate(405 1200) scale(${1 + (1 - impact) * 0.12})`}>
+                    <path d="M-145 -14 l-22 -8 M145 -14 l22 -8" />
+                </g>
+            </svg>}
         </div>
     );
 });
@@ -151,7 +162,8 @@ const Plate = memo(function Plate({ who, line, caption }: { who: CharacterId; li
         words.forEach(word => {
             const top = word.offsetTop, bottom = top + word.offsetHeight;
             const row = rows[rows.length - 1];
-            if (row && top < row.bottom) {
+            // Integer offset metrics can overlap adjacent fractional-height rows by 1px.
+            if (row && top < row.bottom - 1) {
                 row.top = Math.min(row.top, top);
                 row.bottom = Math.max(row.bottom, bottom);
             } else rows.push({ top, bottom });
