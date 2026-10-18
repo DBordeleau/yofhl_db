@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Artwork, { HostArtwork } from './artwork';
 import { CAST, CHARACTERS, type CharacterId } from '@/lib/coachs-corner/cast';
 import type { CaptionFrame, Frame, HostFrame, Line, Timeline } from '@/lib/coachs-corner/timeline';
@@ -141,18 +141,34 @@ const Plate = memo(function Plate({ who, line, caption }: { who: CharacterId; li
     const [box, setBox] = useState({ height: 0, shift: 0 });
 
     // roll-up captions: the plate grows with the revealed text, then scrolls a line at a time
+    const measure = useCallback(() => {
+        const el = textRef.current;
+        if (!el) return;
+        const words = el.querySelectorAll<HTMLElement>('[data-w][data-on]');
+        if (!words.length) return;
+        // Roll whole visual rows, including taller yell words, so no line is sliced in half.
+        const rows: { top: number; bottom: number }[] = [];
+        words.forEach(word => {
+            const top = word.offsetTop, bottom = top + word.offsetHeight;
+            const row = rows[rows.length - 1];
+            if (row && top < row.bottom) {
+                row.top = Math.min(row.top, top);
+                row.bottom = Math.max(row.bottom, bottom);
+            } else rows.push({ top, bottom });
+        });
+        const count = Number(getComputedStyle(el).getPropertyValue('--caption-lines') || 3);
+        const shift = rows.length > count ? rows[rows.length - count].top : 0;
+        const bottom = rows[rows.length - 1].bottom;
+        setBox(b => (b.height === bottom - shift && b.shift === shift ? b : { height: bottom - shift, shift }));
+    }, []);
+    useLayoutEffect(measure, [caption.shown, line, measure]);
     useLayoutEffect(() => {
         const el = textRef.current;
         if (!el) return;
-        const words = el.querySelectorAll<HTMLElement>('[data-w]');
-        const last = words[Math.max(0, caption.shown - 1)];
-        if (!last) return;
-        // three lines of ordinary text; a yell's bigger words fit about two
-        const max = parseFloat(getComputedStyle(el).fontSize) * 1.25 * 3 + 2;
-        const bottom = last.offsetTop + last.offsetHeight;
-        const shift = Math.max(0, bottom - max);
-        setBox(b => (b.height === bottom - shift && b.shift === shift ? b : { height: bottom - shift, shift }));
-    }, [caption.shown, line]);
+        const observer = new ResizeObserver(measure);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [measure]);
 
     let n = 0;
     return (

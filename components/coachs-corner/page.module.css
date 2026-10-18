@@ -115,6 +115,7 @@
 .meta { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: #8796b5; white-space: nowrap; }
 
 @media (max-width: 640px) {
+    .page { padding-top: 12px; padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
     .inner { min-width: 0; }
     .head { flex-direction: column; align-items: flex-start; }
     .archive a { grid-template-columns: 52px minmax(0, 1fr); }

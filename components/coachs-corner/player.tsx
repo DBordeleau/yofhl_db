@@ -29,7 +29,7 @@ function Scrubber({ tl, show }: { tl: Timeline; show: Show }) {
     const track = useRef<HTMLDivElement>(null);
     const head = useRef<HTMLDivElement>(null);
     const played = useRef<HTMLDivElement>(null);
-    const dragging = useRef(false);
+    const drag = useRef<{ id: number; x: number; y: number; seeking: boolean } | null>(null);
     const span = tl.showEnd;
     const pct = (t: number) => Math.max(0, Math.min(1, t / span)) * 100;
 
@@ -37,8 +37,8 @@ function Scrubber({ tl, show }: { tl: Timeline; show: Show }) {
         const p = `${pct(t)}%`;
         if (head.current) head.current.style.left = p;
         if (played.current) played.current.style.width = p;
-        track.current?.setAttribute('aria-valuenow', String(Math.round(t / 1000)));
-        track.current?.setAttribute('aria-valuetext', `${mmss(t)} of ${mmss(span)}`);
+        track.current?.setAttribute('aria-valuenow', String(Math.round(Math.min(t, span) / 1000)));
+        track.current?.setAttribute('aria-valuetext', `${mmss(Math.min(t, span))} of ${mmss(span)}`);
     }), [show, tl]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const seekTo = (clientX: number) => {
@@ -54,16 +54,32 @@ function Scrubber({ tl, show }: { tl: Timeline; show: Show }) {
             tabIndex={0}
             aria-label="Seek"
             aria-valuemin={0}
-            aria-valuenow={Math.round(show.timeRef.current / 1000)}
+            aria-valuenow={Math.round(Math.min(show.timeRef.current, span) / 1000)}
             aria-valuemax={Math.round(span / 1000)}
-            onPointerDown={e => { dragging.current = true; e.currentTarget.setPointerCapture(e.pointerId); seekTo(e.clientX); }}
-            onPointerMove={e => { if (dragging.current) seekTo(e.clientX); }}
-            onPointerUp={() => { dragging.current = false; }}
+            onPointerDown={e => {
+                if (!e.isPrimary || e.button !== 0) return;
+                drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, seeking: false };
+                e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={e => {
+                const start = drag.current;
+                if (!start || start.id !== e.pointerId) return;
+                // Let a vertical swipe scroll the page without jumping the episode.
+                if (!start.seeking && Math.abs(e.clientX - start.x) > Math.max(8, Math.abs(e.clientY - start.y))) start.seeking = true;
+                if (start.seeking) seekTo(e.clientX);
+            }}
+            onPointerUp={e => {
+                const start = drag.current;
+                if (start?.id === e.pointerId && (start.seeking || Math.abs(e.clientY - start.y) < 8)) seekTo(e.clientX);
+                drag.current = null;
+            }}
+            onPointerCancel={() => { drag.current = null; }}
+            onLostPointerCapture={() => { drag.current = null; }}
             onKeyDown={e => {
-                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                if (['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) {
                     e.preventDefault();
                     e.stopPropagation();
-                    show.seek(show.timeRef.current + (e.key === 'ArrowRight' ? 5000 : -5000));
+                    show.seek(e.key === 'Home' ? 0 : e.key === 'End' ? tl.duration : show.timeRef.current + (e.key === 'ArrowRight' ? 5000 : -5000));
                 }
             }}
         >
@@ -101,7 +117,10 @@ export default function Player({ script, episodeKey, teams, players = [], banner
     const [soundOn, setSoundOn] = useState(true);
     const show = useShow(tl, { sound: soundOn, audio });
     const rootRef = useRef<HTMLDivElement>(null);
+    const railRef = useRef<HTMLDivElement>(null);
     const [fullscreen, setFullscreen] = useState(false);
+    const [expanded, setExpanded] = useState(false);
+    const isFullscreen = fullscreen || expanded;
     const [introOffset, setIntroOffset] = useState(0);
     const { frame, playing, started, time } = show;
 
@@ -154,17 +173,70 @@ export default function Player({ script, episodeKey, teams, players = [], banner
 
     const toggle = useCallback(() => (playing ? show.pause() : startPlay()), [playing, show, startPlay]);
 
-    const toggleFullscreen = useCallback(() => {
+    const toggleFullscreen = useCallback(async () => {
         const el = rootRef.current;
         if (!el) return;
-        if (document.fullscreenElement) void document.exitFullscreen();
-        else void el.requestFullscreen?.();
-    }, []);
+        if (expanded) { setExpanded(false); return; }
+        if (document.fullscreenElement === el) { await document.exitFullscreen().catch(() => {}); return; }
+        if (el.requestFullscreen) {
+            try { await el.requestFullscreen(); return; } catch { /* Use the in-page view when native fullscreen is denied. */ }
+        }
+        setExpanded(true);
+    }, [expanded]);
     useEffect(() => {
         const onChange = () => setFullscreen(document.fullscreenElement === rootRef.current);
         document.addEventListener('fullscreenchange', onChange);
         return () => document.removeEventListener('fullscreenchange', onChange);
     }, []);
+
+    // The picture and its type share one measured container, including short landscape screens.
+    useEffect(() => {
+        const root = rootRef.current;
+        const rail = railRef.current;
+        if (!isFullscreen || !root || !rail) return;
+        const measure = () => root.style.setProperty('--rail-height', `${rail.getBoundingClientRect().height}px`);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(rail);
+        return () => { observer.disconnect(); root.style.removeProperty('--rail-height'); };
+    }, [isFullscreen]);
+
+    useEffect(() => {
+        const root = rootRef.current;
+        if (!expanded || !root) return;
+        const previousFocus = document.activeElement as HTMLElement | null;
+        const overflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
+        // Keep the expanded view modal without remounting the running player.
+        const siblings = new Map<HTMLElement, boolean>();
+        for (let branch: HTMLElement = root; branch.parentElement; branch = branch.parentElement) {
+            for (const sibling of branch.parentElement.children) {
+                if (sibling !== branch && sibling instanceof HTMLElement) {
+                    siblings.set(sibling, sibling.inert);
+                    sibling.inert = true;
+                }
+            }
+            if (branch.parentElement === document.body) break;
+        }
+        root.focus({ preventScroll: true });
+        const onKey = (event: KeyboardEvent) => {
+            if (event.defaultPrevented || (event.target instanceof Element && event.target.closest('dialog'))) return;
+            if (event.key === 'Escape') { event.preventDefault(); setExpanded(false); }
+            if (event.key === 'Tab') {
+                const controls = [...root.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], [role="slider"]')];
+                const first = controls[0], last = controls[controls.length - 1];
+                if (event.shiftKey && (document.activeElement === first || document.activeElement === root)) { event.preventDefault(); last?.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+            }
+        };
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            document.documentElement.style.overflow = overflow;
+            siblings.forEach((inert, sibling) => { sibling.inert = inert; });
+            if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+        };
+    }, [expanded]);
 
     useEffect(() => {
         if (!cue) return;
@@ -220,50 +292,54 @@ export default function Player({ script, episodeKey, teams, players = [], banner
     const current = frame.line >= 0 ? tl.lines[frame.line] : null;
 
     return (
-        <div ref={rootRef} className={styles.player} data-fullscreen={fullscreen || undefined} tabIndex={keys === 'focus' ? 0 : undefined}>
-            <div className={styles.frame}>
-                <audio ref={theme} src={THEME_URL} preload="auto" />
-                <Studio tl={tl} frame={frame} teams={teams} players={players} banners={banners} started={started} playing={playing} introOffset={introOffset} fullscreen={fullscreen} />
+        <div ref={rootRef} className={styles.player} data-fullscreen={isFullscreen || undefined} data-expanded={expanded || undefined}
+            role={expanded ? 'dialog' : undefined} aria-modal={expanded || undefined} aria-label={expanded ? "Coach’s Corner player" : undefined}
+            tabIndex={expanded ? -1 : keys === 'focus' ? 0 : undefined}>
+            <div className={styles.presentation}>
+                <div className={styles.frame}>
+                    <audio ref={theme} src={THEME_URL} preload="auto" />
+                    <Studio tl={tl} frame={frame} teams={teams} players={players} banners={banners} started={started} playing={playing} introOffset={introOffset} fullscreen={isFullscreen} />
 
-                {!started && <TitleCard tl={tl} />}
-                {!started && (
-                    <button type="button" className={styles.poster} onClick={startPlay}>
-                        <span className={styles.posterSlab}><FiPlay aria-hidden="true" className={styles.fillIcon} /> Watch</span>
-                        <span className={styles.posterTime}>{mmss(tl.showEnd)}</span>
-                    </button>
-                )}
-                {ended && <TitleCard tl={tl} closing />}
-                {ended && (
-                    <div className={styles.endCard}>
-                        <button type="button" className={styles.posterSlab} onClick={() => { seek(0); startPlay(); }}>
-                            <FiRotateCcw aria-hidden="true" className={styles.strokeIcon} /> Replay
+                    {!started && <TitleCard tl={tl} />}
+                    {!started && (
+                        <button type="button" className={styles.poster} onClick={startPlay}>
+                            <span className={styles.posterSlab}><FiPlay aria-hidden="true" className={styles.fillIcon} /> Watch</span>
+                            <span className={styles.posterTime}>{mmss(tl.showEnd)}</span>
                         </button>
-                        {nextHref && <a href={nextHref} className={styles.endLink}>Previous episode</a>}
-                    </div>
-                )}
-            </div>
-
-            <div className={styles.rail}>
-                <div className={styles.transport}>
-                    <button type="button" onClick={() => stepLine(-1)} aria-label="Previous line" disabled={!started}><FiSkipBack /></button>
-                    <button type="button" className={styles.playButton} onClick={toggle} aria-label={playing ? 'Pause' : 'Play'}>
-                        {playing ? <FiPause /> : <FiPlay />}
-                    </button>
-                    <button type="button" onClick={() => stepLine(1)} aria-label="Next line"><FiSkipForward /></button>
+                    )}
+                    {ended && <TitleCard tl={tl} closing />}
+                    {ended && (
+                        <div className={styles.endCard}>
+                            <button type="button" className={styles.posterSlab} onClick={() => { seek(0); startPlay(); }}>
+                                <FiRotateCcw aria-hidden="true" className={styles.strokeIcon} /> Replay
+                            </button>
+                            {nextHref && <a href={nextHref} className={styles.endLink}>Previous episode</a>}
+                        </div>
+                    )}
                 </div>
-                <Scrubber tl={tl} show={show} />
-                <span className={styles.time}>{mmss(Math.min(time, tl.showEnd))}<small> / {mmss(tl.showEnd)}</small></span>
-                <div className={styles.options}>
-                    <button type="button" className={styles.rate} onClick={() => show.setRate(RATES[(RATES.indexOf(show.rate) + 1) % RATES.length])} aria-label={`Speed ${show.rate}×`}>
-                        {show.rate}×
-                    </button>
-                    <button type="button" onClick={toggleSound} aria-label={soundOn ? 'Mute' : 'Turn sound on'} aria-pressed={soundOn} data-on={soundOn || undefined}>
-                        {soundOn ? <FiVolume2 /> : <FiVolumeX />}
-                    </button>
-                    {share && <ShareButton card={share} title="Share this episode" bare />}
-                    <button type="button" onClick={toggleFullscreen} aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}>
-                        {fullscreen ? <FiMinimize /> : <FiMaximize />}
-                    </button>
+
+                <div ref={railRef} className={styles.rail}>
+                    <div className={styles.transport}>
+                        <button type="button" onClick={() => stepLine(-1)} aria-label="Previous line" disabled={!started}><FiSkipBack /></button>
+                        <button type="button" className={styles.playButton} onClick={toggle} aria-label={playing ? 'Pause' : 'Play'}>
+                            {playing ? <FiPause /> : <FiPlay />}
+                        </button>
+                        <button type="button" onClick={() => stepLine(1)} aria-label="Next line"><FiSkipForward /></button>
+                    </div>
+                    <Scrubber tl={tl} show={show} />
+                    <span className={styles.time}>{mmss(Math.min(time, tl.showEnd))}<small> / {mmss(tl.showEnd)}</small></span>
+                    <div className={styles.options}>
+                        <button type="button" className={styles.rate} onClick={() => show.setRate(RATES[(RATES.indexOf(show.rate) + 1) % RATES.length])} aria-label={`Speed ${show.rate}×`}>
+                            {show.rate}×
+                        </button>
+                        <button type="button" onClick={toggleSound} aria-label={soundOn ? 'Mute' : 'Turn sound on'} aria-pressed={soundOn} data-on={soundOn || undefined}>
+                            {soundOn ? <FiVolume2 /> : <FiVolumeX />}
+                        </button>
+                        {share && <ShareButton card={share} title="Share this episode" bare />}
+                        <button type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}>
+                            {isFullscreen ? <FiMinimize /> : <FiMaximize />}
+                        </button>
+                    </div>
                 </div>
             </div>
 

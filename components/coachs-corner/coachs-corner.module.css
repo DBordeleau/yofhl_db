@@ -16,12 +16,17 @@
     --don: #c8102e;
     --ron: #3f6fd6;
     --display: var(--font-cc-italic), var(--font-archivo), system-ui, sans-serif;
-    container: player / inline-size;
     position: relative;
     width: 100%;
     color: #e8eef6;
     font-family: var(--font-archivo), system-ui, sans-serif;
     outline: none;
+}
+
+.presentation {
+    container: player / inline-size;
+    width: 100%;
+    flex: none;
 }
 
 .player :is(button, a, [role='slider']):focus-visible {
@@ -71,7 +76,7 @@
 .studio[data-shot='monitor'] { --fx: var(--mon-fx); --fy: var(--mon-fy); --s: 2.35; }
 
 @container player (max-width: 640px) {
-    .frame { aspect-ratio: 4 / 5; border-radius: 10px 10px 0 0; }
+    .frame { aspect-ratio: 3 / 4; border-radius: 10px 10px 0 0; }
     .studio {
         --mon-x: 22%;
         --mon-y: 4%;
@@ -80,7 +85,8 @@
         --host-b: 10.5%;
         --host-side: -4%;
         --desk-h: 12%;
-        --type: max(14px, 4.1cqw);
+        --type: max(16px, 4.1cqw);
+        --caption-lines: 2;
         --don-fx: 22%;
         --don-fy: 64%;
         --ron-fx: 78%;
@@ -1118,10 +1124,10 @@
     /* one plate at a time on a phone, in the band between monitor and hosts */
     .plate {
         --tail: 18cqw;
-        bottom: 57%;
+        bottom: 53%;
         min-width: 0;
         max-width: none;
-        width: 82cqw;
+        width: 92cqw;
     }
     .plate[data-who='don'] { left: 4%; }
     .plate[data-who='ron'] { right: 4%; }
@@ -1485,7 +1491,8 @@
     position: relative;
     height: 32px;
     cursor: pointer;
-    touch-action: none;
+    touch-action: pan-y;
+    user-select: none;
 }
 
 .scrubTrack {
@@ -1528,32 +1535,52 @@
 .scrub:hover .scrubHead,
 .scrub:focus-visible .scrubHead { scale: 1; }
 
-@container player (max-width: 640px) {
+/* The rail responds to its real width even when fullscreen keeps a landscape set. */
+@container (max-width: 640px) {
     .rail {
-        grid-template-columns: auto 1fr auto;
-        grid-template-areas: 'scrub scrub scrub' 'transport time options';
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas: 'scrub scrub time' 'transport options options';
         gap: 4px 6px;
         padding: 6px 8px 8px;
         border-radius: 0 0 10px 10px;
     }
-    .scrub { grid-area: scrub; }
-    .rail button { width: 36px; height: 36px; }
-    .rail .playButton { width: 42px; height: 42px; }
-    .rail .rate { min-width: 40px; padding: 0 4px; }
+    .scrub { grid-area: scrub; height: 44px; margin: 0 6px; }
+    .scrubHead { width: 16px; height: 16px; margin: -8px 0 0 -8px; scale: 1; }
+    .rail button { width: 44px; height: 44px; flex: none; }
+    .rail .playButton { width: 48px; height: 48px; }
+    .rail .rate { min-width: 44px; padding: 0 4px; }
     .transport { grid-area: transport; }
     .time { grid-area: time; justify-self: center; }
-    .options { grid-area: options; }
+    .options { grid-area: options; justify-self: end; }
 }
 
-/* the narrowest phones still fit every control on one row, share included */
-@container player (max-width: 380px) {
-    .rail button { width: 32px; }
-    .rail .rate { min-width: 34px; }
+@container (max-width: 360px) {
+    .rail { padding-inline: 4px; column-gap: 2px; }
+    .rail .playButton { width: 44px; }
+}
+
+/* Small phones keep every action reachable, with room for a thumb. */
+@container (max-width: 327px) {
+    .rail {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: 'scrub scrub' 'transport time' 'options options';
+    }
+    .options { justify-self: stretch; justify-content: space-between; border-top: 1px solid #1f2b52; padding-top: 4px; }
+    .time { justify-self: end; }
+}
+
+@media (pointer: coarse) {
+    .rail button { min-width: 44px; min-height: 44px; }
+    .scrub { min-height: 44px; }
 }
 
 /* ---------- full screen ---------- */
 
 .player[data-fullscreen] {
+    --safe-height: calc(env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    height: 100dvh;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1561,13 +1588,43 @@
     background: #000;
 }
 
-.player[data-fullscreen] .frame,
-.player[data-fullscreen] .rail {
-    width: min(100vw, calc((100vh - 64px) * 16 / 9));
+.player[data-expanded] { position: fixed; inset: 0; z-index: 1000; }
+
+.player[data-fullscreen] .presentation {
+    width: min(100%, calc((100dvh - var(--rail-height, 110px) - var(--safe-height)) * 16 / 9));
 }
 
 .player[data-fullscreen] .frame { border-radius: 0; }
 .player[data-fullscreen] .rail { border-radius: 0; }
+
+@media (orientation: landscape) {
+    /* Keep the wide shot on a rotated phone; cqw still follows the actual picture. */
+    .player[data-fullscreen] .presentation { container-name: landscape-player; }
+}
+
+@media (orientation: portrait) {
+    .player[data-fullscreen] .presentation { width: min(100%, 640px, calc((100dvh - var(--rail-height, 160px) - var(--safe-height)) * 3 / 4)); }
+}
+
+@container landscape-player (max-width: 640px) {
+    .studio { --caption-lines: 2; }
+    .plate { bottom: auto; top: 8%; }
+}
+
+/* A rotated phone has space beside the picture; use it for one compact control row. */
+@media (orientation: landscape) and (min-width: 480px) and (max-height: 500px) {
+    .player[data-fullscreen] .rail {
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100dvw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+        grid-template-columns: auto minmax(44px, 1fr) auto auto;
+        grid-template-areas: 'transport scrub time options';
+        gap: 8px;
+        padding: 8px;
+    }
+    .player[data-fullscreen] .options { border: 0; padding: 0; }
+}
 
 .srOnly {
     position: absolute;

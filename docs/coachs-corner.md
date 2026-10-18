@@ -174,6 +174,14 @@ Episodes using existing gestures inherit AVIF selection, WebP fallback and the f
 
 Tests: `node --import tsx --test lib/coachs-corner/*.test.ts`.
 
+## Mobile playback
+
+The phone player uses a taller studio, 16px minimum dialogue, and two complete caption rows. Captions remeasure when the player resizes, including rotation while paused. The control rail keeps every action at least 44px wide and tall, with an extra row on the narrowest phones. Horizontal timeline drags seek; vertical swipes scroll the page without changing the playhead.
+
+Fullscreen scales the studio and its text from the actual picture width. Rotated phones get a single control row below the picture. If native fullscreen is missing or rejected, the player expands in the page with an Exit full screen button, Escape support, and restored focus and background scrolling on exit.
+
+Run `node scripts/coachs-corner/verify-mobile.mjs` against a running local app. It requires Playwright (`PLAYWRIGHT_MODULE` can point to an existing package directory, and `PLAYWRIGHT_EXECUTABLE` can select an installed Chromium executable). `COACHS_BASE_URL` defaults to `http://localhost:3000`. Checks cover 320–1440px layouts, paused rotation, portrait and landscape fullscreen, the fullscreen fallback, touch dragging versus page scrolling, cancellation, playback, sound, speed, and replay. Screenshots go to `.cache/coachs-mobile/`. These are Chromium emulation checks; physical Galaxy devices, Samsung Internet, and Safari need device testing.
+
 ## Episode audio
 
 The approved studio mix is the default for every episode, including the complete first episode at `/coachs-corner/opening-week`. It uses Don's softened robot voice at 120%, Ron at 150%, studio ambience at 45%, cloth rustle 7, and the original synthesized TV switch at 100%. The intro theme stays; there is no background music during dialogue. Audio is generated from each episode's full script, so new episodes inherit this mix without separate sound authoring.
