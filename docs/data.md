@@ -30,6 +30,7 @@ Next.js reads local environment files during development. The database npm scrip
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | The accepted admin sign-in; both are required to enable it |
 | `ADMIN_SESSION_SECRET` | Signs the 12-hour admin cookie; falls back to `ADMIN_PASSWORD` when unset |
 | `REVALIDATE_SECRET` | Authorizes `POST /api/revalidate` with a bearer token |
+| `CRON_SECRET` | Authorizes Vercel's scheduled current-season Fantrax refreshes |
 | `SITE_URL` | Site whose cache import and logo-sync scripts refresh, when `REVALIDATE_SECRET` is also set |
 | `YOFHL_DATA_DIR` | Optional CSV directory override; defaults to `data` |
 | `YOFHL_LEAGUE_CONFIG` | Optional league configuration path; defaults to `league/league.yml` |
@@ -215,3 +216,17 @@ The award gallery includes two team trophies as well as the six individual award
 | `npm run db:verify` | Legacy migration comparison against old-site API shapes; not current-site verification |
 
 `db:verify` still calls `/api/stats/...`, `/api/teams/stats`, and `/api/player/...`, which the current app does not implement. Its default target is the current production API, so it will encounter missing routes. It also reports data differences without making those differences a failing exit status. Use it only with a compatible legacy endpoint via `YOFHL_LIVE_API`; use the current API and page checks for present-day verification.
+
+## Fantrax refreshes and final weeks
+
+Apply migrations before deploying the Fantrax controls. `league.fantrax_snapshots` holds the last successful current-season snapshot, independently of historical imports. `league.fantrax_final_weeks` holds manual final flags keyed by Fantrax league, season and period.
+
+The four daily refresh targets are 8, 9, 10 and 11:30 p.m. in `America/Toronto`. `vercel.json` defines six once-daily UTC jobs covering both Eastern offsets. The authenticated handler evaluates each job's scheduled time and skips the two slots that do not apply at the current offset. This supports Vercel Hobby and its possible 59-minute scheduling delay, including an 11:30 p.m. job arriving after local midnight. Set a strong production `CRON_SECRET`; Vercel sends it as an Authorization bearer token. Jobs run only on production deployments.
+
+A refresh fetches league information, rosters, standings, scoring leaders, roster statistics and started matchup periods within the seven-day correction window. It saves the complete result only after all requests succeed, then invalidates only the current-season cache tag. Weekly player references, the scoring-season selector, archive queries and older final scores remain cached. Overlapping refreshes cannot replace a newer snapshot with an older one. If no recent saved snapshot exists, the existing 24-hour API caches provide a fallback.
+
+Signed-in admins can use **Refresh Fantrax** on `/admin`. **Mark week final** first refreshes scores, then saves a manual flag for a started week. **Clear manual final** returns that week to automatic status. Each action checks the admin session on the server. Public visitors cannot trigger these writes.
+
+Regular-season Final detection compares each scheduled team's cumulative W-L-T total with its number of paired matchups through that week. It handles ties and byes, rejects missing or malformed standings and schedule history, and does not infer playoff completion from regular-season records. Both matchup cards and the ticker use the same final-period list. A Final flag does not advance the current week or stop stat corrections; the next week still becomes current at Fantrax's supplied boundary. Existing open browser tabs need reloading to receive a new snapshot.
+
+The broader `POST /api/revalidate?external=1` remains available for historical corrections. It refreshes the saved current-season snapshot and clears all Fantrax and league caches; use the admin button for routine current-season refreshes.

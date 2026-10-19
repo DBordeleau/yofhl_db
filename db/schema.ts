@@ -20,6 +20,7 @@ import type { LotteryEntry } from '@/lib/lottery/model';
 import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 import type { TeamColours } from '@/lib/team-branding';
 import type { DraftDevelopmentFacts } from '@/lib/draft/development';
+import type { CurrentSeasonData } from '@/lib/fantrax/data';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -31,6 +32,19 @@ import type { DraftDevelopmentFacts } from '@/lib/draft/development';
 
 // everything lives in its own "league" schema, so it can share a database with other tables
 export const league = pgSchema('league');
+
+export const fantraxSnapshots = league.table('fantrax_snapshots', {
+    leagueId: text('league_id').primaryKey(),
+    data: jsonb('data').$type<CurrentSeasonData>().notNull(),
+});
+
+// Current Fantrax seasons need not have been imported into the historical archive.
+export const fantraxFinalWeeks = league.table('fantrax_final_weeks', {
+    leagueId: text('league_id').notNull(),
+    seasonYear: integer('season_year').notNull(),
+    period: integer('period').notNull(),
+    markedAt: timestamp('marked_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.leagueId, t.seasonYear, t.period] })]);
 
 // Event snapshots survive team renames and imports. Only one event is current at a time.
 export const draftLotteries = league.table('draft_lotteries', {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import test from 'node:test';
-import { DAY, FANTRAX_TAG, scoresAreArchived } from './cache-policy';
+import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, scoresAreArchived } from './cache-policy';
 
 test('matchups refresh after the correction window, then reuse final scores until invalidated', async t => {
     const globals = ['AsyncLocalStorage', '__incrementalCache'] as const;
@@ -31,7 +31,7 @@ test('matchups refresh after the correction window, then reuse final scores unti
     t.mock.method(globalThis, 'fetch', async (input: URL | string) => {
         const url = new URL(input);
         switch (url.pathname.split('/').pop()) {
-            case 'getLeagueInfo': return Response.json({ teamInfo: {}, rosterPeriods: [], matchups: [], playoffs: { numPlayoffTeams: 8, lastRegularSeasonPeriod: 23 }, scoringPeriods: [
+            case 'getLeagueInfo': return Response.json({ seasonYear: 2026, teamInfo: {}, rosterPeriods: [], matchups: [], playoffs: { numPlayoffTeams: 8, lastRegularSeasonPeriod: 23 }, scoringPeriods: [
                 { number: 1, startDate: '2026-10-01T00:00:00Z', endDate: end },
                 { number: 2, startDate: '2027-01-01T00:00:00Z', endDate: '2027-01-08T00:00:00Z' },
             ] });
@@ -49,6 +49,8 @@ test('matchups refresh after the correction window, then reuse final scores unti
         }
     });
     const { getMatchupScores, getLeagueSnapshot } = await import('./data');
+    const { getDb } = await import('../data/db');
+    t.mock.method(getDb(), 'execute', async () => ({ rows: [] }));
     assert.equal(scoresAreArchived(end, now), false);
     await getMatchupScores(1);
     await getMatchupScores(1);
@@ -72,11 +74,18 @@ test('matchups refresh after the correction window, then reuse final scores unti
     invalidScores = false;
     assert.equal((await getMatchupScores(1))?.matchups[0].away.score, 5, 'failed final-score loads are retried');
 
-    const { getDb } = await import('../data/db');
-    t.mock.method(getDb(), 'execute', async () => ({ rows: [] }));
     await getLeagueSnapshot();
     await getLeagueSnapshot();
     assert.equal(directoryCalls, 1);
+    const directory = [...entries].find(([key]) => key.includes('fantrax-player-directory'));
+    const archive = [...entries].find(([key]) => key.includes('fantrax-final-scores'));
+    assert.ok(directory && archive);
+    assert.equal(directory[1].tags.includes(FANTRAX_CURRENT_TAG), false);
+    assert.equal(archive[1].tags.includes(FANTRAX_CURRENT_TAG), false);
+    for (const [key, entry] of entries) if (entry.tags.includes(FANTRAX_CURRENT_TAG)) entries.delete(key);
+    await getLeagueSnapshot();
+    assert.equal(directoryCalls, 1, 'evening refreshes preserve the weekly player directory');
+    assert.ok(entries.has(archive[0]), 'evening refreshes preserve archived final scores');
     // Expire daily entries, as on a later visit, leaving the independent weekly directory.
     for (const [key, entry] of entries) if (entry.revalidate === DAY) entries.delete(key);
     await getLeagueSnapshot();
