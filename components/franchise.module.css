@@ -1,0 +1,82 @@
+/* Shared broadcast pieces for the franchise profile (/teams/[ID]). */
+
+.wrap { width: min(100%, var(--page-width)); margin-inline: auto; padding-inline: 32px; }
+.section { margin-top: 48px; scroll-margin-top: 80px; }
+.section:first-child { margin-top: 0; }
+
+/* A franchise best, flagged inside the row it happened in. */
+.best { display: inline-block; margin-right: 6px; padding: 2px 7px 1px 6px; vertical-align: 1px; background: #101d32; color: #fff; font-size: 9px; line-height: 1.3; font-weight: 850; font-style: italic; letter-spacing: .08em; text-transform: uppercase; clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%); }
+
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; margin-bottom: 16px; }
+.head h2 { font-size: 27px; line-height: 1.15; font-weight: 850; letter-spacing: -.04em; }
+.headNote { font-size: 13px; font-weight: 650; color: #56627a; }
+
+.label { font-size: 11px; line-height: 1.2; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #56627a; }
+
+/* Light reading panel: white, hairline, tight corners, no shadow. */
+.panel { overflow: hidden; background: #fff; border: 1px solid #dce5ee; border-radius: 6px; }
+.tableHead { background: #eaf0f6; border-bottom: 1px solid #12182e; }
+
+/* ---------- slab tab bar ---------- */
+.tabs { display: inline-grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; height: 44px; min-width: 0; background: #101d32; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+.tabs button { position: relative; min-width: 108px; padding: 0 22px; font-size: 14px; font-weight: 900; font-style: italic; font-stretch: 108%; letter-spacing: -.01em; text-transform: uppercase; color: #a9b8cf; transition: color .2s; }
+.tabs button::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); opacity: 0; transform: scaleX(.6); transition: opacity .2s, transform .3s cubic-bezier(.2, .8, .2, 1); }
+.tabs button > span { position: relative; }
+.tabs button:hover, .tabs button[aria-pressed='true'] { color: #fff; }
+.tabs button[aria-pressed='true'] { text-shadow: 0 1px 1px #5a0010; }
+.tabs button[aria-pressed='true']::before { opacity: 1; transform: none; }
+.tabs button:focus-visible { outline: 3px solid #7fb2ff; outline-offset: -5px; }
+.tabsSmall { height: 38px; }
+.tabsSmall button { min-width: 84px; padding: 0 16px; font-size: 12.5px; }
+
+/* ---------- inner-label field ---------- */
+.field { position: relative; display: block; min-width: 0; height: 52px; background: #fff; border: 1.5px solid #c9d6e3; border-radius: 6px; transition: border-color .2s; }
+.field:hover { border-color: #101d32; }
+.field:focus-within { outline: 3px solid #3d8bda; outline-offset: 2px; }
+.field > span { position: absolute; left: 13px; top: 8px; font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6b778e; pointer-events: none; }
+.field :is(select, input) { position: absolute; inset: 0; width: 100%; appearance: none; border: 0; border-radius: 6px; background: transparent; padding: 20px 38px 0 12px; font-size: 14px; font-weight: 750; color: #12182e; outline: none; }
+.field select { cursor: pointer; }
+.field input { padding-right: 12px; }
+.field input::placeholder { font-weight: 500; color: #6b778e; }
+.field:has(select)::after { content: ''; position: absolute; right: 16px; top: 50%; width: 7px; height: 7px; border-right: 2px solid #12182e; border-bottom: 2px solid #12182e; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+
+/* ---------- year slabs ---------- */
+.slab { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 1px 15px 0; font-size: 13px; font-weight: 850; font-style: italic; font-stretch: 105%; font-variant-numeric: tabular-nums; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); transition: filter .2s, transform .2s; }
+.slab:hover { filter: brightness(1.12); }
+.slab:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 2px; clip-path: none; }
+.slabGold { background: linear-gradient(160deg, #f7d774, #b8860b); color: #2b1d00; }
+.slabSteel { background: #ffffff1f; color: #dfe7f2; box-shadow: inset 0 0 0 1px #ffffff26; }
+.slabLight { min-height: 36px; background: #eaf2fa; color: #1f6fc2; }
+.slabLight:hover { filter: none; background: #1f6fc2; color: #fff; }
+.slabLight:focus-visible { outline-color: #3d8bda; }
+
+/* ---------- pager ---------- */
+.pager { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 10px 16px; border-top: 1px solid #e6edf4; background: #f4f8fb; font-size: 12px; color: #56627a; }
+.pager > div { display: flex; gap: 8px; }
+.pager button { display: grid; place-items: center; min-width: 44px; height: 40px; padding: 0 14px; border: 1px solid #d4dee9; border-radius: 4px; background: #fff; font-size: 13px; font-weight: 750; color: #12182e; transition: background .15s; }
+.pager button:hover:not(:disabled) { background: #e6eef7; }
+.pager button:disabled { opacity: .35; }
+.pager button:focus-visible { outline: 3px solid #3d8bda; outline-offset: 2px; }
+
+@media (max-width: 800px) {
+    .wrap { padding-inline: 24px; }
+}
+
+@media (max-width: 640px) {
+    .wrap { padding-inline: 16px; }
+    .section { margin-top: 36px; }
+    .head h2 { font-size: 24px; }
+    .tabs { display: grid; width: 100%; }
+    .tabs button { min-width: 0; padding: 0 10px; }
+}
+
+@media (min-width: 1800px) {
+    .head h2 { font-size: 32px; }
+    .headNote { font-size: 15px; }
+    .tabs { height: 50px; }
+    .tabs button { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tabs button::before, .slab { transition: none; }
+}

@@ -1,0 +1,68 @@
+/* Franchise profile stage: the club's own colours up top, a flush stat bar, then the league's banner stripe. */
+.stage { position: relative; color: #fff; }
+
+.surface { min-height: 300px; }
+.inner { display: flex; flex-direction: column; min-height: 300px; padding-block: 14px 34px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 750; color: #c9d4e4; transition: color .2s; }
+.back:hover { color: #fff; }
+.back:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 2px; }
+
+.identity { display: flex; align-items: center; gap: 30px; margin-block: auto; padding-top: 14px; max-width: min(100%, 980px); animation: rise .6s cubic-bezier(.2, .8, .2, 1) backwards; }
+.name { font-size: clamp(42px, 4.9vw, 92px); line-height: .86; font-weight: 900; font-style: italic; font-stretch: 112%; letter-spacing: -.035em; text-transform: uppercase; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 0; margin-top: 14px; font-size: 15px; font-weight: 650; color: #c9d4e4; }
+.meta > span { white-space: nowrap; }
+.meta > span + span::before { content: '·'; margin-inline: 10px; color: #8193ad; }
+.defunct { color: #f0c75e; }
+.former { margin-top: 6px; font-size: 13px; color: #a9b8cf; }
+.champion { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 3px 22px 2px 14px; background: linear-gradient(160deg, #f7d774, #b8860b); color: #2b1d00; font-size: 15px; font-weight: 900; font-style: italic; font-stretch: 108%; letter-spacing: -.01em; text-transform: uppercase; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); transition: filter .2s; }
+.champion:hover { filter: brightness(1.1); }
+.champion:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 3px; clip-path: none; }
+
+/* Stat bar: club colour mixed deep into navy so any palette reads under white type. */
+.bar { background: color-mix(in srgb, var(--team-primary, #101d32) 16%, #070e1c); border-top: 1px solid #ffffff14; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stat { min-width: 0; padding: 16px 24px 18px; border-left: 1px solid #ffffff14; }
+.stat:first-child { padding-left: 0; border-left: 0; }
+.stat dt { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #9fb0c8; }
+.stat dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-top: 6px; }
+.value { font-size: 36px; line-height: .95; font-weight: 900; font-style: italic; font-stretch: 92%; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.negative { color: #ff7387; }
+.sub { font-size: 12.5px; font-weight: 600; color: #9fb0c8; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+
+@media (max-width: 1023px) {
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat:nth-child(3) { padding-left: 0; border-left: 0; }
+    .stat:nth-child(n + 3) { border-top: 1px solid #ffffff14; }
+}
+
+@media (max-width: 767px) {
+    .surface, .inner { min-height: 0; }
+    /* On a phone the club art fills the stage, so it steps back behind the name. */
+    .stage .surface[data-brand-part='surface']::before { opacity: .38; }
+    .inner { padding-block: 8px 26px; }
+    .identity { flex-direction: column; align-items: flex-start; gap: 16px; padding-top: 10px; }
+    .name { font-size: clamp(34px, 10vw, 46px); }
+    .meta { margin-top: 10px; font-size: 13.5px; }
+    .champion { margin-top: 12px; font-size: 13px; }
+    .stat { padding: 13px 14px 14px; }
+    .value { font-size: 27px; }
+    .sub { font-size: 11.5px; }
+}
+
+@media (min-width: 1800px) {
+    .surface, .inner { min-height: 360px; }
+    .meta { font-size: 18px; }
+    .former { font-size: 15px; }
+    .champion { font-size: 18px; }
+    .stat dt { font-size: 13px; }
+    .value { font-size: 46px; }
+    .sub { font-size: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .identity { animation: none; }
+}

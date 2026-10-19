@@ -5,12 +5,21 @@ import styles from './page-contents.module.css';
 
 export interface PageSection { id: string; label: string }
 
-export default function PageContents({ title, contentId, sections }: { title: string; contentId: string; sections: PageSection[] }) {
+export default function PageContents({ title, contentId, sections, variant = 'rail' }: { title: string; contentId: string; sections: PageSection[]; variant?: 'rail' | 'bar' }) {
     const [active, setActive] = useState(sections[0].id);
     const [open, setOpen] = useState(false);
     const nav = useRef<HTMLElement>(null);
     const toggle = useRef<HTMLButtonElement>(null);
+    const track = useRef<HTMLUListElement>(null);
     const activeIndex = Math.max(0, sections.findIndex((section) => section.id === active));
+
+    // A bar that scrolls sideways on phones keeps the current section in view.
+    useEffect(() => {
+        const list = track.current;
+        const link = list?.children[activeIndex] as HTMLElement | undefined;
+        if (!list || !link || list.scrollWidth <= list.clientWidth) return;
+        list.scrollTo({ left: link.offsetLeft - (list.clientWidth - link.offsetWidth) / 2, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    }, [activeIndex]);
 
     useEffect(() => {
         const targets = sections.map((section) => document.getElementById(section.id)).filter((node): node is HTMLElement => node !== null);
@@ -60,6 +69,21 @@ export default function PageContents({ title, contentId, sections }: { title: st
         target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
     };
 
+    if (variant === 'bar') return (
+        <nav className={styles.bar} aria-label={`${title}: on this page`}>
+            <div className={styles.barInner}>
+                <span className={styles.barTitle}>{title}</span>
+                <ul ref={track} className={styles.barLinks}>
+                    {sections.map((section, index) => (
+                        <li key={section.id}>
+                            <a href={`#${section.id}`} aria-current={index === activeIndex ? 'location' : undefined} onClick={(event) => jump(event, section.id)}>{section.label}</a>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </nav>
+    );
+
     return (
         <nav ref={nav} className={styles.nav} aria-label={`${title}: on this page`}
             onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
@@ -68,11 +92,11 @@ export default function PageContents({ title, contentId, sections }: { title: st
                 <h2 className="text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-muted">On this page</h2>
                 <p className="mt-2 text-sm font-bold leading-snug text-ink">{title}</p>
             </div>
-            <button ref={toggle} type="button" className="flex min-h-[68px] w-full items-center justify-between gap-3 rounded-2xl px-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rink-blue xl:hidden"
+            <button ref={toggle} type="button" className="flex min-h-[68px] w-full items-center justify-between gap-3 rounded-md px-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rink-blue xl:hidden"
                 aria-expanded={open} aria-controls={`${contentId}-links`} onClick={() => setOpen(!open)}>
                 <span><span className="block text-[10px] font-extrabold uppercase tracking-[.14em] text-ink-muted">On this page</span>
                     <span className="mt-1 block text-sm font-bold">{sections[activeIndex].label}</span></span>
-                <span className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors motion-reduce:transition-none ${open ? 'bg-ink text-white' : 'bg-rink-wash text-rink-blue'}`}>
+                <span className={`flex h-9 w-9 items-center justify-center rounded transition-colors motion-reduce:transition-none ${open ? 'bg-ink text-white' : 'bg-rink-wash text-rink-blue'}`}>
                     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
                         {open ? <path d="m7 7 10 10M17 7 7 17" /> : <><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6h.01M4 12h.01M4 18h.01" strokeWidth="3" /></>}
                     </svg>
@@ -83,7 +107,7 @@ export default function PageContents({ title, contentId, sections }: { title: st
                     {sections.map((section, index) => (
                         <li key={section.id}>
                             <a href={`#${section.id}`} aria-current={active === section.id ? 'location' : undefined} onClick={(event) => jump(event, section.id)}
-                                className={`relative z-[1] flex h-11 items-center rounded-xl px-4 text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rink-blue motion-reduce:transition-none ${index === activeIndex ? 'text-ink' : 'text-ink-muted hover:bg-rink-wash/70 hover:text-ink'}`}>
+                                className={`relative z-[1] flex h-11 items-center rounded px-4 text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rink-blue motion-reduce:transition-none ${index === activeIndex ? 'text-white' : 'text-ink-muted hover:bg-rink-wash/70 hover:text-ink'}`}>
                                 {section.label}
                             </a>
                         </li>
