@@ -1,4 +1,4 @@
-import { CHARACTERS, type CharacterId, type Delivery } from './cast';
+import { CHARACTERS, gestureAction, type CharacterId, type Delivery } from './cast';
 import { firedBetween, INTRO_MS, type Timeline } from './timeline';
 import type { SoundId } from './sound-bank';
 
@@ -17,7 +17,7 @@ export interface VoiceCue {
     /** First syllable when taking over directly from an unfinished line. */
     interrupting: boolean;
 }
-export interface AudioCue { t: number; id: SoundId; voice?: VoiceCue }
+export interface AudioCue { t: number; id: SoundId; voice?: VoiceCue; /** Limit a reaction sound to its visible beat, in show ms. */ duration?: number }
 
 /** Compile once, not on every frame. The same text produces the same new voice performance. */
 export function compileAudioCues(tl: Timeline): AudioCue[] {
@@ -48,10 +48,11 @@ export function compileAudioCues(tl: Timeline): AudioCue[] {
         }
     }
     for (const s of tl.sounds) cues.push({ t: s.t, id: s.value });
+    for (const r of tl.reactions) if (r.effect === 'happy') cues.push({ t: r.t, id: 'happy-twinkle', duration: r.duration });
     for (const m of tl.monitor) if (m.t > 0) cues.push({ t: m.t, id: 'monitor' });
     for (const p of tl.punches) if (p.who === 'don') cues.push({ t: p.t, id: 'thud' });
     // Only this physical action gets Foley. Mouth swaps and automatic rest poses stay silent.
-    for (const g of tl.gestures.don) if (g.t >= INTRO_MS && g.value === 'tie') cues.push({ t: g.t, id: 'tie' });
+    for (const g of tl.gestures.don) if (g.t >= INTRO_MS && gestureAction(g.value) === 'tie') cues.push({ t: g.t, id: 'tie' });
     return cues.sort((a, b) => a.t - b.t);
 }
 

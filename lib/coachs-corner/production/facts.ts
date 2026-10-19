@@ -100,8 +100,32 @@ export async function lookupFeaturedPlayer(name: string, fetcher: Fetcher = fetc
         nhlTeam: p.currentTeamAbbrev ?? null, positions: p.position ? [p.position] : [] };
 }
 
+/** Select the previous Monday through Sunday in Toronto, independently of Fantrax's Monday evening rollover. */
+export function selectRecapPeriod(periods: Period[], now: number): { period: Period; startDate: string; endDate: string } {
+    const torontoDate = (time: number) => new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(time);
+    // UTC arithmetic here operates on calendar dates, avoiding 23/25-hour days at DST changes.
+    const monday = new Date(`${torontoDate(now)}T00:00:00Z`);
+    monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7);
+    const dateBefore = (days: number) => new Date(monday.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+    const startDate = dateBefore(7), endDate = dateBefore(1), followingMonday = dateBefore(0);
+    const matches = periods.filter(period => {
+        const start = Date.parse(period.startDate), end = Date.parse(period.endDate);
+        return Number.isFinite(start) && Number.isFinite(end) && end >= start && torontoDate(start) === startDate &&
+            [endDate, followingMonday].includes(torontoDate(end));
+    });
+    if (matches.length !== 1) throw new Error(`Cannot identify one weekly scoring period for the recap from ${startDate} through ${endDate} in America/Toronto. Use --period <n> to select explicitly; label any provisional rehearsal accordingly.`);
+    return { period: matches[0], startDate, endDate };
+}
+
 /** Read directly from sources, independent of Next's daily cache and the production database. */
-export async function captureFacts(config: LeagueConfig, options: { period?: number; players?: string[]; fetcher?: Fetcher } = {}): Promise<FactPacket> {
+export async function captureFacts(config: LeagueConfig, options: { period?: number; recap?: boolean; airDate?: string; players?: string[]; fetcher?: Fetcher } = {}): Promise<FactPacket> {
+    if (options.recap && options.period !== undefined) throw new Error('Choose --recap or --period, not both.');
+    if (options.airDate !== undefined && (!options.recap || !/^\d{4}-\d{2}-\d{2}$/.test(options.airDate) ||
+        !Number.isFinite(Date.parse(`${options.airDate}T12:00:00Z`)) || new Date(`${options.airDate}T12:00:00Z`).toISOString().slice(0, 10) !== options.airDate)) {
+        throw new Error('--air-date requires --recap and a valid YYYY-MM-DD calendar date.');
+    }
     const fetcher = options.fetcher ?? fetch;
     const started = new Date().toISOString();
     const url = (endpoint: string, params: Record<string, string> = {}) => `https://www.fantrax.com/fxea/general/${endpoint}?${new URLSearchParams({ leagueId: FANTRAX_LEAGUE_ID, ...params })}`;
@@ -120,9 +144,11 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
         throw new Error('Incomplete Fantrax fact export. No previous snapshot has been replaced.');
     }
     const periods = info.scoringPeriods.map(p => ({ number: p.number, startDate: iso(p.startDate), endDate: iso(p.endDate) })).sort((a, b) => a.number - b.number);
-    const period = options.period === undefined
+    // An intended air date selects the editorial week only. Source times and phase stay live.
+    const recap = options.recap ? selectRecapPeriod(periods, Date.parse(options.airDate ? `${options.airDate}T12:00:00Z` : started)) : undefined;
+    const period = recap?.period ?? (options.period === undefined
         ? periods.find(p => Date.parse(p.endDate) >= Date.parse(started)) ?? periods.at(-1)!
-        : periods.find(p => p.number === options.period);
+        : periods.find(p => p.number === options.period));
     if (!period) throw new Error(`Unknown scoring period ${options.period}. Choose one from the league calendar.`);
     // Fantrax uses the starting year; this site's screenplay uses the ending year.
     const season = info.seasonYear + 1;
@@ -170,6 +196,7 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
         'Transactions, injuries, news and private league chat are not exported. Add dated, sourced notes to brief.md before using them.',
         'Run coachs:stats after adding or changing player/gap graphics to capture the relevant archived fantasy statistics.',
     ];
+    if (recap) limitations.unshift(`Recap covers ${recap.startDate} through ${recap.endDate}, Monday through Sunday in America/Toronto. Fantrax's matchup window ends at ${period.endDate}; phase uses that raw boundary. Calendar selection does not confirm final scores.`);
     for (const name of [...new Set(options.players ?? [])]) {
         try {
             const player = await lookupFeaturedPlayer(name, fetcher);

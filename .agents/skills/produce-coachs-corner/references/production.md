@@ -7,9 +7,10 @@ All commands run at the repository root. Live league and birthplace lookups use 
 ```powershell
 npm run coachs:prepare -- --slug 2026-10-24
 npm run coachs:prepare -- --slug 2026-10-24 --period 2 --players "Tom Wilson,Nico Hischier"
+npm run coachs:prepare -- --slug 2026-10-19 --recap
 ```
 
-Choose one command. `--period` is a Fantrax scoring period, not a calendar week or a roster period. If omitted, the exporter chooses from the league's actual scoring calendar. Fantrax reports the starting season year; the saved packet and script use the ending year.
+Choose one command. `--period` is a Fantrax matchup scoring period, not a daily roster period. `--recap` matches the previous Toronto Monday through Sunday to the weekly calendar; use it for the regular Monday episode. The default without either flag selects the current period. See [weekly recaps](weekly-recap.md) for the distinction between Sunday results and Fantrax's Monday administrative cutoff. Fantrax reports the starting season year; the saved packet and script use the ending year.
 
 `prepare` creates `local/coachs-corner/episodes/<slug>/` and refuses to replace an existing draft. If the slug already exists, inspect and continue it. The directory contains:
 
@@ -21,6 +22,7 @@ Choose one command. `--period` is a Fantrax scoring period, not a calendar week 
 | `brief.md` | Producer's angle, additional sources, beat requests and declared fallbacks |
 | `review.md` | Editor's findings, revisions, playback evidence and remaining issues |
 | `continuity-proposals.md` | New continuity candidates awaiting user acceptance |
+| `handoff.md` | Producer writes at delivery: authoritative script/hash, covered dates, snapshot, runtime, editorial decisions, review issues, preview and publication status |
 
 Working packets are gitignored because briefs may contain private league notes. Approved scripts and concise editorial records belong under `assets/coachs-corner/editorial/approved/<slug>/`; keep private raw research out of that archive. These paths are local files, not public assets.
 
@@ -77,18 +79,28 @@ If database access fails, the command stops without replacing the packet. Missin
 
 ## Image work
 
+Choose the episode's wardrobe before selecting or generating poses. Follow [Don's suits](../../../../docs/coachs-corner.md#dons-suits) for the default, available variants and cue rules. Record the choice and any intentional costume changes in `brief.md`, and retain it in `handoff.md`.
+
 Inspect the existing catalog before making a request:
 
 - `lib/coachs-corner/cast.ts` is the runtime gesture vocabulary.
-- `public/coachs-corner/robots-v2/manifest.json` lists the artwork.
+- `public/coachs-corner/robots-v2/manifest.json` lists the artwork, each Don pose's wardrobe and the pinned default.
 - `public/coachs-corner/robots-v2/preview.html` provides a pose viewer.
-- `public/coachs-corner/robots-v2/prompts.json` records the successful prompts.
+- `public/coachs-corner/robots-v2/prompts.json` records the original suit and Ron prompts; each variant's manifest entry links its own prompt record and preview.
 
-Use the image-generation tool for new poses, supplying the saved matching master PNG from the repository as the image reference. Historical prompt references may point to another chat's generated-image directory; use the committed catalog equivalent instead. Preserve the illustrated silver robot design, cyan eyes, Don's connected white moustache/goatee, outfit patterns, camera angle and anchors. Don sits left facing right; Ron sits right facing left.
+Use the image-generation tool for new poses, supplying the saved matching master PNG from the selected wardrobe as the image reference. For a new suit, use the matching normal pose for geometry and one consistent new-suit reference for clothing. Historical prompt references may point to another chat's generated-image directory; use the committed catalog equivalent instead. Preserve the illustrated silver robot design, cyan eyes, Don's connected white moustache/goatee, selected outfit patterns, camera angle and anchors. Don sits left facing right; Ron sits right facing left. Give a new suit distinct asset IDs and gesture names, retain the normal set and defaults, and complete the same pose inventory and mouth pairs. Register its wardrobe and prompt record in the manifest.
 
 For new or replaced art, complete the [artwork checklist](../../../../docs/coachs-corner.md#adding-or-replacing-artwork): aligned master PNGs and both WebP sizes, generated AVIF and immutable media, gesture registration, and face clips for talking pairs. Inspect identity, desk compositing, fullscreen quality and repeated mouth transitions in the real player. The catalog preview is useful for inspecting individual illustrations; it does not use the player's fixed-body mouth overlay. Record quality differences and fallback checks in `review.md`. Reusing existing poses needs no new conversion or clip work.
 
 Scores, team logos, player names and tables use the existing monitor commands in `docs/coachs-corner.md`. Custom illustration cards require a supported monitor command; the current parser has no arbitrary-image command. The producer implements and verifies a necessary extension or chooses an honest existing graphic fallback.
+
+## Physical actions
+
+Specify the character's immediate reason for moving and the intensity of the beat. For a hit, make the preparation and contact readable, then time its sound to contact. Keep the face, torso and desk anchors aligned across poses. Add only the motion or brief contact marks that help the action read; judge it at normal speed with the surrounding reply.
+
+The October 18 rehearsal is the calibration example. The owner rejected a static fist pose and resonant wooden-block sound, then preferred the revision with "That's better." The current reusable sequence is a low `pound-ready` lift followed by `pound` and one explicit `sfx: desk-pound`. The registered contact pose includes a tiny settle and two faint strokes; the current WAV is a dry aperiodic impact. See [screenplay syntax](../../../../docs/coachs-corner.md) and [sound recipe](../../../../scripts/audio/README.md#original-desk-pound-effect) for the maintained timings and files. This beat expresses restrained irritation at Ron's correction. Use it when that action serves the scene, not as a weekly requirement.
+
+When implementing a new timed effect, derive its phase from show time so pause, seek and playback speed stay aligned. The player's `use-show.ts` publishes only changed frame signatures; include the moving phase and final settled state there when needed. Verify the effect appears and clears during real playback. A paused screenshot or `frameAt` test alone missed a frozen-impact bug in the rehearsal. Respect reduced-motion behavior.
 
 ## Sound work
 
@@ -96,7 +108,11 @@ Use `lib/coachs-corner/sound-bank.ts`, `audio-cues.ts` and `scripts/audio/README
 
 For missing actions, synthesize a suitable short effect or process a suitable CC0 recording with the existing audio tools. Record provenance, duration and gain. There is no configured text-to-sound generator; do not claim one was used. If a future task needs one, establish the provider and access before depending on it.
 
+Describe the intended material and contact before choosing the source. A dull desk thud needs a short irregular transient and restrained decay; sustained tonal modes made the first rehearsal version sound like an instrument. Compare the effect alone and beneath the scene at its actual bank gain. Levels and clipping checks cannot establish whether it sounds like the intended action. If direct listening is unavailable, retain that limitation in the review and provide an exact audition timestamp with the playable draft.
+
 A new file is not a new script cue. Register a new sound name in `cast.ts` and a source in the sound banks, then connect any automatic gesture-triggered cue in `audio-cues.ts`. Use an explicit `sfx:` cue when that expresses the timing without new automatic behaviour. Preserve existing sound IDs so older episodes keep their meaning. Listen in the full mix, not only in isolation. The effect should fire once at the intended action, and pause/mute/seek should not leave it sounding or replay stale cues.
+
+For a full generated-audio diagnostic, build `node scripts/audio/build-episode-scan.mjs --script local/coachs-corner/episodes/<slug>/script.txt` and open `/coachs-corner/episode-scan-temp.html` on the dev server. The default command without `--script` scans the pilot. Check that the report's script hash matches the delivered revision. Rebuild and rerun after changing the script or sound assets, even if a media-only edit leaves the script hash unchanged. It checks generated samples and levels, not comic timing or subjective sound quality. Save the report locally and run the builder with `--clean` afterward; temporary public files contain performed draft dialogue and must be removed before deployment.
 
 ## Validate and deliver
 

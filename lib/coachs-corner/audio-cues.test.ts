@@ -3,7 +3,36 @@ import test from 'node:test';
 import { AUDIO_PREVIEW_SCRIPT } from './audio-preview';
 import { audioCuesBetween, compileAudioCues } from './audio-cues';
 import { parseScript } from './script';
-import { compile } from './timeline';
+import { compile, frameAt } from './timeline';
+import { frameSignature } from '../../components/coachs-corner/use-show';
+
+test('a desk-pound is one explicit contact cue during a silent pose, with no sound on seek', () => {
+    const script = parseScript('---\ntitle: Desk contact\n---\nRON (deadpan): You did.\n[don: pound-ready, 220ms]\n[don: pound, sfx: desk-pound, 480ms]\nDON (point): I looked at the rest!');
+    assert.deepEqual(script.diagnostics, []);
+    const tl = compile(script);
+    const cues = compileAudioCues(tl);
+    const knocks = cues.filter(cue => cue.id === 'desk-pound');
+    assert.equal(knocks.length, 1);
+    const contact = knocks[0].t;
+    assert.equal(frameAt(tl, contact - 1).hosts.don.gesture, 'pound-ready');
+    assert.equal(frameAt(tl, contact - 1).hosts.don.open, false);
+    assert.equal(frameAt(tl, contact).hosts.don.gestureMs, 0);
+    assert.equal(frameAt(tl, contact + 90).hosts.don.gestureMs, 90);
+    assert.equal(frameAt(tl, contact - 100).hosts.don.gestureMs, 120, 'backward seeks restore the anticipation');
+    const signatureAt = (ms: number) => frameSignature(frameAt(tl, contact + ms));
+    assert.notEqual(signatureAt(0), signatureAt(80), 'live playback publishes the silent settle');
+    assert.notEqual(signatureAt(144), signatureAt(160), 'the last update removes the impact marks');
+    assert.equal(signatureAt(160), signatureAt(170), 'the settled hold returns to sparse updates');
+    assert.equal(frameAt(tl, contact + 300).hosts.don.gesture, 'pound');
+    assert.equal(frameAt(tl, contact + 300).hosts.don.open, false);
+    assert.equal(tl.lines[1].t0 - contact, 480);
+    assert.equal(tl.lines[1].t0 - tl.lines[0].end, 700);
+    assert.equal(frameAt(tl, tl.lines[1].t0).hosts.don.gesture, 'point');
+    assert.equal(cues.filter(cue => cue.id === 'thud').length, 0);
+    assert.deepEqual(audioCuesBetween(cues, contact, contact, 1), []);
+    assert.deepEqual(audioCuesBetween(cues, contact + 500, contact - 500, 1), []);
+    assert.equal(audioCuesBetween(cues, contact - 1, contact, 1).filter(cue => cue.id === 'desk-pound').length, 1);
+});
 
 test('the short comparison includes both speakers, a yell and one timed tie adjustment', () => {
     const script = parseScript(AUDIO_PREVIEW_SCRIPT);

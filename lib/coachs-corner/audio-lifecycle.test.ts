@@ -102,7 +102,8 @@ test('replacement samples are cached, fit the voice slot, and stop on seeking', 
     const audio = createShowAudio({ ...STUDIO_SOUND_BANK, don: { source: { files: ['/voice.wav'] }, gain: 1 } });
     audio.unlock();
     await Promise.all([audio.prepare(), audio.prepare()]);
-    assert.deepEqual(fetch.mock.calls.map(call => call.arguments[0]).sort(), [mediaUrl('/coachs-corner/audio/tie-cloth-7.wav'), '/voice.wav']);
+    assert.deepEqual(fetch.mock.calls.map(call => call.arguments[0]).sort(),
+        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav'), '/voice.wav']);
     audio.fire({ t: 6000, id: 'don', voice: { who: 'don', delivery: 'normal', duration: 100, progress: 0, variation: 0, question: false,
         wordStart: true, phraseEnd: false, cutoff: false, interrupting: false } }, 1);
     const ctx = Context.instances.at(-1)!;
@@ -113,19 +114,25 @@ test('replacement samples are cached, fit the voice slot, and stop on seeking', 
     audio.dispose();
 });
 
-test('the default episode mix loads the approved cloth sample once and plays it for a tie cue', async t => {
+test('the default mix caches recorded effects once, plays each cue once and stops them on mute', async t => {
     installContext(t);
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(new Uint8Array([1])));
     const audio = createShowAudio();
     audio.unlock();
     await Promise.all([audio.prepare(), audio.prepare()]);
-    assert.deepEqual(fetch.mock.calls.map(call => call.arguments[0]), [mediaUrl('/coachs-corner/audio/tie-cloth-7.wav')]);
+    assert.deepEqual(fetch.mock.calls.map(call => call.arguments[0]).sort(),
+        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav')]);
     const ctx = Context.instances.at(-1)!;
     audio.fire({ t: 31000, id: 'tie' }, 1);
     assert.equal(ctx.sources.length, 1);
     assert.equal(ctx.sources[0].starts.length, 1);
+    audio.fire({ t: 32000, id: 'desk-pound' }, 1);
+    assert.equal(ctx.sources.length, 2);
+    assert.equal(ctx.sources[1].starts.length, 1);
     audio.sync(true, true, 6000, 40000);
-    assert.equal(ctx.sources.length, 3, 'the default mix also starts studio ambience');
+    assert.equal(ctx.sources.length, 4, 'the default mix also starts studio ambience');
+    audio.sync(true, false, 6001, 40000);
+    assert.ok(ctx.sources.every(source => source.stops.at(-1) === 0.025));
     audio.dispose();
 });
 
@@ -138,5 +145,23 @@ test('a failed sample load is reported and can be retried', async t => {
     await assert.rejects(audio.load('/tie.wav'), /could not be loaded/);
     await audio.load('/tie.wav');
     assert.equal(attempts, 2);
+    audio.dispose();
+});
+
+test('a reaction sound follows playback speed, ends within its visible duration and stops on pause', async t => {
+    installContext(t);
+    t.mock.method(globalThis, 'fetch', async () => new Response(new Uint8Array([1])));
+    t.mock.method(Context.prototype, 'decodeAudioData', function (this: Context) {
+        return Promise.resolve(this.createBuffer(1, 660, 100));
+    });
+    const audio = createShowAudio();
+    audio.unlock();
+    await audio.prepare();
+    audio.fire({ t: 6000, id: 'happy-twinkle', duration: 2000 }, 2);
+    const source = Context.instances.at(-1)!.sources.at(-1)!;
+    assert.equal(source.playbackRate.value, 2);
+    assert.ok(source.stops[0] <= 1.05, 'two show seconds must fit one real second at 2x');
+    audio.sync(false, true, 6500, 40000);
+    assert.equal(source.stops.at(-1), 0.025);
     audio.dispose();
 });

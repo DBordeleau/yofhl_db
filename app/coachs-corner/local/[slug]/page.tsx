@@ -27,7 +27,7 @@ export default async function LocalDraftPage({ params }: { params: Promise<{ slu
             <span className="rounded bg-ink px-3 py-1 text-sm font-bold text-white">Unpublished local draft</span>
         </div>
         <p className="mb-5 text-sm text-ink-muted">{draft.facts.kind === 'reference' ? 'Pilot reference' : `Week ${draft.facts.period?.number} · ${draft.facts.phase}`} · Facts captured {captured} Toronto time</p>
-        <LocalDraftPreview key={draft.revision} script={draft.script} teams={draft.facts.teams} players={draft.facts.players} report={report} />
+        <LocalDraftPreview key={draft.revision} slug={slug} script={draft.script} teams={draft.facts.teams} players={draft.facts.players} report={report} />
         <div className="mt-6 grid gap-4 md:grid-cols-2">
             <details className="rounded-xl border border-line-strong bg-white p-4"><summary className="cursor-pointer font-bold">Episode brief</summary><pre className="mt-3 whitespace-pre-wrap font-sans text-sm">{draft.brief}</pre></details>
             <details className="rounded-xl border border-line-strong bg-white p-4" open><summary className="cursor-pointer font-bold">Editorial review</summary><pre className="mt-3 whitespace-pre-wrap font-sans text-sm">{draft.review}</pre></details>

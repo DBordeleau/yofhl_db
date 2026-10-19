@@ -108,11 +108,11 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                     <b>{team?.abbreviation ?? ref}</b>
                     <span>{team?.name ?? ''}</span>
                     {score !== undefined && <strong>{score}</strong>}
-                    {leading && <em className={styles.gLeads}>Leads</em>}
+                    {leading && <em className={styles.gLeads}>{graphic.status === 'final' ? 'Winner' : 'Leads'}</em>}
                 </div>
             );
             return (
-                <div className={styles.gMatchup}>
+                <div className={styles.gMatchup} data-caption={!!graphic.caption || undefined}>
                     {side(home, graphic.home, graphic.homeScore, lead > 0, styles.gHome)}
                     {side(away, graphic.away, graphic.awayScore, lead < 0, styles.gAway)}
                     <span className={styles.gVs}>vs</span>
@@ -136,13 +136,17 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
         }
         case 'stat': {
             const team = findTeam(teams, graphic.team);
+            const shot = graphic.player ? findPlayer(players, graphic.player)?.headshot : null;
             return (
-                <div className={styles.gStat} style={teamVars(team)}>
+                <div className={styles.gStat} style={teamVars(team)} data-shot={shot ? '' : undefined}>
                     {team && <Logo team={team} className={styles.gStatMark} />}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {shot && <img className={styles.gStatShot} src={shot} alt="" referrerPolicy="no-referrer" />}
                     <b className={styles.gStatValue}>{graphic.value}</b>
                     <div className={styles.gStatText}>
                         {graphic.label && <strong>{graphic.label}</strong>}
-                        {graphic.detail && <span>{graphic.detail}</span>}
+                        {/* beside a headshot, each “ / ” part of the detail gets its own line */}
+                        {graphic.detail && (shot ? graphic.detail.split(/\s+\/\s+/) : [graphic.detail]).map((part, i) => <span key={i}>{part}</span>)}
                     </div>
                     {team && <span className={styles.gStatTeam}>{team.name}</span>}
                 </div>
@@ -181,12 +185,29 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
         }
         case 'numbers': {
             const team = findTeam(teams, graphic.team);
+            const player = graphic.player ? findPlayer(players, graphic.player) : null;
             return (
                 <div className={styles.gNumbers} style={teamVars(team)}>
-                    {team && <div className={styles.gNumTeam}><Logo team={team} /><span>{team.name}</span></div>}
+                    {graphic.player ? (
+                        <div className={styles.gNumPlayer}>
+                            <div className={styles.gNumShot}>
+                                {player?.headshot
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    ? <img src={player.headshot} alt="" referrerPolicy="no-referrer" />
+                                    : <span>{graphic.player.split(/\s+/).map(w => w[0]).join('')}</span>}
+                            </div>
+                            <div>
+                                <b>{player?.name ?? graphic.player}</b>
+                                {(graphic.caption || team) && <span>{team && <Logo team={team} />}{[team?.name, graphic.caption].filter(Boolean).join(' · ')}</span>}
+                            </div>
+                        </div>
+                    ) : <>
+                        {team && <div className={styles.gNumTeam}><Logo team={team} /><span>{team.name}</span></div>}
+                        {graphic.caption && <span className={styles.gSlab}>{graphic.caption}</span>}
+                    </>}
                     <div className={styles.gNumRow}>
                         {graphic.items.map((item, i) => (
-                            <div key={i} className={styles.gNum} style={{ '--row': i } as React.CSSProperties}>
+                            <div key={i} className={styles.gNum} data-zero={Number(item.value) === 0 || undefined} style={{ '--row': i } as React.CSSProperties}>
                                 <b>{item.value}</b>
                                 <span>{item.label}</span>
                             </div>
@@ -251,6 +272,27 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                 </div>
             );
         }
+        case 'standings':
+            return (
+                <div className={styles.gStandings}>
+                    <table>
+                        <caption>{graphic.title}</caption>
+                        <colgroup><col /><col /><col /><col /></colgroup>
+                        <thead><tr><th scope="col">Team</th><th scope="col">W</th><th scope="col">L</th><th scope="col">FPts</th></tr></thead>
+                        <tbody>
+                            {graphic.rows.map((row, i) => {
+                                const team = findTeam(teams, row.team);
+                                return (
+                                    <tr key={i}>
+                                        <th scope="row"><span><Logo team={team} /><b>{team?.name ?? row.team}</b></span></th>
+                                        <td>{row.wins}</td><td>{row.losses}</td><td>{row.points}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            );
         case 'list':
             return (
                 <div className={styles.gList}>
@@ -259,7 +301,7 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                         {graphic.rows.map((row, i) => {
                             const team = findTeam(teams, row.team);
                             return (
-                                <li key={i} style={{ '--row': i } as React.CSSProperties}>
+                                <li key={i} data-label={row.team === undefined || undefined} style={{ '--row': i } as React.CSSProperties}>
                                     {row.team !== undefined && <Logo team={team} />}
                                     <b>{team?.name ?? row.label ?? row.team}</b>
                                     <span>{row.value}</span>

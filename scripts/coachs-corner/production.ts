@@ -18,16 +18,19 @@ async function replaceFacts(dir: string, facts: ReturnType<typeof parseFactPacke
 
 async function main() {
     const { values, positionals } = parseArgs({ allowPositionals: true, options: {
-        slug: { type: 'string' }, period: { type: 'string' }, players: { type: 'string' }, season: { type: 'string' },
-        from: { type: 'string' }, pilot: { type: 'boolean' }, refresh: { type: 'boolean' }, help: { type: 'boolean' },
+        slug: { type: 'string' }, period: { type: 'string' }, players: { type: 'string' }, season: { type: 'string' }, 'air-date': { type: 'string' },
+        from: { type: 'string' }, pilot: { type: 'boolean' }, recap: { type: 'boolean' }, refresh: { type: 'boolean' }, help: { type: 'boolean' },
     } });
     const command = positionals[0];
     if (values.help || !command) {
-        console.log(`Coach's Corner local production\n\nprepare --slug <slug> [--period <scoring-period>] [--players "Name,Name"]\nprepare --slug <slug> --pilot                 Offline pilot reference\nprepare --slug <slug> --from <facts.json>      Reuse an existing snapshot\nfacts --slug <slug> [--period <n>] --refresh  Back up and replace facts only\nstats --slug <slug> [--season <ending-year>]  Freeze archive stats for script graphics\ncheck --slug <slug>                          Validate script, assets and names\n\nFiles: ${DRAFT_ROOT}/<slug>/\nPreview: http://localhost:3000/coachs-corner/local/<slug>\nLive exports are fetched now; historical cutoffs cannot be reconstructed.\n--players also supports facts refresh and stats. Include dialogue-only players.\nLive captures include prior-season YOFHL stats for named players.\nstats defaults to episode season minus one, preserves live facts, and backs up facts.json.\nCommands never publish or write to the database.`);
+        console.log(`Coach's Corner local production\n\nprepare --slug <slug> [--recap [--air-date YYYY-MM-DD] | --period <scoring-period>] [--players "Name,Name"]\nprepare --slug <slug> --pilot                 Offline pilot reference\nprepare --slug <slug> --from <facts.json>      Reuse an existing snapshot\nfacts --slug <slug> [--recap | --period <n>] --refresh  Back up and replace facts only\nstats --slug <slug> [--season <ending-year>]  Freeze archive stats for script graphics\ncheck --slug <slug>                          Validate script, assets and names\n\nFiles: ${DRAFT_ROOT}/<slug>/\nPreview: http://localhost:3000/coachs-corner/local/<slug>\n--recap selects the previous Monday through Sunday in America/Toronto, including before Monday's Fantrax rollover.\n--air-date selects the recap relative to an intended broadcast date; live observation times stay unchanged.\nIt reselects the recap week on refresh; ordinary refresh keeps the snapshot's period.\nLive exports are fetched now; historical cutoffs cannot be reconstructed.\n--players also supports facts refresh and stats. Include dialogue-only players.\nLive captures include prior-season YOFHL stats for named players.\nstats defaults to episode season minus one, preserves live facts, and backs up facts.json.\nCommands never publish or write to the database.`);
         return;
     }
     if (!['prepare', 'facts', 'stats', 'check'].includes(command) || positionals.length !== 1) throw new Error('Unknown command. Use --help.');
     if (!values.slug) throw new Error('--slug is required');
+    if (values.recap && (values.period !== undefined || values.pilot || values.from !== undefined)) throw new Error('--recap cannot be combined with --period, --pilot or --from.');
+    if (values.recap && (command === 'stats' || command === 'check')) throw new Error('--recap applies only to live prepare or facts --refresh.');
+    if (values['air-date'] !== undefined && !values.recap) throw new Error('--air-date requires --recap.');
     const dir = draftDirectory(values.slug);
     const requestedPlayers = values.players?.split(',').map(name => name.trim()).filter(Boolean);
     if (values.season && (command !== 'stats' || !/^[1-9]\d*$/.test(values.season))) throw new Error('--season is a positive ending year for the stats command only.');
@@ -69,7 +72,8 @@ async function main() {
     const config = loadLeagueConfig();
     let facts = values.from ? parseFactPacket(JSON.parse(await readFile(values.from, 'utf8')))
         : values.pilot ? referencePacket(config, 2027)
-            : await captureFacts(config, { period: values.period ? Number(values.period) : previous?.facts.period?.number,
+            : await captureFacts(config, { recap: values.recap, airDate: values['air-date'],
+                period: values.recap ? undefined : values.period ? Number(values.period) : previous?.facts.period?.number,
                 players: [...(requestedPlayers ?? previous?.facts.players.map(p => p.name) ?? []),
                     ...(previous ? playerRefs(parseScript(previous.script)) : [])] });
     if (!values.pilot && !values.from) facts = await captureArchivedStats(facts, facts.players.map(p => p.name));
@@ -80,7 +84,7 @@ async function main() {
     } else {
         await mkdir(path.dirname(dir), { recursive: true });
         await mkdir(dir);
-        const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const date = values['air-date'] ?? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
         const script = values.pilot ? PILOT_SCRIPT : `---\ntitle: Coach's Corner draft\nseason: ${facts.season}\nweek: ${facts.period?.number ?? ''}\ndate: ${date}\nsegment: 4:00\n---\n\n# Replace this opening after choosing the week's grievance.\n[don: rest, ron: rest]\n>> logo\n\nRON: We're back.\n\nDON: Put the thing up.\n`;
         const ledger = JSON.parse(await readFile('assets/coachs-corner/editorial/continuity.json', 'utf8')) as { pronunciations: { name: string; donName: string }[] };
         const pronunciations = facts.players.map(p => ({ name: p.name, donName: ledger.pronunciations.find(n => n.name === p.name)?.donName ?? '' }));
@@ -93,6 +97,7 @@ async function main() {
         for (const [filename, contents] of Object.entries(files)) await writeFile(path.join(dir, filename), contents, { flag: 'wx' });
     }
     console.log(`Facts: ${facts.kind}, season ${facts.season}, period ${facts.period?.number ?? 'reference'}, captured ${facts.capturedAt}`);
+    if (values.recap) console.log(facts.limitations.find(note => note.startsWith('Recap covers ')));
     console.log(`Preview: http://localhost:3000/coachs-corner/local/${values.slug}`);
     console.log(`Edit: ${path.join(dir, 'script.txt')}`);
 }

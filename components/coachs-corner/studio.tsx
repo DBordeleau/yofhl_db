@@ -2,9 +2,10 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Artwork, { HostArtwork } from './artwork';
-import { CAST, CHARACTERS, type CharacterId } from '@/lib/coachs-corner/cast';
+import { CAST, CHARACTERS, gestureAction, type CharacterId } from '@/lib/coachs-corner/cast';
 import type { CaptionFrame, Frame, HostFrame, Line, Timeline } from '@/lib/coachs-corner/timeline';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
+import { reactionParticles, reactionStill, type Particle } from '@/lib/coachs-corner/reactions';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import Monitor, { spillColour } from './monitor';
 import styles from './coachs-corner.module.css';
@@ -118,18 +119,79 @@ function Flashes({ active }: { active: boolean }) {
 
 // ---------- the hosts ----------
 
+// one ink weight for every mark, matching the artwork's outlines at any particle size
+const INK = '#11152a';
+const INK_WIDTH = 5.5;
+const DAISY_PETALS = [0, 45, 90, 135, 180, 225, 270, 315];
+
+function ParticleShape({ p }: { p: Particle }) {
+    const ink = { stroke: INK, strokeWidth: INK_WIDTH / p.size, strokeLinejoin: 'round' as const };
+    switch (p.kind) {
+        case 'daisy': return <>
+            {DAISY_PETALS.map(angle => <ellipse key={angle} cy="-.52" rx=".3" ry=".48" transform={`rotate(${angle})`} fill={p.colour} {...ink} />)}
+            <circle r=".34" fill="#ffc53d" {...ink} />
+            <circle cx="-.1" cy="-.1" r=".1" fill="#fff3b8" />
+        </>;
+        case 'sparkle': return <>
+            <path d="M0-1C.1-.32.32-.1 1 0 .32.1.1.32 0 1-.1.32-.32.1-1 0-.32-.1-.1-.32 0-1Z" fill={p.colour} {...ink} />
+            <circle r=".13" fill="#fff" />
+        </>;
+        case 'glint': return <path d="M0-1C.07-.2.2-.07 1 0 .2.07.07.2 0 1-.07.2-.2.07-1 0-.2-.07-.07-.2 0-1Z" fill={p.colour} />;
+        // unit length along +x, narrow end toward the head
+        case 'ray': return <path d="M-.5 0 .38-.15Q.53 0 .38.15Z" fill={p.colour} {...ink} />;
+        case 'drop': return <>
+            <path d="M0-1C.3-.5.62-.15.62.28A.62.62 0 0 1-.62.28C-.62-.15-.3-.5 0-1Z" fill={p.colour} {...ink} />
+            <ellipse cx="-.24" cy=".2" rx=".11" ry=".22" fill="#fff" opacity=".85" />
+        </>;
+    }
+}
+
+function ParticleMarks({ particles, className }: { particles: Particle[]; className: string }) {
+    return (
+        <g className={className}>
+            {particles.map(p => p.opacity > 0 && p.scale > 0 && (
+                <g key={p.id} opacity={p.opacity} transform={`translate(${p.x} ${p.y}) rotate(${p.rotation}) scale(${p.size * p.scale})`}>
+                    <ParticleShape p={p} />
+                </g>
+            ))}
+        </g>
+    );
+}
+
+function ReactionParticles({ who, reaction }: { who: CharacterId; reaction: NonNullable<HostFrame['reaction']> }) {
+    return (
+        <svg className={styles.reactionParticles} data-effect={reaction.effect} viewBox="0 0 1254 1254" aria-hidden="true">
+            <ParticleMarks className={styles.reactionLive} particles={reactionParticles(reaction, who)} />
+            <ParticleMarks className={styles.reactionStill} particles={reactionStill(reaction.effect, who)} />
+        </svg>
+    );
+}
+
 const Host = memo(function Host({ who, host, art }: { who: CharacterId; host: HostFrame; art: string[] }) {
     const prevGesture = useRef(host.gesture);
+    const action = gestureAction(host.gesture);
+    const pound = who === 'don' && action === 'pound';
+    const deskAction = pound || (who === 'don' && action === 'pound-ready');
     // mouth flaps swap fast; a new gesture blends a touch slower
-    const fade = prevGesture.current === host.gesture ? 55 : 150;
+    const fade = deskAction ? 0 : prevGesture.current === host.gesture ? 55 : 150;
     prevGesture.current = host.gesture;
+    // A tiny compression at contact, followed by one settle. Show-time sampling
+    // keeps this aligned with the sound across pause, scrub and playback speeds.
+    const impact = pound ? Math.max(0, 1 - host.gestureMs / 160) : 0;
+    const settle = pound && host.gestureMs < 140 ? 0.3 * Math.pow(1 - host.gestureMs / 140, 2) : 0;
     return (
-        <div className={styles.host} data-who={who} data-flinch={host.flinch || undefined}>
+        <div className={styles.host} data-who={who} data-flinch={host.flinch || undefined} data-desk-action={deskAction || undefined}>
             <div className={styles.breath}>
-                <div className={styles.body} data-motion={host.motion ?? undefined} style={{ '--fade': `${fade}ms` } as React.CSSProperties}>
+                <div className={styles.body} data-motion={host.motion ?? undefined} style={{ '--fade': `${fade}ms`, '--contact-y': `${settle}%` } as React.CSSProperties}>
                     <HostArtwork who={who} gesture={host.gesture} open={host.open} art={art} />
                 </div>
             </div>
+            {host.reaction && <ReactionParticles who={who} reaction={host.reaction} />}
+            {impact > 0 && <svg className={styles.deskImpact} viewBox="0 0 1254 1254" aria-hidden="true" style={{ opacity: impact * 0.65 }}>
+                <g transform={`translate(405 1200) scale(${1 + (1 - impact) * 0.12})`}>
+                    <path d="M-145 -14 l-22 -8 M145 -14 l22 -8" />
+                </g>
+            </svg>}
         </div>
     );
 });
@@ -151,7 +213,8 @@ const Plate = memo(function Plate({ who, line, caption }: { who: CharacterId; li
         words.forEach(word => {
             const top = word.offsetTop, bottom = top + word.offsetHeight;
             const row = rows[rows.length - 1];
-            if (row && top < row.bottom) {
+            // Integer offset metrics can overlap adjacent fractional-height rows by 1px.
+            if (row && top < row.bottom - 1) {
                 row.top = Math.min(row.top, top);
                 row.bottom = Math.max(row.bottom, bottom);
             } else rows.push({ top, bottom });

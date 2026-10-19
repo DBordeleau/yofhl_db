@@ -2,19 +2,42 @@
 
 ## Full episode audio scan
 
-With the dev server running, build the local browser diagnostic:
+With the dev server running, build the local browser diagnostic. With no option,
+it scans the bundled opening-week screenplay:
 
 ```powershell
 node scripts/audio/build-episode-scan.mjs
 ```
 
+To scan a local draft, supply its screenplay file:
+
+```powershell
+node scripts/audio/build-episode-scan.mjs --script local/coachs-corner/episodes/monday-rehearsal-2026-10-18/script.txt
+```
+
+`--script` accepts a readable `.txt` file, relative to the working directory or
+absolute. Missing files, invalid arguments and screenplay parser errors fail the
+build and remove any older diagnostic. The page title, report and download names
+identify the selected episode. Reports also include the screenplay's SHA-256 so
+later script edits can be distinguished from the scanned draft. Rebuild and reload
+the page after edits. A successful build does not mean the audio scan has passed.
+
 Open `http://localhost:3000/coachs-corner/episode-scan-temp.html`. It uses the
-bundled opening-week screenplay, current default bank and real audio engine in
+selected screenplay, current default bank and real audio engine in
 Chromium's offline renderer. It checks the complete stereo mix, dialogue,
 ambience and effects separately, including every syllable and the end-card
 silence. A missing sample, clipping, invalid values, inaudible cues, dialogue less
 than 10 dB above ambience, or a render exceeding 30 seconds fails the scan. The
 page offers a full WAV and JSON report; playback is optional and never automatic.
+Download names are `<episode-id>-audio-mix.wav` and `<episode-id>-audio-scan.json`.
+For a local `script.txt`, the episode ID is its folder name; other `.txt` files
+use their filename without the extension.
+
+The generated `public/coachs-corner/episode-scan-temp.html` and `.js` are temporary,
+gitignored files. Only the performed screenplay and cue data are bundled; the
+builder does not read `facts.json`, environment files or credentials, and it omits
+script comments, stage notes and the local path. The diagnostic still contains
+the draft's dialogue and graphics, so clean it before publishing or deploying.
 
 The scanner schedules one second ahead in one continuous context. The original
 scan queued the whole episode's oscillator/filter graph before rendering and
@@ -29,6 +52,44 @@ Remove the generated diagnostic page after downloading the results:
 ```powershell
 node scripts/audio/build-episode-scan.mjs --clean
 ```
+
+## Original desk-pound effect
+
+`public/coachs-corner/audio/desk-pound.wav` is a 0.28-second original synthesized
+dry desk impact. Its aperiodic body and brief broadband contact replace the
+pitched wood/metal modes rejected in the owner's first listening review. It uses no downloaded sample or
+text-to-sound service. The adjacent `desk-pound.json` records the recipe,
+generator and WAV hashes, and independent FFmpeg measurements. Rebuild it with:
+
+```powershell
+node scripts/audio/generate-desk-pound.mjs
+npm run coachs:assets
+```
+
+Its sound-bank gain is 0.8. Use a short `pound-ready` anticipation, then one explicit `sfx: desk-pound` with the `pound`
+pose; the pose does not automatically fire sound. Existing `thud` keeps its
+original meaning for Don's vocal outbursts. Inspect the new sound in the full
+episode scan and playback after changing its recipe or gain.
+
+## Happy reaction twinkle
+
+`[fx: don happy 6s]` pairs flowers/sparkles with **Twinkle (1)** by Alexia205,
+[Freesound 787357](https://freesound.org/people/Alexia205/sounds/787357/), CC0 1.0.
+The source is Freesound's public high-quality MP3 preview. Prepare it with
+`node scripts/audio/freesound.mjs https://freesound.org/people/Alexia205/sounds/787357/`
+then `node scripts/audio/prepare-happy-twinkle.mjs` and `npm run coachs:assets`.
+`public/coachs-corner/audio/happy-twinkle.json` records the source hash and edits.
+The mono 48 kHz WAV is normalized to at most -20 dBFS RMS/-6 dBFS peak and uses
+bank gain **0.12**. The full episode scanner measures it separately and checks
+that it stays at least 18 dB below dialogue during speaking reactions.
+
+Use an explicit `fx` cue at the desired word; `warm` delivery alone does not
+trigger particles. Hosts can be Don or Ron; durations are 100 ms–12 s (default
+happy 4.5 s, shocked 800 ms). A new effect on the same host replaces the old one.
+Particles use the show clock, including pause/seek, with fixed marks under
+reduced motion. Twinkle is a single playback, truncated to the effect duration
+with a fade; it never loops. Pause, mute and seek stop it without replaying an
+old cue. `[fx: don shocked 800ms]` is silent.
 
 ## FFmpeg
 

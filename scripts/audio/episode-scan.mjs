@@ -3,17 +3,17 @@
 import { createShowAudio } from '../../components/coachs-corner/audio.ts';
 import { CURRENT_SOUND_BANK } from '../../lib/coachs-corner/sound-bank.ts';
 import { compileAudioCues } from '../../lib/coachs-corner/audio-cues.ts';
-import { PILOT_SCRIPT } from '../../lib/coachs-corner/pilot.ts';
+import { episode, script } from 'coachs-episode-scan-input';
 import { compile, INTRO_MS } from '../../lib/coachs-corner/timeline.ts';
-import { parseScript } from '../../lib/coachs-corner/script.ts';
 
-const timeline = compile(parseScript(PILOT_SCRIPT));
+const timeline = compile(script);
 const cues = compileAudioCues(timeline);
 const sampleRate = 48000;
 const duration = timeline.duration / 1000;
 const status = document.getElementById('status');
 const results = document.getElementById('results');
-const report = { episode: timeline.meta.title, showSeconds: timeline.showEnd / 1000, renderedSeconds: duration,
+const report = { episode: timeline.meta.title, episodeId: episode.id, sourceKind: episode.sourceKind, scriptSha256: episode.scriptSha256,
+    scriptWarnings: script.diagnostics, showSeconds: timeline.showEnd / 1000, renderedSeconds: duration,
     sampleRate, channels: 2, defaults: CURRENT_SOUND_BANK, method: 'Continuous Chromium offline render, one-second scheduling windows',
     passes: {}, checks: {} };
 const display = message => { status.textContent = message; results.textContent = JSON.stringify(report, null, 2); };
@@ -133,20 +133,31 @@ async function run() {
     // Differential regression at the real browser/engine seam, before the full render.
     const old = await render('reference-20s', CURRENT_SOUND_BANK, theme, 20, 0);
     const bounded = await render('bounded-20s', CURRENT_SOUND_BANK, theme, 20);
-    let difference = 0;
+    let difference = 0, differenceSquared = 0, differingSamples = 0;
+    let maximumDifference = null;
     for (let c = 0; c < 2; c++) {
         const a = old.getChannelData(c), b = bounded.getChannelData(c);
-        for (let i = 0; i < a.length; i++) difference = Math.max(difference, Math.abs(a[i] - b[i]));
+        for (let i = 0; i < a.length; i++) {
+            const delta = Math.abs(a[i] - b[i]);
+            differenceSquared += delta * delta;
+            if (delta >= .0001) differingSamples++;
+            if (delta > difference) {
+                difference = delta;
+                maximumDifference = { at: i / sampleRate, channel: c, reference: a[i], bounded: b[i] };
+            }
+        }
     }
     report.checks.schedulerMaxSampleDifference = difference;
+    report.checks.schedulerDifference = { maximum: maximumDifference,
+        rmsDb: db(Math.sqrt(differenceSquared / (old.length * 2))), samplesAboveTolerance: differingSamples };
     assert(difference < .0001, 'Incremental scheduling changed the audible mix');
 
     const full = await render('full-mix', CURRENT_SOUND_BANK, theme);
-    report.minutes = [0, 60, 120, 180, 240].filter(from => from < duration).map(from =>
+    report.minutes = Array.from({ length: Math.ceil(duration / 60) }, (_, index) => index * 60).map(from =>
         ({ from, to: Math.min(from + 60, duration), ...measure(full, from, Math.min(from + 60, duration)) }));
     report.checks.tail = measure(full, timeline.showEnd / 1000 + .2);
     assert(report.checks.tail.peakDb < -90, 'Audio remains after the end card fade');
-    const fullUrl = download(wave(full), 'opening-week-approved-mix.wav', 'Download full episode WAV');
+    const fullUrl = download(wave(full), `${episode.id}-audio-mix.wav`, 'Download full episode WAV');
     const audio = document.createElement('audio'); audio.controls = true; audio.src = fullUrl;
     document.getElementById('downloads').append(audio);
 
@@ -169,12 +180,24 @@ async function run() {
 
     const effects = await render('effects', only(Object.keys(CURRENT_SOUND_BANK).filter(id => !['don', 'ron', 'room'].includes(id))), null);
     report.effects = cues.filter(cue => !cue.voice).map(cue => ({ id: cue.id, at: cue.t / 1000,
-        ...measure(effects, cue.t / 1000, cue.t / 1000 + .4) }));
+        ...measure(effects, cue.t / 1000, (cue.t + (cue.duration ?? 400)) / 1000) }));
     assert(report.effects.every(effect => effect.peakDb > -70), 'An effect failed to sound');
     report.checks.effects = report.effects.length;
+    const happyCues = cues.filter(cue => cue.id === 'happy-twinkle' && cue.duration);
+    if (happyCues.length) {
+        const twinkles = await render('happy-twinkle', only(['happy-twinkle']), null);
+        report.happyReactions = happyCues.map(cue => {
+            const from = cue.t / 1000, to = (cue.t + cue.duration) / 1000;
+            const sound = measure(twinkles, from, to), dialogue = measure(voices, from, to);
+            return { from, to, ...sound, belowDialogueDb: dialogue.rmsDb - sound.rmsDb };
+        });
+        assert(report.happyReactions.every(item => item.peakDb > -70), 'A happy reaction is silent');
+        const spoken = report.happyReactions.filter(item => measure(voices, item.from, item.to).peakDb > -70);
+        assert(spoken.every(item => item.belowDialogueDb >= 18), 'Happy twinkle must stay at least 18 dB below dialogue');
+    }
     report.status = 'PASS';
     document.getElementById('summary').textContent = `${report.showSeconds.toFixed(1)} seconds + end card · ${report.checks.dialogueLines} dialogue lines · ${report.checks.syllables} syllables · ${report.checks.effects} effects. No clipping, missing syllables or invalid samples. Dialogue stays at least ${report.checks.minimumDialogueAboveAmbienceDb.toFixed(1)} dB above ambience. End card is silent. Full mix rendered in ${(report.passes['full-mix'].renderMs / 1000).toFixed(2)} seconds.`;
-    download(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }), 'opening-week-audio-scan.json', 'Download scan report');
+    download(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }), `${episode.id}-audio-scan.json`, 'Download scan report');
     display('PASS · Entire episode rendered and checked');
 }
 
