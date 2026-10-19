@@ -328,9 +328,12 @@ export interface StudioProps {
 }
 
 function Studio({ tl, frame, teams, players, banners, started, playing, introOffset, fullscreen }: StudioProps) {
-    const art = useRef<Record<CharacterId, string[]>>();
-    if (!art.current || art.current.don.length === 0) {
-        art.current = Object.fromEntries(CHARACTERS.map(who => [who, tl.art.filter(id => id.startsWith(`${who}-`))])) as Record<CharacterId, string[]>;
+    // Mounted artwork only ever grows, so decoded images survive script edits in the
+    // editor, and poses a newly pasted script adds (a new suit) still get mounted.
+    const art = useRef<Record<CharacterId, string[]>>({ don: [], ron: [] });
+    for (const who of CHARACTERS) {
+        const added = tl.art.filter(id => id.startsWith(`${who}-`) && !art.current[who].includes(id));
+        if (added.length) art.current = { ...art.current, [who]: [...art.current[who], ...added] };
     }
     const graphic = tl.monitor[frame.monitor].value;
     const spill = spillColour(graphic, teams);
