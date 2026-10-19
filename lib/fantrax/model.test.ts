@@ -1,11 +1,58 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { periodLabel, periodPhase, publishedMatchups, rosterGroup, selectPeriod, sortRosterPlayers, weekName, type Period, type RosterStats, type SnapshotPlayer } from './model';
+import { automaticFinalPeriods, periodLabel, periodPhase, publishedMatchups, rosterGroup, selectPeriod, sortRosterPlayers, weekName, type Period, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
 
 const periods: Period[] = [
     { number: 1, startDate: '2026-10-12T17:00:00.000Z', endDate: '2026-10-17T00:59:59.000Z' },
     { number: 2, startDate: '2026-10-17T01:00:00.000Z', endDate: '2026-10-19T22:59:59.000Z' },
 ];
+
+const finalFixture = () => ({
+    scoringPeriods: periods, lastRegularSeasonPeriod: 2,
+    teams: [{ id: 'a', record: '1-0-0' }, { id: 'b', record: '0-1-0' }],
+    schedule: periods.map(period => ({ period: period.number, matchupList: [{ away: { id: 'a' }, home: { id: 'b' } }] as ScheduledMatchup[] })),
+});
+
+test('posted results make cards and ticker Final while keeping the completed week current', () => {
+    const fixture = finalFixture();
+    const now = Date.parse('2026-10-16T20:00:00Z');
+    const final = automaticFinalPeriods(fixture, now);
+    assert.deepEqual(final, [1]);
+    assert.equal(periodPhase(periods[0], now, final), 'complete');
+    assert.equal(periodPhase(selectPeriod(periods, undefined, now)!, now, final), 'complete');
+    assert.equal(selectPeriod(periods, undefined, now)?.number, 1);
+    assert.equal(periodPhase(periods[1], now, [2]), 'upcoming', 'a final flag cannot start a future week');
+    assert.equal(selectPeriod(periods, undefined, Date.parse(periods[1].startDate))?.number, 2);
+});
+
+test('requires every scheduled result, handles ties, and counts actual matches rather than the week number', () => {
+    const now = Date.parse('2026-10-18T00:00:00Z');
+    const fixture = finalFixture();
+    assert.deepEqual(automaticFinalPeriods(fixture, now), [1]);
+    fixture.teams[0].record = '1-0-1'; fixture.teams[1].record = '0-1-1';
+    assert.deepEqual(automaticFinalPeriods(fixture, now), [1, 2]);
+    fixture.schedule[0].matchupList = [{ away: { id: 'a' }, home: {} }];
+    fixture.teams[0].record = '1-0-0'; fixture.teams[1].record = '0-1-0';
+    assert.deepEqual(automaticFinalPeriods(fixture, now), [2], 'byes do not count as a recorded matchup');
+});
+
+test('does not infer early Finals from incomplete standings, missing history, duplicate teams or playoff records', () => {
+    const now = Date.parse('2026-10-16T20:00:00Z');
+    for (const record of ['0-0-0', '', '1-0', '1-0-0x', '-1-1-0']) {
+        const fixture = finalFixture(); fixture.teams[1].record = record;
+        assert.deepEqual(automaticFinalPeriods(fixture, now), []);
+    }
+    const missing = finalFixture(); missing.teams.pop();
+    assert.deepEqual(automaticFinalPeriods(missing, now), []);
+    const duplicate = finalFixture(); duplicate.schedule[0].matchupList.push(duplicate.schedule[0].matchupList[0]);
+    assert.deepEqual(automaticFinalPeriods(duplicate, now), []);
+    const history = finalFixture(); history.schedule.shift();
+    assert.deepEqual(automaticFinalPeriods(history, Date.parse('2026-10-18T00:00:00Z')), []);
+    const playoffs = finalFixture(); playoffs.lastRegularSeasonPeriod = 1;
+    playoffs.teams.forEach(team => { team.record = '2-0-0'; });
+    assert.deepEqual(automaticFinalPeriods(playoffs, Date.parse('2026-10-18T00:00:00Z')), [1]);
+    assert.equal(periodPhase(periods[1], Date.parse('2026-10-18T00:00:00Z'), [2]), 'complete', 'manual Finals cover playoffs');
+});
 
 test('chooses the opening matchup before the season and the last matchup after the season', () => {
     assert.equal(selectPeriod(periods, undefined, Date.parse('2026-10-04'))?.number, 1);

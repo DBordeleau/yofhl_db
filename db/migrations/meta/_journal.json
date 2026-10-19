@@ -85,6 +85,20 @@
       "when": 1792270985477,
       "tag": "0011_coachs_corner_players",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792379200775,
+      "tag": "0012_fantrax_final_weeks",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792379401456,
+      "tag": "0013_fantrax_snapshots",
+      "breakpoints": true
     }
   ]
 }

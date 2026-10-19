@@ -64,6 +64,7 @@ export interface LeagueSnapshot {
     schedule: { period: number; matchupList: ScheduledMatchup[] }[];
     playoffTeams: number;
     lastRegularSeasonPeriod: number;
+    finalPeriods: number[];
 }
 
 export interface MatchupScores {
@@ -81,9 +82,39 @@ export function selectPeriod(periods: Period[], requested: string | undefined, n
     return explicit || periods.find(p => now <= Date.parse(p.endDate)) || periods.at(-1) || null;
 }
 
-export function periodPhase(period: Period, now: number): 'upcoming' | 'active' | 'complete' {
+export function periodPhase(period: Period, now: number, finalPeriods: readonly number[] = []): 'upcoming' | 'active' | 'complete' {
     if (now < Date.parse(period.startDate)) return 'upcoming';
+    if (finalPeriods.includes(period.number)) return 'complete';
     return now <= Date.parse(period.endDate) ? 'active' : 'complete';
+}
+
+// Fantrax can post regular-season results before its next matchup period starts.
+export function automaticFinalPeriods(snapshot: {
+    scoringPeriods: Period[]; schedule: LeagueSnapshot['schedule']; lastRegularSeasonPeriod: number;
+    teams: Pick<SnapshotTeam, 'id' | 'record'>[];
+}, now: number): number[] {
+    const expected = new Map<string, number>();
+    const records = new Map(snapshot.teams.map(team => [team.id,
+        team.record && /^\d+-\d+-\d+$/.test(team.record) ? team.record.split('-').reduce((sum, value) => sum + Number(value), 0) : -1]));
+    const final: number[] = [];
+    const periods = [...snapshot.scoringPeriods].sort((a, b) => a.number - b.number);
+    for (const period of periods) {
+        if (period.number > snapshot.lastRegularSeasonPeriod || now < Date.parse(period.startDate)) break;
+        const round = snapshot.schedule.find(item => item.period === period.number);
+        // Missing schedule history cannot establish how many results a team should have.
+        if (!round?.matchupList.length) break;
+        const playing = new Set<string>();
+        for (const matchup of round.matchupList) {
+            if (!matchup.away.id || !matchup.home.id) continue; // An unpaired team has a bye.
+            for (const id of [matchup.away.id, matchup.home.id]) {
+                if (playing.has(id) || !records.has(id)) return final;
+                playing.add(id);
+                expected.set(id, (expected.get(id) ?? 0) + 1);
+            }
+        }
+        if (playing.size && [...playing].every(id => records.get(id)! >= expected.get(id)!)) final.push(period.number);
+    }
+    return final;
 }
 
 export function shortDate(date: string): string {

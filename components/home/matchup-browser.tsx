@@ -101,9 +101,9 @@ type Week = { period: Period; matchups: ScheduledMatchup[]; scores: MatchupScore
 const phaseStatus = (phase: ReturnType<typeof periodPhase>) => phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress' : 'Final';
 
 // The cards follow the week picked in the dropdown; the ticker always shows the current week.
-export default function MatchupBrowser({ periods, seasonPeriods, schedule, current, teams, now }: {
+export default function MatchupBrowser({ periods, seasonPeriods, schedule, current, teams, now, finalPeriods }: {
     periods: Period[]; seasonPeriods: number[]; schedule: { period: number; matchupList: ScheduledMatchup[] }[];
-    current: Week; teams: Team[]; now: number;
+    current: Week; teams: Team[]; now: number; finalPeriods: number[];
 }) {
     const palettes = useTeamBranding();
     const [selectedNumber, setSelectedNumber] = useState(current.period.number);
@@ -132,7 +132,7 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
     useEffect(() => {
         const controller = new AbortController();
         setFailed(false);
-        if (periodPhase(selected, now) === 'upcoming') {
+        if (periodPhase(selected, now, finalPeriods) === 'upcoming') {
             setLoaded({ period: selected.number, scores: null });
             setPending(false);
             return;
@@ -149,10 +149,10 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
             if (!controller.signal.aborted) setPending(false);
         });
         return () => controller.abort();
-    }, [selected, now, results, retry]);
+    }, [selected, now, finalPeriods, results, retry]);
     const [spotlight, setSpotlight] = useState<number | null>(null);
     const index = periods.findIndex(period => period.number === selected.number);
-    const phase = periodPhase(selected, now);
+    const phase = periodPhase(selected, now, finalPeriods);
     const playing = new Set(matchups.flatMap(matchup => [matchup.away.id, matchup.home.id]));
     const idleTeams = matchups.every(matchup => matchup.away.id && matchup.home.id) ? teams.filter(team => !playing.has(team.id)) : [];
     const href = (period: number) => `/?period=${period}#matchups`;
@@ -181,7 +181,7 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
     });
     const games = buildGames(matchups, scores, phase);
     const showingCurrent = selected.number === currentPeriod;
-    const tickerPhase = periodPhase(current.period, now);
+    const tickerPhase = periodPhase(current.period, now, finalPeriods);
     const tickerGames = showingCurrent ? games : buildGames(current.matchups, current.scores, tickerPhase);
     const tickerWeek = weekName(currentPeriod, seasonPeriods);
     const { slot, dock } = useTickerDock(tickerGames.length > 0);

@@ -5,6 +5,9 @@ import { adminConfigured, isAdmin } from '@/lib/admin/auth';
 import { getSeasonStatuses } from '@/lib/admin/data';
 import Arrow from '@/components/arrow';
 import { KEEPERS_ENABLED } from '@/lib/keepers/model';
+import FantraxControls from '@/components/admin/fantrax-controls';
+import { getLeagueSnapshot } from '@/lib/fantrax/data';
+import { getManualFinalPeriods } from '@/lib/fantrax/final-weeks';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,11 +24,13 @@ const Check = ({ ok, children }: { ok: boolean; children: React.ReactNode }) => 
 // season checklist at /admin
 export default async function AdminHome() {
     if (!(await isAdmin())) return <LoginForm next="/admin" configured={adminConfigured()} />;
-    const seasons = await getSeasonStatuses();
+    const [seasons, snapshot] = await Promise.all([getSeasonStatuses(), getLeagueSnapshot().catch(() => null)]);
+    const manualFinals = snapshot ? await getManualFinalPeriods(snapshot.seasonYear) : [];
 
     return (
         <>
             <AdminHeader title="Seasons" />
+            <FantraxControls snapshot={snapshot && { seasonYear: snapshot.seasonYear, fetchedAt: snapshot.fetchedAt, scoringPeriods: snapshot.scoringPeriods, finalPeriods: snapshot.finalPeriods }} manualFinals={manualFinals} now={Date.now()} />
             {KEEPERS_ENABLED && <Link href="/admin/keepers" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice"><div><p className="font-wide text-lg font-extrabold">Keeper submissions</p><p className="mt-1 text-sm text-ink-soft">Review each team’s keeps, rookie eligibility, and players to drop.</p></div><Arrow className="text-2xl" /></Link>}
             <Link href="/admin/teams" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice">
                 <div><p className="font-wide text-lg font-extrabold">Teams & owners</p><p className="mt-1 text-sm text-ink-soft">Edit team names and logos, and generate owner invitation codes.</p></div>

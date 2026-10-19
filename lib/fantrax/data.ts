@@ -1,10 +1,12 @@
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
-import { playerName, publishedMatchups, type LeagueSnapshot, type MatchupScores, type Period, type RosterStats, type ScheduledMatchup } from './model';
+import { automaticFinalPeriods, playerName, publishedMatchups, type LeagueSnapshot, type MatchupScores, type Period, type RosterStats, type ScheduledMatchup } from './model';
 import { discoverScoringSeason, loadRosterStats, loadScoringLeaders } from './leaders';
-import { DAY, FANTRAX_TAG, scoresAreArchived } from './cache-policy';
+import { CORRECTION_WINDOW_MS, DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, scoresAreArchived } from './cache-policy';
 import { FANTRAX_LEAGUE_ID } from './config';
+import { getManualFinalPeriods } from './final-weeks';
+import { getSavedCurrentSeason } from './snapshot-store';
 
 export { FANTRAX_LEAGUE_ID, FANTRAX_LEAGUE_URL } from './config';
 
@@ -49,9 +51,9 @@ const normalizePeriod = (period: Period): Period => ({
     endDate: new Date(period.endDate.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).toISOString(),
 });
 
-// Cache the data and its actual fetch time together. Refresh on the next visit after 24 hours;
-// no cron, client polling, persistent worker, or database writes are needed.
+// Evening jobs refresh this cache; 24-hour expiry remains a fallback if a job is missed.
 async function loadFantrax() {
+    const fetchedAt = new Date().toISOString();
     const [info, rosters, standings] = await Promise.all([
         request<LeagueInfo>('getLeagueInfo', { leagueId: FANTRAX_LEAGUE_ID, excludePlayerInfo: 'true' }),
         request<RosterResponse>('getTeamRosters', { leagueId: FANTRAX_LEAGUE_ID }),
@@ -60,9 +62,10 @@ async function loadFantrax() {
     if (!info.teamInfo || !info.scoringPeriods?.length || !rosters.rosters || !Array.isArray(standings)) {
         throw new Error('Fantrax returned an incomplete league snapshot');
     }
-    return { info, rosters, standings, fetchedAt: new Date().toISOString() };
+    return { info, rosters, standings, fetchedAt };
 }
-const getDailyFantrax = unstable_cache(loadFantrax, ['fantrax-daily-v2', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG] });
+const getDailyFantrax = unstable_cache(loadFantrax, ['fantrax-daily-v3', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG, FANTRAX_CURRENT_TAG] });
+const getSource = async () => (await getSavedCurrentSeason())?.source ?? getDailyFantrax();
 async function loadPlayerDirectory() {
     const players = await request<Record<string, PlayerInfo>>('getPlayerIds', { sport: 'NHL' });
     if (!players || !Object.keys(players).length || !Object.values(players).every(player =>
@@ -73,7 +76,7 @@ const getPlayerDirectory = unstable_cache(loadPlayerDirectory, ['fantrax-player-
 
 export async function getLeagueSnapshot(options: { fresh?: boolean } = {}): Promise<LeagueSnapshot> {
     const [source, franchises, archivePlayers, players] = await Promise.all([
-        options.fresh ? loadFantrax() : getDailyFantrax(), getFranchiseCards(), getArchivedPlayerIds(),
+        options.fresh ? loadFantrax() : getSource(), getFranchiseCards(), getArchivedPlayerIds(),
         options.fresh ? loadPlayerDirectory() : getPlayerDirectory(),
     ]);
     const archiveIds = new Map(archivePlayers.map(player => [player.id.replace(/\*/g, ''), player.id]));
@@ -95,7 +98,7 @@ export async function getLeagueSnapshot(options: { fresh?: boolean } = {}): Prom
             })).sort((a,b) => a.name.localeCompare(b.name)),
         };
     }).sort((a,b) => (a.rank ?? Infinity) - (b.rank ?? Infinity) || a.name.localeCompare(b.name));
-    return {
+    const snapshot: LeagueSnapshot = {
         fetchedAt: source.fetchedAt, seasonYear: source.info.seasonYear, teams,
         scoringPeriods: source.info.scoringPeriods.map(normalizePeriod).sort((a,b) => a.number - b.number),
         rosterPeriod: source.info.rosterPeriods.find(p => p.number === source.rosters.period)
@@ -103,7 +106,10 @@ export async function getLeagueSnapshot(options: { fresh?: boolean } = {}): Prom
         schedule: source.info.matchups.map(round => ({ ...round, matchupList: publishedMatchups(round.matchupList) })),
         playoffTeams: source.info.playoffs.numPlayoffTeams,
         lastRegularSeasonPeriod: source.info.playoffs.lastRegularSeasonPeriod,
+        finalPeriods: [],
     };
+    snapshot.finalPeriods = [...new Set([...automaticFinalPeriods(snapshot, Date.now()), ...await getManualFinalPeriods(snapshot.seasonYear)])];
+    return snapshot;
 }
 
 async function loadMatchupScores(period: number): Promise<MatchupScores> {
@@ -117,16 +123,20 @@ async function loadMatchupScores(period: number): Promise<MatchupScores> {
     }
     return { ...scores, fetchedAt: new Date().toISOString() };
 }
-const getDailyScores = unstable_cache(loadMatchupScores, ['fantrax-matchup-scores', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG] });
+// A new standings snapshot must never label scores from an older snapshot as Final.
+const getDailyScores = (period: number, snapshotFetchedAt: string) => unstable_cache(() => loadMatchupScores(period),
+    ['fantrax-matchup-scores-v2', FANTRAX_LEAGUE_ID, String(period), snapshotFetchedAt], { revalidate: DAY, tags: [FANTRAX_TAG] })();
 const getArchivedScores = unstable_cache(loadMatchupScores, ['fantrax-final-scores', FANTRAX_LEAGUE_ID], { revalidate: false, tags: [FANTRAX_TAG] });
 export async function getMatchupScores(period: number): Promise<MatchupScores | null> {
-    const source = await getDailyFantrax();
+    const saved = await getSavedCurrentSeason();
+    const source = saved?.source ?? await getDailyFantrax();
     const raw = source.info.scoringPeriods.find(item => item.number === period);
     if (!raw) throw new RangeError('Unknown scoring period');
     const normalized = normalizePeriod(raw);
     if (Date.now() < Date.parse(normalized.startDate)) return null;
+    if (saved?.scores[period]) return saved.scores[period];
     // Fetch once more after the correction window before retaining a final result.
-    return scoresAreArchived(normalized.endDate) ? getArchivedScores(period) : getDailyScores(period);
+    return scoresAreArchived(normalized.endDate) ? getArchivedScores(period) : getDailyScores(period, source.fetchedAt);
 }
 
 // Resolve outside the daily caches: nested unstable_cache calls bypass the inner cache.
@@ -134,19 +144,52 @@ const getCachedScoringSeason = unstable_cache(discoverScoringSeason, ['fantrax-s
 // Next supplies React.cache in server renders; standalone scripts use React 18.
 const getScoringSeason = typeof cache === 'function' ? cache(getCachedScoringSeason) : getCachedScoringSeason;
 
-const getDailyLeaders = unstable_cache(async (seasonYear: number, seasonCode: string) => {
+async function loadLeaders(seasonYear: number, seasonCode: string) {
     const [players, archive] = await Promise.all([loadScoringLeaders(FANTRAX_LEAGUE_ID, seasonYear, seasonCode), getArchivedPlayerIds()]);
     const archiveIds = new Map(archive.map(player => [player.id.replace(/\*/g, ''), player.id]));
     return { fetchedAt: new Date().toISOString(), players: players.map(player => ({ ...player, archiveId: archiveIds.get(player.id) ?? null })) };
-}, ['fantrax-scoring-leaders-top-10-per-game', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG] });
+}
+const getDailyLeaders = unstable_cache(loadLeaders, ['fantrax-scoring-leaders-top-10-per-game-v2', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG, FANTRAX_CURRENT_TAG] });
 
 const getDailyRosterStats = unstable_cache(async (seasonYear: number, seasonCode: string): Promise<RosterStats> => ({
     players: await loadRosterStats(FANTRAX_LEAGUE_ID, seasonYear, seasonCode), fetchedAt: new Date().toISOString(),
-}), ['fantrax-roster-stats', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG] });
+}), ['fantrax-roster-stats-v2', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG, FANTRAX_CURRENT_TAG] });
 
 export async function getScoringLeaders(seasonYear: number) {
+    const saved = await getSavedCurrentSeason();
+    if (saved?.source.info.seasonYear === seasonYear) return saved.leaders;
     return getDailyLeaders(seasonYear, await getScoringSeason(FANTRAX_LEAGUE_ID, seasonYear));
 }
 export async function getRosterStats(seasonYear: number) {
+    const saved = await getSavedCurrentSeason();
+    if (saved?.source.info.seasonYear === seasonYear) return saved.rosterStats;
     return getDailyRosterStats(seasonYear, await getScoringSeason(FANTRAX_LEAGUE_ID, seasonYear));
+}
+
+export interface CurrentSeasonData {
+    source: Awaited<ReturnType<typeof loadFantrax>>;
+    scores: Record<number, MatchupScores>;
+    leaders: Awaited<ReturnType<typeof loadLeaders>>;
+    rosterStats: RosterStats;
+}
+
+// Publish only after every request succeeds, so a partial outage preserves the last snapshot.
+export async function captureCurrentSeason(): Promise<CurrentSeasonData> {
+    const source = await loadFantrax();
+    const now = Date.now();
+    const periods = source.info.scoringPeriods.map(normalizePeriod).filter(period =>
+        Date.parse(period.startDate) <= now && Date.parse(period.endDate) + CORRECTION_WINDOW_MS > now);
+    const season = await getScoringSeason(FANTRAX_LEAGUE_ID, source.info.seasonYear);
+    const [leaders, players, scores] = await Promise.all([
+        loadLeaders(source.info.seasonYear, season), loadRosterStats(FANTRAX_LEAGUE_ID, source.info.seasonYear, season),
+        Promise.all(periods.map(period => loadMatchupScores(period.number))),
+    ]);
+    for (const score of scores) {
+        const scheduled = source.info.matchups.find(round => round.period === score.period)?.matchupList.filter(matchup => matchup.away.id && matchup.home.id) ?? [];
+        if (scheduled.length !== score.matchups.length || !scheduled.every(matchup => score.matchups.some(result => result.away.teamId === matchup.away.id && result.home.teamId === matchup.home.id))) {
+            throw new Error('Fantrax returned incomplete scheduled matchup scores');
+        }
+    }
+    return { source, leaders, rosterStats: { players, fetchedAt: new Date().toISOString() },
+        scores: Object.fromEntries(scores.map(score => [score.period, score])) };
 }
