@@ -206,8 +206,12 @@ const clock = (ms: number) => {
     return `${over ? '+' : ''}${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
+// the page's label ("Pilot") wins; an admin preview falls back to the script's week
+const slotLabel = (meta: Timeline['meta']) => meta.label ?? (meta.week !== undefined ? `Week ${meta.week}` : null);
+
 function Lockup({ tl }: { tl: Timeline }) {
     const { meta } = tl;
+    const slot = slotLabel(meta);
     return (
         <>
             <i className={styles.bumperRed} />
@@ -218,7 +222,7 @@ function Lockup({ tl }: { tl: Timeline }) {
                 <b>Coach&rsquo;s</b>
                 <b>Corner</b>
                 <span className={styles.gStripes} />
-                {meta.week !== undefined && <small>Week {meta.week}</small>}
+                {slot && <small>{slot}</small>}
                 {meta.title && <strong>{meta.title}</strong>}
             </div>
         </>
@@ -310,7 +314,7 @@ function Studio({ tl, frame, teams, players, banners, started, playing, introOff
             )}
             {chyron && (
                 <div className={styles.chyron} aria-hidden="true">
-                    <span>{[tl.meta.week !== undefined ? `Week ${tl.meta.week}` : null, tl.meta.title].filter(Boolean).join(' · ')}</span>
+                    <span>{[slotLabel(tl.meta), tl.meta.title].filter(Boolean).join(' · ')}</span>
                 </div>
             )}
             {started && frame.phase === 'intro' && <Bumper key={introOffset} tl={tl} offset={introOffset} paused={!playing} />}

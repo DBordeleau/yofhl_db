@@ -106,10 +106,15 @@ export interface PlayerProps {
     audio?: ShowAudio;
     /** Public episodes get a share card button in the control bar. */
     share?: ShareCard;
+    /** the episode's schedule slot, like "Pilot" or "Week 2", for the title card and chyron */
+    label?: string | null;
 }
 
-export default function Player({ script, episodeKey, teams, players = [], banners = [], keys = 'page', cue, onLine, nextHref, audio: suppliedAudio, share }: PlayerProps) {
-    const tl = useMemo(() => compile(parseScript(script)), [script]);
+export default function Player({ script, episodeKey, teams, players = [], banners = [], keys = 'page', cue, onLine, nextHref, audio: suppliedAudio, share, label }: PlayerProps) {
+    const tl = useMemo(() => {
+        const compiled = compile(parseScript(script));
+        return label ? { ...compiled, meta: { ...compiled.meta, label } } : compiled;
+    }, [script, label]);
     const [ownAudio] = useState(() => createShowAudio());
     const audio = suppliedAudio ?? ownAudio;
     const [audioError, setAudioError] = useState('');

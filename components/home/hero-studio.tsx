@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { archivoItalic } from '@/components/coachs-corner/fonts';
 import NewEpisodeBadge from '@/components/coachs-corner/new-episode-badge';
 import type { EpisodeSummary } from '@/lib/data/coachs-corner';
+import { episodeLabel } from '@/lib/coachs-corner/episode-label';
 import { artUrl } from '@/lib/coachs-corner/media';
 import { episodeSeenKey } from '@/lib/coachs-corner/seen';
 import styles from './hero-studio.module.css';
@@ -28,7 +29,8 @@ const Host = ({ pose, className }: { pose: string; className: string }) => <pict
 export default function HeroStudio({ episode }: { episode: EpisodeSummary }) {
     const title = episodeTitle(episode.title);
     const length = runtime(episode.durationMs);
-    const label = `Watch Coach's Corner${episode.week !== null ? `, week ${episode.week}` : ''}: ${title}, ${length}`;
+    const slot = episodeLabel(episode);
+    const label = `Watch Coach's Corner${slot ? `, ${slot}` : ''}: ${title}, ${length}`;
 
     return <div className={`${styles.studio} ${archivoItalic.variable}`}><div className={styles.set}>
         <span className={styles.rig} aria-hidden="true"><i /><i /></span>
@@ -36,7 +38,7 @@ export default function HeroStudio({ episode }: { episode: EpisodeSummary }) {
             <span className={styles.screen}>
                 <span className={styles.slabs}>
                     <span className={styles.show}>Coach&rsquo;s Corner</span>
-                    {episode.week !== null && <span className={styles.week}>Week {episode.week}</span>}
+                    {slot && <span className={styles.week}>{slot}</span>}
                     <span className={styles.badge}><NewEpisodeBadge episodeKey={episodeSeenKey(episode)} /></span>
                 </span>
                 <span className={styles.title}>{title}</span>

@@ -650,7 +650,7 @@ async function drawEpisode(kit: Kit, card: EpisodeShareCard) {
     glow(ctx, 540, 0, 620, 420, 'rgba(214,232,255,.07)');
     glow(ctx, 170, 1040, 540, 420, 'rgba(200,16,46,.3)');
     glow(ctx, 920, 1040, 540, 420, 'rgba(61,139,218,.24)');
-    brandBar(kit, ['Intermission', card.week !== null ? { text: `Week ${card.week}`, colour: GOLD } : null]);
+    brandBar(kit, ['Intermission', card.label ? { text: card.label, colour: GOLD } : null]);
 
     const mark = { size: 150, weight: 900, italic: true, stretch: 112, spacing: -.05, upper: true, max: INNER, min: 90 };
     shadowed(ctx, 30, 8, 'rgba(5,12,24,.7)', () => text(kit, 'Coach’s', PAD - 6, 296, mark));

@@ -21,6 +21,8 @@ export interface Meta {
     segment?: number;
     /** words per minute at normal delivery */
     pace: number;
+    /** the schedule slot the public page names ("Pilot"); set by the page, not the front matter */
+    label?: string;
 }
 
 export type Graphic =

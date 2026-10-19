@@ -1,7 +1,7 @@
 // The pilot episode, bundled so /coachs-corner always has a show even before any episode is
 // published from the admin. It's also the worked example of the script format (docs/coachs-corner.md).
 
-export const PILOT_SLUG = 'opening-week';
+export { PILOT_SLUG } from './episode-label';
 
 export const PILOT_SCRIPT = String.raw`---
 title: Draft and opening matchups
