@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { JagrCupIcon } from '@/components/trophy-icons';
+import FranchisePerformance from '@/components/franchise-performance';
 import type { FranchiseDetail, FranchiseSeason } from '@/lib/data/league';
 import { formatFpts, seasonLabel, teamSeasonHref, winPercentage } from '@/lib/league';
 import Arrow from '@/components/arrow';
+import styles from './franchise.module.css';
 
 const seasonResult = (season: FranchiseSeason, team: FranchiseDetail) => {
     if (season.playoffStatus === 'cancelled') return 'Playoffs cancelled';
@@ -13,51 +15,58 @@ const seasonResult = (season: FranchiseSeason, team: FranchiseDetail) => {
     return fromFinal === 1 ? 'Semifinals' : fromFinal === 2 ? 'Quarterfinals' : `Round ${season.playoffRound}`;
 };
 
-const labelClass = 'text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted';
+// The owner column only earns its width when the franchise changed hands or names.
+const GRID_DETAIL = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 md:grid-cols-[96px_minmax(0,1fr)_76px_92px_118px_80px_150px] md:gap-y-0';
+const GRID = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 md:grid-cols-[minmax(96px,1fr)_76px_92px_118px_80px_150px] md:gap-y-0';
 
 export default function FranchiseHistory({ team }: { team: FranchiseDetail }) {
-    const playoffSeasons = team.seasons.filter((s) => s.playoffStatus !== 'cancelled' && s.playoffRound !== null).length;
-    const eligibleSeasons = team.seasons.filter((s) => s.playoffStatus !== 'cancelled').length;
-    const differential = team.fptsFor - team.fptsAgainst;
+    const played = team.seasons.filter((s) => s.wins + s.losses + s.ties > 0);
+    const bestRecord = [...played].sort((a, b) => winPercentage(b) - winPercentage(a) || b.wins - a.wins)[0]?.year;
+    const bestScoring = [...team.seasons].sort((a, b) => b.fptsFor - a.fptsFor)[0]?.year;
+    const showDetail = new Set(team.seasons.map((s) => s.owner)).size > 1 || team.seasons.some((s) => s.name !== team.name);
+    const grid = showDetail ? GRID_DETAIL : GRID;
 
     return (
-        <section id="season-history" className="mt-9 scroll-mt-6" aria-labelledby="history-title">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="history-title" className="font-wide text-xl font-extrabold uppercase">Season history</h2>
-                <p className="text-sm text-ink-muted">Playoffs in {playoffSeasons} of {eligibleSeasons} seasons</p>
-            </div>
-            <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
-                <div className={`hidden gap-4 border-b border-ink bg-line-soft px-5 py-3 lg:grid lg:grid-cols-[minmax(0,1fr)_110px_100px_100px_165px] ${labelClass}`} aria-hidden="true">
-                    <span>Season / Owner</span><span className="text-right">W–L–T / Win %</span><span className="text-right">Points for</span><span className="text-right">Points against</span><span className="text-right">Playoffs</span>
+        <section id="season-history" className={styles.section} aria-labelledby="history-title">
+            <div className={styles.head}><h2 id="history-title">Seasons</h2></div>
+            <div className={`${styles.panel} grid ${showDetail ? '' : 'xl:grid-cols-[minmax(0,4fr)_minmax(0,7fr)]'}`}>
+                <FranchisePerformance seasons={team.seasons} championships={team.championships} beside={!showDetail} />
+                <div className="min-w-0">
+                    <div className={`${grid} ${styles.tableHead} ${styles.label} hidden px-5 py-2.5 md:grid`} aria-hidden="true">
+                        <span>Season</span>{showDetail && <span>Owner</span>}<span className="text-right">W–L–T</span><span className="text-right">Win %</span><span className="text-right">PF</span><span className="text-right">PA</span><span className="text-right">Playoffs</span>
+                    </div>
+                    <ol>
+                        {team.seasons.map((season) => {
+                            const champion = team.championships.includes(season.year);
+                            const made = season.playoffStatus !== 'cancelled' && season.playoffRound !== null;
+                            const renamed = season.name !== team.name;
+                            return (
+                                <li key={season.year} className="border-b border-line-soft last:border-0">
+                                    <Link href={teamSeasonHref(season.year, team.id, season.playoffStatus === 'cancelled' ? null : season.playoffRound)}
+                                        className={`group ${grid} row-hover min-h-[52px] px-4 py-2.5 md:px-5 md:py-1.5 ${champion ? 'bg-gold-tint/50' : ''}`}>
+                                        <span className="flex items-center gap-1.5 whitespace-nowrap font-extrabold tabular group-hover:text-rink-blue group-hover:underline">
+                                            {seasonLabel(season.year)}{champion && <JagrCupIcon className="h-6 w-6" />}
+                                        </span>
+                                        {showDetail
+                                            ? <span className="order-3 col-span-2 min-w-0 truncate text-xs text-ink-muted md:order-none md:col-span-1 md:text-sm">{season.owner ?? 'Owner not recorded'}{renamed && <span className="text-ink-soft"> · {season.name}</span>}</span>
+                                            : null}
+                                        <span className="tabular text-right font-extrabold"><span className="sr-only">Record: </span>{season.wins}–{season.losses}–{season.ties}</span>
+                                        <span className="tabular hidden whitespace-nowrap text-right text-sm text-ink-muted md:block">{season.year === bestRecord && <span className={styles.best}>Best</span>}{winPercentage(season).toFixed(1)}%<span className="sr-only"> win percentage{season.year === bestRecord ? ', franchise best' : ''}</span></span>
+                                        <span className="tabular order-4 whitespace-nowrap text-xs font-semibold md:order-none md:text-right md:text-sm">
+                                            <span className="mr-1 text-ink-muted md:sr-only">PF</span>{season.year === bestScoring && <span className={styles.best}>Best</span>}{formatFpts(season.fptsFor)}<span className="sr-only">{season.year === bestScoring ? ', franchise best' : ''}</span>
+                                            <span className="text-ink-muted md:hidden"> · PA {formatFpts(season.fptsAgainst)}</span>
+                                        </span>
+                                        <span className="tabular hidden text-right text-sm text-ink-muted md:block"><span className="sr-only">Points against </span>{formatFpts(season.fptsAgainst)}</span>
+                                        <span className="order-5 flex items-center justify-end gap-2 md:order-none">
+                                            <span className={`text-xs font-bold md:text-[13px] ${champion ? 'text-gold-deep' : made ? 'text-rink-blue' : 'text-ink-muted'}`}>{seasonResult(season, team)}</span>
+                                            <Arrow className="text-sm text-ink-faint" />
+                                        </span>
+                                    </Link>
+                                </li>
+                            );
+                        })}
+                    </ol>
                 </div>
-                {team.seasons.map((season) => {
-                    const champion = team.championships.includes(season.year);
-                    const result = seasonResult(season, team);
-                    return (
-                        <Link key={season.year} href={teamSeasonHref(season.year, team.id, season.playoffStatus === 'cancelled' ? null : season.playoffRound)} className={`group grid grid-cols-2 items-center gap-x-4 gap-y-3 border-b border-line-soft px-5 py-5 last:border-0 hover:bg-rink-wash lg:grid-cols-[minmax(0,1fr)_110px_100px_100px_165px] ${champion ? 'bg-gold-tint/40' : ''}`}>
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2 font-extrabold group-hover:text-rink-blue group-hover:underline">{seasonLabel(season.year)}{champion && <JagrCupIcon className="h-7 w-7" />}</div>
-                                {season.name !== team.name && <p className="mt-1 text-xs font-semibold text-ink-soft">{season.name}</p>}
-                                <p className="mt-1 text-xs text-ink-muted">{season.owner ?? 'Owner not recorded'}</p>
-                            </div>
-                            <div className="text-right">
-                                <span className="sr-only">Record: </span><div className="tabular font-extrabold">{season.wins}–{season.losses}–{season.ties}</div>
-                                <div className="tabular mt-1 text-xs text-ink-muted">{winPercentage(season).toFixed(1)}%<span className="sr-only"> win percentage</span></div>
-                            </div>
-                            <div className="tabular text-sm font-semibold lg:text-right"><span className="mr-1.5 text-xs text-ink-muted lg:sr-only">PF</span>{formatFpts(season.fptsFor)}</div>
-                            <div className="tabular text-right text-sm text-ink-muted"><span className="mr-1.5 text-xs lg:sr-only">PA</span>{formatFpts(season.fptsAgainst)}</div>
-                            <div className="col-span-2 flex items-center justify-between gap-2 border-t border-line-soft pt-2 lg:col-span-1 lg:justify-end lg:border-0 lg:pt-0">
-                                <span className={`text-xs font-bold ${champion ? 'text-gold-deep' : season.playoffStatus !== 'cancelled' && season.playoffRound !== null ? 'text-rink-blue' : 'text-ink-muted'}`}>{result}</span>
-                                <Arrow className="text-sm text-ink-faint" />
-                            </div>
-                        </Link>
-                    );
-                })}
-                <dl className="grid grid-cols-2 gap-3 bg-line-soft px-5 py-4 md:grid-cols-3">
-                    <div><dt className={labelClass}>All-time points for</dt><dd className="tabular mt-1 font-extrabold">{formatFpts(team.fptsFor)}</dd></div>
-                    <div><dt className={labelClass}>All-time points against</dt><dd className="tabular mt-1 font-extrabold">{formatFpts(team.fptsAgainst)}</dd></div>
-                    <div className="col-span-2 md:col-span-1"><dt className={labelClass}>Point differential</dt><dd className={`tabular mt-1 font-extrabold ${differential >= 0 ? 'text-rink-blue' : 'text-rink-red'}`}>{differential >= 0 ? '+' : ''}{formatFpts(differential)}</dd></div>
-                </dl>
             </div>
         </section>
     );

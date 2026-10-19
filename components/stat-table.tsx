@@ -36,6 +36,7 @@ interface StatTableProps {
     animationKey?: string; // changing this replays the row entrance animation
     footer?: ReactNode;
     showTeam?: boolean;
+    flat?: boolean; // tight-cornered panel with no shadow, for pages built on the broadcast panels
 }
 
 // written out in full so Tailwind keeps the metallic rank styles
@@ -70,6 +71,7 @@ const StatTable: FC<StatTableProps> = ({
     animationKey = '',
     footer,
     showTeam = false,
+    flat = false,
 }) => {
     const rankOffset = (currentPage - 1) * 25; // for pagination currently hardcoded to 25 results per page
     const isRoster = mode === 'champions';
@@ -110,7 +112,7 @@ const StatTable: FC<StatTableProps> = ({
         sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none';
 
     return (
-        <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card" role="table" aria-label="Fantasy points">
+        <div className={`overflow-hidden border border-line bg-white ${flat ? 'rounded-md' : 'rounded-3xl shadow-card'}`} role="table" aria-label="Fantasy points">
             <div className={`${grid} min-h-12 border-b-2 border-ink text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted md:text-xs`} role="row">
                 {!isRoster && <span role="columnheader"><span className="md:hidden">#</span><span className="hidden md:inline">Rank</span></span>}
                 {isRoster ? (

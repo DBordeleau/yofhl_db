@@ -1,0 +1,84 @@
+/* Trophy shelf: one navy stage under the club colours. Columns split by hairlines, never boxed. */
+.shelf { position: relative; scroll-margin-top: 80px; color: #fff; background: radial-gradient(60% 140% at 8% 0%, #26365f 0%, #12182e 58%, #0d1326 100%); }
+.inner { padding-block: 26px 30px; }
+.title { font-size: 27px; line-height: 1.15; font-weight: 850; letter-spacing: -.04em; }
+
+.grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr) minmax(0, 1.75fr); grid-template-areas: 'cup pm awards' 'finals finals awards'; margin-top: 18px; }
+.major { position: relative; display: flex; align-items: center; gap: 18px; min-width: 0; padding-right: 26px; }
+.major + .major { padding-left: 26px; border-left: 1px solid #ffffff14; }
+.major:first-child { grid-area: cup; }
+.major:nth-child(2) { grid-area: pm; }
+.artWrap { position: relative; flex: none; }
+/* gold pool under the silverware */
+.artWrap::before { content: ''; position: absolute; left: -14px; right: -14px; bottom: -6px; height: 34px; background: radial-gradient(closest-side, #f0c75e45, #f0c75e00); }
+.art { position: relative; width: 108px; height: 108px; filter: drop-shadow(0 8px 14px #050c1880); transition: transform .3s cubic-bezier(.33, 1, .68, 1); }
+.major:hover .art { transform: translateY(-3px) scale(1.03); }
+.dim { filter: grayscale(.85) brightness(.55); opacity: .7; }
+.count { padding-right: .06em; font-size: 58px; line-height: .85; font-weight: 900; font-style: italic; font-stretch: 95%; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.none { color: #5d6a85; }
+.name { margin-top: 6px; font-size: 18px; line-height: 1.15; font-weight: 850; letter-spacing: -.02em; }
+.honor { display: block; margin-top: 3px; font-size: 12px; line-height: 1.35; color: #a3b3ca; }
+.slabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.empty { margin-top: 8px; font-size: 13px; line-height: 1.45; color: #a3b3ca; }
+.inline { color: #fff; text-decoration: underline; text-decoration-color: #ffffff4d; text-underline-offset: 4px; font-variant-numeric: tabular-nums; }
+.inline:hover { color: #f0c75e; text-decoration-color: #f0c75e; }
+
+.rowLabel { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #a3b3ca; }
+
+.finals { grid-area: finals; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; margin-top: 22px; padding-top: 16px; padding-right: 26px; border-top: 1px solid #ffffff14; }
+.finals .slabs { margin-top: 0; }
+.result { font-size: 10px; font-weight: 800; font-style: normal; letter-spacing: .1em; text-transform: uppercase; opacity: .78; }
+
+.awards { grid-area: awards; min-width: 0; padding-left: 26px; border-left: 1px solid #ffffff14; }
+.awardList { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); align-items: start; column-gap: 20px; margin-top: 8px; }
+.award { border-bottom: 1px solid #ffffff12; }
+.award summary { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 5px 4px 5px 0; cursor: pointer; list-style: none; border-radius: 4px; transition: background .2s; }
+.award summary::-webkit-details-marker { display: none; }
+.award summary:hover { background: #ffffff08; }
+.award summary:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 2px; }
+.awardArt { flex: none; width: 46px; height: 46px; }
+.awardName { display: block; font-size: 14px; line-height: 1.2; font-weight: 800; }
+.awardCount { font-size: 26px; line-height: 1; font-weight: 900; font-style: italic; font-stretch: 85%; color: #f0c75e; font-variant-numeric: tabular-nums; }
+.chevron { flex: none; width: 16px; height: 16px; color: #a3b3ca; transition: transform .3s cubic-bezier(.2, .8, .2, 1); }
+.award[open] .chevron { transform: rotate(180deg); color: #f0c75e; }
+.winners { margin-left: 58px; padding-bottom: 4px; }
+.winners li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 4px 6px 0; font-size: 13px; }
+.winners a { font-weight: 750; }
+.winners a:hover { color: #f0c75e; text-decoration: underline; }
+.winners span { flex: none; font-size: 12px; color: #a3b3ca; font-variant-numeric: tabular-nums; }
+.history { display: inline-block; margin: 0 0 12px 58px; font-size: 12px; font-weight: 750; color: #b6dcf5; }
+.history:hover { color: #fff; text-decoration: underline; }
+.shelf a:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 2px; }
+
+@media (max-width: 1279px) {
+    .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: 'cup pm' 'finals finals' 'awards awards'; }
+    .awards { margin-top: 22px; padding-top: 16px; padding-left: 0; border-top: 1px solid #ffffff14; border-left: 0; }
+    .finals { padding-right: 0; }
+}
+
+@media (max-width: 767px) {
+    .inner { padding-block: 22px 24px; }
+    .title { font-size: 24px; }
+    .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'cup' 'pm' 'finals' 'awards'; margin-top: 12px; }
+    .major { gap: 14px; padding: 12px 0; }
+    .major + .major { padding-left: 0; border-left: 0; border-top: 1px solid #ffffff14; }
+    .art { width: 76px; height: 76px; }
+    .count { font-size: 44px; }
+    .name { font-size: 16px; }
+    .finals { margin-top: 10px; }
+    .finals .rowLabel { width: 100%; }
+}
+
+@media (min-width: 1800px) {
+    .title { font-size: 32px; }
+    .art { width: 132px; height: 132px; }
+    .count { font-size: 70px; }
+    .name { font-size: 21px; }
+    .awardName { font-size: 16px; }
+    .awardArt { width: 54px; height: 54px; }
+    .awardList { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chevron, .art, .award summary { transition: none; }
+}
