@@ -133,12 +133,23 @@ async function run() {
     // Differential regression at the real browser/engine seam, before the full render.
     const old = await render('reference-20s', CURRENT_SOUND_BANK, theme, 20, 0);
     const bounded = await render('bounded-20s', CURRENT_SOUND_BANK, theme, 20);
-    let difference = 0;
+    let difference = 0, differenceSquared = 0, differingSamples = 0;
+    let maximumDifference = null;
     for (let c = 0; c < 2; c++) {
         const a = old.getChannelData(c), b = bounded.getChannelData(c);
-        for (let i = 0; i < a.length; i++) difference = Math.max(difference, Math.abs(a[i] - b[i]));
+        for (let i = 0; i < a.length; i++) {
+            const delta = Math.abs(a[i] - b[i]);
+            differenceSquared += delta * delta;
+            if (delta >= .0001) differingSamples++;
+            if (delta > difference) {
+                difference = delta;
+                maximumDifference = { at: i / sampleRate, channel: c, reference: a[i], bounded: b[i] };
+            }
+        }
     }
     report.checks.schedulerMaxSampleDifference = difference;
+    report.checks.schedulerDifference = { maximum: maximumDifference,
+        rmsDb: db(Math.sqrt(differenceSquared / (old.length * 2))), samplesAboveTolerance: differingSamples };
     assert(difference < .0001, 'Incremental scheduling changed the audible mix');
 
     const full = await render('full-mix', CURRENT_SOUND_BANK, theme);
@@ -169,9 +180,21 @@ async function run() {
 
     const effects = await render('effects', only(Object.keys(CURRENT_SOUND_BANK).filter(id => !['don', 'ron', 'room'].includes(id))), null);
     report.effects = cues.filter(cue => !cue.voice).map(cue => ({ id: cue.id, at: cue.t / 1000,
-        ...measure(effects, cue.t / 1000, cue.t / 1000 + .4) }));
+        ...measure(effects, cue.t / 1000, (cue.t + (cue.duration ?? 400)) / 1000) }));
     assert(report.effects.every(effect => effect.peakDb > -70), 'An effect failed to sound');
     report.checks.effects = report.effects.length;
+    const happyCues = cues.filter(cue => cue.id === 'happy-twinkle' && cue.duration);
+    if (happyCues.length) {
+        const twinkles = await render('happy-twinkle', only(['happy-twinkle']), null);
+        report.happyReactions = happyCues.map(cue => {
+            const from = cue.t / 1000, to = (cue.t + cue.duration) / 1000;
+            const sound = measure(twinkles, from, to), dialogue = measure(voices, from, to);
+            return { from, to, ...sound, belowDialogueDb: dialogue.rmsDb - sound.rmsDb };
+        });
+        assert(report.happyReactions.every(item => item.peakDb > -70), 'A happy reaction is silent');
+        const spoken = report.happyReactions.filter(item => measure(voices, item.from, item.to).peakDb > -70);
+        assert(spoken.every(item => item.belowDialogueDb >= 18), 'Happy twinkle must stay at least 18 dB below dialogue');
+    }
     report.status = 'PASS';
     document.getElementById('summary').textContent = `${report.showSeconds.toFixed(1)} seconds + end card · ${report.checks.dialogueLines} dialogue lines · ${report.checks.syllables} syllables · ${report.checks.effects} effects. No clipping, missing syllables or invalid samples. Dialogue stays at least ${report.checks.minimumDialogueAboveAmbienceDb.toFixed(1)} dB above ambience. End card is silent. Full mix rendered in ${(report.passes['full-mix'].renderMs / 1000).toFixed(2)} seconds.`;
     download(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }), `${episode.id}-audio-scan.json`, 'Download scan report');

@@ -1,0 +1,281 @@
+{
+  "title": "Alternate suit 2: Don Cherry sky-blue daisy suit and ivory tie",
+  "createdDate": "2026-10-18",
+  "method": "built-in image_gen.imagegen",
+  "transparentBackground": true,
+  "canvas": [
+    1254,
+    1254
+  ],
+  "master": "don-alternate-2-default.png",
+  "retention": "Owner requested retaining both suits as Alternate suit 1 and Alternate suit 2 on 2026-10-18.",
+  "namingHistory": "Generated under the working name Alternate suit 1; saved as Alternate suit 2 at owner request. Exact historical prompts and references are preserved; catalogReferences identify current matching artwork.",
+  "clothingReference": {
+    "description": "Don Cherry's actual sky-blue suit with white daisies, yellow centres and an ivory tie, photographed on Coach's Corner",
+    "page": "https://www.theodysseyonline.com/don-cherry-suits",
+    "pageTitle": "The Best Of Don Cherry: Fashion Edition",
+    "author": "Courtney French",
+    "pagePublished": "2017-05-15",
+    "broadcastDate": "unverified",
+    "localReference": "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-cherry-daisy-reference.jpg",
+    "referenceSha256": "e44c3ce0e218d7757b3f46af38f9747d18a7241c66a90a168829f5f57bca8b61",
+    "adaptation": "Fabric pattern, palette and ivory tie adapted onto the existing robot jacket cut. Human anatomy, double-breasted construction, vest and boutonniere were not copied. Reference photograph is local research only, not distributed with the artwork."
+  },
+  "assets": [
+    {
+      "id": "don-alternate-2-default",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve\nCreate ONE transparent PNG production character cutout, full untrimmed 1254 x 1254 canvas.\nInput 1 is the EDIT TARGET: original Don robot default pose. Input 2 is a REAL CLOTHING REFERENCE: Don Cherry on the right wearing his sky-blue daisy suit on Coach's Corner. Change ONLY the robot's jacket fabric and tie to directly adapt that actual outfit.\nMatch the photo faithfully: clear sky-blue/aqua-blue cloth, scattered large simple WHITE DAISIES with many narrow petals and small golden-yellow centres, comfortably spaced with plenty of plain blue visible between flowers. No leaves, stems, scrolls, paisley, pink, additional patterns, outlines around petals or invented ornaments. The flowers should look like the photographed printed fabric, not ornate brocade. Ivory satin tie with subtle diagonal woven texture as in the photograph. Retain the robot's existing jacket cut/lapels, white shirt, cuffs, pocket square and black lapel microphone. Do not copy the human anatomy, pose, desk, logo or cohost from the photograph. Do not add a boutonniere or vest.\nPreserve every other part of input 1: silver faceted robot face, cyan screen eyes, white sculpted metallic hair, connected white moustache and broad goatee, exact closed-mouth seam, gaze and stern expression, hands/fingers clasped low, original head and shoulder anchors, body silhouette, scale, square margins and lower cutoff. Same polished detailed cel-shaded illustration with sharp black edges and silver shading. Left host facing slightly screen-right, never mirrored.\nTrue transparent alpha background and gaps between arms and body. No desk, chair, scenery, floor, cast shadow, text, labels or watermark. This is Alternate suit 1, a nonholiday wardrobe. One pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-default.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-cherry-daisy-reference.jpg"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-default.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-cherry-daisy-reference.jpg"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-default.png",
+      "sha256": "e71707137bf32877a899aa752142dc890a1346b909a5f8575286ce735f33395a",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve\nONE transparent PNG character cutout on the full untrimmed 1254 x 1254 square canvas.\nInput 1 is the EDIT TARGET: original Don robot pose. Input 2 is the COSTUME REFERENCE, the corrected Alternate suit 1 based on Don Cherry's real daisy suit. Change ONLY input 1's jacket fabric and tie to match input 2 exactly: sky-blue/aqua-blue cloth with comfortably spaced large simple WHITE DAISIES, many narrow white petals and small golden-yellow centres; abundant plain blue between flowers. No leaves, stems, paisley, pink, ornamental scrollwork or extra pattern. Ivory satin tie with subtle diagonal woven sheen. Keep the original jacket cut, lapels, white shirt, cuffs, pocket square and black microphone.\nAll anatomy/pose/geometry must come from input 1: precise silver faceted face, cyan eyes and expression, white metallic hair, connected moustache and broad goatee, mouth opening, head tilt, gaze, exact hands and fingers, shoulders, silhouette, scale, lower cutoff and full margins. Keep matching cloth placement where the pose permits. Same polished detailed cel-shaded illustration. Do not mirror. True transparent alpha in all empty space including arm gaps. No desk/chair/background/props/shadow/text/labels/watermark. One pose.\nPose requirement: Mouth OPEN exactly as input 1; hands clasped low.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-talk.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-talk.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-talk.png",
+      "sha256": "64baf86716e53bd4e1ca838cd4fda5b1f1acef7c9d2dfd07b4a8aa4d397df1c6",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-point",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve\nONE transparent PNG character cutout on the full untrimmed 1254 x 1254 square canvas.\nInput 1 is the EDIT TARGET: original Don robot pose. Input 2 is the COSTUME REFERENCE, the corrected Alternate suit 1 based on Don Cherry's real daisy suit. Change ONLY input 1's jacket fabric and tie to match input 2 exactly: sky-blue/aqua-blue cloth with comfortably spaced large simple WHITE DAISIES, many narrow white petals and small golden-yellow centres; abundant plain blue between flowers. No leaves, stems, paisley, pink, ornamental scrollwork or extra pattern. Ivory satin tie with subtle diagonal woven sheen. Keep the original jacket cut, lapels, white shirt, cuffs, pocket square and black microphone.\nAll anatomy/pose/geometry must come from input 1: precise silver faceted face, cyan eyes and expression, white metallic hair, connected moustache and broad goatee, mouth opening, head tilt, gaze, exact hands and fingers, shoulders, silhouette, scale, lower cutoff and full margins. Keep matching cloth placement where the pose permits. Same polished detailed cel-shaded illustration. Do not mirror. True transparent alpha in all empty space including arm gaps. No desk/chair/background/props/shadow/text/labels/watermark. One pose.\nPose requirement: Mouth CLOSED. Raised index finger pointing up/right exactly as input 1.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-point.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-point.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-point.png",
+      "sha256": "8f1f3659055641bdb74123eba12f9033a56838e538610fc9c0c0a4909119b52f",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-point-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve\nONE transparent PNG character cutout on the full untrimmed 1254 x 1254 square canvas.\nInput 1 is the EDIT TARGET: original Don robot pose. Input 2 is the COSTUME REFERENCE, the corrected Alternate suit 1 based on Don Cherry's real daisy suit. Change ONLY input 1's jacket fabric and tie to match input 2 exactly: sky-blue/aqua-blue cloth with comfortably spaced large simple WHITE DAISIES, many narrow white petals and small golden-yellow centres; abundant plain blue between flowers. No leaves, stems, paisley, pink, ornamental scrollwork or extra pattern. Ivory satin tie with subtle diagonal woven sheen. Keep the original jacket cut, lapels, white shirt, cuffs, pocket square and black microphone.\nAll anatomy/pose/geometry must come from input 1: precise silver faceted face, cyan eyes and expression, white metallic hair, connected moustache and broad goatee, mouth opening, head tilt, gaze, exact hands and fingers, shoulders, silhouette, scale, lower cutoff and full margins. Keep matching cloth placement where the pose permits. Same polished detailed cel-shaded illustration. Do not mirror. True transparent alpha in all empty space including arm gaps. No desk/chair/background/props/shadow/text/labels/watermark. One pose.\nPose requirement: Keep mouth OPEN and raised index finger as in input 1. Input 2 is the matching CLOSED pointing pose; match its body, cloth and all flower placements.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-point-talk.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-point.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-point-talk.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-point.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-point-talk.png",
+      "sha256": "3ed2cef7147f61e7f9a4af47e9a32b38dd5782505a9951d8cf71355a8f93f8f2",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-angry-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 1 real-suit reference revision, angry-talk pose.\nInput images: Image 1 is the exact edit target (normal Don angry-talk); Image 2 is the wardrobe reference only (revised Alternate suit 1 default).\nChange ONLY jacket fabric design and necktie on Image 1 to match Image 2 exactly: bright sky-blue/aqua cloth with well-spaced SIMPLE WHITE DAISIES with many narrow white petals and small yellow centres. Lots of blue fabric remains between flowers; no other motifs. Tie is ivory/cream satin with subtle ivory diagonal woven texture. Preserve Image 1's existing jacket cut, seams/folds, white shirt/cuffs, white pocket square, and attached small black lapel microphone.\nKeep Image 1's entire angry talking face and pose exactly: steep angry white eyebrows, slanted cyan eye lights, wide rectangular open black mouth, connected white moustache/goatee, white swept hair, silver robot plates and mechanical anatomy, interlaced metallic hands, all fingers, camera angle, outlines and shading. Preserve face/hands anchors, silhouette, size, position, and all transparent canvas margins. Do not borrow the costume reference's neutral mouth or eyebrows.\nOutput the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, desk, floor, text, logo, watermark, extra accessories, flower boutonniere, leaves, stems, scrollwork, paisley, holiday symbols, additional colours, cropping, zoom, or repositioning. One standalone pose.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-angry-talk.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-angry-talk.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-angry-talk.png",
+      "sha256": "5137e7fc302b2c28d507852b774022f84b5820ca22bd2988963f08ccf48a395c",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-surprised",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 1 real-suit reference revision, surprised pose.\nInput images: Image 1 is the exact edit target (normal Don surprised); Image 2 is the wardrobe reference only (revised Alternate suit 1 default).\nChange ONLY jacket fabric design and necktie on Image 1 to match Image 2 exactly: bright sky-blue/aqua cloth with well-spaced SIMPLE WHITE DAISIES with many narrow white petals and small yellow centres. Lots of blue fabric remains between flowers; no other motifs. Tie is ivory/cream satin with subtle ivory diagonal woven texture. Preserve Image 1's existing jacket cut, seams/folds, white shirt/cuffs, white pocket square, and attached small black lapel microphone.\nKeep Image 1's entire surprised face and pose exactly: raised white eyebrows, wide round cyan eye lights, open rectangular black mouth, connected white moustache/goatee, white swept hair, silver robot plates and mechanical anatomy, interlaced metallic hands, all fingers, camera angle, outlines and shading. Preserve face/hands anchors, silhouette, size, position, and all transparent canvas margins. Do not borrow the costume reference's neutral mouth or eyebrows.\nOutput the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, desk, floor, text, logo, watermark, extra accessories, flower boutonniere, leaves, stems, scrollwork, paisley, holiday symbols, additional colours, cropping, zoom, or repositioning. One standalone pose.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-surprised.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-surprised.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-surprised.png",
+      "sha256": "c0b2165fa6c3c706ab1882c757ab2d7eadf2ce233277b93d81d972bc97f80d18",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-stare",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 1 real-suit reference revision, stare pose.\nInput images: Image 1 is the exact edit target (normal Don stare); Image 2 is the wardrobe reference only (revised Alternate suit 1 default).\nChange ONLY jacket fabric design and necktie on Image 1 to match Image 2 exactly: bright sky-blue/aqua cloth with well-spaced SIMPLE WHITE DAISIES with many narrow white petals and small yellow centres. Lots of blue fabric remains between flowers; no other motifs. Tie is ivory/cream satin with subtle ivory diagonal woven texture. Preserve Image 1's existing jacket cut, seams/folds, white shirt/cuffs, white pocket square, and attached small black lapel microphone.\nKeep Image 1's entire silent stare face and pose exactly: head turned toward the viewer's right, stern white eyebrows, narrow horizontal cyan eye lights, closed mouth, connected white moustache/goatee, white swept hair, silver robot plates and mechanical anatomy, interlaced metallic hands, all fingers, camera angle, outlines and shading. Preserve face/hands anchors, silhouette, size, position, and all transparent canvas margins. Do not borrow the costume reference's forward head pose.\nOutput the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, desk, floor, text, logo, watermark, extra accessories, flower boutonniere, leaves, stems, scrollwork, paisley, holiday symbols, additional colours, cropping, zoom, or repositioning. One standalone pose.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-stare.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-stare.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-stare.png",
+      "sha256": "38e6d1f3b7aabef36d688df0cf4bf4b5e5c67c912a90db28216aa762e5d0ac8e",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-pause",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 1 real-suit reference revision, pause pose.\nInput images: Image 1 is the exact edit target (normal Don pause); Image 2 is the wardrobe reference only (revised Alternate suit 1 default).\nChange ONLY jacket fabric design and necktie on Image 1 to match Image 2 exactly: bright sky-blue/aqua cloth with well-spaced SIMPLE WHITE DAISIES with many narrow white petals and small yellow centres. Lots of blue fabric remains between flowers; no other motifs. Tie is ivory/cream satin with subtle ivory diagonal woven texture. Preserve Image 1's existing jacket cut, seams/folds, white shirt/cuffs, white pocket square, and attached small black lapel microphone.\nKeep Image 1's entire quiet pause expression and pose exactly: slightly bowed tilted head, lowered small horizontal cyan eye lights, relaxed uneven eyebrows, closed mouth, connected white moustache/goatee, white swept hair, silver robot plates and mechanical anatomy, interlaced metallic hands, all fingers, camera angle, outlines and shading. Preserve face/hands anchors, silhouette, size, position, and all transparent canvas margins. Do not borrow the costume reference's alert head or eyebrows.\nOutput the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, desk, floor, text, logo, watermark, extra accessories, flower boutonniere, leaves, stems, scrollwork, paisley, holiday symbols, additional colours, cropping, zoom, or repositioning. One standalone pose.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-pause.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-pause.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-pause.png",
+      "sha256": "3e02c011a96242d51d98db08714b9ff03297d804d55358debad7175725c9d0ed",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-tie-adjust",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 1 real-suit reference revision, tie-adjust pose.\nInput images: Image 1 is the exact edit target (normal Don tie-adjust); Image 2 is the wardrobe reference only (revised Alternate suit 1 default).\nChange ONLY jacket fabric design and necktie on Image 1 to match Image 2 exactly: bright sky-blue/aqua cloth with well-spaced SIMPLE WHITE DAISIES with many narrow white petals and small yellow centres. Lots of blue fabric remains between flowers; no other motifs. Tie is ivory/cream satin with subtle ivory diagonal woven texture, keeping its existing shape beneath the adjusting hand. Preserve Image 1's existing jacket cut, seams/folds, white shirt/cuffs, white pocket square, and attached small black lapel microphone.\nKeep Image 1's entire tie adjustment and expression exactly: one raised silver robotic hand grips the tie knot, the other hand rests low, head bowed and slightly tilted, stern white eyebrows, narrow horizontal cyan eye lights, closed mouth, connected white moustache/goatee, white swept hair, silver robot plates and mechanical anatomy, all fingers and wrists, camera angle, outlines and shading. Preserve face/hands anchors, silhouette, size, position, and all transparent canvas margins. Do not borrow the costume reference's clasped hands or default head.\nOutput the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, desk, floor, text, logo, watermark, extra accessories, flower boutonniere, leaves, stems, scrollwork, paisley, holiday symbols, additional colours, cropping, zoom, or repositioning. One standalone pose.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-tie-adjust.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-tie-adjust.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-tie-adjust.png",
+      "sha256": "80e4fab8eddb5d7cae039f638b7968f925b270147bbbd1d8c022f98aa55e5ded",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-lean-camera",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve\nONE transparent PNG character cutout on the full untrimmed 1254 x 1254 square canvas.\nInput 1 is the EDIT TARGET: original Don robot pose. Input 2 is the COSTUME REFERENCE, the corrected Alternate suit 1 based on Don Cherry's real daisy suit. Change ONLY input 1's jacket fabric and tie to match input 2 exactly: sky-blue/aqua-blue cloth with comfortably spaced large simple WHITE DAISIES, many narrow white petals and small golden-yellow centres; abundant plain blue between flowers. No leaves, stems, paisley, pink, ornamental scrollwork or extra pattern. Ivory satin tie with subtle diagonal woven sheen. Keep the original jacket cut, lapels, white shirt, cuffs, pocket square and black microphone.\nAll anatomy/pose/geometry must come from input 1: precise silver faceted face, cyan eyes and expression, white metallic hair, connected moustache and broad goatee, mouth opening, head tilt, gaze, exact hands and fingers, shoulders, silhouette, scale, lower cutoff and full margins. Keep matching cloth placement where the pose permits. Same polished detailed cel-shaded illustration. Do not mirror. True transparent alpha in all empty space including arm gaps. No desk/chair/background/props/shadow/text/labels/watermark. One pose.\nPose requirement: Mouth OPEN and robot leaning forward DIRECTLY into the camera, eyes staring at viewer, hands clasped low; exact front-facing perspective, enlarged head and shoulder geometry from input 1.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-lean-camera.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-lean-camera.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-lean-camera.png",
+      "sha256": "73e39714f3d0e394c809e443737535f329a04ee717aa57e908662dabea2f843f",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-mic-remove",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nCreate ONE transparent PNG Coach's Corner character cutout on the original full untrimmed 1254 x 1254 square canvas.\nInput image 1 is the EDIT TARGET: original Don robot microphone-removal pose. Input image 2 is the revised Alternate suit 1 default COSTUME REFERENCE only, based on Don Cherry's real daisy suit.\nChange ONLY image 1's jacket fabric and tie to match image 2: sky-blue/aqua-blue cloth with comfortably spaced large simple WHITE DAISIES, many narrow petals around small golden-yellow centres, and plenty of plain blue visible between flowers. Same flower scale and colour palette as image 2. No leaves, stems, paisley, scrolls, pink, outlined petals or invented ornaments. Ivory satin necktie with subtle diagonal woven texture. Keep original jacket cut, lapels and folds, white shirt/cuffs and pocket square.\nKeep image 1's microphone-removal action exactly: screen-right hand pinches the small BLACK MICROPHONE at the lapel, black mic cable curves down across the chest, other hand rests low. Preserve its stern downcast cyan eyes, lowered head, CLOSED mouth seam, silver faceted faceplates, white sculpted hair and connected white moustache and goatee. Keep every finger, head and shoulder anchor, body silhouette, scale, full-canvas margins and lower cutoff. Do not copy image 2's head angle or clasped hands. Same polished detailed cel-shaded robot illustration and silver lighting; never mirrored.\nTrue transparent alpha background including all gaps between arms and body. No extra microphone, desk, chair, floor, cast shadow, scenery, text, watermark, boutonniere, vest or holiday motifs. One pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-mic-remove.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-mic-remove.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-mic-remove.png",
+      "sha256": "50cb5ad287da266703799d66427d20172fc8b560b1c3439e039033c94d0743da",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-thumbs-up",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nCreate ONE transparent PNG production character cutout on the full untrimmed 1254 x 1254 square canvas.\nInput image 1 is the EDIT TARGET, Don robot's original CLOSED thumbs-up pose. Input image 2 is the wardrobe reference only, the revised Alternate suit 1 master based on Don Cherry's real daisy suit.\nChange ONLY image 1's jacket fabric and necktie to match image 2 exactly: clear sky-blue/aqua-blue cloth with scattered large simple WHITE DAISIES, each having many narrow white petals and a small golden-yellow centre, comfortably spaced so plenty of plain blue shows between flowers. No leaves, stems, paisley, scrollwork, pink, outlines around petals or extra ornaments. Ivory satin tie with a subtle diagonal woven texture, matching image 2. Keep the original jacket cut, seams and folds, white shirt/cuffs/pocket square, and black lapel microphone. Do not add a boutonniere or vest.\nPreserve image 1's CLOSED smiling mouth seam, happy curved cyan screen eyes, exact raised thumb and all fingers, low other hand, head/shoulder anchors, face angle, silver faceted faceplates, sculpted white hair, connected white moustache and broad goatee, body silhouette, scale, canvas margins and lower cutoff. Do not copy image 2's stern face or clasped-hand pose. Same polished detailed cel-shaded illustration, sharp black edges and silver shading. Left host facing slightly screen-right, never mirrored.\nGenuine transparent alpha in empty regions and between arms and body. Preserve full square canvas. No desk, chair, floor, cast shadow, scenery, background, text, labels, watermark or holiday symbols. One pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-thumbs-up.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-thumbs-up.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-thumbs-up.png",
+      "sha256": "6f29efbebad54dfe3dd5585fb90c20328a793c1fcc2acc943b2f4fff1c8b192a",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-thumbs-up-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nCreate ONE transparent PNG production character cutout, full untrimmed 1254 x 1254 square canvas.\nInput image 1 is the EDIT TARGET, Don robot's original OPEN-MOUTH thumbs-up speaking pose. Input image 2 is the matching CLOSED thumbs-up pose in revised Alternate suit 1; use it as the costume and body-pattern reference.\nChange ONLY image 1's jacket fabric and necktie to match image 2: clear sky-blue/aqua-blue cloth with scattered simple WHITE DAISIES, many narrow white petals with small golden-yellow centres. Plenty of plain blue visible between flowers. Match image 2's flower placements, sizes, lapel layout and sleeve pattern as closely as possible. Ivory satin tie with subtle diagonal woven texture. No leaves, stems, paisley, scrollwork, pink, outlined petals or extra ornaments. Preserve original jacket cut/folds, white shirt/cuffs/pocket square and black microphone.\nKeep image 1's OPEN smiling mouth, exact happy curved cyan eyes, head angle, raised thumb and fingers, low other hand, original head and shoulder anchors, silver faceted robot face, sculpted white hair and connected white moustache/broad goatee. Do not copy the CLOSED mouth of image 2. Pose, silhouette, scale, canvas margins and lower cutoff must remain aligned to image 1; match image 2's body artwork wherever anatomy already agrees. Same sharp polished cel-shaded silver robot style and lighting. Never mirror the character.\nTrue transparent alpha in every empty region and gap between arms and body. No desk, chair, floor, cast shadow, scenery, background, text, labels, watermark, boutonniere, vest or holiday motifs. One pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-thumbs-up-talk.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-thumbs-up.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-thumbs-up-talk.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-thumbs-up.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-thumbs-up-talk.png",
+      "sha256": "fd8fdac97fd685ad0a20b9ef90bf847f032fff944a690f00695adf1b9a185e1b",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-desk-pound",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nCreate ONE transparent PNG Coach's Corner production cutout on the full untrimmed 1254 x 1254 square canvas.\nInput image 1 is the EDIT TARGET, original Don robot desk-pound CONTACT pose. Input image 2 is ONLY the revised Alternate suit 1 costume reference, adapted from Don Cherry's real sky-blue daisy suit.\nChange ONLY image 1's jacket fabric and tie to match image 2: sky-blue/aqua-blue cloth with spaced large simple WHITE DAISIES, many narrow white petals around small golden-yellow centres, with plenty of plain blue between flowers. Match the master reference's flower scale and colours. No leaves, stems, scrollwork, paisley, pink, petal outlines or extra ornaments. Ivory satin tie with subtle diagonal woven texture. Preserve original white shirt/cuffs/pocket square and black lapel mic, jacket cut, seams and folds.\nPreserve the CONTACT exactly: the screen-left clenched metal fist is LOW at the original desk-contact height along the bottom edge, with the same low forearm angle. The other open hand stays low at screen-right. Do not lift the fist into the preparation pose. Preserve stern slanted cyan eyes, CLOSED mouth seam, head angle, faceted silver face, white sculpted hair and connected white moustache/broad goatee. Keep every finger, head/shoulder anchor, body silhouette, scale, full-canvas margins and lower cutoff exactly as image 1. Do not borrow image 2's clasped hands. Same polished detailed cel-shaded robot illustration and silver shading; never mirrored.\nTrue transparent alpha background including arm/body gaps. No painted desk, chair, floor, cast shadow, impact marks, speed lines, sound marks, scenery, text, labels, watermark, boutonniere, vest or holiday symbols. One pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-desk-pound.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-desk-pound.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-desk-pound.png",
+      "sha256": "307174868d129a575c08442c2459a177914cf14470302a5e68fca04e5cd1e0da",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-2-desk-pound-ready",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nCreate ONE transparent PNG Coach's Corner production cutout on the full untrimmed 1254 x 1254 square canvas.\nInput image 1 is the EDIT TARGET, original Don robot desk-pound PREPARATION pose. Input image 2 is ONLY the revised Alternate suit 1 costume reference, adapted from Don Cherry's real sky-blue daisy suit.\nChange ONLY image 1's jacket fabric and tie to match image 2: clear sky-blue/aqua-blue cloth with spaced large simple WHITE DAISIES, many narrow white petals and small golden-yellow centres, with plenty of plain blue between flowers. Match the reference's floral scale and colours. No leaves, stems, scrollwork, paisley, pink, petal outlines or extra ornaments. Ivory satin tie with subtle diagonal woven texture. Preserve original white shirt/cuffs/pocket square and black lapel mic, jacket cut, seams and folds.\nPreserve the PREPARATION exactly: the screen-left clenched metal fist and forearm are slightly LIFTED ABOVE contact height, with the same empty transparent gap underneath, while the other open hand remains low at screen-right. Do not lower the fist or convert to the contact pose. Keep original stern slanted cyan eyes, CLOSED mouth seam, head angle, faceted silver face, white sculpted hair and connected white moustache/broad goatee. Same hand anatomy, head/shoulder positions, body silhouette, scale, full-canvas margins and lower cutoff as image 1. Do not borrow image 2's relaxed hands. Same polished cel-shaded illustration and sharp silver shading, never mirrored.\nTrue transparent alpha background and arm/body gaps. No painted desk, chair, floor, cast shadow, impact marks, speed lines, sound marks, scenery, text, labels, watermark, vest, boutonniere or holiday symbols. One pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-desk-pound-ready.png",
+        "local/coachs-corner/assets/don-alternate-suit-1/reference-revision/don-alternate-1-default.png"
+      ],
+      "catalogReferences": [
+        "public/coachs-corner/robots-v2/don-desk-pound-ready.png",
+        "public/coachs-corner/robots-v2/don-alternate-2-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-2-desk-pound-ready.png",
+      "sha256": "0b03fef9c87c396e3e768f57eb086c9546fc6cdc273ee35ebf039a2c0d4d9043",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    }
+  ]
+}

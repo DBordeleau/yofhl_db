@@ -17,6 +17,7 @@ export const frameSignature = (f: Frame) => {
         s += `|${h.gesture}${h.open ? 1 : 0}${h.motion ?? '-'}${h.flinch ? 1 : 0}|${c ? `${c.line}.${c.shown}.${c.active ? 1 : 0}${c.knocked ? 1 : 0}` : '-'}`;
         // Publish the short contact animation, then return to sparse updates.
         if (who === 'don' && gestureAction(h.gesture) === 'pound') s += `|impact:${Math.min(10, Math.floor(h.gestureMs / 16))}`;
+        if (h.reaction) s += `|fx:${h.reaction.effect}:${Math.floor(h.reaction.elapsed / 32)}`;
     }
     return s;
 };

@@ -90,6 +90,21 @@ test('CLI rejects recap conflicts, including stale empty explicit flags, before 
     for (const [name, contents] of Object.entries(files)) assert.equal(await readFile(path.join(dir, name), 'utf8'), contents);
 });
 
+test('Sunday CLI prepare uses the supplied Monday air date while keeping the true snapshot time', async t => {
+    const { root, run } = await workspace(t);
+    const editorial = path.join(root, 'assets/coachs-corner/editorial');
+    await mkdir(editorial, { recursive: true });
+    await writeFile(path.join(editorial, 'continuity.json'), '{"pronunciations":[]}');
+    const result = run(['prepare', '--slug', 'monday-air', '--recap', '--air-date', '2026-10-19'], '2026-10-18T23:00:00-04:00');
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const dir = draftDirectory('monday-air', root);
+    const facts = JSON.parse(await readFile(path.join(dir, 'facts.json'), 'utf8'));
+    assert.equal(facts.period.number, 1);
+    assert.equal(facts.capturedAt, '2026-10-19T03:00:00.000Z');
+    assert.equal(facts.phase, 'active');
+    assert.match(await readFile(path.join(dir, 'script.txt'), 'utf8'), /date: 2026-10-19/);
+});
+
 test('failed recap refresh leaves the previous snapshot and script intact without a backup or partial file', async t => {
     const { dir, files, run } = await workspace(t);
     const result = run(['facts', '--slug', 'sample', '--refresh', '--recap'], '2026-10-18T14:00:00-04:00');

@@ -72,6 +72,38 @@ test('mistakes are reported on their line', () => {
     assert.match(at(8), /colon/);
 });
 
+test('completed matchups opt into winner labels and require both scores', () => {
+    const script = parseScript(`${head}>> matchup SKGS 230.8 JAGR 222.85 final "Week 1 / Final"\nRON: Final.`);
+    assert.deepEqual(script.diagnostics, []);
+    const event = script.events[0];
+    assert.equal(event.kind, 'stage');
+    if (event.kind !== 'stage') return;
+    assert.deepEqual(event.cues, [{ type: 'monitor', graphic: {
+        type: 'matchup', home: 'SKGS', away: 'JAGR', homeScore: '230.8', awayScore: '222.85',
+        caption: 'Week 1 / Final', status: 'final',
+    } }]);
+    assert.ok(hasErrors(parseScript(`${head}>> matchup HH NPD final`)));
+    assert.ok(hasErrors(parseScript(`${head}>> matchup HH 41.5 NPD final`)));
+});
+
+test('standings preserve point precision and validate records and team references', () => {
+    const script = parseScript(`${head}>> standings "Week 1 standings" HH 1 0 212.35, NPD 0 1 174.20\nRON: Standings.`, { knownTeam: ref => ref === 'HH' });
+    const event = script.events[0];
+    assert.equal(event.kind, 'stage');
+    if (event.kind !== 'stage') return;
+    assert.deepEqual(event.cues, [{ type: 'monitor', graphic: {
+        type: 'standings', title: 'Week 1 standings', rows: [
+            { team: 'HH', wins: 1, losses: 0, points: '212.35' },
+            { team: 'NPD', wins: 0, losses: 1, points: '174.20' },
+        ],
+    } }]);
+    assert.equal(script.diagnostics.length, 1);
+    assert.match(script.diagnostics[0].message, /NPD/);
+    for (const bad of ['', 'HH 1 212.35', 'HH -1 0 212.35', 'HH 1.5 0 212.35', 'HH 1 0 unknown', Array(11).fill('HH 1 0 212.35').join(', ')]) {
+        assert.ok(hasErrors(parseScript(`${head}>> standings ${bad}\nRON: Standings.`)), bad);
+    }
+});
+
 test('a cut-off line hands over with no gap, and yells punch and flinch', () => {
     const tl = compile(parseScript(`${head}RON: The draft was--\n\nDON: !!THE DRAFT.!!`));
     const [ron, don] = tl.lines;
@@ -102,4 +134,13 @@ test('compare, numbers and player graphics parse', () => {
     assert.deepEqual(graphics[1], { type: 'numbers', team: 'HH', items: [{ value: '1', label: 'goal' }, { value: '18', label: 'assists' }] });
     assert.deepEqual(graphics[2], { type: 'player', name: 'Tom Wilson', team: 'Lali', caption: '76th overall', mood: 'hearts' });
     assert.deepEqual(playerRefs(script), ['Tom Wilson']);
+});
+
+test('stat and numbers graphics can feature a player headshot', () => {
+    const script = parseScript(`${head}>> stat "2x" "Hat tricks" "Oct 13 and 15" VWIZ with "Brady Tkachuk"\n>> numbers Lali 0 goals, 0 assists with "Tom Wilson" "Oct 12–18 · 3 GP"\n>> numbers HH 2 goals "Week 1"\nRON: Hi.`);
+    const graphics = script.events.flatMap(e => e.kind === 'stage' ? e.cues : []).map(c => c.type === 'monitor' && c.graphic);
+    assert.deepEqual(graphics[0], { type: 'stat', value: '2x', label: 'Hat tricks', detail: 'Oct 13 and 15', team: 'VWIZ', player: 'Brady Tkachuk' });
+    assert.deepEqual(graphics[1], { type: 'numbers', team: 'Lali', items: [{ value: '0', label: 'goals' }, { value: '0', label: 'assists' }], player: 'Tom Wilson', caption: 'Oct 12–18 · 3 GP' });
+    assert.deepEqual(graphics[2], { type: 'numbers', team: 'HH', items: [{ value: '2', label: 'goals' }], caption: 'Week 1' });
+    assert.deepEqual(playerRefs(script), ['Brady Tkachuk', 'Tom Wilson']);
 });

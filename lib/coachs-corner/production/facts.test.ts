@@ -92,6 +92,24 @@ test('conflicting explicit recap period fails before sources are fetched', async
     assert.deepEqual(calls, []);
 });
 
+test('Sunday production can select Monday air date without changing live source times or phase', async t => {
+    const now = '2026-10-18T23:30:00-04:00';
+    t.mock.timers.enable({ apis: ['Date'], now: new Date(now) });
+    const data = fixtures();
+    data.getLeagueInfo.scoringPeriods = weeklyPeriods;
+    data.getLeagueInfo.matchups[0].period = 1;
+    data.getMatchupScores.period = 1;
+    const packet = await captureFacts(config, { recap: true, airDate: '2026-10-19', fetcher: mockFetch(data) });
+    assert.equal(packet.period?.number, 1);
+    assert.equal(packet.phase, 'active');
+    assert.equal(packet.captureStartedAt, new Date(now).toISOString());
+    assert.ok(packet.sources.every(source => source.fetchedAt === packet.captureStartedAt));
+    assert.match(packet.limitations[0], /2026-10-12 through 2026-10-18/);
+    for (const airDate of ['', '2026-02-30', 'tomorrow']) {
+        await assert.rejects(captureFacts(config, { recap: true, airDate, fetcher: mockFetch(data) }), /valid YYYY-MM-DD/);
+    }
+});
+
 test('fresh capture preserves score units, missing categories, provenance and distinct roster calendar', async () => {
     const calls: string[] = [];
     const packet = await captureFacts(config, { period: 7, fetcher: mockFetch(fixtures(), calls) });

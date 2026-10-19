@@ -332,6 +332,15 @@
 .host[data-who='ron'] { right: var(--host-side); --dir: -1; --away: 1; }
 .host[data-flinch] { animation: flinch .46s cubic-bezier(.2, .8, .3, 1) both; }
 
+.reactionParticles { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
+.reactionParticles[data-effect='happy'] { filter: drop-shadow(0 0 .5cqw #ffd36a40) drop-shadow(0 .15cqw .1cqw #070b1a66); }
+.reactionParticles[data-effect='shocked'] { filter: drop-shadow(0 .15cqw .15cqw #070b1a99); }
+.reactionStill { display: none; }
+@media (prefers-reduced-motion: reduce) {
+    .reactionLive { display: none; }
+    .reactionStill { display: inline; }
+}
+
 @keyframes flinch {
     0% { transform: none; }
     22% { transform: translate(calc(var(--away) * 1.6%), -1.1%) rotate(calc(var(--away) * 1.4deg)); }
@@ -616,6 +625,9 @@
 .gSide span { max-width: 36cqw; font-size: 2.7cqw; font-weight: 700; opacity: .85; }
 .gSide strong { font-size: 7cqw; font-weight: 900; font-stretch: 90%; font-variant-numeric: tabular-nums; }
 .gSide[data-lead] strong { color: #ffe08a; }
+.gMatchup[data-caption] .gSide { gap: .4cqw; padding-bottom: 10cqw; }
+.gMatchup[data-caption] .gSide .gLogo { width: 18cqw; }
+.gMatchup[data-caption] .gVs { top: 24%; }
 
 .gVs {
     position: absolute;
@@ -732,6 +744,22 @@
 @keyframes stat-in { from { scale: .6; opacity: 0; } to { scale: 1; opacity: 1; } }
 
 .gStatText { position: relative; display: flex; flex-direction: column; gap: 1.2cqw; }
+
+/* a featured player stands at the right edge, cut off by the team bar like a broadcast bust */
+.gStat[data-shot] { gap: 3cqw; padding-right: 33cqw; }
+.gStat[data-shot] .gStatText strong { font-size: 5.4cqw; white-space: nowrap; }
+.gStat[data-shot] .gStatText span { font-size: 3.2cqw; white-space: nowrap; }
+.gStatShot {
+    position: absolute;
+    right: -7cqw;
+    bottom: 0;
+    height: 90%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    object-position: 50% 100%;
+    filter: drop-shadow(-1.2cqw 0 2.4cqw rgba(4, 8, 24, .55));
+    animation: who-in .5s .15s cubic-bezier(.2, .8, .2, 1) both;
+}
 .gStatText strong { font-size: 6.2cqw; line-height: 1; font-weight: 900; font-stretch: 105%; text-transform: uppercase; }
 .gStatText span { font-size: 3.6cqw; font-weight: 700; color: #c4d2ea; }
 
@@ -747,6 +775,28 @@
     text-transform: uppercase;
     background: var(--team, #26335f);
 }
+
+.gStandings {
+    position: absolute;
+    inset: 0;
+    padding: 2cqw 4cqw;
+    background: linear-gradient(155deg, #1d2a55, #0b1129 75%);
+}
+
+.gStandings table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.gStandings caption { padding-bottom: 1.1cqw; font-family: var(--display); font-size: 4.3cqw; line-height: 1.1; font-weight: 900; text-transform: uppercase; text-align: left; }
+.gStandings col:first-child { width: 62%; }
+.gStandings col:nth-child(2), .gStandings col:nth-child(3) { width: 9%; }
+.gStandings col:last-child { width: 20%; }
+.gStandings thead { background: #c8102e; }
+.gStandings th, .gStandings td { height: 3.2cqw; padding: .15cqw 1cqw; font-size: 2.5cqw; line-height: 1.15; font-weight: 700; text-align: center; }
+.gStandings th:first-child { text-align: left; }
+.gStandings th:last-child, .gStandings td:last-child { text-align: right; }
+.gStandings tbody tr { border-bottom: 1px solid rgba(255, 255, 255, .16); }
+.gStandings tbody tr:nth-child(even) { background: rgba(255, 255, 255, .045); }
+.gStandings tbody th > span { display: flex; align-items: center; gap: 1.2cqw; }
+.gStandings .gLogo { flex: 0 0 2.9cqw; width: 2.9cqw; height: 2.9cqw; }
+.gStandings b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 .gList {
     position: absolute;
@@ -781,6 +831,10 @@
 
 .gList li:nth-child(n) { animation-delay: calc(var(--row, 0) * 40ms); }
 .gList li b { overflow: hidden; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
+/* a "quoted label" row has no logo, so the label takes the logo's column too */
+.gList li[data-label] { grid-template-columns: 1fr auto; }
+.gList ol[data-cols='1'] li[data-label] { padding: 1.6cqw 0; font-size: 4.2cqw; }
+.gList .gSlab { font-size: 4.8cqw; }
 .gList li span { font-weight: 900; font-variant-numeric: tabular-nums; }
 
 @keyframes row-in { from { opacity: 0; translate: -2cqw 0; } to { opacity: 1; translate: 0 0; } }
@@ -883,6 +937,26 @@
 .gNum b { font-family: var(--display); font-size: 22cqw; line-height: .85; font-weight: 900; font-stretch: 105%; font-style: italic; }
 .gNum span { margin-top: 1cqw; font-size: 4cqw; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; color: #c4d2ea; }
 .gNum:first-child b { color: #ff5c6c; }
+/* a row of goose eggs all reads as nothing */
+.gNum[data-zero] b { color: #ff5c6c; }
+
+.gNumPlayer { display: flex; align-items: center; gap: 3cqw; animation: who-in .45s .05s cubic-bezier(.2, .8, .2, 1) both; }
+.gNumPlayer > div:last-child { display: flex; flex-direction: column; gap: .8cqw; min-width: 0; }
+.gNumPlayer b { font-family: var(--display); font-size: 6.4cqw; line-height: .95; font-weight: 900; font-stretch: 110%; font-style: italic; text-transform: uppercase; }
+.gNumPlayer span { display: flex; align-items: center; gap: 1.4cqw; font-size: 3.2cqw; font-weight: 700; color: #c4d2ea; }
+.gNumPlayer .gLogo { width: 6cqw; }
+.gNumShot {
+    position: relative;
+    flex: none;
+    width: 15cqw;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, .14);
+    box-shadow: 0 0 0 .6cqw rgba(255, 255, 255, .85);
+}
+.gNumShot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; }
+.gNumShot span { display: grid; place-items: center; height: 100%; font-size: 6cqw; font-weight: 900; }
 
 /* a player card; the hearts mood is a crush */
 .gPlayer {
@@ -1655,7 +1729,7 @@
     .host[data-desk-action] .body { transform: none; }
     .deskImpact { display: none; }
     .world { transition: none; }
-    .punch, .jolt, .host, .breath, .body, .plate, .word > span, .picture, .cut, .chyron, .gVs, .gPickNo, .gPickWho, .gStatValue, .gList li, .gCompare li, .gNum, .gShot, .gPlayerText, .gHeart, .gLeads, .gGap li, .bumper, .bumper * {
+    .punch, .jolt, .host, .breath, .body, .plate, .word > span, .picture, .cut, .chyron, .gVs, .gPickNo, .gPickWho, .gStatValue, .gStatShot, .gList li, .gCompare li, .gNum, .gNumPlayer, .gShot, .gPlayerText, .gHeart, .gLeads, .gGap li, .bumper, .bumper * {
         animation: none !important;
     }
     .body img, .body img[data-on] { transition: none; }

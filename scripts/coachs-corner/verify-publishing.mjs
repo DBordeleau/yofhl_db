@@ -123,7 +123,7 @@ export default function ArtReview() {
             <button onClick={()=>document.exitFullscreen()}>Exit fullscreen</button>
         </div>
         {mode==='motion' ? <>
-            <label>Mouth pair <select aria-label="Mouth pair" style={{color:'black'}} value={pair} onChange={e=>setPair(e.target.value)}>{['don/rest','don/point','don/thumbs','don/halloween-rest','don/halloween-point','don/halloween-thumbs','ron/rest'].map(p=><option key={p}>{p}</option>)}</select></label>
+            <label>Mouth pair <select aria-label="Mouth pair" style={{color:'black'}} value={pair} onChange={e=>setPair(e.target.value)}>{['don/rest','don/point','don/thumbs','don/halloween-rest','don/halloween-point','don/halloween-thumbs','don/alternate-1-rest','don/alternate-1-point','don/alternate-1-thumbs','don/alternate-2-rest','don/alternate-2-point','don/alternate-2-thumbs','don/alternate-3-rest','don/alternate-3-point','don/alternate-3-thumbs','ron/rest'].map(p=><option key={p}>{p}</option>)}</select></label>
             <button onClick={()=>{setAnimate(false);setTalking(!talking);}}>{talking?'Close mouth':'Open mouth'}</button>
             <button onClick={()=>setAnimate(!animate)}>{animate?'Stop mouth animation':'Animate mouths'}</button>
             <button onClick={()=>setAvif(!avif)}>{avif?'Switch to WebP':'Switch to AVIF'}</button>

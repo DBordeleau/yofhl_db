@@ -214,7 +214,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         src.buffer = buffer;
         src.loop = loop;
         const style = cue.voice && DELIVERIES[cue.voice.delivery];
-        src.playbackRate.value = style ? style.pitch : 1;
+        src.playbackRate.value = style ? style.pitch : cue.duration ? rate : 1;
         const peak = style ? 0.2 * style.volume : loop ? 0.06 : 0.25;
         src.connect(gain).connect(bus(cue.id));
         let duration = 0;
@@ -222,7 +222,8 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
             gain.gain.setValueAtTime(0, at);
             gain.gain.linearRampToValueAtTime(peak, at + STUDIO_ROOM.fadeSeconds);
         } else {
-            duration = cue.voice ? Math.max(0.025, Math.min(buffer.duration / src.playbackRate.value, cue.voice.duration / 1000 / rate)) : buffer.duration;
+            duration = cue.voice ? Math.max(0.025, Math.min(buffer.duration / src.playbackRate.value, cue.voice.duration / 1000 / rate))
+                : cue.duration ? Math.min(buffer.duration / rate, cue.duration / 1000 / rate) : buffer.duration;
             gain.gain.setValueAtTime(0.0001, at);
             gain.gain.linearRampToValueAtTime(peak, at + Math.min(0.008, duration / 4));
             gain.gain.setValueAtTime(peak, at + duration * 0.7);

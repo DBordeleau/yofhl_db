@@ -2,7 +2,7 @@ import { mediaUrl } from './media';
 import type { CharacterId, Sound } from './cast';
 
 export type SoundId = CharacterId | 'room' | 'tie' | 'monitor' | Sound;
-export type SynthId = 'classic-don' | 'classic-ron' | 'robot-don' | 'robot-ron' | 'studio-room' | 'tie-rustle' | 'monitor' | Exclude<Sound, 'desk-pound'>;
+export type SynthId = 'classic-don' | 'classic-ron' | 'robot-don' | 'robot-ron' | 'studio-room' | 'tie-rustle' | 'monitor' | Exclude<Sound, 'desk-pound' | 'happy-twinkle'>;
 export type SoundSource = { synth: SynthId } | { files: readonly string[] };
 export interface SoundSlot { source: SoundSource; gain: number }
 export type SoundBank = Record<SoundId, SoundSlot>;
@@ -25,6 +25,7 @@ export const CLASSIC_SOUND_BANK: SoundBank = {
     sting: { source: { synth: 'sting' }, gain: 1 },
     thud: { source: { synth: 'thud' }, gain: 1 },
     'desk-pound': { source: { files: [mediaUrl('/coachs-corner/audio/desk-pound.wav')] }, gain: 0.8 },
+    'happy-twinkle': { source: { files: [mediaUrl('/coachs-corner/audio/happy-twinkle.wav')] }, gain: 0.16 },
 };
 
 /** Approved studio mix, shared by episodes and the sound-check baseline. */

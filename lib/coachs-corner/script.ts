@@ -1,6 +1,6 @@
 import {
-    CAST, CHARACTERS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
-    type CharacterId, type Delivery, type Shot, type Sound,
+    CAST, CHARACTERS, REACTIONS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
+    type CharacterId, type Delivery, type Reaction, type Shot, type Sound,
 } from './cast';
 
 // Parser for Coach's Corner screenplays. The format is documented in docs/coachs-corner.md; in short:
@@ -21,23 +21,27 @@ export interface Meta {
     segment?: number;
     /** words per minute at normal delivery */
     pace: number;
+    /** the schedule slot the public page names ("Pilot"); set by the page, not the front matter */
+    label?: string;
 }
 
 export type Graphic =
     | { type: 'off' } | { type: 'bars' } | { type: 'static' } | { type: 'logo' }
     | { type: 'title'; title: string; sub?: string }
     | { type: 'team'; team: string; caption?: string }
-    | { type: 'matchup'; home: string; away: string; homeScore?: string; awayScore?: string; caption?: string }
+    | { type: 'matchup'; home: string; away: string; homeScore?: string; awayScore?: string; caption?: string; status?: 'final' }
     | { type: 'pick'; pick: string; team?: string; player: string; detail?: string }
-    | { type: 'stat'; value: string; label?: string; detail?: string; team?: string }
+    | { type: 'stat'; value: string; label?: string; detail?: string; team?: string; player?: string }
     | { type: 'list'; title: string; rows: { team?: string; label?: string; value: string }[] }
+    | { type: 'standings'; title: string; rows: { team: string; wins: number; losses: number; points: string }[] }
     | { type: 'compare'; home: string; away: string; homeScore?: string; awayScore?: string; rows: { label: string; home: string; away: string; highlight?: boolean }[] }
-    | { type: 'numbers'; team?: string; items: { value: string; label: string }[] }
+    | { type: 'numbers'; team?: string; player?: string; caption?: string; items: { value: string; label: string }[] }
     | { type: 'player'; name: string; team?: string; caption?: string; mood?: 'hearts' }
     | { type: 'gap'; base: string; others: string[] };
 
 export type Cue =
     | { type: 'pause'; ms: number }
+    | { type: 'reaction'; who: CharacterId; effect: Reaction; duration: number }
     | { type: 'pose'; who: CharacterId; gesture: string }
     | { type: 'cam'; shot: Shot }
     | { type: 'sfx'; sound: Sound }
@@ -122,13 +126,20 @@ const tokenize = (raw: string) => {
 
 const isNumberish = (s: string) => /^[+-]?\d+(\.\d+)?$/.test(s);
 
-const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'list'] as const;
+const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'list', 'standings'] as const;
 
 export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; teams: string[] } => {
     const trimmed = raw.trim();
     const space = trimmed.search(/\s/);
     const type = (space < 0 ? trimmed : trimmed.slice(0, space)).toLowerCase();
-    const rest = space < 0 ? '' : trimmed.slice(space + 1).trim();
+    let rest = space < 0 ? '' : trimmed.slice(space + 1).trim();
+    // stat and numbers can feature a player's headshot: with "Brady Tkachuk"
+    let player: string | undefined;
+    const featured = type === 'stat' || type === 'numbers' ? rest.match(/(?:^|\s)with\s+(?:"([^"]+)"|“([^”]+)”)/i) : null;
+    if (featured) {
+        player = smarten(featured[1] ?? featured[2]);
+        rest = (rest.slice(0, featured.index) + ' ' + rest.slice(featured.index! + featured[0].length)).trim();
+    }
     const tokens = tokenize(rest);
     const quoted = tokens.filter(t => t.quoted).map(t => smarten(t.value));
     const bare = tokens.filter(t => !t.quoted).map(t => t.value);
@@ -148,14 +159,18 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
             return { graphic: { type, team: team(bare[0]), caption: quoted[0] }, teams };
         }
         case 'matchup': {
-            const names = bare.filter(t => !isNumberish(t) && !/^(vs\.?|v)$/i.test(t));
+            const final = bare.some(t => /^final$/i.test(t));
+            const names = bare.filter(t => !isNumberish(t) && !/^(vs\.?|v|final)$/i.test(t));
             if (names.length !== 2) return { error: 'A matchup needs two teams, like >> matchup HH 41.5 NPD 38.', teams };
             const scoreAfter = (name: string) => {
                 const i = bare.indexOf(name);
                 return isNumberish(bare[i + 1] ?? '') ? bare[i + 1] : undefined;
             };
+            if (final && names.some(name => scoreAfter(name) === undefined)) {
+                return { error: 'A final matchup needs both scores, like >> matchup HH 41.5 NPD 38 final.', teams };
+            }
             return {
-                graphic: { type, home: team(names[0]), away: team(names[1]), homeScore: scoreAfter(names[0]), awayScore: scoreAfter(names[1]), caption: quoted[0] },
+                graphic: { type, home: team(names[0]), away: team(names[1]), homeScore: scoreAfter(names[0]), awayScore: scoreAfter(names[1]), caption: quoted[0], ...(final ? { status: 'final' as const } : {}) },
                 teams,
             };
         }
@@ -170,7 +185,7 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
             if (!first) return { error: 'A stat needs a value, like >> stat "76th" "Tom Wilson" "overall pick".', teams };
             const labels = others.filter(t => t.quoted).map(t => smarten(t.value));
             const ref = others.find(t => !t.quoted)?.value;
-            return { graphic: { type, value: smarten(first.value), label: labels[0], detail: labels[1], team: ref ? team(ref) : undefined }, teams };
+            return { graphic: { type, value: smarten(first.value), label: labels[0], detail: labels[1], team: ref ? team(ref) : undefined, ...(player ? { player } : {}) }, teams };
         }
         case 'compare': {
             // first segment names the teams (and scores), each later one is "label home away"
@@ -192,6 +207,10 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
             return { graphic: { type, home: team(names[0]), away: team(names[1]), homeScore: scoreAfter(names[0]), awayScore: scoreAfter(names[1]), rows }, teams };
         }
         case 'numbers': {
+            // an optional "caption" closes the line
+            const captioned = rest.match(/\s*(?:"([^"]*)"|“([^”]*)”)\s*$/);
+            const caption = captioned ? smarten(captioned[1] ?? captioned[2]) : undefined;
+            if (captioned) rest = rest.slice(0, captioned.index);
             const segments = rest.split(/[,|]/).map(r => r.trim()).filter(Boolean);
             let ref: string | undefined;
             const first = segments[0]?.match(/^([^\s\d"“][^\s]*)\s+(.*)$/);
@@ -201,7 +220,7 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
                 return { value: m?.[1] ?? seg, label: smarten(m?.[2] ?? '') };
             });
             if (!items.length) return { error: 'Numbers need at least one value, like >> numbers HH 1 goal, 18 assists.', teams };
-            return { graphic: { type, team: ref ? team(ref) : undefined, items }, teams };
+            return { graphic: { type, team: ref ? team(ref) : undefined, items, ...(player ? { player } : {}), ...(caption ? { caption } : {}) }, teams };
         }
         case 'player': {
             if (!quoted[0]) return { error: 'Name the player in quotes, like >> player "Tom Wilson" Lali hearts "76th overall".', teams };
@@ -212,6 +231,20 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
         case 'gap': {
             if (quoted.length < 2) return { error: 'A gap compares players by last season’s FPts, like >> gap "Tom Wilson" "William Nylander".', teams };
             return { graphic: { type, base: quoted[0], others: quoted.slice(1, 4) }, teams };
+        }
+        case 'standings': {
+            const titleMatch = rest.match(/^(?:"([^"]*)"|“([^”]*)”)\s*/);
+            const title = titleMatch ? smarten(titleMatch[1] ?? titleMatch[2]) : 'Standings';
+            const body = titleMatch ? rest.slice(titleMatch[0].length) : rest;
+            const entries = body.split(/[,|]/).map(r => r.trim()).filter(Boolean).map(tokenize);
+            if (!entries.length || entries.length > 10 || entries.some(row =>
+                row.length !== 4 || !row[0].value || !/^\d+$/.test(row[1].value) || !/^\d+$/.test(row[2].value) ||
+                !isNumberish(row[3].value) || row.slice(1).some(t => !Number.isFinite(Number(t.value)))
+            )) return { error: 'Standings need 1–10 rows of team, wins, losses and fantasy points, like >> standings "Week 1 standings" HH 1 0 212.35, NPD 0 1 174.20.', teams };
+            const rows = entries.map(([ref, wins, losses, points]) => ({
+                team: team(ref.value), wins: Number(wins.value), losses: Number(losses.value), points: points.value,
+            }));
+            return { graphic: { type, title, rows }, teams };
         }
         case 'list': {
             const titleMatch = rest.match(/^(?:"([^"]*)"|“([^”]*)”)\s*/);
@@ -263,6 +296,15 @@ const parseCues = (raw: string, ctx: CueContext): Cue[] => {
         if (kv) {
             const key = kv[1].toLowerCase();
             const value = kv[2].trim();
+            if (key === 'fx') {
+                const [who, effect, ...durationParts] = value.toLowerCase().split(/\s+/);
+                const duration = durationParts.length ? parseDuration(durationParts.join(' ')) : effect === 'happy' ? 4500 : 800;
+                if (!(CHARACTERS as readonly string[]).includes(who) || !(REACTIONS as readonly string[]).includes(effect) ||
+                    duration === null || duration < 100 || duration > 12000) {
+                    ctx.report('error', 'Use fx: don happy 4.5s or fx: ron shocked 800ms; duration must be 100ms–12s.');
+                } else cues.push({ type: 'reaction', who: who as CharacterId, effect: effect as Reaction, duration });
+                continue;
+            }
             if (key === 'cam' || key === 'camera') {
                 const shot = value.toLowerCase().replace(/\s+/g, ' ').replace(/^close-?up /, 'close ') as Shot;
                 if ((SHOTS as readonly string[]).includes(shot)) cues.push({ type: 'cam', shot });
@@ -529,13 +571,14 @@ export function parseScript(source: string, options: ParseOptions = {}): Script 
 
 export const hasErrors = (script: Script) => script.diagnostics.some(d => d.severity === 'error');
 
-/** players named by >> player and >> gap graphics, for looking up headshots and stats */
+/** players named by graphics (player, gap, or stat/numbers with "…"), for looking up headshots and stats */
 export const playerRefs = (script: Script) => Array.from(new Set(script.events.flatMap(e => {
     const cues = e.kind === 'stage' ? e.cues : e.parts.flatMap(p => (p.kind === 'cue' ? [p.cue] : []));
     return cues.flatMap(c => {
         if (c.type !== 'monitor') return [];
         if (c.graphic.type === 'player') return [c.graphic.name];
         if (c.graphic.type === 'gap') return [c.graphic.base, ...c.graphic.others];
+        if ((c.graphic.type === 'stat' || c.graphic.type === 'numbers') && c.graphic.player) return [c.graphic.player];
         return [];
     });
 })));

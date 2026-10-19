@@ -71,6 +71,26 @@ pose; the pose does not automatically fire sound. Existing `thud` keeps its
 original meaning for Don's vocal outbursts. Inspect the new sound in the full
 episode scan and playback after changing its recipe or gain.
 
+## Happy reaction twinkle
+
+`[fx: don happy 6s]` pairs flowers/sparkles with **Twinkle (1)** by Alexia205,
+[Freesound 787357](https://freesound.org/people/Alexia205/sounds/787357/), CC0 1.0.
+The source is Freesound's public high-quality MP3 preview. Prepare it with
+`node scripts/audio/freesound.mjs https://freesound.org/people/Alexia205/sounds/787357/`
+then `node scripts/audio/prepare-happy-twinkle.mjs` and `npm run coachs:assets`.
+`public/coachs-corner/audio/happy-twinkle.json` records the source hash and edits.
+The mono 48 kHz WAV is normalized to at most -20 dBFS RMS/-6 dBFS peak and uses
+bank gain **0.12**. The full episode scanner measures it separately and checks
+that it stays at least 18 dB below dialogue during speaking reactions.
+
+Use an explicit `fx` cue at the desired word; `warm` delivery alone does not
+trigger particles. Hosts can be Don or Ron; durations are 100 ms–12 s (default
+happy 4.5 s, shocked 800 ms). A new effect on the same host replaces the old one.
+Particles use the show clock, including pause/seek, with fixed marks under
+reduced motion. Twinkle is a single playback, truncated to the effect duration
+with a fade; it never loops. Pause, mute and seek stop it without replaying an
+old cue. `[fx: don shocked 800ms]` is silent.
+
 ## FFmpeg
 
 FFmpeg is installed locally in `.cache/audio-tools/`. It does not change the

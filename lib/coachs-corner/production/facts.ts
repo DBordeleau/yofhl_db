@@ -120,8 +120,12 @@ export function selectRecapPeriod(periods: Period[], now: number): { period: Per
 }
 
 /** Read directly from sources, independent of Next's daily cache and the production database. */
-export async function captureFacts(config: LeagueConfig, options: { period?: number; recap?: boolean; players?: string[]; fetcher?: Fetcher } = {}): Promise<FactPacket> {
+export async function captureFacts(config: LeagueConfig, options: { period?: number; recap?: boolean; airDate?: string; players?: string[]; fetcher?: Fetcher } = {}): Promise<FactPacket> {
     if (options.recap && options.period !== undefined) throw new Error('Choose --recap or --period, not both.');
+    if (options.airDate !== undefined && (!options.recap || !/^\d{4}-\d{2}-\d{2}$/.test(options.airDate) ||
+        !Number.isFinite(Date.parse(`${options.airDate}T12:00:00Z`)) || new Date(`${options.airDate}T12:00:00Z`).toISOString().slice(0, 10) !== options.airDate)) {
+        throw new Error('--air-date requires --recap and a valid YYYY-MM-DD calendar date.');
+    }
     const fetcher = options.fetcher ?? fetch;
     const started = new Date().toISOString();
     const url = (endpoint: string, params: Record<string, string> = {}) => `https://www.fantrax.com/fxea/general/${endpoint}?${new URLSearchParams({ leagueId: FANTRAX_LEAGUE_ID, ...params })}`;
@@ -140,7 +144,8 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
         throw new Error('Incomplete Fantrax fact export. No previous snapshot has been replaced.');
     }
     const periods = info.scoringPeriods.map(p => ({ number: p.number, startDate: iso(p.startDate), endDate: iso(p.endDate) })).sort((a, b) => a.number - b.number);
-    const recap = options.recap ? selectRecapPeriod(periods, Date.parse(started)) : undefined;
+    // An intended air date selects the editorial week only. Source times and phase stay live.
+    const recap = options.recap ? selectRecapPeriod(periods, Date.parse(options.airDate ? `${options.airDate}T12:00:00Z` : started)) : undefined;
     const period = recap?.period ?? (options.period === undefined
         ? periods.find(p => Date.parse(p.endDate) >= Date.parse(started)) ?? periods.at(-1)!
         : periods.find(p => p.number === options.period));

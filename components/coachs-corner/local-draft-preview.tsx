@@ -8,15 +8,23 @@ import { parseScript } from '@/lib/coachs-corner/script';
 import { compile } from '@/lib/coachs-corner/timeline';
 import type { StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import type { DraftReport } from '@/lib/coachs-corner/production/local-drafts';
+import { pullQuote } from '@/lib/coachs-corner/pull-quote';
+import { episodeShareCard } from '@/lib/share/model';
 
-export default function LocalDraftPreview({ script, teams, players, report }: { script: string; teams: StudioTeam[]; players: StudioPlayer[]; report: DraftReport }) {
+export default function LocalDraftPreview({ slug, script, teams, players, report }: { slug: string; script: string; teams: StudioTeam[]; players: StudioPlayer[]; report: DraftReport }) {
     const router = useRouter();
     const [pending, startTransition] = useTransition();
     const [cue, setCue] = useState<{ t: number; n: number }>();
     const [activeLine, setActiveLine] = useState<number>();
     const [audio] = useState(() => createShowAudio());
     const [audioError, setAudioError] = useState('');
-    const timeline = useMemo(() => compile(parseScript(script)), [script]);
+    const parsed = useMemo(() => parseScript(script), [script]);
+    const timeline = useMemo(() => compile(parsed), [parsed]);
+    // the card this episode will share once published, dated like the episode page dates the pilot
+    const share = useMemo(() => episodeShareCard({
+        slug, title: parsed.meta.title, week: parsed.meta.week ?? null,
+        publishedAt: parsed.meta.date ? `${parsed.meta.date}T12:00:00Z` : null, durationMs: timeline.showEnd,
+    }, pullQuote(script)), [slug, parsed, timeline, script]);
     const lines = useMemo(() => script.split(/\r?\n/), [script]);
     const seconds = Math.round(report.durationSeconds);
     const playLine = (sourceLine: number) => {
@@ -34,7 +42,7 @@ export default function LocalDraftPreview({ script, teams, players, report }: { 
             <p className="text-sm">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')} segment · {report.words.don + report.words.ron} words · Don {report.words.don} / Ron {report.words.ron}</p>
             <button className="min-h-11 rounded-lg border border-line-strong bg-white px-4 font-bold" disabled={pending} onClick={() => startTransition(() => router.refresh())}>{pending ? 'Reloading…' : 'Reload draft files'}</button>
         </div>
-        <Player script={script} teams={teams} players={players} keys="focus" cue={cue} onLine={setActiveLine} audio={audio} />
+        <Player script={script} teams={teams} players={players} keys="focus" cue={cue} onLine={setActiveLine} audio={audio} share={share} />
         {audioError && <p role="status" className="mt-3 text-sm text-rink-red">{audioError}</p>}
         {report.diagnostics.length > 0 && <section className="mt-4 rounded-xl border border-line-strong bg-white p-4" aria-label="Draft checks">
             <h2 className="font-bold">Draft checks</h2>

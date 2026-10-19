@@ -60,6 +60,42 @@ export const CAST: Record<CharacterId, Character> = {
             'halloween-mic': { closed: art('don-halloween-mic-remove') },
             'halloween-pound': { closed: art('don-halloween-desk-pound') },
             'halloween-pound-ready': { closed: art('don-halloween-desk-pound-ready') },
+            'alternate-1-rest': { closed: art('don-alternate-1-default'), open: art('don-alternate-1-talk') },
+            'alternate-1-point': { closed: art('don-alternate-1-point'), open: art('don-alternate-1-point-talk') },
+            'alternate-1-thumbs': { closed: art('don-alternate-1-thumbs-up'), open: art('don-alternate-1-thumbs-up-talk') },
+            'alternate-1-angry': { open: art('don-alternate-1-angry-talk'), after: 'alternate-1-rest' },
+            'alternate-1-surprised': { open: art('don-alternate-1-surprised'), after: 'alternate-1-rest' },
+            'alternate-1-lean': { open: art('don-alternate-1-lean-camera'), after: 'alternate-1-rest' },
+            'alternate-1-stare': { closed: art('don-alternate-1-stare') },
+            'alternate-1-pause': { closed: art('don-alternate-1-pause') },
+            'alternate-1-tie': { closed: art('don-alternate-1-tie-adjust') },
+            'alternate-1-mic': { closed: art('don-alternate-1-mic-remove') },
+            'alternate-1-pound': { closed: art('don-alternate-1-desk-pound') },
+            'alternate-1-pound-ready': { closed: art('don-alternate-1-desk-pound-ready') },
+            'alternate-2-rest': { closed: art('don-alternate-2-default'), open: art('don-alternate-2-talk') },
+            'alternate-2-point': { closed: art('don-alternate-2-point'), open: art('don-alternate-2-point-talk') },
+            'alternate-2-thumbs': { closed: art('don-alternate-2-thumbs-up'), open: art('don-alternate-2-thumbs-up-talk') },
+            'alternate-2-angry': { open: art('don-alternate-2-angry-talk'), after: 'alternate-2-rest' },
+            'alternate-2-surprised': { open: art('don-alternate-2-surprised'), after: 'alternate-2-rest' },
+            'alternate-2-lean': { open: art('don-alternate-2-lean-camera'), after: 'alternate-2-rest' },
+            'alternate-2-stare': { closed: art('don-alternate-2-stare') },
+            'alternate-2-pause': { closed: art('don-alternate-2-pause') },
+            'alternate-2-tie': { closed: art('don-alternate-2-tie-adjust') },
+            'alternate-2-mic': { closed: art('don-alternate-2-mic-remove') },
+            'alternate-2-pound': { closed: art('don-alternate-2-desk-pound') },
+            'alternate-2-pound-ready': { closed: art('don-alternate-2-desk-pound-ready') },
+            'alternate-3-rest': { closed: art('don-alternate-3-default'), open: art('don-alternate-3-talk') },
+            'alternate-3-point': { closed: art('don-alternate-3-point'), open: art('don-alternate-3-point-talk') },
+            'alternate-3-thumbs': { closed: art('don-alternate-3-thumbs-up'), open: art('don-alternate-3-thumbs-up-talk') },
+            'alternate-3-angry': { open: art('don-alternate-3-angry-talk'), after: 'alternate-3-rest' },
+            'alternate-3-surprised': { open: art('don-alternate-3-surprised'), after: 'alternate-3-rest' },
+            'alternate-3-lean': { open: art('don-alternate-3-lean-camera'), after: 'alternate-3-rest' },
+            'alternate-3-stare': { closed: art('don-alternate-3-stare') },
+            'alternate-3-pause': { closed: art('don-alternate-3-pause') },
+            'alternate-3-tie': { closed: art('don-alternate-3-tie-adjust') },
+            'alternate-3-mic': { closed: art('don-alternate-3-mic-remove') },
+            'alternate-3-pound': { closed: art('don-alternate-3-desk-pound') },
+            'alternate-3-pound-ready': { closed: art('don-alternate-3-desk-pound-ready') },
         },
         deliveryGestures: { yell: 'angry' },
         voice: { base: 118, spread: 34, wave: 'sawtooth', grit: 0.5 },
@@ -97,16 +133,18 @@ export const GESTURE_ALIASES: Record<string, string> = {
     stop: 'warning',
 };
 
+const WARDROBE_PREFIX = /^(?:halloween|alternate-[123])-/;
+
 export const resolveGesture = (who: CharacterId, name: string): string | null => {
     const key = name.toLowerCase().replace(/^(don|ron)-/, '');
-    const prefix = key.startsWith('halloween-') ? 'halloween-' : '';
+    const prefix = key.match(WARDROBE_PREFIX)?.[0] ?? '';
     const base = key.slice(prefix.length);
     const id = prefix + (GESTURE_ALIASES[base] ?? base);
     return CAST[who].gestures[id] ? id : null;
 };
 
 /** Wardrobe variants share the same physical action, camera direction and Foley. */
-export const gestureAction = (gesture: string) => gesture.replace(/^halloween-/, '');
+export const gestureAction = (gesture: string) => gesture.replace(WARDROBE_PREFIX, '');
 
 export const gestureAfter = (who: CharacterId, gesture: string) => {
     const g = CAST[who].gestures[gesture];
@@ -170,5 +208,8 @@ export const SPEEDS: Record<string, number> = { fast: 1.3, faster: 1.55, slow: 0
 export const SHOTS = ['auto', 'wide', 'don', 'ron', 'monitor', 'close don', 'close ron'] as const;
 export type Shot = typeof SHOTS[number];
 
-export const SOUNDS = ['horn', 'whistle', 'buzzer', 'organ', 'sting', 'thud', 'desk-pound'] as const;
+export const REACTIONS = ['happy', 'shocked'] as const;
+export type Reaction = typeof REACTIONS[number];
+
+export const SOUNDS = ['horn', 'whistle', 'buzzer', 'organ', 'sting', 'thud', 'desk-pound', 'happy-twinkle'] as const;
 export type Sound = typeof SOUNDS[number];

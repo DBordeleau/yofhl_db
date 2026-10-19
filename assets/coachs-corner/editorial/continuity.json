@@ -30,6 +30,15 @@
   "predictions": [],
   "preferences": [
     {
+      "id": "don-alternate-suits",
+      "rule": "Retain the turquoise, pink and yellow paisley design as Alternate suit 1 and the real Don Cherry sky-blue daisy design with ivory tie as Alternate suit 2. Both are optional wardrobes; the original red floral suit remains normal/default.",
+      "source": "Owner's request to retain both generated designs in this chat, 2026-10-18",
+      "scope": "show",
+      "approvedAt": "2026-10-18",
+      "approval": "Okay save the suits as alternate suit 1 and alternate suit 2",
+      "application": "docs/coachs-corner.md#dons-suits"
+    },
+    {
       "id": "don-default-suit",
       "rule": "Don has multiple suits. His original red, gold and ivory floral suit is the normal/default wardrobe; use another suit only when the episode brief selects it.",
       "source": "Owner's Halloween artwork acceptance and workflow request in this chat, 2026-10-18",

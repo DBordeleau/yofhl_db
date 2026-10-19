@@ -1,0 +1,220 @@
+{
+  "title": "Alternate suit 3: Don Cherry multicoloured madras plaid",
+  "createdDate": "2026-10-18",
+  "method": "built-in image_gen.imagegen",
+  "transparentBackground": true,
+  "canvas": [
+    1254,
+    1254
+  ],
+  "master": "don-alternate-3-default.png",
+  "clothingReference": {
+    "description": "Don Cherry's actual multicoloured plaid suit and blue speckled tie with a yellow-orange-red centre band",
+    "page": "https://www.si.com/nhl/2008/06/02/02don-cherrys-fashion-statements",
+    "pageTitle": "Don Cherry's Fashion Statements",
+    "author": "SI Staff",
+    "photoDate": "2008-05-28",
+    "photoCredit": "Bruce Bennett/Getty Images",
+    "imageUrl": "https://www.si.com/.image/t_share/MTY4MTI4MDc4MzA0MTI2MjI1/untitled-image.jpg",
+    "localReference": "local/coachs-corner/assets/don-alternate-suit-3/don-cherry-plaid-reference.jpg",
+    "referenceSha256": "d449413344e0fd10fc97edbbd80fb63ca59368af24fd3376b042ae5acfc03039",
+    "adaptation": "Plaid fabric, palette and tie adapted onto the established robot jacket cut. Human anatomy, double-breasted construction, boutonniere and handheld microphone were not copied. Photograph is local research only and is not distributed with the artwork."
+  },
+  "assets": [
+    {
+      "id": "don-alternate-3-default",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nCreate ONE transparent PNG production character cutout on the full untrimmed 1254 x 1254 square canvas.\nInput 1 is the EDIT TARGET: the original Don robot default pose. Input 2 is a REAL CLOTHING REFERENCE: Don Cherry on the left wearing his multicoloured plaid suit, photographed May 28, 2008. Change ONLY the robot's jacket fabric and tie to closely adapt this actual outfit.\nMatch the photographed fabric: vivid woven madras plaid made from intersecting broad straight horizontal and vertical bands in orange, red-orange, golden yellow, aqua/turquoise blue, muted green and lavender-purple, producing regular medium-size square checks. Approximately 7 to 9 checks across the torso width. Broad colored bands with subtle woven overlap, NOT diagonal argyle, not a rainbow gradient, not patchwork, no flowers or paisley, no thin black tartan grid. Follow the plaid across lapels and sleeves naturally.\nMatch the photographed tie: blue/teal silk with tiny pale speckles and a broad glowing yellow-orange-red horizontal band across the lower middle, like the abstract sunset in the actual photo. Keep the robot's white shirt and cuffs, white pocket square, jacket cut/lapels and small black lapel microphone. Do not add the photo's boutonniere, handheld microphone, double-breasted buttons or extra accessories.\nPreserve every other part of input 1: silver faceted robot face, cyan screen eyes, sculpted white metallic hair, connected white moustache and broad goatee, closed mouth seam, gaze and stern expression, hands/fingers clasped low, head and shoulder anchors, body silhouette, scale, square margins and lower cutoff. Same polished detailed cel-shaded illustration, sharp black outlines and silver shading. Left host facing slightly screen-right, never mirror.\nTrue transparent alpha background including gaps. No desk, chair, scenery, floor, cast shadow, text, watermark or additional characters. This is Alternate suit 3, a nonholiday wardrobe. One pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-default.png",
+        "local/coachs-corner/assets/don-alternate-suit-3/don-cherry-plaid-reference.jpg"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-default.png",
+      "sha256": "fdea879d2b0e23305cac84459d4805e97f6d04280151349d2d9b11c037c3194a",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. One production character cutout on a full untrimmed 1254 x 1254 transparent canvas. Input 1 is the EDIT TARGET for precise pose, silver robot anatomy, head and shoulder anchors, cyan eyes, expression, mouth, white metallic hair and connected moustache/goatee, silhouette, scale and margins. Input 2 is the clothing reference for Alternate suit 3. Change ONLY input 1's jacket fabric and tie to exactly match input 2: broad intersecting straight bands of orange, red-orange, golden yellow, aqua/turquoise, muted green and lavender-purple forming medium-size square madras plaid checks; a blue/teal tie with tiny pale speckles and a glowing yellow-orange-red horizontal band. Keep the white shirt/cuffs/pocket square and black lapel mic. Same cel-shaded silver robot illustration and sharp outlines. Never mirror. No floral/paisley pattern, diagonal argyle, boutonniere, extra accessories, desk, background, shadow, text or watermark. True transparent alpha, including arm gaps. One pose only.\nPose: mouth OPEN as input 1 with hands clasped low. The second image is the matching closed rest pose; match its body, plaid placement and tie exactly so the pair animates without shifting.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-talk.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-talk.png",
+      "sha256": "0eb59494ab6774e335fe1690057a32fa6371f66a818eb89a0ef49db0fe8faf83",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-point",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. One production character cutout on a full untrimmed 1254 x 1254 transparent canvas. Input 1 is the EDIT TARGET for precise pose, silver robot anatomy, head and shoulder anchors, cyan eyes, expression, mouth, white metallic hair and connected moustache/goatee, silhouette, scale and margins. Input 2 is the clothing reference for Alternate suit 3. Change ONLY input 1's jacket fabric and tie to exactly match input 2: broad intersecting straight bands of orange, red-orange, golden yellow, aqua/turquoise, muted green and lavender-purple forming medium-size square madras plaid checks; a blue/teal tie with tiny pale speckles and a glowing yellow-orange-red horizontal band. Keep the white shirt/cuffs/pocket square and black lapel mic. Same cel-shaded silver robot illustration and sharp outlines. Never mirror. No floral/paisley pattern, diagonal argyle, boutonniere, extra accessories, desk, background, shadow, text or watermark. True transparent alpha, including arm gaps. One pose only.\nPose: mouth CLOSED and index finger pointing up to screen-right exactly as input 1. Preserve finger count, hand position and head angle.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-point.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-point.png",
+      "sha256": "8d7aaa6c70b6a421bb1f3c9a12ca943d125105ea8d6fc103f1ffe2de6e063cc7",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-point-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE character cutout on full untrimmed 1254 x 1254 transparent canvas. Input 1 is the EDIT TARGET and matching CLOSED mouth pose in Alternate suit 3. Input 2 is a geometry reference for the same pose with OPEN mouth. Make the mouth in input 1 OPEN, matching input 2 exactly, retaining the connected moustache/goatee and facial plates. Preserve every other part of input 1: silver faceted robot face/head anchors, cyan eyes, sculpted white hair, torso/shoulder/arm/hand geometry, scale/silhouette/canvas/margins, exact plaid placement and colors, the blue dotted tie's yellow-orange-red horizontal band, white shirt/cuffs/pocket square and black microphone. This is the OPEN mouth animation counterpart. Keep the body identical to input 1. The clothes must not move. Same sharp cel-shaded illustration. Do not bring back input 2's red floral clothing. No desk/background/shadow/text/new props. True transparent alpha.\nPointing pose: raised index finger stays exactly in place; match input 2's open mouth.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-alternate-3-point.png",
+        "public/coachs-corner/robots-v2/don-point-talk.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-point-talk.png",
+      "sha256": "d0f79521c6830b09d5d5b55591ddc85ad1c3ca64d71f2fd3700a5b481356eb83",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-angry-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. Edit a transparent animated-show character sprite. Input image 1 is the exact edit target and geometry for Don's ANGRY TALK pose. Input image 2 is the selected Alternate suit 3 wardrobe master, used only for jacket and tie appearance. Change only the jacket and tie in image 1 to exactly match image 2: broad intersecting straight orange/red-orange, golden yellow, turquoise, green and lavender plaid bands forming regular medium square checks, with the same scale and woven shading as the master; blue-teal tie with tiny pale speckles and one glowing yellow/orange/red horizontal band. Keep the white shirt, white pocket square and existing black lapel microphone. Preserve the silver robot identity, all metal parts, white hair, cyan eyes, connected white moustache/goatee, exact pose, face expression, linework, perspective and lighting of image 1. Keep the exact wide-open shouting mouth and dark mechanical mouth cavity, sharply angled white eyebrows and cyan eye bars. Keep the original head position, scale, connected moustache/goatee, clasped hands at the bottom and torso orientation. Do not copy the master's closed mouth or neutral eyebrows. Make a precise wardrobe replacement, not a character redesign. Same untrimmed 1254 by 1254 square canvas, same character position and transparent alpha background, including all empty margins. No backdrop, floor, shadow plane, labels, text, extra objects, cropping, new accessories, flowers or Halloween motifs.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-angry-talk.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-angry-talk.png",
+      "sha256": "e866f4eed71d1ad7dd4235b411d18abbed46dfcbeb02ea6b40d7b46cff05f47e",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-surprised",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 3, surprised pose.\nInput images: Image 1 is the exact edit target (normal Don surprised); Image 2 is the wardrobe reference only (Alternate suit 3 default).\nChange ONLY the jacket fabric pattern and necktie on Image 1 to match Image 2 exactly. Jacket is rainbow madras plaid with broad intersecting straight orange, red-orange, golden-yellow, turquoise, green and lavender bands forming regular medium square checks. Fabric is woven, not a graphic overlay. Tie is blue/teal with tiny pale speckles and a central glowing-looking yellow/orange/red horizontal band, exactly as the reference. Preserve white shirt, cuffs, white pocket square, black lapel microphone and every jacket seam/fold.\nKeep Image 1's surprised expression exactly: raised eyebrows, wide round cyan eye lights, open rectangular mouth, connected white moustache and goatee. Preserve original silver robot anatomy, white swept hair, lighting, linework, interlaced metallic hands, every finger, pose, head position, silhouette, scale, exact canvas margins and all non-clothing details. Do not borrow Image 2's neutral face or mouth.\nReturn the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, floor, shadow field, text, watermark, flowers, paisley, scrollwork, boutonniere, holiday motifs, logos, extra accessories, cropping, zooming or repositioning. One standalone pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-surprised.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-surprised.png",
+      "sha256": "c85dba90c51728b214078442bb43073049d59f9dec317202de73c2be27dc26ef",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-stare",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 3, stare pose.\nInput images: Image 1 is the exact edit target (normal Don stare); Image 2 is the wardrobe reference only (Alternate suit 3 default).\nChange ONLY the jacket fabric pattern and necktie on Image 1 to match Image 2 exactly. Jacket is rainbow madras plaid with broad intersecting straight orange, red-orange, golden-yellow, turquoise, green and lavender bands forming regular medium square checks. Fabric is woven, not a graphic overlay. Tie is blue/teal with tiny pale speckles and a central glowing-looking yellow/orange/red horizontal band, exactly as the reference. Preserve white shirt, cuffs, white pocket square, black lapel microphone and every jacket seam/fold.\nKeep Image 1's silent stare exactly: head turned toward the viewer's right, stern eyebrows, narrow horizontal cyan eye lights, closed mouth, connected white moustache and goatee. Preserve original silver robot anatomy, white swept hair, lighting, linework, interlaced metallic hands, every finger, pose, head position, silhouette, scale, exact canvas margins and all non-clothing details. Do not borrow Image 2's forward-facing head or pose.\nReturn the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, floor, shadow field, text, watermark, flowers, paisley, scrollwork, boutonniere, holiday motifs, logos, extra accessories, cropping, zooming or repositioning. One standalone pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-stare.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-stare.png",
+      "sha256": "6cdc5e76d65a1132b936a41bb27cdbe67b5f66f0790bf7444857d8aafc7c4230",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-pause",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 3, pause pose.\nInput images: Image 1 is the exact edit target (normal Don pause); Image 2 is the wardrobe reference only (Alternate suit 3 default).\nChange ONLY the jacket fabric pattern and necktie on Image 1 to match Image 2 exactly. Jacket is rainbow madras plaid with broad intersecting straight orange, red-orange, golden-yellow, turquoise, green and lavender bands forming regular medium square checks. Fabric is woven, not a graphic overlay. Tie is blue/teal with tiny pale speckles and a central glowing-looking yellow/orange/red horizontal band, exactly as the reference. Preserve white shirt, cuffs, white pocket square, black lapel microphone and every jacket seam/fold.\nKeep Image 1's quiet pause exactly: slightly bowed tilted head, lowered small horizontal cyan eye lights, relaxed uneven eyebrows, closed mouth, connected white moustache and goatee. Preserve original silver robot anatomy, white swept hair, lighting, linework, interlaced metallic hands, every finger, pose, head position, silhouette, scale, exact canvas margins and all non-clothing details. Do not borrow Image 2's alert head or expression.\nReturn the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, floor, shadow field, text, watermark, flowers, paisley, scrollwork, boutonniere, holiday motifs, logos, extra accessories, cropping, zooming or repositioning. One standalone pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-pause.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-pause.png",
+      "sha256": "b35195a4dc8f857d88c6fb8dbf55db5b4532630c44c021d3bd567167462bab85",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-tie-adjust",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 3, tie-adjust pose.\nInput images: Image 1 is the exact edit target (normal Don tie-adjust); Image 2 is the wardrobe reference only (Alternate suit 3 default).\nChange ONLY the jacket fabric pattern and necktie on Image 1 to match Image 2 exactly. Jacket is rainbow madras plaid with broad intersecting straight orange, red-orange, golden-yellow, turquoise, green and lavender bands forming regular medium square checks. Fabric is woven, not a graphic overlay. Tie is blue/teal with tiny pale speckles and a central glowing-looking yellow/orange/red horizontal band, exactly as the reference, preserving its shape beneath the adjusting hand. Preserve white shirt, cuffs, white pocket square, black lapel microphone and every jacket seam/fold.\nKeep Image 1's tie adjustment exactly: one raised silver robotic hand grips the tie knot, other silver robotic hand rests low, bowed slightly tilted head, stern eyebrows, narrow horizontal cyan eye lights, closed mouth, connected white moustache and goatee. Preserve original silver robot anatomy, white swept hair, lighting, linework, every finger and wrist, pose, head position, silhouette, scale, exact canvas margins and all non-clothing details. Do not borrow Image 2's clasped hands or default head pose.\nReturn the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, floor, shadow field, text, watermark, flowers, paisley, scrollwork, boutonniere, holiday motifs, logos, extra accessories, cropping, zooming or repositioning. One standalone pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-tie-adjust.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-tie-adjust.png",
+      "sha256": "5a31ddeab6e71c66ef46f5464bda525bcfc4f17b53938a4bfbb4787a9ff073f3",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-lean-camera",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. Edit a transparent animated-show character sprite. Input image 1 is the exact edit target and geometry for Don's LEAN INTO CAMERA pose. Input image 2 is the selected Alternate suit 3 wardrobe master, used only for jacket and tie appearance. Change only the jacket and tie in image 1 to exactly match image 2: broad intersecting straight orange/red-orange, golden yellow, turquoise, green and lavender plaid bands forming regular medium square checks, with the same scale and woven shading as the master; blue-teal tie with tiny pale speckles and one glowing yellow/orange/red horizontal band. Keep the white shirt, white pocket square and existing black lapel microphone. Preserve the silver robot identity, all metal parts, white hair, cyan eyes, connected white moustache/goatee, exact pose, face expression, linework, perspective and lighting of image 1. Keep the exact enlarged forward-leaning head and broad shoulders, straight-on camera angle, original open speaking mouth, cyan bar eyes, joined moustache/goatee and clasped hands. Preserve the target's near-camera head size, position and outline. Do not shrink the head or replace the frontal lean with the master's neutral seated pose. Make a precise wardrobe replacement, not a character redesign. Same untrimmed 1254 by 1254 square canvas, same character position and transparent alpha background, including all empty margins. No backdrop, floor, shadow plane, labels, text, extra objects, cropping, new accessories, flowers or Halloween motifs.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-lean-camera.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-lean-camera.png",
+      "sha256": "1edaed808894f8ba0457255a17f960a66497cf59f167224b0ad5e453710a9264",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-mic-remove",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve.\nAsset type: transparent 1254 × 1254 Coach's Corner Don robot sprite, Alternate suit 3, mic-remove pose.\nInput images: Image 1 is the exact edit target (normal Don mic-remove); Image 2 is the wardrobe reference only (Alternate suit 3 default).\nChange ONLY the jacket fabric pattern and necktie on Image 1 to match Image 2 exactly. Jacket is rainbow madras plaid with broad intersecting straight orange, red-orange, golden-yellow, turquoise, green and lavender bands forming regular medium square checks. Fabric is woven, not a graphic overlay. Tie is blue/teal with tiny pale speckles and a central glowing-looking yellow/orange/red horizontal band, exactly as the reference. Preserve white shirt, cuffs, white pocket square and every jacket seam/fold.\nKeep Image 1's microphone-removal action exactly: raised silver robotic hand at viewer's right holds the small removed black clip microphone and its short curved black cable; other silver robotic hand rests low. Microphone is held in the hand, NOT attached to the lapel. Do not add a second microphone or borrow Image 2's attached lapel microphone. Preserve every finger, wrist, microphone and cable position.\nKeep Image 1's stern downturned head, narrow horizontal cyan eye lights, closed mouth, connected white moustache and goatee. Preserve original silver robot anatomy, white swept hair, lighting, linework, pose, head position, silhouette, scale, exact canvas margins and all non-clothing details. Do not borrow Image 2's clasped hands or default head pose.\nReturn the full original untrimmed 1254 × 1254 canvas with genuine transparent alpha. No background, floor, shadow field, text, watermark, flowers, paisley, scrollwork, boutonniere, holiday motifs, logos, extra accessories, cropping, zooming or repositioning. One standalone pose only.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-mic-remove.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-mic-remove.png",
+      "sha256": "281909b385d7042cc0f4c82c375a811abc9625049f371b4d4604bdac90edc9fb",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-thumbs-up",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. Edit a transparent animated-show character sprite. Input image 1 is the exact edit target and geometry for Don's closed-mouth THUMBS-UP pose. Input image 2 is the selected Alternate suit 3 wardrobe master, used only for jacket and tie appearance. Change only the jacket and tie in image 1 to exactly match image 2: broad intersecting straight orange/red-orange, golden yellow, turquoise, green and lavender plaid bands forming regular medium square checks, with the same scale and woven shading as the master; blue-teal tie with tiny pale speckles and one glowing yellow/orange/red horizontal band. Keep the white shirt and white pocket square. Preserve image 1's entire silver robot face, smiling closed mouth, connected white moustache/goatee, white hair, cyan crescent eyes, head size and position, perspective, linework, lighting, body silhouette, left resting hand and right raised thumbs-up hand, finger shapes, cuff and shoulder positions. Do not use the master's resting hands or neutral expression. Make a precise wardrobe replacement, not a character redesign. Same untrimmed 1254 by 1254 square canvas, same character position and transparent alpha background, including all empty margins. No backdrop, desk, floor, shadow plane, labels, text, extra objects, cropping, new accessories, flowers, Halloween motifs or pattern changes beyond the specified plaid.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-thumbs-up.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-thumbs-up.png",
+      "sha256": "3e94308c03fa155511944ac820b2e762f112a1ecbcacc04e30c5905082c242a9",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-thumbs-up-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE character cutout on full untrimmed 1254 x 1254 transparent canvas. Input 1 is the EDIT TARGET and matching CLOSED mouth pose in Alternate suit 3. Input 2 is a geometry reference for the same pose with OPEN mouth. Make the mouth in input 1 OPEN, matching input 2 exactly, retaining the connected moustache/goatee and facial plates. Preserve every other part of input 1: silver faceted robot face/head anchors, cyan eyes, sculpted white hair, torso/shoulder/arm/hand geometry, scale/silhouette/canvas/margins, exact plaid placement and colors, the blue dotted tie's yellow-orange-red horizontal band, white shirt/cuffs/pocket square and black microphone. This is the OPEN mouth animation counterpart. Keep the body identical to input 1. The clothes must not move. Same sharp cel-shaded illustration. Do not bring back input 2's red floral clothing. No desk/background/shadow/text/new props. True transparent alpha.\nThumbs up pose: maintain smile and happy crescent cyan eyes, raised thumb and low resting hand. Open smiling mouth exactly as input 2.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-alternate-3-thumbs-up.png",
+        "public/coachs-corner/robots-v2/don-thumbs-up-talk.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-thumbs-up-talk.png",
+      "sha256": "d9dce814db8798ecd7e9347b8ec1633cc42ebf8270dc9be79a63f165a501d7bb",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-desk-pound",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. Edit a transparent animated-show character sprite. Input image 1 is the exact edit target and geometry for Don's DESK-POUND CONTACT pose. Input image 2 is the selected Alternate suit 3 wardrobe master, used only for jacket and tie appearance. Change only the jacket and tie in image 1 to exactly match image 2: broad intersecting straight orange/red-orange, golden yellow, turquoise, green and lavender plaid bands forming regular medium square checks, with the same scale and woven shading as the master; blue-teal tie with tiny pale speckles and one glowing yellow/orange/red horizontal band. Keep the white shirt, white pocket square and existing black lapel microphone. Preserve the silver robot identity, all metal parts, white hair, cyan eyes, connected white moustache/goatee, exact pose, face expression, linework, perspective and lighting of image 1. Keep the exact closed stern mouth and original eyebrow angles. Keep the clenched fist contacting the low invisible desk line on the left side of the image and the resting hand on the right, with all hands, cuffs, shoulders and head anchors unchanged. It is a restrained contact pose. Do not lift the fist, draw a desk, add motion streaks, cracks, marks or impact graphics. Make a precise wardrobe replacement, not a character redesign. Same untrimmed 1254 by 1254 square canvas, same character position and transparent alpha background, including all empty margins. No backdrop, floor, shadow plane, labels, text, extra objects, cropping, new accessories, flowers or Halloween motifs.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-desk-pound.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-desk-pound.png",
+      "sha256": "1e3a5250f25880edd77633722800f0ffba9d63b44267652ac42ba72d6bece2a0",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    },
+    {
+      "id": "don-alternate-3-desk-pound-ready",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. Edit a transparent animated-show character sprite. Input image 1 is the exact edit target and geometry for Don's DESK-POUND PREPARATION pose. Input image 2 is the selected Alternate suit 3 wardrobe master, used only for jacket and tie appearance. Change only the jacket and tie in image 1 to exactly match image 2: broad intersecting straight orange/red-orange, golden yellow, turquoise, green and lavender plaid bands forming regular medium square checks, with the same scale and woven shading as the master; blue-teal tie with tiny pale speckles and one glowing yellow/orange/red horizontal band. Keep the white shirt, white pocket square and existing black lapel microphone. Preserve the silver robot identity, all metal parts, white hair, cyan eyes, connected white moustache/goatee, exact pose, face expression, linework, perspective and lighting of image 1. Keep the exact closed stern mouth and original eyebrow angles. Keep the original short low lift of the clenched fist on the left side of the image and the other resting hand on the right, with every hand, cuff, shoulder and head anchor unchanged. This is restrained preparation only. Do not raise the fist any higher, add a swing, draw a desk, or create motion streaks. Make a precise wardrobe replacement, not a character redesign. Same untrimmed 1254 by 1254 square canvas, same character position and transparent alpha background, including all empty margins. No backdrop, floor, shadow plane, labels, text, extra objects, cropping, new accessories, flowers or Halloween motifs.",
+      "references": [
+        "public/coachs-corner/robots-v2/don-desk-pound-ready.png",
+        "public/coachs-corner/robots-v2/don-alternate-3-default.png"
+      ],
+      "output": "public/coachs-corner/robots-v2/don-alternate-3-desk-pound-ready.png",
+      "sha256": "586c6790ab8e5f0fd5f87857f40371a229b1f399be6fa1143a81f4df90aeb206",
+      "iterations": 1,
+      "postprocessing": "Original generated PNG preserved byte-for-byte. WebP quality 94 at 1254 and 640 pixels. AVIF uses the existing coachs:assets recipe."
+    }
+  ]
+}

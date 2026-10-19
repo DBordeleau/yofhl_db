@@ -52,7 +52,8 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
                 update league.coachs_corner_episodes e
                 set slug = ${slug}, title = ${title}, season = ${season}, week = ${week}, script = ${input.script},
                     duration_ms = ${duration}, updated_at = now(), players = ${snapshot}::jsonb,
-                    published_at = case when ${publish} then now() else null end
+                    -- an edit keeps the original air date, so a fixed-up old episode never jumps ahead of the latest
+                    published_at = case when ${publish} then coalesce(p.published_at, now()) else null end
                 from previous p where e.id = p.id and (${publish} or p.published_at is null)
                 returning e.id, e.slug, p.slug as "oldSlug", (${publish} or p.published_at is not null) as "publicChanged"
             ) select * from changed`)

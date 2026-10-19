@@ -1,0 +1,20 @@
+{
+  "name": "Happy twinkle",
+  "source": {
+    "id": "787357",
+    "author": "Alexia205",
+    "page": "https://freesound.org/people/Alexia205/sounds/787357/",
+    "preview": "https://cdn.freesound.org/previews/787/787357_16854860-hq.mp3",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "retrieved": "2026-10-19T22:13:48.091Z",
+    "sourceFormat": "Freesound high-quality MP3 preview",
+    "sha256": "bf35c53ce28c9390272a8b5337fa5ca0dee27ac2b036e45f5586c4bfa07b7e1f"
+  },
+  "duration": 6.634666666666667,
+  "filter": "volume=0.6459023354350123,afade=t=in:d=0.01,afade=t=out:st=6.334666666666667:d=0.3",
+  "outputSha256": "d24d8c2cbc9713c0b65530e59dc0bfd07613d35467565577a13a1b6b3b7b621b",
+  "bankGain": 0.12,
+  "use": "One quiet accent during an explicit happy particle cue; playback is limited to the visible cue duration.",
+  "attribution": "Twinkle (1) by Alexia205, Freesound 787357, CC0 1.0. Processed public high-quality MP3 preview, not the original M4A."
+}

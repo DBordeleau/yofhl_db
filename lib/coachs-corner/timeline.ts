@@ -1,4 +1,4 @@
-import { CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, type CharacterId, type Delivery, type Motion, type Shot, type Sound } from './cast';
+import { CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, type CharacterId, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
 import type { Cue, Graphic, Meta, Script, Span } from './script';
 
 // Compiles a parsed script into an absolute-time timeline, then answers "what does the studio look
@@ -43,6 +43,8 @@ export interface Line {
 }
 
 interface Key<T> { t: number; value: T }
+export interface ReactionBeat { t: number; who: CharacterId; effect: Reaction; duration: number }
+export interface ReactionFrame { effect: Reaction; elapsed: number; duration: number }
 
 export interface Timeline {
     meta: Meta;
@@ -57,6 +59,7 @@ export interface Timeline {
     monitor: Key<Graphic>[];
     shots: Key<Shot>[];
     sounds: Key<Sound>[];
+    reactions: ReactionBeat[];
     /** yell onsets: the camera punches in and the listener flinches */
     punches: { t: number; who: CharacterId }[];
     clears: number[];
@@ -89,6 +92,7 @@ export function compile(script: Script): Timeline {
     const monitor: Key<Graphic>[] = [];
     const shots: Key<Shot>[] = [{ t: 0, value: 'auto' }];
     const sounds: Key<Sound>[] = [];
+    const reactions: ReactionBeat[] = [];
     const punches: Timeline['punches'] = [];
     const clears: number[] = [];
     const lines: Line[] = [];
@@ -100,7 +104,7 @@ export function compile(script: Script): Timeline {
     };
 
     // cues ahead of the first line set the opening picture
-    let first = events.findIndex(e => e.kind === 'line' || e.cues.some(c => c.type === 'pause'));
+    let first = events.findIndex(e => e.kind === 'line' || e.cues.some(c => c.type === 'pause' || c.type === 'reaction'));
     if (first < 0) first = events.length;
     let monitorSet = false;
     for (const e of events.slice(0, first)) {
@@ -118,6 +122,7 @@ export function compile(script: Script): Timeline {
     const applyCue = (cue: Cue, speaker?: CharacterId): string | undefined => {
         switch (cue.type) {
             case 'pause': t += cue.ms; break;
+            case 'reaction': reactions.push({ t, who: cue.who, effect: cue.effect, duration: cue.duration }); break;
             case 'pose':
                 if (cue.who === speaker) return cue.gesture;
                 rest[cue.who] = cue.gesture;
@@ -226,9 +231,15 @@ export function compile(script: Script): Timeline {
         if (g?.closed) art.add(g.closed);
         if (g?.open) art.add(g.open);
     }
+    // A new reaction replaces the same host's previous one. Neither particles nor
+    // their audio may linger beyond the replacement or the end of the scene.
+    for (let i = 0; i < reactions.length; i++) {
+        const next = reactions.slice(i + 1).find(r => r.who === reactions[i].who);
+        reactions[i].duration = Math.max(0, Math.min(reactions[i].duration, (next?.t ?? showEnd) - reactions[i].t, showEnd - reactions[i].t));
+    }
     return {
         meta, duration: showEnd + OUTRO_MS, showEnd, segment: meta.segment ?? showEnd - INTRO_MS,
-        lines, gestures, flaps, voice, monitor, shots, sounds, punches, clears, art: Array.from(art),
+        lines, gestures, flaps, voice, monitor, shots, sounds, reactions: reactions.filter(r => r.duration > 0), punches, clears, art: Array.from(art),
     };
 }
 
@@ -245,6 +256,7 @@ const lastAt = <T>(items: T[], t: number, time: (item: T) => number) => {
 };
 
 export interface HostFrame {
+    reaction: ReactionFrame | null;
     gesture: string;
     /** Show time since this pose began; physical beats freeze and seek with playback. */
     gestureMs: number;
@@ -296,7 +308,9 @@ export function frameAt(tl: Timeline, t: number): Frame {
         const v = tl.voice[who];
         const vi = lastAt(v, t, x => x.t0);
         const speaking = vi >= 0 && t < v[vi].t1 ? v[vi] : null;
+        const reaction = tl.reactions.find(r => r.who === who && r.t <= t && t < r.t + r.duration);
         hosts[who] = {
+            reaction: reaction ? { effect: reaction.effect, elapsed: t - reaction.t, duration: reaction.duration } : null,
             gesture, gestureMs: Math.max(0, t - (gestureKey?.t ?? 0)), open,
             motion: speaking ? DELIVERIES[speaking.delivery].motion : null,
             delivery: speaking?.delivery ?? null,

@@ -10,6 +10,8 @@ For weekly agent production, invoke the repository skill with: **Use $produce-co
 
 For Monday recaps, add `--recap` to prepare instead of `--period`. It selects the previous Toronto Monday/Sunday week before and after Fantrax's Monday rollover. Raw API phase and timestamps stay intact; check Sunday results before calling a matchup final. A new chat starts from the producer's `handoff.md` beside the script, containing the exact source/hash, snapshot, covered dates, runtime, review notes and preview URL.
 
+When preparing on Sunday for a Monday broadcast, add `--air-date YYYY-MM-DD` with `--recap`. This selects the recap relative to the intended air date and sets the screenplay date. It does not change live capture timestamps, the Fantrax phase, or establish that games are final.
+
 Working files live under the ignored `local/coachs-corner/episodes/`. Accepted continuity lives in `assets/coachs-corner/editorial/continuity.json`; agents promote new recurring material only after user acceptance. Archive capture uses read-only database access from the normal `.env`/`.env.local` environment, with `DATABASE_URL_V2` preferred over `DATABASE_URL`. Player records retain archive provenance separately from birthplace evidence. Missing archive records remain unknown and require a documented fallback; exact games played are unavailable in this archive and are not estimated from rounded FP/G.
 
 A script is a short front matter block followed by lines, stage directions and monitor cues. The pilot is the full worked example.
@@ -62,6 +64,7 @@ Without a gesture, a host talks in his resting pose, except that Don yells in `a
 | `[ron: down]` | Make the other host react at that word. |
 | `[>> stat "76th" "Tom Wilson"]` | Cut the monitor at that word. |
 | `[cam: close don]`, `[sfx: horn]` | Camera and sound cues. |
+| `[fx: don happy 6s]`, `[fx: don shocked 800ms]` | A steady stream of daisies and sparkles with a quiet twinkle, or a silent burst of shock lines and sweat drops. Also supports Ron. |
 
 Straight quotes, `--` and `...` become curly quotes, em dashes and ellipses. A line that ends with `--` is cut off: the next line starts at once, and the cut-off speech plate is knocked aside.
 
@@ -94,20 +97,27 @@ A line starting with `[` holds cues for the moment between lines: `[don: stare, 
 
 ### Don's suits
 
-Don has multiple suits. The original red, gold and ivory floral suit is pinned as his **normal/default suit**. Use it whenever the episode brief does not request another wardrobe. A seasonal date alone does not change the default.
+Don has five wardrobes. The original red, gold and ivory floral suit is pinned as his **normal/default suit**. Use it whenever the episode brief does not request another wardrobe. A seasonal date alone does not change the default.
 
 | Wardrobe ID | Suit | Artwork IDs | Screenplay gestures |
 | --- | --- | --- | --- |
 | `normal` | Original red, gold and ivory floral, default | Existing `don-*` IDs, such as `don-default` and `don-point` | Unprefixed `rest`, `point`, `angry`, etc. |
 | `halloween-2026` | Purple with pumpkins, ghosts and bats | `don-halloween-*` | Explicit `halloween-rest`, `halloween-point`, `halloween-angry`, etc. |
+| `alternate-suit-1` | Alternate suit 1, turquoise with pink and yellow paisley and a cobalt polka-dot tie | `don-alternate-1-*` | Explicit `alternate-1-rest`, `alternate-1-point`, `alternate-1-angry`, etc. |
+| `alternate-suit-2` | Alternate suit 2, based on Cherry's real sky-blue daisy suit with an ivory tie | `don-alternate-2-*` | Explicit `alternate-2-rest`, `alternate-2-point`, `alternate-2-angry`, etc. |
+| `alternate-suit-3` | Alternate suit 3, based on Cherry's real rainbow plaid suit with a blue dotted tie and warm-colour centre band | `don-alternate-3-*` | Explicit `alternate-3-rest`, `alternate-3-point`, `alternate-3-angry`, etc. |
 
 The [asset manifest](../public/coachs-corner/robots-v2/manifest.json) records `defaultWardrobes.don` as `normal` and labels every Don pose with its wardrobe. This is catalog metadata; the runtime mappings live in `cast.ts`. Preserve the existing normal asset IDs and unprefixed gesture mappings when adding suits so old scripts keep their appearance. There is no episode-wide suit setting or automatic calendar switch.
 
 The owner accepted the Halloween artwork on October 18, 2026 and explicitly requested that the old suit remain the default/normal suit. This accepts the artwork and wardrobe rule; the local asset audition is not an approved episode.
 
-Don's Halloween suit has the same 12 gestures and 15 illustrations. Add `halloween-` to a Don gesture, such as `halloween-rest`, `halloween-point`, `halloween-angry`, or `halloween-pound-ready`. The three talking pairs use the same fixed-body mouth animation as the normal suit. Lean close-ups, tie rustle and desk contact work with either outfit. The [Halloween guide](../public/coachs-corner/robots-v2/halloween-2026.md) links its preview and exact generation prompts.
+The owner subsequently asked to save both new designs as Alternate suit 1 and Alternate suit 2. Retain the paisley design as 1 and the real-suit daisy design as 2. Both are nonholiday options for an occasional costume change when the brief requests one. This authorizes retaining the wardrobes; it does not publish their asset auditions as episodes.
 
-Choose a Halloween gesture for the opening picture and each Don line, inline cue, delivery span that names a gesture, and `then` pose. Setting `[don: halloween-rest]` alone does not carry the suit into later dialogue. Lines without an explicit gesture still use the normal suit's delivery defaults. Open-mouth expressions return to `halloween-rest`; closed-mouth poses hold their seasonal pose. Existing episodes and the shared opening/closing bumper retain the normal suit.
+Alternate suit 3 adapts the rainbow plaid outfit photographed on May 28, 2008. Its [guide](../public/coachs-corner/robots-v2/alternate-suit-3.md) records the real clothing reference. It is another nonholiday option and requires explicit selection in the episode brief.
+
+Each optional suit has the same 12 gestures and 15 illustrations. Add its prefix to a Don gesture, such as `halloween-point`, `alternate-1-point`, `alternate-2-point` or `alternate-3-point`. Each wardrobe has three talking pairs with fixed-body mouth animation; with Ron's pair, the catalog has 16 mouth pairs. Lean close-ups, tie rustle and desk contact work across all wardrobes. The [Halloween guide](../public/coachs-corner/robots-v2/halloween-2026.md), [Alternate suit 1 guide](../public/coachs-corner/robots-v2/alternate-suit-1.md), [Alternate suit 2 guide](../public/coachs-corner/robots-v2/alternate-suit-2.md) and [Alternate suit 3 guide](../public/coachs-corner/robots-v2/alternate-suit-3.md) link their previews and exact generation prompts.
+
+Choose the same wardrobe prefix for the opening picture and each Don line, inline cue, delivery span that names a gesture, and `then` pose. Setting `[don: alternate-1-rest]` alone does not carry the suit into later dialogue. Lines without an explicit gesture still use the normal suit's delivery defaults. Open-mouth expressions return to that wardrobe's rest, such as `alternate-1-rest`; closed-mouth poses hold their selected pose. Existing episodes and the shared opening/closing bumper retain the normal suit.
 
 ```text
 [don: halloween-rest, ron: rest]
@@ -118,6 +128,15 @@ DON (halloween-angry, yell): It's a good suit!
 [don: halloween-pound-ready, 220ms]
 [don: halloween-pound, sfx: desk-pound, 480ms]
 DON (halloween-rest, then halloween-stare): Anyway.
+```
+
+For Alternate suit 1, use the same pattern with `alternate-1-` throughout. Use `alternate-2-` for the daisy suit or `alternate-3-` for the plaid suit:
+
+```text
+[don: alternate-1-rest, ron: rest]
+DON (alternate-1-point): A little colour never hurt anybody.
+RON: The monitor just asked for sunglasses.
+DON (alternate-1-thumbs, then alternate-1-stare): Good taste, that monitor.
 ```
 
 ### Camera and sound
@@ -136,11 +155,13 @@ DON (halloween-rest, then halloween-stare): Anyway.
 | `>> title "The Draft" "2026–27 season"` | A title card |
 | `>> team HH "Leading the league"` | A team with its logo, colours and owner |
 | `>> matchup HH 41.5 NPD 38 "caption"` | A head-to-head; scores and caption are optional |
+| `>> matchup HH 41.5 NPD 38 final "Week 1 / Final"` | A completed matchup; both scores required; the higher score is labelled Winner |
 | `>> pick 3 HH "Ivar Stenberg" "C · Round 1"` | A draft pick; team and detail are optional |
-| `>> stat "76th" "Tom Wilson" "overall pick" Lali` | A big number with labels and an optional team |
-| `>> list "Standings" HH 3-0, JAGR 2-1, "Everyone else" 0-3` | A table; rows are a team or "quoted label" then a value |
+| `>> stat "76th" "Tom Wilson" "overall pick" Lali` | A big number with labels and an optional team. Add `with "Brady Tkachuk"` to stand his NHL headshot beside it; each ` / ` part of the detail then gets its own line |
+| `>> list "Standings" HH 3-0, JAGR 2-1, "Everyone else" 0-3` | A table; rows are a team or "quoted label" then a value. A short list of quoted labels reads larger, like `>> list "Canada–U.S. relations" "Trade" Tense, "Don and Brady" It’s complicated` |
+| `>> standings "Week 1 standings" HH 1 0 212.35, NPD 0 1 174.20` | A traditional table with Team, W, L and FPts columns; 1–10 rows in supplied order. Use `cam: monitor` for a full-league table |
 | `>> compare Reapers 158 TEEHAW 114.1, G 12 8, *Hit 29 17` | Category-by-category head-to-head; each row's leader is green. A `*` row is highlighted, and cutting to the same compare with a different highlight updates it in place |
-| `>> numbers HH 1 goal, 18 assists` | Big numbers side by side, with an optional team |
+| `>> numbers HH 1 goal, 18 assists` | Big numbers side by side, with an optional team and closing `"caption"`. Zeros are red. `>> numbers Lali 0 goals, 0 assists, 0 points with "Tom Wilson" "Oct 12–18 · 3 GP"` heads it with his headshot and name |
 | `>> gap "Tom Wilson" "William Nylander" "Nico Hischier"` | Last season's FPts side by side, each later player with his margin over the first |
 | `>> player "Tom Wilson" Lali hearts "76th overall"` | A player card with his NHL headshot and last season's FPts, FP/G and games; team, `hearts` and caption are optional |
 
@@ -156,7 +177,7 @@ Episodes live in `league.coachs_corner_episodes`. Apply migrations `0010_coachs_
 
 Release check, 2026-10-17: the user authorized the production migration. Vercel's production `DATABASE_URL` and the local migrator's `DATABASE_URL_V2` were confirmed to identify the same Neon database. Both Coach's Corner migrations were already recorded; `npm run db:migrate` completed successfully without adding migration records. The nullable `players` JSONB column, unique slug index and publication index were verified afterward. No episode records were changed and no deployment was made.
 
-Publication saves the referenced players' statistics and headshot URLs with the script. Later views use that snapshot, so imports do not silently change an old show's graphics and public requests never call the NHL APIs. Republishing refreshes the snapshot. Episodes published before the snapshot migration use cached league statistics and existing portrait URLs until republished. The accepted opening-week pilot uses its own 2025–26 YOFHL DB snapshot in `lib/coachs-corner/pilot-players.json`, also archived with its approved screenplay. An unavailable optional NHL headshot falls back to the existing portrait; a failed database lookup prevents publication.
+Publication saves the referenced players' statistics and headshot URLs with the script. Later views use that snapshot, so imports do not silently change an old show's graphics and public requests never call the NHL APIs. Republishing refreshes the snapshot but keeps the episode's first air date, so the episode picker's newest-first order (and the episode `/coachs-corner` opens on) never changes because an old show was edited. Episodes published before the snapshot migration use cached league statistics and existing portrait URLs until republished. The accepted opening-week pilot uses its own 2025–26 YOFHL DB snapshot in `lib/coachs-corner/pilot-players.json`, also archived with its approved screenplay. An unavailable optional NHL headshot falls back to the existing portrait; a failed database lookup prevents publication.
 
 The archive and individual episode pages use Next's caches. New episode URLs are generated on their first request without a deployment. Publishing, updating, unpublishing, and deleting a published episode invalidate the archive and affected URLs, including both sides of a rename. Draft-only saves and deletes invalidate only admin pages. Development deliberately bypasses the data cache; verify caching with a production build.
 
@@ -176,7 +197,7 @@ Retain the WebP sources and their hashed copies: they provide browser compatibil
 
 The conversion is lossy. Local 1920 × 1080 fullscreen comparisons showed no obvious colour shifts or transparency halos; 200% inspection showed slight smoothing in fine shading and edges. Treat this as a visual judgement, not a promise of pixel identity. To repeat the comparison, run `npm run test:coachs:production -- --keep --art-review`, then open `/art-review` on the local test server. That comparison route, its forced WebP example and its deliberately broken AVIF fixture exist only in the disposable build. They never ship as application routes.
 
-Mouth pairs are separate illustrations with small differences in their clothing. Swapping the complete illustrations on every syllable makes the suits shimmer. The player now holds the closed-mouth body and overlays only the talking mouth region. Actual gesture changes still replace the full pose. This applies to AVIF and WebP, uses the existing files, and does not change script timing or add downloads. The comparison route's **Mouth motion** view shows whole-image swapping beside the fixed-body rendering for all seven mouth pairs, including Don's three Halloween pairs. Review the face clip boundaries in `components/coachs-corner/artwork.tsx` when replacing or adding mouth-pair illustrations.
+Mouth pairs are separate illustrations with small differences in their clothing. Swapping the complete illustrations on every syllable makes the suits shimmer. The player now holds the closed-mouth body and overlays only the talking mouth region. Actual gesture changes still replace the full pose. This applies to AVIF and WebP, uses the existing files, and does not change script timing or add downloads. The comparison route's **Mouth motion** view shows whole-image swapping beside the fixed-body rendering for all thirteen mouth pairs, including Don's three pairs in each optional suit. Review the face clip boundaries in `components/coachs-corner/artwork.tsx` when replacing or adding mouth-pair illustrations.
 
 The final release check on 2026-10-17 passed 59 feature tests, an optimized production build with type checking, and eight production publishing/cache checks against disposable Postgres. Browser checks across the artwork and TV-border revisions covered the complete 4:32 pilot at 1.5×, fullscreen, a 390 px layout, pause/resume, seeking, line navigation, mute, speed changes, replay, AVIF failure recovery and forced WebP rendering. All 38 AVIF files decoded at their expected dimensions. A before/after browser-frame comparison confirmed the clothing stays steady with the mouth overlay. These checks used the desktop in-app browser; physical devices and Safari were not tested. The production migration status is recorded above; the feature remains undeployed by this review.
 

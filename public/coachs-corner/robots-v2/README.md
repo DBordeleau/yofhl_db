@@ -1,10 +1,16 @@
 # Coach's Corner robot poses
 
-36 transparent cutouts: 15 regular Don poses, 15 Halloween Don poses and 6 Ron poses. Don sits on the left and faces slightly right; Ron sits on the right and faces slightly left. Don's camera-lean pose turns toward the audience.
+81 transparent cutouts: 15 Don poses in each of five wardrobes, normal, Halloween and Alternate suits 1, 2 and 3, plus 6 Ron poses. Don sits on the left and faces slightly right; Ron sits on the right and faces slightly left. Don's camera-lean pose turns toward the audience.
 
 The [Halloween suit set](halloween-2026.md) covers every Don pose. Open its [pose viewer](halloween-preview.html) or read its [generation prompts](prompts-halloween-2026.json). Select `halloween-*` gestures explicitly in a screenplay to use this wardrobe.
 
-Both suits preserve the illustrated robot reference, with silver faceplates, cyan screen eyes, sculpted white hair and Don's connected wraparound moustache and goatee. His original red, gold and ivory floral suit is the normal/default wardrobe. See [Don's suits](../../../docs/coachs-corner.md#dons-suits) for selection rules. The manifest pins `defaultWardrobes.don` to `normal`; existing `don-*` assets and unprefixed gestures keep that suit.
+The [Alternate suit 1 set](alternate-suit-1.md) uses a turquoise jacket with pink and yellow paisley and a cobalt polka-dot tie. Open its [pose viewer](alternate-suit-1-preview.html) or read its [generation prompts](prompts-alternate-suit-1.json). Select `alternate-1-*` gestures explicitly to use it.
+
+The [Alternate suit 2 set](alternate-suit-2.md) adapts Cherry's real sky-blue daisy suit and ivory tie; the guide records the source photograph. Open its [pose viewer](alternate-suit-2-preview.html) or read its [generation prompts](prompts-alternate-suit-2.json). Select `alternate-2-*` gestures explicitly to use it.
+
+The [Alternate suit 3 set](alternate-suit-3.md) adapts Cherry's rainbow plaid outfit photographed on May 28, 2008. Open its [pose viewer](alternate-suit-3-preview.html) or read its [generation prompts](prompts-alternate-suit-3.json). Select `alternate-3-*` gestures explicitly to use it. Each alternate covers all 15 Don poses and has no holiday theme.
+
+All suits preserve the illustrated robot reference, with silver faceplates, cyan screen eyes, sculpted white hair and Don's connected wraparound moustache and goatee. His original red, gold and ivory floral suit is the normal/default wardrobe. See [Don's suits](../../../docs/coachs-corner.md#dons-suits) for selection rules. The manifest pins `defaultWardrobes.don` to `normal`; existing normal `don-*` assets and unprefixed gestures keep that suit.
 
 ## Files
 
@@ -14,7 +20,7 @@ Both suits preserve the illustrated robot reference, with silver faceplates, cya
 - `preview.html` lets you select poses, check light and dark backgrounds, and step through the script cues. It is a catalog preview, not the current player's mouth animation.
 - `manifest.json` lists every asset, its wardrobe, use, dimensions and website URL, plus the default wardrobe and variant prompt records.
 - `cue-sheet.json` maps 48 script beats to pose IDs. Match these to your eventual voice track.
-- `prompts.json` records the original suit and Ron prompts; `prompts-halloween-2026.json` records the Halloween edits. Images were made with the built-in image_gen tool.
+- `prompts.json` records the original suit and Ron prompts. `prompts-halloween-2026.json`, `prompts-alternate-suit-1.json`, `prompts-alternate-suit-2.json` and `prompts-alternate-suit-3.json` record the optional suit edits. Images were made with the built-in image_gen tool.
 
 ## Place the characters
 
@@ -30,7 +36,7 @@ The character sits behind the tabletop. A second copy of the same image is clipp
 
 ## Switch poses
 
-For ordinary speech, use `don-default` / `don-talk` and `ron-default` / `ron-talk`. Matching mouth pairs also exist for Don's point and thumbs-up.
+For ordinary speech in the normal wardrobe, use `don-default` / `don-talk` and `ron-default` / `ron-talk`. Matching mouth pairs also exist for Don's point and thumbs-up. Each of Don's five wardrobes has those three pairs, giving the full catalog 16 mouth pairs including Ron's.
 
 The player keeps the closed-mouth body visible and fades only a clipped face region from the talking illustration over it. Swapping whole images on every syllable makes the clothing flicker because the illustrations differ. Gesture changes still use complete poses. Follow the [artwork checklist](../../../docs/coachs-corner.md#adding-or-replacing-artwork) for face clips, format generation and playback checks when adding or replacing poses.
 
@@ -44,6 +50,9 @@ Use `don-stare` after "Hamhung Hall Monitors" and `don-pause` before "Paddyville
 | --- | --- |
 | Normal Don, default suit | default, talk, point, point-talk, angry-talk, surprised, stare, pause, tie-adjust, lean-camera, mic-remove, thumbs-up, thumbs-up-talk, desk-pound, desk-pound-ready |
 | Halloween Don | The same 15 suffixes, prefixed with `don-halloween-` |
+| Alternate suit 1 Don | The same 15 suffixes, prefixed with `don-alternate-1-` |
+| Alternate suit 2 Don | The same 15 suffixes, prefixed with `don-alternate-2-` |
+| Alternate suit 3 Don | The same 15 suffixes, prefixed with `don-alternate-3-` |
 | Ron | default, talk, skeptical-talk, look-down, warning, surprised |
 
 Each ID has its character prefix, for example `don-point-talk.webp`.
