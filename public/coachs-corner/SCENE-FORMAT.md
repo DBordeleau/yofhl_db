@@ -6,7 +6,7 @@ Give the engine these three files:
 
 - `/coachs-corner/scenes/opening-week.scene.json`: dialogue, performance choices and timing.
 - `/coachs-corner/scene.schema.json`: JSON Schema, draft 7, for structural validation.
-- `/coachs-corner/robots-v2/manifest.json`: pose files, character ownership and mouth pairs.
+- `assets/coachs-corner/robots-v2/manifest.json`: pose files, character ownership and mouth pairs.
 
 This is an engine input contract. Playback has not been implemented. Version 1 uses text reveal timing; it contains no recorded or generated speech. At the authored speeds and pauses, the opening scene lasts approximately **3 minutes 57 seconds**. WPM values and pause lengths are editable performance choices.
 
@@ -139,6 +139,6 @@ The repository's authoring check validates the schema, assets, timing constraint
 node output/coachs-corner/validate-scene.cjs
 ```
 
-The earlier [48-cue sheet](robots-v2/cue-sheet.json) is an asset preview aid. Use the full 77-event scene for playback. Edit the scene JSON directly; `output/coachs-corner/structure-scene.cjs` is the original authoring generator and regenerating it overwrites those edits.
+The earlier [48-cue sheet](../../assets/coachs-corner/robots-v2/cue-sheet.json) is an asset preview aid. Use the full 77-event scene for playback. Edit the scene JSON directly; `output/coachs-corner/structure-scene.cjs` is the original authoring generator and regenerating it overwrites those edits.
 
 For voiced playback, add an explicit audio mode and timing contract in a later format version. Bind clips or word timestamps to stable event/run positions and use their actual durations. WPM in this version is a text pacing target, not measured speech timing.

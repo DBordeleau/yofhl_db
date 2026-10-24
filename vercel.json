@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "bash scripts/vercel-ignore-build.sh",
+  "git": {
+    "deploymentEnabled": {
+      "codex/**": false
+    }
+  },
   "crons": [
     { "path": "/api/cron/fantrax?slot=00:00", "schedule": "0 0 * * *" },
     { "path": "/api/cron/fantrax?slot=01:00", "schedule": "0 1 * * *" },

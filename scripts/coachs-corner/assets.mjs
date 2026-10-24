@@ -16,11 +16,13 @@ const writeChanged = async (file, bytes) => {
 /** Keep old versions: cached pages may still reference them after an art edit. */
 export async function generateAssets(root = process.cwd()) {
     const base = path.join(root, 'public/coachs-corner');
+    // Pose art lives outside public/ so only its hashed AVIF copies deploy. Manifest
+    // keys keep the old /coachs-corner/robots-v2/ form as stable asset names.
+    const art = path.join(root, 'assets/coachs-corner/robots-v2');
+    const file = source => source.startsWith('robots-v2/') ? path.join(art, source.slice('robots-v2/'.length)) : path.join(base, source);
     const sources = ['coachs_corner_theme.mp3'];
-    for (const [dir, extension] of [['robots-v2', '.webp'], ['audio', '.wav']]) {
-        for (const file of await readdir(path.join(base, dir))) {
-            if (file.endsWith(extension)) sources.push(`${dir}/${file}`);
-        }
+    for (const name of await readdir(path.join(base, 'audio'))) {
+        if (name.endsWith('.wav')) sources.push(`audio/${name}`);
     }
     const media = path.join(base, 'media');
     await mkdir(media, { recursive: true });
@@ -29,13 +31,15 @@ export async function generateAssets(root = process.cwd()) {
     const previous = JSON.parse(await readFile(buildPath, 'utf8').catch(() => '{}'));
     const recipe = JSON.stringify({ options: AVIF_OPTIONS, sharp: sharp.versions.sharp, heif: sharp.versions.heif });
     const avifBuild = { recipe, files: {} };
-    for (const source of sources.filter(source => source.endsWith('.webp'))) {
+    // WebP exports stay with the art for the catalog previews and set each AVIF's size; only AVIF ships.
+    for (const name of (await readdir(art)).filter(name => name.endsWith('.webp'))) {
+        const source = `robots-v2/${name}`;
         const original = source.replace(/(?:-640)?\.webp$/, '.png');
-        const input = await readFile(path.join(base, original));
-        const { width, height } = await sharp(await readFile(path.join(base, source))).metadata();
+        const input = await readFile(file(original));
+        const { width, height } = await sharp(await readFile(file(source))).metadata();
         const inputHash = digest(input);
         const avif = source.replace(/\.webp$/, '.avif');
-        const outputPath = path.join(base, avif);
+        const outputPath = file(avif);
         let output = await readFile(outputPath).catch(() => null);
         const old = previous.files?.[avif];
         // Committed generated files make normal builds a hash check, not another
@@ -52,11 +56,11 @@ export async function generateAssets(root = process.cwd()) {
     /** @type {Record<string, string>} */
     const manifest = {};
     for (const source of sources.sort()) {
-        const bytes = await readFile(path.join(base, source));
+        const bytes = await readFile(file(source));
         const hash = digest(bytes).slice(0, 16);
         const { name, ext } = path.parse(source);
         const target = `${name}.${hash}${ext}`;
-        await copyFile(path.join(base, source), path.join(media, target));
+        await copyFile(file(source), path.join(media, target));
         manifest[`/coachs-corner/${source}`] = `/coachs-corner/media/${target}`;
     }
     const manifestPath = path.join(root, 'lib/coachs-corner/media.json');

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { artUrl, PREFER_AVIF } from '@/lib/coachs-corner/media';
+import React from 'react';
+import { artUrl } from '@/lib/coachs-corner/media';
 import { artFor, type CharacterId } from '@/lib/coachs-corner/cast';
 
 const SIZES = '(max-width: 700px) 60vw, 42vw';
@@ -26,41 +26,32 @@ const MOUTH_CLIPS: Record<string, string> = {
     'ron-talk': 'ellipse(14% 8% at 45% 43%)',
 };
 
-/** Static files only: browser format selection, with the original WebP fallback. */
-export default function Artwork({ pose, smallOnly = false, active, className, preferAvif = PREFER_AVIF, mouthClip }: {
+/** Static AVIF files only, at 640 px or 1254 px. */
+export default function Artwork({ pose, smallOnly = false, active, className, mouthClip }: {
     pose: string;
     smallOnly?: boolean;
     active?: boolean;
     className?: string;
-    preferAvif?: boolean;
     mouthClip?: string;
 }) {
-    const [avifFailed, setAvifFailed] = useState(false);
-    const useAvif = preferAvif && !avifFailed;
-    const srcSet = (format: 'avif' | 'webp') => smallOnly ? artUrl(pose, true, format)
-        : `${artUrl(pose, true, format)} 640w, ${artUrl(pose, false, format)} 1254w`;
     return (
-        <picture>
-            {useAvif && <source type="image/avif" srcSet={srcSet('avif')} sizes={smallOnly ? undefined : SIZES} />}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-                className={className}
-                src={artUrl(pose, true)}
-                srcSet={smallOnly ? undefined : srcSet('webp')}
-                sizes={smallOnly ? undefined : SIZES}
-                alt=""
-                draggable={false}
-                data-on={active || undefined}
-                data-mouth={mouthClip ? true : undefined}
-                style={mouthClip ? { clipPath: mouthClip } : undefined}
-                onError={useAvif ? () => setAvifFailed(true) : undefined}
-            />
-        </picture>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+            className={className}
+            src={artUrl(pose, true)}
+            srcSet={smallOnly ? undefined : `${artUrl(pose, true)} 640w, ${artUrl(pose)} 1254w`}
+            sizes={smallOnly ? undefined : SIZES}
+            alt=""
+            draggable={false}
+            data-on={active || undefined}
+            data-mouth={mouthClip ? true : undefined}
+            style={mouthClip ? { clipPath: mouthClip } : undefined}
+        />
     );
 }
 
-export function HostArtwork({ who, gesture, open, art, preferAvif }: { who: CharacterId; gesture: string; open: boolean; art: string[]; preferAvif?: boolean }) {
+export function HostArtwork({ who, gesture, open, art }: { who: CharacterId; gesture: string; open: boolean; art: string[] }) {
     const current = artFor(who, gesture, open);
     const body = artFor(who, gesture, false);
-    return <>{art.map(id => <Artwork key={id} pose={id} active={id === body || id === current} mouthClip={MOUTH_CLIPS[id]} preferAvif={preferAvif} />)}</>;
+    return <>{art.map(id => <Artwork key={id} pose={id} active={id === body || id === current} mouthClip={MOUTH_CLIPS[id]} />)}</>;
 }

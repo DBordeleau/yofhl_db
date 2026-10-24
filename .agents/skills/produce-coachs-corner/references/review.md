@@ -36,7 +36,7 @@ Check monitor cuts against the words they illustrate. An inline graphic at the e
 
 For a new physical beat, review [preparation, contact and sound](production.md#physical-actions) together. Check whether its intensity matches Don's actual mood and whether Ron's reaction serves the exchange. Observe the effect starting and clearing in motion. Record separately whether the sound was heard, measured or accepted by the owner. The first rehearsal desk sound passed its scan but failed the owner's listening review.
 
-When artwork changed, verify the producer completed the [artwork checklist](../../../../docs/coachs-corner.md#adding-or-replacing-artwork). Inspect fullscreen and narrow layouts in the real player, AVIF and WebP fallback, and mouth transitions with steady clothing and no visible face seams. Record actual quality differences and device/browser coverage in the review.
+When artwork changed, verify the producer completed the [artwork checklist](../../../../docs/coachs-corner.md#adding-or-replacing-artwork). Inspect fullscreen and narrow layouts in the real player, AVIF quality against the WebP export, and mouth transitions with steady clothing and no visible face seams. Record actual quality differences and device/browser coverage in the review.
 
 ## Handoff
 

@@ -41,7 +41,7 @@ Everything is about this specific league and its people: real team names, owners
 ## Evidence on Hand
 
 - Real league data in the database: teams, owners, logos (`/public/logos`, root PNGs), team colour palettes, seasons, drafts, awards.
-- Coach's Corner art: 19 transparent robot poses in `public/coachs-corner/robots-v2` (13 Don, 6 Ron) with a manifest.
+- Coach's Corner art: 19 transparent robot poses in `assets/coachs-corner/robots-v2` (13 Don, 6 Ron) with a manifest.
 - The pilot script, opening week (draft and opening matchups), from `public/coachs-corner/scenes/opening-week.scene.json`.
 
 ## Product Principles

@@ -16,15 +16,15 @@ All suits preserve the illustrated robot reference, with silver faceplates, cyan
 
 - PNG files are the original 1254 × 1254 renders.
 - WebP files keep the same dimensions and alpha, with quality set to 94 for smaller downloads.
-- Both WebP sizes have generated AVIF equivalents. The player prefers AVIF and falls back to WebP; `npm run coachs:assets` builds and versions these static files.
-- `preview.html` lets you select poses, check light and dark backgrounds, and step through the script cues. It is a catalog preview, not the current player's mouth animation.
-- `manifest.json` lists every asset, its wardrobe, use, dimensions and website URL, plus the default wardrobe and variant prompt records.
+- Both WebP sizes have generated AVIF equivalents. Only the AVIF files ship: `npm run coachs:assets` copies them to `public/coachs-corner/media/` under hashed names. This folder is not deployed; the WebP files stay here for the catalog previews and set each AVIF's dimensions.
+- `preview.html` lets you select poses, check light and dark backgrounds, and step through the script cues. Open it directly from this folder. It is a catalog preview, not the current player's mouth animation.
+- `manifest.json` lists every asset, its wardrobe, use, dimensions and asset name, plus the default wardrobe and variant prompt records.
 - `cue-sheet.json` maps 48 script beats to pose IDs. Match these to your eventual voice track.
 - `prompts.json` records the original suit and Ron prompts. `prompts-halloween-2026.json`, `prompts-alternate-suit-1.json`, `prompts-alternate-suit-2.json` and `prompts-alternate-suit-3.json` record the optional suit edits. Images were made with the built-in image_gen tool.
 
 ## Place the characters
 
-Use equal square image boxes and align them at the bottom. Keep the full transparent canvas rather than trimming each pose separately. The site paths start with `/coachs-corner/robots-v2/`.
+Use equal square image boxes and align them at the bottom. Keep the full transparent canvas rather than trimming each pose separately. Asset names start with `/coachs-corner/robots-v2/`; they are manifest keys, not public paths. The site serves the hashed copies under `/coachs-corner/media/`.
 
 The arms and hands are visible as though the hosts are seated at a desk. Add a separate desk layer if needed; the image files contain no desk or background.
 
