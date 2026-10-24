@@ -182,6 +182,11 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
 .standingsTable tbody .playoffLine:hover { background: none; }
 .playoffLine span { display: flex; align-items: center; gap: 10px; font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #b00d28; }
 .playoffLine span::after { content: ''; flex: 1; border-top: 2px dashed #e8a3b0; }
+/* a bye is earned, so it takes the honours gold */
+.byeSlot, .byeLegend i { background: linear-gradient(180deg, #f7d774, #b8860b); clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); }
+.byeSlot { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 30px; margin-left: -6px; padding: 0 4px; }
+.byeLegend { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; }
+.byeLegend i { width: 14px; height: 10px; }
 .standingTeam:hover { color: #1f6fc2; }
 .standingsRecord { text-align: right; white-space: nowrap; color: #66758a; font-size: 13px; font-variant-numeric: tabular-nums; padding-right: 16px; }
 .standingsTable thead th:nth-child(3) { padding-right: 16px; }
