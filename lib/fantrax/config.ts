@@ -10,3 +10,5 @@ export function fantraxMatchupUrl(period: number, awayId?: string, homeId?: stri
 
 // Fantrax's league settings report 4 playoff teams, but the league sends 6.
 export const PLAYOFF_TEAMS = 6;
+// The top seeds skip the first round and go straight to the semifinals.
+export const BYE_TEAMS = 2;
