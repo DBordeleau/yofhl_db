@@ -109,7 +109,7 @@ export async function checkDraft(draft: LocalDraft, root = process.cwd()): Promi
             if (seasons.size > 1) report('error', 'Gap graphics must compare fantasy points from the same archived season.', event.line);
         }
     }
-    const urls = [...timeline.art.flatMap(id => [artUrl(id), artUrl(id, true), artUrl(id, false, 'avif'), artUrl(id, true, 'avif')]), THEME_URL];
+    const urls = [...timeline.art.flatMap(id => [artUrl(id), artUrl(id, true)]), THEME_URL];
     // File-backed effects and voices must exist even when no explicit sfx cue names them.
     for (const slot of Object.values(CURRENT_SOUND_BANK)) if ('files' in slot.source) urls.push(...slot.source.files);
     for (const url of new Set(urls)) {

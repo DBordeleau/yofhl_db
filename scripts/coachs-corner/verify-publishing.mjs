@@ -81,16 +81,20 @@ try {
         .replace('let db:', `neonConfig.fetchEndpoint = () => 'http://127.0.0.1:${bridge.address().port}/sql';\n\nlet db:`));
     if (process.argv.includes('--art-review')) {
         // Browser fixtures exist ONLY in this disposable build. They never become
-        // application routes or change the real asset manifest.
-        const mediaPath = path.join(scratch, 'lib/coachs-corner/media.json');
-        const media = JSON.parse(await readFile(mediaPath, 'utf8'));
-        for (const suffix of ['', '-640']) {
-            media[`/coachs-corner/robots-v2/qa-broken${suffix}.webp`] = media[`/coachs-corner/robots-v2/don-default${suffix}.webp`];
-            media[`/coachs-corner/robots-v2/qa-broken${suffix}.avif`] = '/deliberately-missing-qa-image.avif';
-        }
-        await writeFile(mediaPath, JSON.stringify(media));
+        // application routes or change the real asset manifest. The source route
+        // serves the undeployed WebP exports for comparison against shipped AVIF.
         const reviewDir = path.join(scratch, 'app/art-review');
-        await mkdir(reviewDir, { recursive: true });
+        await mkdir(path.join(reviewDir, 'source/[file]'), { recursive: true });
+        await writeFile(path.join(reviewDir, 'source/[file]/route.ts'), `
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+export async function GET(_: Request, { params }: { params: Promise<{ file: string }> }) {
+    const { file } = await params;
+    if (!/^[a-z0-9-]+\\.webp$/.test(file)) return new Response(null, { status: 404 });
+    const bytes = await readFile(path.join(${JSON.stringify(path.join(root, 'assets/coachs-corner/robots-v2'))}, file)).catch(() => null);
+    return bytes ? new Response(bytes, { headers: { 'content-type': 'image/webp' } }) : new Response(null, { status: 404 });
+}
+`);
         await writeFile(path.join(reviewDir, 'page.tsx'), `
 'use client';
 import { useEffect, useState } from 'react';
@@ -99,24 +103,23 @@ import { allArt, artFor, type CharacterId } from '@/lib/coachs-corner/cast';
 import styles from '@/components/coachs-corner/coachs-corner.module.css';
 import { artUrl } from '@/lib/coachs-corner/media';
 import manifest from '@/lib/coachs-corner/media.json';
-const poses = Object.keys(manifest).filter(s => s.endsWith('.webp') && !s.endsWith('-640.webp') && !s.includes('qa-broken')).map(s => s.split('/').pop()!.replace('.webp', ''));
+const poses = Object.keys(manifest).filter(s => s.startsWith('/coachs-corner/robots-v2/') && s.endsWith('.avif') && !s.endsWith('-640.avif')).map(s => s.split('/').pop()!.replace('.avif', ''));
+const imageUrl = (pose: string, format: 'webp' | 'avif') => format === 'webp' ? '/art-review/source/' + pose + '.webp' : artUrl(pose);
 export default function ArtReview() {
     const [pose, setPose] = useState('don-default');
     const [mode, setMode] = useState('split');
     const [zoom, setZoom] = useState('fit');
     const [light, setLight] = useState(false);
-    const [broken, setBroken] = useState(false);
     const [pair, setPair] = useState('don/rest');
     const [talking, setTalking] = useState(false);
     const [animate, setAnimate] = useState(false);
-    const [avif, setAvif] = useState(true);
     const [who, gesture] = pair.split('/') as [CharacterId, string];
     useEffect(() => { if (!animate) return; const timer=setInterval(()=>setTalking(t=>!t),180); return ()=>clearInterval(timer); },[animate]);
     return <main id="review" style={{background:light?'#f7f7f7':'#070b18',color:light?'#111':'white',height:'100vh',overflow:'auto',padding:16}}>
-        <h1>Local AVIF quality and fallback review</h1>
+        <h1>Local AVIF quality review</h1>
         <div style={{display:'flex',gap:16,padding:'12px 0',flexWrap:'wrap'}}>
             <label>Pose <select aria-label="Pose" style={{color:'black'}} value={pose} onChange={e=>setPose(e.target.value)}>{poses.map(p=><option key={p}>{p}</option>)}</select></label>
-            <label>View <select aria-label="View" style={{color:'black'}} value={mode} onChange={e=>setMode(e.target.value)}><option value="split">Side by side</option><option value="webp">Original WebP</option><option value="avif">AVIF</option><option value="fallback">Fallback component</option><option value="motion">Mouth motion</option></select></label>
+            <label>View <select aria-label="View" style={{color:'black'}} value={mode} onChange={e=>setMode(e.target.value)}><option value="split">Side by side</option><option value="webp">Original WebP</option><option value="avif">AVIF</option><option value="motion">Mouth motion</option></select></label>
             <label>Zoom <select aria-label="Zoom" style={{color:'black'}} value={zoom} onChange={e=>setZoom(e.target.value)}><option value="fit">Fit</option><option value="native">Native pixels</option><option value="double">200%</option></select></label>
             <button onClick={()=>setLight(!light)}>Toggle background</button>
             <button onClick={()=>document.getElementById('review')!.requestFullscreen()}>Full screen review</button>
@@ -126,22 +129,18 @@ export default function ArtReview() {
             <label>Mouth pair <select aria-label="Mouth pair" style={{color:'black'}} value={pair} onChange={e=>setPair(e.target.value)}>{['don/rest','don/point','don/thumbs','don/halloween-rest','don/halloween-point','don/halloween-thumbs','don/alternate-1-rest','don/alternate-1-point','don/alternate-1-thumbs','don/alternate-2-rest','don/alternate-2-point','don/alternate-2-thumbs','don/alternate-3-rest','don/alternate-3-point','don/alternate-3-thumbs','ron/rest'].map(p=><option key={p}>{p}</option>)}</select></label>
             <button onClick={()=>{setAnimate(false);setTalking(!talking);}}>{talking?'Close mouth':'Open mouth'}</button>
             <button onClick={()=>setAnimate(!animate)}>{animate?'Stop mouth animation':'Animate mouths'}</button>
-            <button onClick={()=>setAvif(!avif)}>{avif?'Switch to WebP':'Switch to AVIF'}</button>
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:16}}>
                 <section><h2>Before: whole image swaps</h2><div data-review="before" style={{position:'relative',width:'100%',aspectRatio:'1'}}><div className={styles.body} style={{'--fade':'55ms'} as React.CSSProperties}>
-                    {allArt(who).map(id=><Artwork key={id} pose={id} active={id===artFor(who,gesture,talking)} preferAvif={avif} />)}
+                    {allArt(who).map(id=><Artwork key={id} pose={id} active={id===artFor(who,gesture,talking)} />)}
                 </div></div></section>
                 <section><h2>After: body stays fixed</h2><div data-review="after" style={{position:'relative',width:'100%',aspectRatio:'1'}}><div className={styles.body} style={{'--fade':'55ms'} as React.CSSProperties}>
-                    <HostArtwork who={who} gesture={gesture} open={talking} art={allArt(who)} preferAvif={avif} />
+                    <HostArtwork who={who} gesture={gesture} open={talking} art={allArt(who)} />
                 </div></div></section>
             </div>
-        </> : mode==='fallback' ? <><button onClick={()=>setBroken(!broken)}>Toggle broken AVIF</button><div style={{display:'grid',gridTemplateColumns:'1fr 1fr'}}>
-            <section><h2>Automatic AVIF / error fallback</h2><Artwork key={String(broken)} pose={broken?'qa-broken':pose} preferAvif /></section>
-            <section><h2>Rollback: WebP only</h2><Artwork pose={pose} preferAvif={false} /></section>
-        </div></> : <div style={{display:'grid',gridTemplateColumns:mode==='split'?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:8}}>
+        </> : <div style={{display:'grid',gridTemplateColumns:mode==='split'?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:8}}>
             {(['webp','avif'] as const).filter(format=>mode==='split'||mode===format).map(format=><section key={format}>
                 <h2>{format==='webp'?'Original WebP':'AVIF quality ${AVIF_OPTIONS.quality}'}</h2>
-                <div style={{height:'calc(100vh - 150px)',overflow:'auto'}}><img alt={format+' '+pose} src={artUrl(pose,false,format)} style={{maxWidth:'none',width:zoom==='fit'?'100%':zoom==='native'?1254:2508}} /></div>
+                <div style={{height:'calc(100vh - 150px)',overflow:'auto'}}><img alt={format+' '+pose} src={imageUrl(pose,format)} style={{maxWidth:'none',width:zoom==='fit'?'100%':zoom==='native'?1254:2508}} /></div>
             </section>)}
         </div>}
     </main>;
@@ -239,7 +238,7 @@ export default function ArtReview() {
     });
     await check('hashed media is immutable for a year, supports ranges/304; source URLs remain mutable', async () => {
         const media = JSON.parse(await readFile(path.join(root, 'lib/coachs-corner/media.json'), 'utf8'));
-        for (const source of ['/coachs-corner/coachs_corner_theme.mp3', '/coachs-corner/robots-v2/don-thumbs-up-640.webp', '/coachs-corner/robots-v2/don-thumbs-up-640.avif', '/coachs-corner/audio/tie-cloth-7.wav']) {
+        for (const source of ['/coachs-corner/coachs_corner_theme.mp3', '/coachs-corner/robots-v2/don-thumbs-up-640.avif', '/coachs-corner/audio/tie-cloth-7.wav']) {
             const response = await fetch(base + media[source]);
             assert.equal(response.status, 200);
             if (source.endsWith('.avif')) assert.match(response.headers.get('content-type'), /image\/avif/);
@@ -251,7 +250,9 @@ export default function ArtReview() {
             const partial = await fetch(base + media[source], { headers: { range: 'bytes=0-99' } });
             assert.equal(partial.status, 206);
             assert.equal((await partial.arrayBuffer()).byteLength, 100);
-            assert.doesNotMatch((await fetch(base + source, { method: 'HEAD' })).headers.get('cache-control'), /immutable/);
+            // Pose art sources are not deployed; only their hashed copies are public.
+            if (source.includes('/robots-v2/')) assert.equal((await fetch(base + source, { method: 'HEAD' })).status, 404);
+            else assert.doesNotMatch((await fetch(base + source, { method: 'HEAD' })).headers.get('cache-control'), /immutable/);
         }
     });
     await writeFile(path.join(scratch, 'results.json'), JSON.stringify({ checks: results, sqlQueries, base }, null, 2));

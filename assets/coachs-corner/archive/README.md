@@ -1,6 +1,6 @@
 # Earlier Coach's Corner versions
 
-These nine generated images are preserved for reference. Use the [selected robot pose set](../../../public/coachs-corner/robots-v2/) for the website.
+These nine generated images are preserved for reference. Use the [selected robot pose set](../robots-v2/) for the website.
 
 - `realistic-v1/` contains seven images from the first, more human-looking robot direction.
 - `stylized-drafts/` contains Don before the wraparound moustache correction and Ron before the inward-facing revision.

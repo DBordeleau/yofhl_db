@@ -19,11 +19,8 @@ const episodeTitle = (title: string) => {
 };
 
 // lazy so the hosts never download on screens narrow enough to hide the studio
-const Host = ({ pose, className }: { pose: string; className: string }) => <picture>
-    <source type="image/avif" srcSet={artUrl(pose, true, 'avif')} />
-    {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img className={className} src={artUrl(pose, true)} alt="" width={640} height={640} loading="lazy" decoding="async" draggable={false} />
-</picture>;
+// eslint-disable-next-line @next/next/no-img-element
+const Host = ({ pose, className }: { pose: string; className: string }) => <img className={className} src={artUrl(pose, true)} alt="" width={640} height={640} loading="lazy" decoding="async" draggable={false} />;
 
 // The latest Coach's Corner episode on a hung studio monitor, Don and Ron at the desk below it.
 export default function HeroStudio({ episode }: { episode: EpisodeSummary }) {

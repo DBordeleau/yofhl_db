@@ -84,9 +84,9 @@ Choose the episode's wardrobe before selecting or generating poses. Follow [Don'
 Inspect the existing catalog before making a request:
 
 - `lib/coachs-corner/cast.ts` is the runtime gesture vocabulary.
-- `public/coachs-corner/robots-v2/manifest.json` lists the artwork, each Don pose's wardrobe and the pinned default.
-- `public/coachs-corner/robots-v2/preview.html` provides a pose viewer.
-- `public/coachs-corner/robots-v2/prompts.json` records the original suit and Ron prompts; each variant's manifest entry links its own prompt record and preview.
+- `assets/coachs-corner/robots-v2/manifest.json` lists the artwork, each Don pose's wardrobe and the pinned default.
+- `assets/coachs-corner/robots-v2/preview.html` provides a pose viewer.
+- `assets/coachs-corner/robots-v2/prompts.json` records the original suit and Ron prompts; each variant's manifest entry links its own prompt record and preview.
 
 Use the image-generation tool for new poses, supplying the saved matching master PNG from the selected wardrobe as the image reference. For a new suit, use the matching normal pose for geometry and one consistent new-suit reference for clothing. Historical prompt references may point to another chat's generated-image directory; use the committed catalog equivalent instead. Preserve the illustrated silver robot design, cyan eyes, Don's connected white moustache/goatee, selected outfit patterns, camera angle and anchors. Don sits left facing right; Ron sits right facing left. Give a new suit distinct asset IDs and gesture names, retain the normal set and defaults, and complete the same pose inventory and mouth pairs. Register its wardrobe and prompt record in the manifest.
 

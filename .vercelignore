@@ -7,5 +7,4 @@
 .impeccable/
 output/
 local/
-companion/.data/
-companion/.next/
+companion/

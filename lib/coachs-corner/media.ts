@@ -7,8 +7,7 @@ export function mediaUrl(source: string): string {
     return url;
 }
 
-// Set false and rebuild to restore the original WebP artwork everywhere.
-export const PREFER_AVIF = true;
-export const artUrl = (id: string, small = false, format: 'webp' | 'avif' = 'webp') =>
-    mediaUrl(`/coachs-corner/robots-v2/${id}${small ? '-640' : ''}.${format}`);
+// Only AVIF artwork ships; the WebP exports stay in assets/coachs-corner/robots-v2 for the catalog.
+export const artUrl = (id: string, small = false) =>
+    mediaUrl(`/coachs-corner/robots-v2/${id}${small ? '-640' : ''}.avif`);
 export const THEME_URL = mediaUrl('/coachs-corner/coachs_corner_theme.mp3');
