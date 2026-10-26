@@ -123,7 +123,7 @@ export function ChaseHero({ chases, teams, year, children }: Omit<Props, 'compac
                 </div> : <p className={styles.heroEmpty}>Current scoring is unavailable.</p>}
             </div>
         </div>
-        {next.length ? <div className={styles.queueBar}><div className={`${styles.wrap} ${styles.queue}`}>{next.map(i => {
+        {next.length ? <div className={styles.queueBar}><div className={styles.queue}>{next.map(i => {
             const candidate = candidates[i];
             const franchise = teams.find(t => t.ID === candidate.team);
             return <button type="button" key={candidate.id} onClick={() => { setDirection(1); setIndex(i); }} aria-label={`Show ${candidate.name}: ${number(candidate.target)} ${candidate.unit} milestone`}>

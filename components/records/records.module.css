@@ -45,15 +45,16 @@
 .viewDetails:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .queueBar { position: relative; background: #0a1424e6; border-top: 1px solid #ffffff14; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .queue { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.queue > button { display: flex; align-items: center; gap: 14px; min-width: 0; min-height: 84px; padding: 14px 24px; text-align: left; border-left: 1px solid #ffffff14; transition: background .2s; }
+.queue > button { display: flex; align-items: center; gap: 14px; min-width: 0; min-height: 84px; padding: 14px 24px; text-align: left; transition: background .2s; }
+.queue > button + button { border-left: 1px solid #ffffff14; }
 /* three chases by default; wider screens reveal a fourth and fifth */
 .queue > button:nth-child(n + 4) { display: none; }
-.queue > button:last-child, .queue > button:nth-child(3) { border-right: 1px solid #ffffff14; }
 .queue > button:hover { background: #ffffff0b; }
-.queueName { flex: 0 1 auto; min-width: 0; }
-.queueName strong { display: block; overflow: hidden; font-size: 17px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
-.queueName small { display: block; margin-top: 4px; font-size: 12px; color: #a3b3ca; white-space: nowrap; }
-.queueGap { flex: none; display: flex; flex-direction: column; gap: 6px; margin-left: 8px; padding-left: 18px; border-left: 1px solid #ffffff1f; }
+.queueName { flex: 1 1 auto; min-width: 0; }
+.queueName strong, .queueName small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.queueName strong { font-size: 17px; font-weight: 800; }
+.queueName small { margin-top: 4px; font-size: 12px; color: #a3b3ca; }
+.queueGap { flex: none; display: flex; flex-direction: column; gap: 6px; padding-left: 18px; border-left: 1px solid #ffffff1f; }
 .queueGap small { font-size: 10px; line-height: 1; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #8fa2bd; white-space: nowrap; }
 .queueGap b { font-size: 30px; line-height: .9; font-weight: 900; font-style: italic; font-stretch: 95%; letter-spacing: -.02em; color: var(--gold); font-variant-numeric: tabular-nums; }
 
@@ -236,8 +237,7 @@
     .laneLabels { font-size: 14px; }
     .queue { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .queue > button { min-height: 96px; padding: 18px 28px; }
-    .queue > button:nth-child(4) { display: flex; border-right: 1px solid #ffffff14; }
-    .queue > button:nth-child(3):not(:last-child) { border-right: 0; }
+    .queue > button:nth-child(4) { display: flex; }
     .queueName strong { font-size: 19px; }
     .queueName small { font-size: 13px; }
     .queueGap small { font-size: 11px; }
@@ -286,7 +286,6 @@
     .featureTo b { font-size: 42px; }
     .queue { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .queue > button:nth-child(5) { display: flex; }
-    .queue > button:nth-child(4):not(:last-child) { border-right: 0; }
     .recordHero h2 { font-size: 58px; }
     .recordValue { font-size: 128px; }
     .recordValue > span { font-size: 30px; }
@@ -319,9 +318,9 @@
     .featureTo { padding-left: 16px; }
     .featureTo b { font-size: 22px; }
     .lane { flex-basis: 100%; }
-    .queue { grid-template-columns: minmax(0, 1fr); }
-    .queue > button { min-height: 72px; padding: 12px 2px; border-left: 0; border-bottom: 1px solid #ffffff14; }
-    .queue > button:nth-child(3), .queue > button:last-child { border-right: 0; border-bottom: 0; }
+    .queue { grid-template-columns: minmax(0, 1fr); padding-inline: 16px; }
+    .queue > button { min-height: 72px; padding: 12px 2px; }
+    .queue > button + button { border-left: 0; border-top: 1px solid #ffffff14; }
     .archive { padding-block: 30px 48px; }
     .archiveToolbar { flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 16px; }
     .tabs { width: 100%; height: 50px; }
