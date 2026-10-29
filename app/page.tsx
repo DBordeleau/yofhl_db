@@ -9,7 +9,7 @@ import RosterBrowser from '@/components/home/roster-browser';
 import HeroRink from '@/components/home/hero-rink';
 import HeroStudio from '@/components/home/hero-studio';
 import SectionLink from '@/components/home/section-link';
-import { PLAYOFF_TEAMS } from '@/lib/fantrax/config';
+import { BYE_TEAMS, PLAYOFF_TEAMS } from '@/lib/fantrax/config';
 import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores, getRosterStats, getScoringLeaders } from '@/lib/fantrax/data';
 import { periodPhase, selectPeriod, shortDate } from '@/lib/fantrax/model';
 import { getPublishedEpisodes } from '@/lib/data/coachs-corner';
@@ -44,6 +44,7 @@ export default async function HomePage() {
     const totalGames = snapshot?.teams.some(team => team.record && team.record !== '0-0-0');
     const seasonPeriods = snapshot?.scoringPeriods.map(item => item.number) ?? [];
     const playoffTeams = snapshot ? PLAYOFF_TEAMS : 0;
+    const byeTeams = snapshot ? BYE_TEAMS : 0;
     const seasonYear = snapshot ? snapshot.seasonYear + 1 : null;
 
     return <main className={styles.home}>
@@ -74,11 +75,13 @@ export default async function HomePage() {
                 <section id="standings" aria-labelledby="standings-heading" tabIndex={-1}>
                     <div className={styles.sectionHeading}><h2 id="standings-heading">Standings</h2></div>
                     <div className={styles.standingsPanel}>
-                        {snapshot ? <table className={styles.standingsTable}><caption className="sr-only">{season} YOFHL standings. {preseason ? 'Season has not started; all teams are tied.' : ''} {playoffTeams ? `The top ${playoffTeams} teams make the playoffs.` : ''}</caption><thead><tr><th scope="col"><span className="sr-only">Rank</span>#</th><th scope="col">Team</th><th scope="col">W–L–T</th><th scope="col"><abbr title="Fantasy points for">FPts</abbr></th></tr></thead><tbody>
+                        {snapshot ? <table className={styles.standingsTable}><caption className="sr-only">{season} YOFHL standings. {preseason ? 'Season has not started; all teams are tied.' : ''} {playoffTeams ? `The top ${playoffTeams} teams make the playoffs.` : ''} {byeTeams ? `The top ${byeTeams} get a first-round bye.` : ''}</caption><thead><tr><th scope="col"><span className="sr-only">Rank</span>#</th><th scope="col">Team</th><th scope="col">W–L–T</th><th scope="col"><abbr title="Fantasy points for">FPts</abbr></th></tr></thead><tbody>
                             {snapshot.teams.flatMap((team, index) => {
                                 const name = <span className={styles.standingName}><span>{team.name}</span></span>;
+                                // the bye belongs to the slot, not the team in it, so the rank cell carries it
+                                const rank = preseason || !totalGames ? '—' : team.rank ?? '—';
                                 const row = <tr key={team.id}>
-                                    <td className={styles.standingsRank}>{preseason || !totalGames ? '—' : team.rank ?? '—'}</td>
+                                    <td className={styles.standingsRank}>{rank !== '—' && index < byeTeams ? <span className={styles.byeSlot} title="First-round bye">{rank}</span> : rank}</td>
                                     <th scope="row">{team.franchiseId ? <Link href={`/teams/${team.franchiseId}`} className={styles.standingTeam}><TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={36} ring="none" />{name}</Link> : name}</th>
                                     <td className={styles.standingsRecord}>{team.record ?? '—'}</td><td className={styles.standingsPoints}>{team.points == null ? '—' : formatFpts(team.points)}</td>
                                 </tr>;
@@ -88,7 +91,7 @@ export default async function HomePage() {
                                     : [row];
                             })}
                         </tbody></table> : <p className={styles.emptyState}>Standings will return when the league snapshot is available.</p>}
-                        <div className={styles.standingsFooter}><span>{preseason || !totalGames ? 'No games played yet' : null}</span><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer">View on fantrax <Arrow direction="out" /></a></div>
+                        <div className={styles.standingsFooter}><span>{preseason || !totalGames ? 'No games played yet' : byeTeams ? <span className={styles.byeLegend}><i aria-hidden="true" />Top {byeTeams} get a first-round bye</span> : null}</span><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer">View on fantrax <Arrow direction="out" /></a></div>
                     </div>
                 </section>
 
