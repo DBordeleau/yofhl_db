@@ -5,7 +5,7 @@ interface AwardLegendProps {
     award?: boolean;
     multipleAwards?: boolean;
     cup?: boolean;
-    cupDot?: boolean; // chart legend: Jagr Cup seasons are red dots
+    cupDot?: boolean; // chart legend: Jagr Cup seasons are gold dots
     className?: string;
 }
 
@@ -24,7 +24,7 @@ const AwardLegend: FC<AwardLegendProps> = ({ award, multipleAwards, cup, cupDot,
                 <li className="inline-flex items-center gap-2"><JagrCupIcon className="h-7 w-7" />Jagr Cup champion</li>
             )}
             {cupDot && (
-                <li className="inline-flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-white bg-rink-red shadow-[0_0_0_1px_rgba(18,24,46,.12)]" />Jagr Cup champion</li>
+                <li className="inline-flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-gold-deep bg-gold-light" />Jagr Cup champion</li>
             )}
         </ul>
     );

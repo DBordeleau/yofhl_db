@@ -9,16 +9,16 @@ import TeamBadge from '@/components/team-badge';
 
 // Jagr Cup championship banners hanging from the rafters. Each links to that season's historical summary.
 const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
-    // a season in progress has no champion yet and gets no banner
-    const banners = seasons.filter((s) => s.team || s.playoffStatus === 'cancelled');
+    // a season in progress has no champion yet and gets no banner; newest first, matching the Seasons menu
+    const banners = seasons.filter((s) => s.team || s.playoffStatus === 'cancelled').reverse();
     const pathname = usePathname();
     const match = pathname.match(/^\/season\/(\d{4})/);
     const selectedYear = match ? parseInt(match[1], 10) : null;
     const bannerRefs = useRef<Record<number, HTMLElement | null>>({});
     const railRef = useRef<HTMLDivElement>(null);
-    const latestYear = banners.at(-1)?.year;
+    const latestYear = banners[0]?.year;
 
-    // When the banners overflow the rail, open it at the latest season, or the season being viewed.
+    // When the banners overflow the rail, open it at the latest season (its start), or centred on the season being viewed.
     useEffect(() => {
         const positionRail = () => {
             const rail = railRef.current;
@@ -26,7 +26,7 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
             const selected = selectedYear ? bannerRefs.current[selectedYear] : null;
             const left = selected
                 ? rail.scrollLeft + selected.getBoundingClientRect().left - rail.getBoundingClientRect().left - (rail.clientWidth - selected.clientWidth) / 2
-                : rail.scrollWidth - rail.clientWidth;
+                : 0;
             rail.scrollTo({ left, behavior: 'instant' });
         };
         positionRail();
@@ -36,7 +36,8 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
     }, [selectedYear, latestYear]);
 
     return (
-        <section className="mx-auto max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl px-4 pt-4 md:px-8 md:pt-7" aria-label="Jagr Cup champions">
+        // on a season page, phones switch seasons from the hero's year instead of this rail
+        <section className={`pt-4 md:pt-7 ${selectedYear ? 'max-[600px]:hidden' : ''}`} aria-label="Jagr Cup champions">
             <div className="relative z-[1] h-2 rounded-full bg-ink" />
             <div ref={railRef} className="flex snap-x gap-2.5 overflow-x-auto overflow-y-hidden px-1 pb-4 [justify-content:safe_center] md:gap-3.5 md:pb-2 3xl:gap-5">
                 {banners.map((champ, i) => {

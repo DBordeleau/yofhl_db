@@ -16,7 +16,8 @@ import { useOwnerNavigation } from '@/lib/owner/navigation';
 import KeeperReminder from '@/components/keepers/reminder';
 import { KEEPERS_ENABLED } from '@/lib/keepers/model';
 import Arrow from '@/components/arrow';
-import MobileNav from '@/components/navigation/mobile-nav';
+import MobileNav, { type MobileSheet } from '@/components/navigation/mobile-nav';
+import { clubNickname } from '@/lib/club-names';
 import { isPrivateRoute } from '@/lib/navigation';
 import HeaderSearch from '@/components/search/header-search';
 import NewEpisodeBadge from '@/components/coachs-corner/new-episode-badge';
@@ -38,7 +39,7 @@ const MENUS: { id: Menu; label: string }[] = [
     { id: 'players', label: 'Players' },
     { id: 'teams', label: 'Teams' },
     { id: 'seasons', label: 'Seasons' },
-    { id: 'awards', label: 'Awards' },
+    { id: 'awards', label: 'Awards & records' },
 ];
 
 const chevron = <svg className={styles.chevron} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>;
@@ -53,7 +54,7 @@ const Header: React.FC<NavData> = ({ awards, seasons, franchises, allTime, singl
         players: pathname.startsWith('/stats') || pathname.startsWith('/player') || pathname.startsWith('/compare/players'),
         teams: pathname.startsWith('/teams') || pathname.startsWith('/compare/teams'),
         seasons: pathname.startsWith('/season'),
-        awards: pathname.startsWith('/awards'),
+        awards: pathname.startsWith('/awards') || pathname.startsWith('/records'),
     };
     const ownerActive = pathname.startsWith('/owner');
     const ownerLink = (
@@ -107,14 +108,12 @@ const Header: React.FC<NavData> = ({ awards, seasons, franchises, allTime, singl
         {sideLink('/compare/players', 'Compare players')}
     </>;
     const teamLinks = <>
-        {sideLink('/teams/stats', 'All Teams')}
+        {sideLink('/teams/stats', 'All franchises')}
         {sideLink('/records?category=teams#record-archive', 'Team records')}
         {sideLink('/compare/teams', 'Compare teams')}
     </>;
-    const seasonLinks = <>
-        {sideLink('/#current-season', currentSeason ? `${seasonLabel(currentSeason.year)} · current` : 'Current season')}
-        {sideLink('/season', 'All seasons')}
-    </>;
+    // the banners beside this link are the season list
+    const seasonLinks = sideLink('/#current-season', currentSeason ? `${seasonLabel(currentSeason.year)} live` : 'Current season');
 
     const leaderList = (title: string, leaders: NavLeader[]) => <div>
         <p className={styles.eyebrow}>{title}</p>
@@ -190,8 +189,39 @@ const Header: React.FC<NavData> = ({ awards, seasons, franchises, allTime, singl
             <div className="min-w-0">{bannerRail}</div>
         </>,
         awards: <>
-            <div className={styles.side}><p className={styles.eyebrow}>Awards</p>{sideLink('/records', 'Record book')}</div>
+            <div className={styles.side}><p className={styles.eyebrow}>Awards &amp; records</p>{sideLink('/records', 'Record book')}</div>
             {awardGrid}
+        </>,
+    };
+
+    // phone tabs open the same menus as sheets above the tab bar
+    const mobileSheets: Record<MobileSheet, React.ReactNode> = {
+        teams: <>
+            <ul className={styles.sheetTeams}>
+                {teams.map((team) => <li key={team.id}>
+                    <Link href={`/teams/${team.id}`} className={styles.sheetTeam} aria-label={team.name}>
+                        <TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={null} size={48} ring="none" sizeClass={styles.sheetTeamBadge} />
+                        <span aria-hidden="true">{clubNickname(team.name)}</span>
+                    </Link>
+                </li>)}
+            </ul>
+            <div className={styles.sheetLinks}>{teamLinks}</div>
+        </>,
+        players: <>
+            <div className={styles.sheetLinks}>{playerLinks}</div>
+            {leaderList('All-time leaders', allTime)}
+        </>,
+        seasons: <>
+            <div className={styles.sheetLinks}>{seasonLinks}</div>
+            <div className={styles.sheetRail}>{bannerRail}</div>
+        </>,
+        more: <>
+            <div>
+                <p className={styles.eyebrow}>Awards &amp; records</p>
+                <div className={styles.sheetLinks}>{sideLink('/awards', 'Awards')}{sideLink('/records', 'Record book')}</div>
+            </div>
+            <div className={styles.sheetLinks}>{sideLink('/coachs-corner', <span className={styles.coachsCornerLabel}>Coach&rsquo;s Corner<NewEpisodeBadge episodeKey={latestCoachsCornerEpisode} /></span>)}</div>
+            {ownerLink}
         </>,
     };
 
@@ -243,7 +273,7 @@ const Header: React.FC<NavData> = ({ awards, seasons, franchises, allTime, singl
                 )}
             </AnimatePresence>
 
-            <MobileNav accountAction={ownerLink} latestCoachsCornerEpisode={latestCoachsCornerEpisode} />
+            <MobileNav sheets={mobileSheets} />
             {pathname !== '/' && <DraftAnnouncement />}
             {KEEPERS_ENABLED && owner.keepers && <KeeperReminder state={owner.keepers} />}
         </header>

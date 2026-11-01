@@ -6,7 +6,7 @@ import { ownedTeamQuery } from '@/lib/owner/queries';
 import type { ManagedTeam } from '@/lib/owner/model';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Brand studio | YOFHL', robots: { index: false, follow: false } };
+export const metadata = { title: 'Brand studio · YOFHL', robots: { index: false, follow: false } };
 
 export default async function OwnerBrandingPage() {
     const user = await ownerSession();

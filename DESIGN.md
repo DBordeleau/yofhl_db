@@ -351,7 +351,7 @@ A navy parallelogram bar split into equal segments. The active segment is a red 
 - **Navy panels:** gradients from `#172A4C` to `#0B1628`, a `#FFFFFF1C` hairline, 6 to 10px radius. A 2 to 3px red-to-blue top rule (`linear-gradient(90deg, #C8102E 0 32%, #4A8BCC)`) marks broadcast bands.
 
 ### Navigation
-White header with a 1px Line bottom border. Items are 15px/650 `#46566C`. The active or open item turns Ink and gets a 3px Rink Red underline flush to the border. A mega menu drops a white sheet with group lists, leader rows (condensed rank numerals, gold for first), team tiles and miniature Jagr Cup banners. On mobile it becomes an accordion with 56px rows and a red chevron. Above 1800px everything scales up.
+White header with a 1px Line bottom border. Items are 15px/650 `#46566C`. The active or open item turns Ink and gets a 3px Rink Red underline flush to the border. A mega menu drops a white sheet with group lists, leader rows (condensed rank numerals, gold for first), team tiles and miniature Jagr Cup banners. Below 1024px a fixed bottom tab bar takes over: Home, Teams, Players, Seasons and More, with a 3px Rink Red bar on the active tab's top edge. Each tab opens its menu as a white sheet above the bar (16px top corners, 52px link rows) over a navy scrim; Teams leads with a five-across grid of club logos. Above 1800px everything scales up.
 
 ### Jagr Cup Banners
 Navy pennants hung from a rafter bar on a cord. Each shows the year, the team in wide uppercase and the owner, with the banner stripes across the lower cloth. On fine pointers, hover tilts the banner −2deg with a spring (`cubic-bezier(.3, 1.4, .5, 1)`) and shifts the cloth to Rink Blue. Void seasons are pale and don't move.

@@ -12,7 +12,7 @@ export function generateStaticParams() { return []; }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const episode = await getPublishedEpisode((await params).slug);
-    if (!episode) return { title: "Coach's Corner · YOFHL DB" };
+    if (!episode) return { title: "Coach's Corner · YOFHL" };
     const label = episodeLabel(episode);
     return { title: `${label ? `${label}: ` : ''}${episode.title} · Coach's Corner`, description: 'Don and Ron break down the week in the YOFHL.' };
 }

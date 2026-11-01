@@ -166,7 +166,7 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
 .leagueGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 640px); gap: 28px; margin-top: 46px; }
 .standingsPanel { background: #fff; border: 1px solid #d9e2ec; border-radius: 6px; overflow: hidden; }
 .standingsTable { width: 100%; border-collapse: collapse; font-size: 14px; }
-.standingsTable thead { height: 37px; background: #eaf0f6; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #6a788e; border-bottom: 1px solid #e2e9f0; }
+.standingsTable thead { height: 37px; background: #eaf0f6; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #56627a; border-bottom: 1px solid #e2e9f0; }
 .standingsTable th { font-weight: 650; text-align: left; }
 .standingsTable th:first-child, .standingsTable td:first-child { width: 43px; padding-left: 18px; }
 .standingsTable th:nth-last-child(-n+2) { white-space: nowrap; text-align: right; }
@@ -485,3 +485,66 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
     .rosterSheet { --stat-columns: 52px 38px; }
 }
 @media (prefers-reduced-motion: reduce) { .rosterSheet, .playerRow::after { animation: none; } .rosterControls button, .playerRow { transition: none; } }
+
+/* phones: the week's scores lead. The hero drops its buttons, each matchup becomes a two-line scoreboard,
+   and rosters open from a logo rail instead of rendering a whole team on load. */
+.rosterPicker, .rosterClose { display: none; }
+@media (max-width: 600px) {
+    .heroInner { min-height: 0; }
+    .heroCopy { padding-block: 26px 24px; }
+    .heroActions { display: none; }
+    .heroArt { top: 10px; right: -26px; width: 160px; height: 160px; }
+    .heroTrophy { width: 160px; height: 160px; }
+
+    /* the status chip sits over the result row's right end, so only the scores set the right column's width */
+    .scoreCard { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'away away-score' 'home home-score' 'result result'; }
+    .scoreClubs, .scoreDeck { display: contents; }
+    .scoreClubs > :first-child { grid-area: away; } .scoreClubs > :last-child { grid-area: home; }
+    .scoreDeck > :first-child { grid-area: away-score; } .scoreDeck > :last-child { grid-area: home-score; }
+    .scoreClubs > :last-child, .scoreDeck > :last-child { box-shadow: inset 0 1px 0 #ffffff14; }
+    .scoreIdentity { --score-art-height: 30px; flex-direction: row; justify-content: flex-start; gap: 10px; min-height: 46px; padding: 0 6px 0 12px; background: linear-gradient(90deg, color-mix(in srgb, var(--score-club-colour) 82%, #101d32), color-mix(in srgb, var(--score-club-colour) 30%, #0b1628) 88%); }
+    .scoreIdentity::before, .scoreArtworkStage::before { display: none; }
+    .scoreArtworkStage { flex: none; width: 30px; }
+    .scoreTeamName { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: left; }
+    .scorePlace, .scoreNickname { font-family: var(--font-matchup-display), 'Matchup Condensed Fallback', sans-serif; font-size: 17px; line-height: 1; text-transform: uppercase; }
+    .scorePlace { margin-right: 5px; font-weight: 600; color: #d7e3ee; }
+    .scoreNickname { overflow-wrap: normal; }
+    .scoreIdentity:hover .scoreNickname { text-underline-offset: 3px; }
+    .scoreRow, .scoreRow[data-leading] { justify-content: center; align-items: flex-end; gap: 2px; min-height: 46px; padding: 0 12px 0 8px; background: #0b1628; }
+    .scoreRow + .scoreRow::before { display: none; }
+    .scoreValue { font-size: 22px; font-weight: 600; color: #e8eef5; }
+    .scoreRow[data-leading] .scoreValue { color: #fff; font-weight: 800; }
+    .scoreCard[data-phase='complete'] .scoreRow[data-trailing] .scoreValue { color: #a9b8cc; }
+    .scoreCard[data-phase='upcoming'] .scoreValue { color: #8fa3bb; }
+    .scoreGames { font-size: 10px; line-height: 1.2; color: #8fa3bb; }
+    .scoreCardBottom { grid-area: result; flex-direction: row; justify-content: flex-start; gap: 10px; min-height: 36px; padding: 6px 150px 6px 12px; }
+    .scoreCardBottom p { flex: none; flex-wrap: nowrap; justify-content: flex-start; font-size: 15px; white-space: nowrap; }
+    /* too short to read at this width; the lead line carries the margin */
+    .scoreMeter { display: none; }
+    .scoreCardTop, .scoreCard[data-phase='active'] .scoreCardTop { position: absolute; right: 0; bottom: 0; align-items: center; gap: 8px; height: 36px; min-height: 0; margin: 0; padding: 0 12px 0 8px; background: none; box-shadow: none; text-shadow: none; }
+    .scoreCard[data-phase='upcoming'] { padding-bottom: 36px; }
+    a.scoreCardTop:hover { background: #ffffff0f; }
+    .scoreBadge, .scoreCard[data-phase='active'] .scoreBadge { padding: 3px 8px 2px 7px; background: var(--score-bar); color: #fff; font-size: 13px; text-shadow: none; clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); }
+    .scoreSource { font-size: 10px; letter-spacing: .1em; color: #a9b8cf; }
+
+    .rosterSection > .sectionHeading { flex-direction: row; align-items: center; margin-bottom: 4px; }
+    .rosterControls { display: none; }
+    .rosterClose { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; font-size: 14px; font-weight: 750; color: #1f6fc2; }
+    .rosterPicker { display: block; margin: 0 -18px 16px; }
+    .rosterHint { margin: 0 18px 12px; font-size: 13px; color: #56627a; }
+    .rosterRail { display: flex; gap: 4px; overflow-x: auto; list-style: none; margin: 0; padding: 6px 18px 2px; scroll-snap-type: x proximity; scroll-padding-inline: 18px; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
+    .rosterRail::-webkit-scrollbar { display: none; }
+    .rosterRail li { flex: none; scroll-snap-align: start; }
+    .rosterPick { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 60px; padding: 4px 0 11px; color: #56627a; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .rosterPickBadge { width: 42px; height: 42px; filter: drop-shadow(0 4px 6px #10203a33); transition: transform .2s cubic-bezier(.33, 1, .68, 1); }
+    .rosterPick[aria-pressed='true'] { color: #12182e; }
+    .rosterPick[aria-pressed='true'] .rosterPickBadge { transform: scale(1.14); }
+    .rosterPick[aria-pressed='true']::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 0; height: 3px; background: #c8102e; }
+    .home .rosterPick:focus-visible { outline: 3px solid #3d8bda; outline-offset: -3px; border-radius: 4px; }
+    .rosterSection:not([data-picked]) .rosterSheet { display: none; }
+}
+@media (max-width: 360px) {
+    .scorePlace, .scoreNickname { font-size: 15px; }
+    .heroArt { width: 140px; height: 140px; } .heroTrophy { width: 140px; height: 140px; }
+}
+@media (prefers-reduced-motion: reduce) { .rosterPickBadge { transition: none; } }

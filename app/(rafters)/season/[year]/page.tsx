@@ -1,13 +1,17 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import PageContents from '@/components/page-contents';
 import contentsStyles from '@/components/page-contents.module.css';
+import styles from '@/components/season-page.module.css';
 import PlayoffBracket from '@/components/playoff-bracket';
 import StandingsTable from '@/components/standings-table';
 import SeasonArrival from '@/components/season-arrival';
 import SeasonLeaders from '@/components/season-leaders';
 import SeasonDraft from '@/components/season-draft';
-import StatTable from '@/components/stat-table';
+import SeasonPicker from '@/components/season-picker';
+import ChampionRoster from '@/components/champion-roster';
 import TeamBadge from '@/components/team-badge';
+import Arrow from '@/components/arrow';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import { getBannerSeasons, getChampionRoster, getSeasonDetail, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { getSeasonDraft } from '@/lib/data/history';
@@ -47,12 +51,13 @@ export default async function SeasonPage({ params }: {
     const playoffTeams = Array.from(new Set(detail.games.filter((g) => g.bracket === 'championship').flatMap((g) => [g.away.franchiseId, g.home.franchiseId])));
     const finalGame = detail.games.filter((g) => g.bracket === 'championship').sort((a, b) => b.round - a.round)[0];
     if (!cancelled && !champ) notFound();
-    const availableYears = archive.filter(row => row.team || row.playoffStatus === 'cancelled').map(row => row.year).sort((a, b) => a - b);
+    const listed = archive.filter(row => row.team || row.playoffStatus === 'cancelled');
+    const availableYears = listed.map(row => row.year).sort((a, b) => a - b);
     const previous = availableYears.filter(value => value < seasonYear).at(-1);
     const next = availableYears.find(value => value > seasonYear);
     const leader = leaders.rows[0];
     const sections = [
-        { id: 'season-overview', label: cancelled ? 'Overview' : 'Champion & roster' },
+        ...(champ ? [{ id: 'championship-roster', label: 'Champion’s roster' }] : []),
         ...(!cancelled && detail.games.length ? [{ id: 'playoffs', label: 'Playoffs' }] : []),
         { id: 'standings', label: 'Regular season' },
         { id: 'season-leaders', label: 'Top players' },
@@ -60,52 +65,51 @@ export default async function SeasonPage({ params }: {
     ];
 
     return (
-        <div className={contentsStyles.layout}>
+        <div className={styles.page}>
             <SeasonArrival />
-            <PageContents key={seasonYear} title={season.label} contentId="season-sections" sections={sections} />
-            <div id="season-sections" className={`${contentsStyles.sections} flex flex-col gap-10`}>
-                <div id="season-overview">
-                    <div className="mb-4"><ShareButton card={seasonShareCard(season, champ?.rows)} /></div>
-                    {champ ? <div
-                        key={champ.year}
-                        // wide screens: champion header becomes a sticky rail beside the roster
-                        className="3xl:grid 3xl:grid-cols-[460px_minmax(0,880px)] 3xl:items-start 3xl:justify-center 3xl:gap-16"
-                    >
-                        <section className="relative flex flex-col items-center gap-5 overflow-hidden rounded-[22px] px-5 pb-[50px] pt-7 text-center text-white navy-spotlight md:flex-row md:gap-9 md:rounded-[28px] md:px-12 md:pb-[54px] md:pt-10 md:text-left 3xl:sticky 3xl:top-8 3xl:flex-col 3xl:gap-6 3xl:px-10 3xl:pb-16 3xl:text-center">
-                            <TeamBadge logo={champ.logo} abbreviation={champ.abbreviation} teamName={champ.team} size={150} sizeClass="h-[110px] w-[110px] md:h-[150px] md:w-[150px]" ring="glow" priority />
-                            <div className="min-w-0 flex-1">
-                                <div className="text-[11px] font-extrabold uppercase tracking-[.2em] text-gold-light md:text-[13px] md:tracking-[.32em]">
-                                    {champ.label} Jagr Cup Champions
-                                </div>
-                                <h1 className="font-wide my-3 text-[28px] font-extrabold uppercase leading-none md:mb-[18px] md:text-[46px]">{champ.team}</h1>
-                                {champ.owner && (
-                                    <>
-                                        <div className="text-xs font-bold uppercase tracking-[.14em] text-[#9FB0C8]">Owner</div>
-                                        <div className="font-wide mt-1 text-[22px] font-extrabold">{champ.owner}</div>
-                                    </>
-                                )}
-                            </div>
-                            <JagrCupIcon sizes="160px" className="hidden h-40 w-40 flex-none drop-shadow-[0_10px_24px_rgba(240,199,94,.45)] md:block" />
-                            <span className="banner-stripes absolute inset-x-0 bottom-[18px] h-3.5" />
-                        </section>
-
-                        <div id="championship-roster" className={`${contentsStyles.anchor} mx-auto mt-7 max-w-board 3xl:mx-0 3xl:mt-0 3xl:max-w-none`}>
-                            {champ.rows.length ? (
-                                <StatTable topPlayers={champ.rows} mode="champions" animationKey={year} />
-                            ) : (
-                                <p className="rounded-3xl border-2 border-dashed border-line-strong px-6 py-10 text-center font-semibold text-ink-faint">
-                                    The championship roster hasn&apos;t been set yet.
-                                </p>
-                            )}
-                        </div>
-                    </div> : (
-                        <div key={seasonYear} className="rounded-3xl border-2 border-dashed border-line-strong px-6 py-12 text-center">
-                            <div className="text-xs font-bold uppercase tracking-[.2em] text-ink-muted">{season.label}</div>
-                            <h1 className="font-wide mt-2 text-2xl font-extrabold uppercase">Playoffs cancelled</h1>
-                            <p className="mt-2 text-ink-muted">The {season.label} playoffs were cancelled due to the COVID-19 pandemic.</p>
-                        </div>
-                    )}
+            <section key={seasonYear} className={styles.hero} aria-label={`${season.label} season`}>
+                {/* newer seasons sit to the left, older to the right, the same way the banners above run */}
+                <div className={styles.heroTop}>
+                    {next
+                        ? <Link href={`/season/${next}`} className={`${styles.heroLink} ${styles.heroPrevNext}`}><Arrow direction="left" /> {seasonLabel(next)}</Link>
+                        : <Link href="/#current-season" className={`${styles.heroLink} ${styles.heroPrevNext}`}><Arrow direction="left" /> Current season</Link>}
+                    <div className={styles.heroActions}>
+                        <ShareButton card={seasonShareCard(season, champ?.rows)} dark />
+                        {previous ? <Link href={`/season/${previous}`} className={`${styles.heroLink} ${styles.heroPrevNext}`}>{seasonLabel(previous)} <Arrow /></Link> : null}
+                    </div>
                 </div>
+                <div className={styles.heroBody}>
+                    {champ ? <TeamBadge logo={champ.logo} abbreviation={champ.abbreviation} teamName={champ.team} size={150} sizeClass="h-[74px] w-[74px] sm:h-[110px] sm:w-[110px] md:h-[150px] md:w-[150px]" ring="glow" priority /> : null}
+                    <div className={styles.heroText}>
+                        <SeasonPicker year={seasonYear} seasons={listed} />
+                        {champ ? <>
+                            <h1>{champ.team}</h1>
+                            <div className={styles.heroLine}>
+                                <span className={styles.goldSlab}>Jagr Cup champions</span>
+                                {champ.owner ? <span className={styles.owner}>{champ.owner}</span> : null}
+                            </div>
+                        </> : <>
+                            <h1>Playoffs cancelled</h1>
+                            <p className={styles.heroLine}><span className={styles.owner}>The {season.label} playoffs were cancelled due to the COVID-19 pandemic.</span></p>
+                        </>}
+                    </div>
+                    {champ ? <JagrCupIcon sizes="210px" className={styles.cup} /> : null}
+                </div>
+                <span className={`banner-stripes ${styles.stripes}`} />
+            </section>
+
+            <PageContents key={`contents-${seasonYear}`} variant="bar" title={season.label} contentId="season-sections" sections={sections} />
+
+            <div id="season-sections" className={`${contentsStyles.sections} ${styles.sections} flex flex-col gap-10`}>
+                {champ ? <div id="championship-roster" key={champ.year} className={`${contentsStyles.anchor} mx-auto w-full max-w-board`}>
+                    {champ.rows.length ? (
+                        <ChampionRoster players={champ.rows} animationKey={year} />
+                    ) : (
+                        <p className="rounded-md border-2 border-dashed border-line-strong px-6 py-10 text-center font-semibold text-ink-faint">
+                            The championship roster hasn&apos;t been set yet.
+                        </p>
+                    )}
+                </div> : null}
                 {!cancelled && <PlayoffBracket games={detail.games} />}
                 <StandingsTable
                     standings={detail.standings}
@@ -114,11 +118,10 @@ export default async function SeasonPage({ params }: {
                 />
                 <SeasonLeaders key={`leaders-${seasonYear}`} year={seasonYear} initial={leaders} />
                 <SeasonDraft key={`draft-${seasonYear}`} year={seasonYear} picks={draft} />
+                {/* the neighbouring seasons already sit in the hero, so these point elsewhere */}
                 <ExploreNext currentHref={`/season/${seasonYear}`} links={[
                     season.franchiseId && !cancelled ? { href: `/teams/${season.franchiseId}`, title: season.team!, reason: 'Explore the champion’s franchise history' } : null,
                     leader ? { href: playerHref(leader.ID), title: leader.Player, reason: 'This season’s fantasy points leader' } : null,
-                    previous ? { href: `/season/${previous}`, title: seasonLabel(previous), reason: 'Previous available season' } : null,
-                    next ? { href: `/season/${next}`, title: seasonLabel(next), reason: 'Next available season' } : null,
                 ]} />
             </div>
         </div>

@@ -1,0 +1,114 @@
+/* Player profile: the last club's colours up top, a flush stat bar, the banner stripe, then the trophy shelf. */
+.page { padding-bottom: 64px; }
+.wrap { width: min(100%, var(--page-width)); margin-inline: auto; padding-inline: 32px; }
+
+/* ---------- stage ---------- */
+.stage { position: relative; color: #fff; }
+.inner { position: relative; display: flex; flex-direction: column; min-height: 290px; padding-block: 14px 36px; }
+/* below the top row, so the centre line never runs through the buttons */
+.surface { position: relative; overflow: hidden; }
+.rink { position: absolute; top: 64px; right: -48px; width: auto; height: calc(100% - 64px); aspect-ratio: 1; pointer-events: none; }
+
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 750; color: #c9d4e4; transition: color .2s; }
+.back:hover { color: #fff; }
+.back:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 2px; }
+.backLight { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 12px; font-size: 15px; font-weight: 700; color: #1f6fc2; }
+.backLight:hover { color: #12182e; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.identity { display: flex; align-items: center; gap: 30px; margin-block: auto; padding-top: 18px; animation: rise .6s cubic-bezier(.2, .8, .2, 1) backwards; }
+.badge { flex: none; border-radius: 999px; }
+.badge:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 4px; }
+.identityText { min-width: 0; }
+.name { font-size: clamp(42px, 5.4vw, 92px); line-height: .86; font-weight: 900; font-style: italic; font-stretch: 112%; letter-spacing: -.035em; text-transform: uppercase; text-wrap: balance; overflow-wrap: break-word; }
+.meta { overflow: hidden; margin-top: 8px; padding-block: 6px; font-size: 15px; font-weight: 650; color: #c9d4e4; }
+/* every item leads with a dot; the row is pulled left so the dot that starts a line is clipped away */
+.meta > span { display: flex; flex-wrap: wrap; row-gap: 4px; margin-left: -22px; }
+.meta > span > * { white-space: nowrap; }
+.meta > span > *::before { content: '·'; display: inline-block; width: 22px; text-align: center; color: #8193ad; }
+.meta a { color: inherit; text-underline-offset: 4px; }
+.meta a:hover { color: #fff; text-decoration: underline; }
+.meta a:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 2px; }
+
+/* Stat bar: club colour mixed deep into navy so any palette reads under white type. */
+.bar { background: color-mix(in srgb, var(--team-primary, #101d32) 16%, #070e1c); border-top: 1px solid #ffffff14; color: #fff; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stat { min-width: 0; padding: 16px 24px 18px; border-left: 1px solid #ffffff14; }
+.stat:first-child { padding-left: 0; border-left: 0; }
+.stat dt { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #9fb0c8; }
+.stat dd { margin-top: 6px; }
+.value { display: block; font-size: 36px; line-height: .95; font-weight: 900; font-style: italic; font-stretch: 92%; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note { display: block; margin-top: 6px; font-size: 12.5px; font-weight: 600; line-height: 1.35; color: #dcc99f; }
+.stripes { height: 14px; }
+
+/* the memorial keeps its tribute card, with the same stat bar along the bottom */
+.memorial { overflow: hidden; margin-block: 4px 28px; border: 1px solid #dce5ee; border-radius: 10px; background: #fff; }
+.memorialStats { padding-inline: 24px; }
+
+/* ---------- trophy shelf: one navy band, columns split by hairlines, never boxed ---------- */
+.shelf { color: #fff; background: radial-gradient(60% 140% at 8% 0%, #26365f 0%, #12182e 58%, #0d1326 100%); }
+/* the grid reaches past the gutters and clips, so only the hairlines between columns and rows show */
+.shelfGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); margin-inline: -28px; overflow: hidden; }
+.trophy { display: flex; align-items: center; gap: 18px; min-width: 0; padding: 26px 28px 28px; box-shadow: -1px 0 0 #ffffff14, 0 -1px 0 #ffffff14; }
+.artWrap { position: relative; flex: none; }
+/* gold pool under the silverware */
+.artWrap::before { content: ''; position: absolute; right: -14px; bottom: -6px; left: -14px; height: 30px; background: radial-gradient(closest-side, #f0c75e45, #f0c75e00); }
+.art { position: relative; width: 92px; height: 92px; filter: drop-shadow(0 8px 14px #050c1880); transition: transform .3s cubic-bezier(.33, 1, .68, 1); }
+.trophy:hover .art { transform: translateY(-3px) scale(1.03); }
+.trophyText { min-width: 0; }
+.count { display: block; padding-right: .06em; font-size: 48px; line-height: .85; font-weight: 900; font-style: italic; font-stretch: 92%; letter-spacing: -.03em; color: #f0c75e; font-variant-numeric: tabular-nums; }
+.trophyName { display: inline-block; margin-top: 7px; font-size: 16px; line-height: 1.2; font-weight: 850; letter-spacing: -.01em; color: #fff; text-underline-offset: 4px; }
+.trophyName:hover { color: #f0c75e; text-decoration: underline; }
+.honor { display: block; margin-top: 3px; font-size: 12px; line-height: 1.35; color: #a3b3ca; }
+.years { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.year { display: inline-flex; align-items: center; min-height: 26px; padding: 0 9px; border: 1px solid #f0c75e66; border-radius: 3px; font-size: 12px; font-weight: 800; color: #f0c75e; font-variant-numeric: tabular-nums; transition: background .2s; }
+.year:hover { background: #f0c75e24; }
+.shelf a:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 2px; }
+
+/* ---------- sections under the contents bar ---------- */
+.block { padding-top: 40px; scroll-margin-top: 40px; outline: none; }
+/* transaction history brings its own section and id */
+.sections :global(#transactions) { scroll-margin-top: 72px; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+
+@media (max-width: 767px) {
+    .wrap { padding-inline: 16px; }
+    .inner { min-height: 0; padding-block: 8px 26px; }
+    /* On a phone the club art fills the stage, so it steps back behind the name. */
+    .stage .surface[data-brand-part='surface']::before { opacity: .38; }
+    .rink { top: 56px; right: -70px; height: 190px; }
+    .identity { flex-direction: column; align-items: flex-start; gap: 16px; padding-top: 10px; }
+    .name { font-size: clamp(34px, 10vw, 46px); }
+    .meta { margin-top: 4px; font-size: 13.5px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat { padding: 13px 14px 14px; }
+    .stat:nth-child(3) { padding-left: 0; border-left: 0; }
+    .stat:nth-child(n + 3) { border-top: 1px solid #ffffff14; }
+    .value { font-size: 27px; }
+    .memorialStats { padding-inline: 16px; }
+    .shelfGrid { margin-inline: 0; }
+    .trophy { gap: 16px; padding: 16px 0 18px; box-shadow: 0 -1px 0 #ffffff14; }
+    .art { width: 68px; height: 68px; }
+    .count { font-size: 38px; }
+    .trophyName { font-size: 15px; }
+    .block { padding-top: 32px; }
+}
+
+@media (min-width: 1800px) {
+    .inner { min-height: 350px; }
+    .meta { font-size: 18px; }
+    .stat dt { font-size: 13px; }
+    .value { font-size: 46px; }
+    .note { font-size: 15px; }
+    .art { width: 116px; height: 116px; }
+    .count { font-size: 60px; }
+    .trophyName { font-size: 19px; }
+    .honor, .year { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .identity { animation: none; }
+    .art { transition: none; }
+}

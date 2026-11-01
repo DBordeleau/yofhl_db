@@ -45,7 +45,7 @@ export default {
         },
         award: {
           single: '#FFF3CC',
-          multi: '#FFE0E4',
+          multi: '#F6DD8F',
         },
       },
       fontFamily: {

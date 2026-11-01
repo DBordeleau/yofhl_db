@@ -1,0 +1,70 @@
+/* the contents bar runs the full width under the hero, as on team pages */
+.page > nav { margin-inline: calc(50% - 50vw); }
+/* sections clear the sticky bar when it jumps to them; the shared rule's 24px suits the side rail, not the bar */
+.page .sections > [id] { scroll-margin-top: 80px; }
+
+/* the hero: the champion on a navy stage, with the season switch and Share along its top edge */
+.hero { position: relative; margin: 20px 0 22px; padding: 22px 28px 50px; border-radius: 10px; background: radial-gradient(90% 140% at 10% 0%, #26365f, #12182e 65%); color: #fff; }
+.heroTop { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.heroActions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.heroLink { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid #ffffff3d; border-radius: 4px; background: #ffffff0f; font-size: 14px; font-weight: 750; color: #fff; transition: background .15s; }
+.heroLink:hover { background: #ffffff24; }
+.heroLink:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 2px; }
+.heroBody { display: flex; align-items: center; gap: 36px; margin-top: 24px; padding-left: 20px; }
+.heroText { flex: 1; min-width: 0; }
+.hero h1 { margin-top: 12px; font-size: clamp(30px, 3.4vw, 46px); font-weight: 900; font-style: italic; font-stretch: 118%; line-height: 1; letter-spacing: -.025em; text-transform: uppercase; }
+.heroLine { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; margin-top: 14px; }
+.goldSlab { display: inline-flex; align-items: center; height: 30px; padding: 0 18px 0 16px; background: linear-gradient(180deg, #f7d774, #b8860b); color: #1c1404; font-size: 13px; font-weight: 900; font-style: italic; font-stretch: 112%; text-transform: uppercase; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+.owner { font-size: 15px; font-weight: 600; color: #c3cfe4; }
+.cup { flex: none; width: 170px; height: 170px; margin-right: 24px; filter: drop-shadow(0 12px 24px #f0c75e59); }
+.stripes { position: absolute; inset-inline: 0; bottom: 18px; height: 14px; }
+
+/* the year: outlined display type; on phones it is a button that opens every season */
+.picker { position: relative; }
+.year { display: block; font-size: clamp(56px, 6vw, 88px); font-weight: 950; font-style: italic; line-height: .85; letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 2px #b6dcf5; }
+.yearButton { display: none; }
+.chevron { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid #b6dcf573; border-radius: 6px; color: #e8213f; }
+.chevron svg { width: 14px; height: 14px; transition: transform .2s; }
+.yearButton[aria-expanded='true'] .chevron svg { transform: rotate(180deg); }
+.yearButton:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 4px; border-radius: 4px; }
+.guide { position: absolute; z-index: 50; top: calc(100% + 10px); left: -4px; width: min(360px, calc(100vw - 24px)); overflow: hidden; border-radius: 10px; background: #0d1430; box-shadow: 0 30px 60px #050c1880; animation: guideIn .26s cubic-bezier(.2, .75, .15, 1); }
+.guide::before { content: ''; display: block; height: 3px; background: linear-gradient(90deg, #c8102e 0 32%, #4a8bcc); }
+.guide ul { max-height: min(440px, 62dvh); overflow-y: auto; overscroll-behavior: contain; }
+.guideRow { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 12px; border-top: 1px solid #1a2448; color: #fff; }
+.guide li:first-child .guideRow { border-top: 0; }
+.guideRow:hover { background: #1b2754; }
+.guideRow:focus-visible { outline: 3px solid #7fb2ff; outline-offset: -3px; }
+.guideSlab { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 22px; background: #24324f; font-size: 11px; font-weight: 900; font-style: italic; font-stretch: 112%; font-variant-numeric: tabular-nums; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.guideRow[aria-current] .guideSlab { background: linear-gradient(180deg, #df1a3c, #b00d28); }
+.guideWho { min-width: 0; }
+.guideWho b { display: block; overflow: hidden; font-size: 14px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.guideWho small { display: block; margin-top: 2px; font-size: 11px; color: #a9b8cf; }
+@keyframes guideIn { from { clip-path: inset(0 0 100% 0); } }
+
+@media (max-width: 600px) {
+    /* the year takes the top line, so Share drops below the champion */
+    .hero { display: flex; flex-direction: column; margin: 0 -16px 0; padding: 18px 16px 40px; border-radius: 0; }
+    .heroTop { order: 2; margin-top: 16px; }
+    .heroActions { margin-left: 0; }
+    .heroPrevNext { display: none; }
+    .heroBody { flex-direction: column; align-items: flex-start; gap: 14px; margin-top: 0; padding-left: 0; }
+    .heroText { display: contents; }
+    .picker { order: -1; }
+    .picker > .year { display: none; }
+    .yearButton { display: inline-flex; align-items: center; gap: 12px; }
+    .yearButton .year { font-size: 50px; -webkit-text-stroke-width: 1.5px; }
+    .hero h1 { margin-top: 0; font-size: 26px; font-stretch: 112%; }
+    .heroLine { margin-top: -4px; }
+    .goldSlab { height: 24px; padding: 0 12px 0 10px; font-size: 11px; clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
+    .owner { font-size: 13px; }
+    .cup { display: none; }
+    .stripes { bottom: 0; height: 10px; }
+}
+@media (min-width: 1800px) {
+    .hero { padding: 28px 40px 60px; }
+    .cup { width: 210px; height: 210px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .guide { animation: none; }
+    .chevron svg, .heroLink { transition: none; }
+}

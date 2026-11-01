@@ -11,21 +11,7 @@ import Arrow from '@/components/arrow';
 import { broadcastType as matchupType } from './broadcast-type';
 import { useTeamBranding } from '@/components/team-branding/branding-provider';
 import { fallbackColours, suggestedPalettes } from '@/lib/team-branding';
-
-
-// Exact names keep multiword places and nicknames together; renamed clubs use their full name.
-const clubNames: Record<string, readonly [string, string]> = {
-    'Carolina Reapers': ['Carolina', 'Reapers'],
-    'West Texas Torteehaws': ['West Texas', 'Torteehaws'],
-    'Hamhung Hall Monitors': ['Hamhung', 'Hall Monitors'],
-    'The Lalibirdies': ['The', 'Lalibirdies'],
-    'Paddyville Lucifers': ['Paddyville', 'Lucifers'],
-    'Varrock Dark Wizards': ['Varrock', 'Dark Wizards'],
-    'New Purrsey Devils': ['New Purrsey', 'Devils'],
-    'Hooterville Honkers': ['Hooterville', 'Honkers'],
-    'Skellige Sirens': ['Skellige', 'Sirens'],
-    'Jagrtown Ice Fellas': ['Jagrtown', 'Ice Fellas'],
-};
+import { clubNames } from '@/lib/club-names';
 
 // YOFHL forward scoring (defencemen earn 6 and 4), used to put a lead in hockey terms
 const GOAL_POINTS = 5;

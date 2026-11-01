@@ -4,7 +4,7 @@ import ShowPage from '@/components/coachs-corner/show-page';
 import { getPublishedEpisode, getPublishedEpisodes, getStudioBanners, getEpisodePlayers, getStudioTeams } from '@/lib/data/coachs-corner';
 
 export const metadata: Metadata = {
-    title: "Coach's Corner · YOFHL DB",
+    title: "Coach's Corner · YOFHL",
     description: 'Don and Ron break down the week in the YOFHL.',
 };
 

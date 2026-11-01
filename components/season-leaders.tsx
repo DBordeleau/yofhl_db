@@ -6,7 +6,7 @@ import AwardLegend from '@/components/award-legend';
 import PaginationControls from '@/components/pagination-controls';
 import StatTable from '@/components/stat-table';
 import type { LeaderboardPage } from '@/lib/data/league';
-import { LEADERBOARD_POSITIONS, seasonLabel } from '@/lib/league';
+import { LEADERBOARD_POSITIONS } from '@/lib/league';
 
 const leadersUrl = (year: number, position: string, page: number) =>
     `/api/leaderboard?${new URLSearchParams({ mode: 'single-season', season: String(year), position, page: String(page) })}`;
@@ -44,7 +44,6 @@ export default function SeasonLeaders({ year, initial }: { year: number; initial
         <section id="season-leaders" aria-labelledby="season-leaders-title" className="w-full scroll-mt-6">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 id="season-leaders-title" className="font-wide text-lg font-extrabold uppercase md:text-xl">Top Players</h2>
-                <span className="text-sm font-semibold text-ink-muted">{seasonLabel(year)}</span>
             </div>
             <nav aria-label="Season player position" className="mb-4 flex flex-wrap gap-1.5 md:gap-2">
                 {LEADERBOARD_POSITIONS.map((label) => {
@@ -58,7 +57,7 @@ export default function SeasonLeaders({ year, initial }: { year: number; initial
             </nav>
             <AwardLegend award multipleAwards cup className="mb-3" />
             <div className="mb-3 flex flex-wrap justify-between gap-2 text-xs font-semibold text-ink-muted">
-                <p role="status">{pending ? 'Loading players…' : `${result.data.total} players`}</p>
+                <p role="status">{pending ? 'Loading players…' : null}</p>
                 <p>Teams at season end</p>
             </div>
             {failed && <div role="alert" className="mb-3 flex items-center gap-3 text-sm text-rink-red">

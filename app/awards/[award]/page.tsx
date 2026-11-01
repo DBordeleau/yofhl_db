@@ -19,7 +19,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ award: string }> }) {
     const name = awardFromSlug((await params).award);
     const definition = getAwardDefinition(name);
-    return { title: `${definition?.label ?? name} · YOFHL DB`, description: definition?.description };
+    return { title: `${definition?.label ?? name} · YOFHL`, description: definition?.description };
 }
 
 export default async function AwardPage({ params }: { params: Promise<{ award: string }> }) {
