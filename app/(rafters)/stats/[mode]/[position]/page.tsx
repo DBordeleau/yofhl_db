@@ -4,6 +4,11 @@ import RinkDivider from '@/components/rink-divider';
 import { getAllTimeLeaderboard, getBannerSeasons, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { LEADERBOARD_MODES as MODES, LEADERBOARD_POSITIONS as POSITIONS } from '@/lib/league';
 
+export async function generateMetadata({ params }: { params: Promise<{ mode: string }> }) {
+    const { mode } = await params;
+    return { title: `${mode === 'single-season' ? 'Single-season' : 'All-time'} leaderboard · YOFHL` };
+}
+
 // fantasy point leaderboard at /stats/[mode]/[position]?page=&q=
 // mode is all-time (career totals per player) or single-season (one row per player season)
 export default async function StatsPage({

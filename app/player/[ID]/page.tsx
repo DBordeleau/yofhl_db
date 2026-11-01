@@ -31,11 +31,11 @@ export async function generateMetadata({ params }: { params: Promise<{ ID: strin
     const player = await getPlayer(decodeURIComponent((await params).ID));
     if (player?.id === JOHNNY_GAUDREAU_ID) {
         return {
-            title: 'Remembering Johnny Gaudreau · YOFHL DB',
+            title: 'Remembering Johnny Gaudreau · YOFHL',
             description: 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.',
         };
     }
-    return { title: player ? `${player.name} · YOFHL DB` : 'YOFHL DB' };
+    return { title: player ? `${player.name} · YOFHL` : 'YOFHL' };
 }
 
 // player header, season-by-season stats, trophy case and points chart at /player/[ID]

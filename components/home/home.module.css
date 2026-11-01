@@ -166,7 +166,7 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
 .leagueGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 640px); gap: 28px; margin-top: 46px; }
 .standingsPanel { background: #fff; border: 1px solid #d9e2ec; border-radius: 6px; overflow: hidden; }
 .standingsTable { width: 100%; border-collapse: collapse; font-size: 14px; }
-.standingsTable thead { height: 37px; background: #eaf0f6; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #6a788e; border-bottom: 1px solid #e2e9f0; }
+.standingsTable thead { height: 37px; background: #eaf0f6; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #56627a; border-bottom: 1px solid #e2e9f0; }
 .standingsTable th { font-weight: 650; text-align: left; }
 .standingsTable th:first-child, .standingsTable td:first-child { width: 43px; padding-left: 18px; }
 .standingsTable th:nth-last-child(-n+2) { white-space: nowrap; text-align: right; }

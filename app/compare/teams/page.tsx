@@ -3,7 +3,7 @@ import RivalryCentre from '@/components/rivalries/rivalry-centre';
 import { getRivalryData } from '@/lib/data/rivalries';
 import { getBannerSeasons } from '@/lib/data/league';
 
-export const metadata: Metadata = { title: 'Compare teams · YOFHL DB' };
+export const metadata: Metadata = { title: 'Compare teams · YOFHL' };
 export const dynamic = 'force-dynamic';
 
 export default async function TeamComparisonPage() {

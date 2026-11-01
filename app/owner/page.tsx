@@ -10,7 +10,7 @@ import { KEEPERS_ENABLED, KEEPER_SEASON_LABEL, keepersOpen } from '@/lib/keepers
 import Arrow from '@/components/arrow';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Owner account | YOFHL DB', robots: { index: false, follow: false } };
+export const metadata = { title: 'Owner account · YOFHL', robots: { index: false, follow: false } };
 
 export default async function OwnerPage() {
     const user = await ownerSession();

@@ -6,7 +6,7 @@ import { AWARDS, awardHref } from '@/lib/awards';
 import Arrow from '@/components/arrow';
 
 export const metadata: Metadata = {
-    title: 'League awards · YOFHL DB',
+    title: 'League awards · YOFHL',
     description: 'Explore the eight YOFHL trophies, what they honour, and the teams and players who have won them.',
 };
 

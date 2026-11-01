@@ -18,7 +18,7 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "YOFHL DB",
+  title: "YOFHL",
   description: "An interactive database for YOFHL stats.",
 };
 

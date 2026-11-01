@@ -10,7 +10,7 @@ import { FANTRAX_LEAGUE_URL } from '@/lib/fantrax/data';
 import Arrow from '@/components/arrow';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'My keepers | YOFHL DB', robots: { index: false, follow: false } };
+export const metadata = { title: 'My keepers · YOFHL', robots: { index: false, follow: false } };
 
 export default async function KeeperPage() {
     if (!KEEPERS_ENABLED) notFound();
