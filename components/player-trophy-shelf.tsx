@@ -9,17 +9,18 @@ export interface ShelfTrophy {
     award: string;
     label: string;
     note: string; // the team for Jagr Cups, the honour for awards
-    years: number[]; // season end years, oldest first
+    years: number[]; // season end years, newest first
 }
 
 // Jagr Cups first, then each award in league order, with every season it was won
 export function shelfTrophies(championships: { season: number; team: string }[], awards: { Award: string; label: string; Year: number }[]): ShelfTrophy[] {
     const shelf: ShelfTrophy[] = [];
-    if (championships.length) shelf.push({
+    const cups = [...championships].sort((a, b) => b.season - a.season);
+    if (cups.length) shelf.push({
         award: 'Jagr Cup',
         label: 'Jagr Cup',
-        note: Array.from(new Set(championships.map((c) => c.team))).join(' · '),
-        years: championships.map((c) => c.season).sort((a, b) => a - b),
+        note: Array.from(new Set(cups.map((c) => c.team))).join(' · '),
+        years: cups.map((c) => c.season),
     });
     const grouped = new Map<string, ShelfTrophy>();
     for (const award of awards) {
@@ -33,7 +34,7 @@ export function shelfTrophies(championships: { season: number; team: string }[],
         const index = AWARDS.findIndex((definition) => definition.id === getAwardDefinition(trophy.award)?.id);
         return index < 0 ? AWARDS.length : index;
     };
-    return [...shelf, ...Array.from(grouped.values()).sort((a, b) => order(a) - order(b)).map((trophy) => ({ ...trophy, years: trophy.years.sort((a, b) => a - b) }))];
+    return [...shelf, ...Array.from(grouped.values()).sort((a, b) => order(a) - order(b)).map((trophy) => ({ ...trophy, years: trophy.years.sort((a, b) => b - a) }))];
 }
 
 // One navy band under the stage: a column per trophy, split by hairlines
