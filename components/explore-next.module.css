@@ -1,0 +1,25 @@
+/* a navy broadcast band with the red-to-blue rule along its top edge */
+.band { position: relative; overflow: hidden; display: grid; grid-template-columns: 240px minmax(0, 1fr); margin-top: 48px; border-radius: 6px; background: #101d32; color: #fff; }
+.band::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, #c8102e 0 32%, #4a8bcc); }
+.title { display: flex; align-items: center; padding: 26px; font-size: 22px; font-weight: 900; font-style: italic; font-stretch: 112%; line-height: 1; letter-spacing: -.01em; text-transform: uppercase; }
+.links { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.link { display: flex; flex-direction: column; justify-content: center; gap: 6px; height: 100%; min-height: 96px; padding: 22px 26px; border-left: 1px solid #ffffff1a; color: #fff; transition: background .15s; }
+.link:hover { background: #ffffff0d; }
+.link:focus-visible { outline: 3px solid #7fb2ff; outline-offset: -3px; }
+.reason { font-size: 12px; line-height: 1.35; color: #a9b8cf; }
+.link strong { font-size: 17px; font-weight: 800; line-height: 1.25; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.arrow { color: #e8213f; }
+
+@media (max-width: 900px) {
+    .band { grid-template-columns: minmax(0, 1fr); }
+    .title { padding: 24px 20px 8px; font-size: 20px; }
+    .links { grid-auto-flow: row; }
+    .link { min-height: 0; padding: 14px 20px; border-left: 0; border-top: 1px solid #ffffff1a; }
+}
+@media (min-width: 1800px) {
+    .band { grid-template-columns: 280px minmax(0, 1fr); }
+    .title { font-size: 26px; }
+    .reason { font-size: 14px; }
+    .link strong { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .link { transition: none; } }

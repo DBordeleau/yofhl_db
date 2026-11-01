@@ -118,11 +118,10 @@ export default async function SeasonPage({ params }: {
                 />
                 <SeasonLeaders key={`leaders-${seasonYear}`} year={seasonYear} initial={leaders} />
                 <SeasonDraft key={`draft-${seasonYear}`} year={seasonYear} picks={draft} />
+                {/* the neighbouring seasons already sit in the hero, so these point elsewhere */}
                 <ExploreNext currentHref={`/season/${seasonYear}`} links={[
                     season.franchiseId && !cancelled ? { href: `/teams/${season.franchiseId}`, title: season.team!, reason: 'Explore the champion’s franchise history' } : null,
                     leader ? { href: playerHref(leader.ID), title: leader.Player, reason: 'This season’s fantasy points leader' } : null,
-                    previous ? { href: `/season/${previous}`, title: seasonLabel(previous), reason: 'Previous available season' } : null,
-                    next ? { href: `/season/${next}`, title: seasonLabel(next), reason: 'Next available season' } : null,
                 ]} />
             </div>
         </div>
