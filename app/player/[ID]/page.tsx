@@ -1,22 +1,21 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import CareerTable from '@/components/career-table';
 import CompareButton from '@/components/compare-button';
 import ExploreNext from '@/components/explore-next';
+import FPtsGraph from '@/components/fpts-graph';
 import ShareButton from '@/components/share/share-button';
 import { playerShareCard } from '@/lib/share/model';
 import { comparisonHref } from '@/lib/compare/state';
-import FadeIn from '@/components/fade-in';
 import JohnnyGaudreauMemorial from '@/components/johnny-gaudreau-memorial';
-import PlayerExtras from '@/components/player-extras';
+import PageContents from '@/components/page-contents';
 import PlayerHero from '@/components/player-hero';
+import PlayerTrophyShelf, { shelfTrophies } from '@/components/player-trophy-shelf';
+import styles from '@/components/player-page.module.css';
 import TransactionHistory from '@/components/transaction-history';
-import type { TrophyItem } from '@/components/trophy-case';
 import { getBannerSeasons, getPlayer, getTopPlayerIds } from '@/lib/data/league';
 import { playerHref, playerSlug } from '@/lib/player-url';
 import { getHistory, getHistorySeasons } from '@/lib/data/history';
 import { awardSlug, seasonLabel } from '@/lib/league';
-import Arrow from '@/components/arrow';
 
 // Popular profiles build ahead of time; other profiles cache on their first visit.
 export async function generateStaticParams() {
@@ -38,79 +37,65 @@ export async function generateMetadata({ params }: { params: Promise<{ ID: strin
     return { title: player ? `${player.name} · YOFHL` : 'YOFHL' };
 }
 
-// player header, season-by-season stats, trophy case and points chart at /player/[ID]
+// player stage and trophy shelf, then season-by-season stats, the points chart and transactions at /player/[ID]
 export default async function PlayerPage({ params }: { params: Promise<{ ID: string }> }) {
     const player = await getPlayer(decodeURIComponent((await params).ID));
     if (!player) notFound();
     const isMemorial = player.id === JOHNNY_GAUDREAU_ID;
-    const ProfileContent = isMemorial ? 'div' : FadeIn;
-    const compareAction = <div className="flex flex-wrap items-center gap-3"><CompareButton id={player.id} name={player.name} /><ShareButton card={playerShareCard(player)} dark /></div>;
+    const compareAction = <><CompareButton id={player.id} name={player.name} /><ShareButton card={playerShareCard(player)} dark /></>;
     const scope = { playerId: player.id };
     const [transactions, historySeasons, archive] = await Promise.all([getHistory(scope), getHistorySeasons(scope), getBannerSeasons()]);
     const availableYears = new Set(archive.filter(season => season.team || season.playoffStatus === 'cancelled').map(season => season.year));
     const bestSeason = [...player.playerStats].filter(row => availableYears.has(row.Year)).sort((a, b) => b.FPts - a.FPts)[0];
     const latestAward = [...player.awards].sort((a, b) => b.Year - a.Year)[0];
+    const played = player.playerStats.filter(row => row.FPts > 0).map(row => row.Year).sort((a, b) => a - b);
+    const span = played.length > 1 ? `${seasonLabel(played[0])} to ${seasonLabel(played.at(-1)!)}` : played.length ? seasonLabel(played[0]) : null;
 
     const awardsByYear = player.awards.reduce((acc, a) => {
         (acc[a.Year] ??= []).push(a.Award);
         return acc;
     }, {} as Record<number, string[]>);
 
-    // Jagr Cups first, then individual awards, newest first within each
-    const trophies: TrophyItem[] = [
-        ...[...player.championships].reverse().map((c) => ({
-            kind: 'cup' as const,
-            name: 'Jagr Cup',
-            detail: c.team,
-            season: seasonLabel(c.season),
-        })),
-        ...[...player.awards].reverse().map((a) => ({
-            kind: 'award' as const,
-            name: a.Award,
-            detail: a.description,
-            season: seasonLabel(a.Year),
-        })),
+    const sections = [
+        { id: 'career-stats', label: 'Seasons' },
+        { id: 'fantasy-points', label: 'Fantasy points' },
+        ...(transactions.total > 0 ? [{ id: 'transactions', label: 'Transactions' }] : []),
     ];
 
     return (
-        <main className="mx-auto max-w-page px-4 pb-16 md:px-8 3xl:max-w-page-3xl 4xl:max-w-page-4xl">
-            <Link href="/stats/all-time/all" className="mb-3 mt-5 inline-flex min-h-11 items-center gap-2 px-1 text-[15px] font-bold text-rink-blue hover:text-ink">
-                <Arrow direction="left" />
-                Leaderboards
-            </Link>
-            <ProfileContent>
-                <PlayerHero
-                    name={player.name}
-                    positions={player.positions}
-                    team={player.team}
-                    championships={player.championships.length}
-                    totalFPts={player.totalFPts}
-                    fpg={player.fpg}
-                    rank={player.rank}
-                    rankNote={isMemorial ? JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE : undefined}
-                    seasons={player.seasons}
-                    actions={compareAction}
-                    header={isMemorial ? <JohnnyGaudreauMemorial actions={compareAction} /> : undefined}
-                />
+        <main className={styles.page}>
+            <PlayerHero
+                name={player.name}
+                positions={player.positions}
+                team={player.team}
+                span={span}
+                totalFPts={player.totalFPts}
+                fpg={player.fpg}
+                rank={player.rank}
+                rankNote={isMemorial ? JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE : undefined}
+                seasons={player.seasons}
+                actions={compareAction}
+                header={isMemorial ? <JohnnyGaudreauMemorial actions={<div className="flex flex-wrap items-center gap-3">{compareAction}</div>} /> : undefined}
+            />
+            <PlayerTrophyShelf trophies={shelfTrophies(player.championships, player.awards)} seed={player.id} />
 
-                <nav className="mt-4 flex flex-wrap gap-x-6 text-sm font-bold text-ink-muted" aria-label="Player sections">
-                    <a href="#career-stats" className="inline-flex min-h-11 items-center gap-1.5 hover:text-rink-blue">Season stats <Arrow direction="down" /></a>
-                    <a href="#transactions" className="inline-flex min-h-11 items-center gap-1.5 hover:text-rink-blue">Transaction history <Arrow direction="down" /></a>
-                </nav>
-                {/* season-by-season stats lead; the trophy case and chart follow */}
-                <div id="career-stats" className="mt-5 scroll-mt-6">
-                    <CareerTable careerStats={player.playerStats} awardsByYear={awardsByYear} />
-                </div>
+            <PageContents variant="bar" title={player.name} contentId="player-sections" sections={sections} />
 
-                <PlayerExtras trophies={trophies} seasons={player.playerStats} />
-                <TransactionHistory key={`player-history-${player.id}`} scope={scope} initial={transactions} seasons={historySeasons} />
+            <div id="player-sections" className={`${styles.wrap} ${styles.sections}`}>
+                <section id="career-stats" className={styles.block}>
+                    <CareerTable careerStats={player.playerStats} awardsByYear={awardsByYear} careerFpg={player.fpg} />
+                </section>
+                <section id="fantasy-points" className={styles.block}>
+                    <FPtsGraph playerStats={player.playerStats} />
+                </section>
+                {transactions.total > 0 && <TransactionHistory key={`player-history-${player.id}`} scope={scope} initial={transactions} seasons={historySeasons} />}
                 <ExploreNext currentHref={playerHref(player.id)} links={[
                     { href: comparisonHref({ ids: [player.id], metric: 'fpts' }), title: `Compare ${player.name}`, reason: 'Add another player and compare their seasons' },
                     player.team ? { href: `/teams/${player.team.id}`, title: player.team.name, reason: 'Last recorded team in the archive' } : null,
                     bestSeason ? { href: `/season/${bestSeason.Year}`, title: seasonLabel(bestSeason.Year), reason: 'Their highest-scoring available season' } : null,
                     latestAward ? { href: `/awards/${awardSlug(latestAward.Award)}`, title: latestAward.Award, reason: `Their latest award · ${seasonLabel(latestAward.Year)}` } : null,
                 ]} />
-            </ProfileContent>
+            </div>
         </main>
     );
 }
