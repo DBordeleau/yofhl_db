@@ -1,5 +1,7 @@
 /* the contents bar runs the full width under the hero, as on team pages */
 .page > nav { margin-inline: calc(50% - 50vw); }
+/* sections clear the sticky bar when it jumps to them; the shared rule's 24px suits the side rail, not the bar */
+.page .sections > [id] { scroll-margin-top: 80px; }
 
 /* the hero: the champion on a navy stage, with the season switch and Share along its top edge */
 .hero { position: relative; margin: 20px 0 22px; padding: 22px 28px 50px; border-radius: 10px; background: radial-gradient(90% 140% at 10% 0%, #26365f, #12182e 65%); color: #fff; }

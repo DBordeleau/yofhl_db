@@ -100,7 +100,7 @@ export default async function SeasonPage({ params }: {
 
             <PageContents key={`contents-${seasonYear}`} variant="bar" title={season.label} contentId="season-sections" sections={sections} />
 
-            <div id="season-sections" className={`${contentsStyles.sections} flex flex-col gap-10`}>
+            <div id="season-sections" className={`${contentsStyles.sections} ${styles.sections} flex flex-col gap-10`}>
                 {champ ? <div id="championship-roster" key={champ.year} className={`${contentsStyles.anchor} mx-auto w-full max-w-board`}>
                     {champ.rows.length ? (
                         <ChampionRoster players={champ.rows} animationKey={year} />
