@@ -53,10 +53,13 @@ function GroupHeading({ code, label, columns = 1, filled = columns }: { code?: s
 
 export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId, stats }: { teams: SnapshotTeam[]; rosterPeriod: Period | null; initialFranchiseId?: number; stats: RosterStats | null }) {
     const [selectedId, setSelectedId] = useState(() => teams.find(team => team.franchiseId === initialFranchiseId)?.id ?? teams[0]?.id);
+    // phones keep the sheet folded until someone picks a team from the logo rail; wider screens always show it
+    const [picked, setPicked] = useState(Boolean(initialFranchiseId));
     useEffect(() => {
         const readSelection = () => {
             const franchiseId = Number(new URLSearchParams(window.location.search).get('roster'));
             setSelectedId(teams.find(team => team.franchiseId === franchiseId)?.id ?? teams[0]?.id);
+            if (franchiseId) setPicked(true);
         };
         readSelection();
         window.addEventListener('popstate', readSelection);
@@ -68,6 +71,11 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId,
     const players = sortRosterPlayers(selected.players, stats);
     const grouped = [...positions, ...additionalGroups].map(group => ({ ...group, players: players.filter(player => rosterGroup(player) === group.key) }));
     const changeTeam = (direction: number) => setSelectedId(teams[(selectedIndex + direction + teams.length) % teams.length].id);
+    const pick = (id: string) => {
+        if (picked && id === selected.id) return setPicked(false);
+        setSelectedId(id);
+        setPicked(true);
+    };
     // each row's bar is its share of the roster's top scorer, so lines compare across positions at a glance
     const topPoints = Math.max(0, ...selected.players.map(player => stats?.players[player.id]?.points ?? 0));
     const player = (item: SnapshotPlayer, order: number) => {
@@ -75,9 +83,10 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId,
         return <Player key={item.id} player={item} stats={line} order={order} share={topPoints > 0 ? Math.max(0, line?.points ?? 0) / topPoints : 0} />;
     };
 
-    return <section id="rosters" className={`${styles.rosterSection} ${broadcastType.variable}`} aria-labelledby="roster-heading" tabIndex={-1}>
+    return <section id="rosters" className={`${styles.rosterSection} ${broadcastType.variable}`} data-picked={picked || undefined} aria-labelledby="roster-heading" tabIndex={-1}>
         <div className={styles.sectionHeading}>
             <h2 id="roster-heading">Team rosters</h2>
+            {picked ? <button type="button" className={styles.rosterClose} onClick={() => setPicked(false)}>Close</button> : null}
             <div className={styles.rosterControls}>
                 <button type="button" aria-label="Previous team roster" disabled={teams.length < 2} onClick={() => changeTeam(-1)}><Arrow direction="left" /></button>
                 <div className={styles.teamPicker}>
@@ -87,6 +96,17 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId,
                 </div>
                 <button type="button" aria-label="Next team roster" disabled={teams.length < 2} onClick={() => changeTeam(1)}><Arrow /></button>
             </div>
+        </div>
+        <div className={styles.rosterPicker}>
+            {picked ? null : <p className={styles.rosterHint}>Pick a team to see its roster.</p>}
+            <ul className={styles.rosterRail} aria-label="Team rosters">
+                {teams.map(team => <li key={team.id}>
+                    <button type="button" className={styles.rosterPick} aria-label={team.name} aria-pressed={picked && team.id === selected.id} onClick={() => pick(team.id)}>
+                        <TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={null} size={48} ring="none" sizeClass={styles.rosterPickBadge} />
+                        <span aria-hidden="true">{team.abbreviation}</span>
+                    </button>
+                </li>)}
+            </ul>
         </div>
         <TeamBranding key={selected.id} teamId={selected.franchiseId} data-brand-layout="roster" className={`${styles.rosterSheet} ${styles.rosterBranding}`}>
             <header data-brand-part="surface" className={styles.rosterHeader}>
