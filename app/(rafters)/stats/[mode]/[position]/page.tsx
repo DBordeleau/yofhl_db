@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import Leaderboard from '@/components/leaderboard';
-import RinkDivider from '@/components/rink-divider';
 import { getAllTimeLeaderboard, getBannerSeasons, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { LEADERBOARD_MODES as MODES, LEADERBOARD_POSITIONS as POSITIONS } from '@/lib/league';
 
@@ -31,5 +30,5 @@ export default async function StatsPage({
     ]);
     const seasonRange = seasons.length ? `${seasons[0].label} — ${seasons[seasons.length - 1].label}` : '';
 
-    return <><RinkDivider /><Leaderboard mode={mode} position={position} q={q} data={data} seasonRange={seasonRange} /></>;
+    return <div className="pt-8 md:pt-12"><Leaderboard mode={mode} position={position} q={q} data={data} seasonRange={seasonRange} /></div>;
 }

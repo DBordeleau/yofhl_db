@@ -37,7 +37,7 @@ const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
 
     return (
         // on a season page, phones switch seasons from the hero's year instead of this rail
-        <section className={`mx-auto max-w-page 3xl:max-w-page-3xl 4xl:max-w-page-4xl px-4 pt-4 md:px-8 md:pt-7 ${selectedYear ? 'max-[600px]:hidden' : ''}`} aria-label="Jagr Cup champions">
+        <section className={`pt-4 md:pt-7 ${selectedYear ? 'max-[600px]:hidden' : ''}`} aria-label="Jagr Cup champions">
             <div className="relative z-[1] h-2 rounded-full bg-ink" />
             <div ref={railRef} className="flex snap-x gap-2.5 overflow-x-auto overflow-y-hidden px-1 pb-4 [justify-content:safe_center] md:gap-3.5 md:pb-2 3xl:gap-5">
                 {banners.map((champ, i) => {
