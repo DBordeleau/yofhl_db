@@ -42,7 +42,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
     const player = await getPlayer(decodeURIComponent((await params).ID));
     if (!player) notFound();
     const isMemorial = player.id === JOHNNY_GAUDREAU_ID;
-    const compareAction = <><CompareButton id={player.id} name={player.name} /><ShareButton card={playerShareCard(player)} dark /></>;
+    const compareAction = <><CompareButton href={comparisonHref({ ids: [player.id], metric: 'fpts' })} title="Compare this player with others" dark /><ShareButton card={playerShareCard(player)} dark /></>;
     const scope = { playerId: player.id };
     const [transactions, historySeasons, archive] = await Promise.all([getHistory(scope), getHistorySeasons(scope), getBannerSeasons()]);
     const availableYears = new Set(archive.filter(season => season.team || season.playoffStatus === 'cancelled').map(season => season.year));

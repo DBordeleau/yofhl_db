@@ -17,6 +17,7 @@ import { formatFpts, seasonLabel, winPercentage } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import ExploreNext from '@/components/explore-next';
 import ShareButton from '@/components/share/share-button';
+import CompareButton from '@/components/compare-button';
 import { teamShareCard } from '@/lib/share/model';
 import { teamComparisonHref } from '@/lib/compare/state';
 import franchise from '@/components/franchise.module.css';
@@ -57,9 +58,12 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
             <TeamBranding as="section" teamId={team.id} data-brand-layout="profile" className={stage.stage} aria-label="Franchise overview">
                 <div data-brand-part="surface" className={`navy-spotlight ${stage.surface}`}>
                     <div className={`${franchise.wrap} ${stage.inner}`}>
-                        <div className={stage.top}>
-                            <Link href="/teams/stats" className={stage.back}><Arrow direction="left" /> All teams</Link>
-                            <ShareButton card={teamShareCard(team)} />
+                        <div className={`${stage.top} flex-wrap`}>
+                            <Link href="/teams/stats" className={stage.back}><Arrow direction="left" /> All franchises</Link>
+                            <div className="flex flex-wrap justify-end gap-2.5">
+                                <CompareButton href={teamComparisonHref(id)} title="Compare this franchise with another" />
+                                <ShareButton card={teamShareCard(team)} />
+                            </div>
                         </div>
                         <div className={stage.identity}>
                             <TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={140} sizeClass="h-[84px] w-[84px] md:h-[128px] md:w-[128px] 3xl:h-[160px] 3xl:w-[160px]" ring="glow" priority />
