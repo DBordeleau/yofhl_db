@@ -1,11 +1,11 @@
 import {
-    CAST, CHARACTERS, REACTIONS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
-    type CharacterId, type Delivery, type Reaction, type Shot, type Sound,
+    CAST, CHARACTERS, LAPELS, REACTIONS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
+    type CharacterId, type Delivery, type Lapel, type Reaction, type Shot, type Sound,
 } from './cast';
 
 // Parser for Coach's Corner screenplays. The format is documented in docs/coachs-corner.md; in short:
 //
-//   ---                                  front matter: title, week, season, date, segment, pace
+//   ---                                  front matter: title, week, season, date, segment, pace, lapel
 //   DON (point): Yeah. !!THE DRAFT.!!    a line: speaker, optional (gesture, delivery, speed, then X)
 //     [beat] {sneak: muttered aside}     indented lines continue it; [cues] and {styles} work inline
 //   [don: stare, 1.9s] Don stares.       a stage line: cues and a hold; trailing text is a note
@@ -21,6 +21,8 @@ export interface Meta {
     segment?: number;
     /** words per minute at normal delivery */
     pace: number;
+    /** something both hosts wear on the lapel all episode, whatever Don's suit */
+    lapel?: Lapel;
     /** the schedule slot the public page names ("Pilot"); set by the page, not the front matter */
     label?: string;
 }
@@ -486,6 +488,7 @@ export function parseScript(source: string, options: ParseOptions = {}): Script 
                 else if (key === 'date') { if (/^\d{4}-\d{2}-\d{2}$/.test(value)) meta.date = value; else report('error', 'date looks like 2026-10-14.'); }
                 else if (key === 'segment') { const ms = parseClock(value); if (ms) meta.segment = ms; else report('error', 'segment is a length like 3:30.'); }
                 else if (key === 'pace') { if (/^\d{2,3}$/.test(value)) meta.pace = Number(value); else report('error', 'pace is words per minute, like 180.'); }
+                else if (key === 'lapel') { if ((LAPELS as readonly string[]).includes(value)) meta.lapel = value as Lapel; else report('error', `lapel is one of: ${LAPELS.join(', ')}.`); }
                 else report('warning', `“${m[1]}” isn’t a front matter key; it’s ignored.`);
             }
             i = end + 1;
