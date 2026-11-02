@@ -24,6 +24,7 @@ season: 2027          # the year the season ends in (optional)
 date: 2026-10-15      # air date, shown on the page (optional)
 segment: 4:11         # planned length; the on-air clock goes red past it (optional)
 pace: 198             # words per minute at normal delivery (optional)
+lapel: poppy          # both hosts wear it all episode (optional)
 ---
 
 [don: point, ron: rest]
@@ -138,6 +139,10 @@ DON (alternate-1-point): A little colour never hurt anybody.
 RON: The monitor just asked for sunglasses.
 DON (alternate-1-thumbs, then alternate-1-stare): Good taste, that monitor.
 ```
+
+### Lapel poppy
+
+`lapel: poppy` in the front matter pins a Remembrance poppy over both hosts' hearts, on the wearer's left lapel, for the whole episode, including the title card. It works with every suit and needs no gesture changes. The poppy is drawn in `components/coachs-corner/artwork.tsx` and placed per pose; it slides with Don between poses and is hidden while his hand covers that lapel in `mic`. Leave the key out once the Remembrance episodes are done. A new pose needs its own spot in `LAPEL_SPOTS` if its lapel moves.
 
 ### Camera and sound
 

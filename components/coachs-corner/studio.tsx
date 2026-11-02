@@ -1,8 +1,8 @@
 'use client';
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import Artwork, { HostArtwork } from './artwork';
-import { CAST, CHARACTERS, gestureAction, type CharacterId } from '@/lib/coachs-corner/cast';
+import Artwork, { HostArtwork, Poppy, lapelSpot } from './artwork';
+import { CAST, CHARACTERS, gestureAction, type CharacterId, type Lapel } from '@/lib/coachs-corner/cast';
 import type { CaptionFrame, Frame, HostFrame, Line, Timeline } from '@/lib/coachs-corner/timeline';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import { reactionParticles, reactionStill, type Particle } from '@/lib/coachs-corner/reactions';
@@ -167,7 +167,7 @@ function ReactionParticles({ who, reaction }: { who: CharacterId; reaction: NonN
     );
 }
 
-const Host = memo(function Host({ who, host, art }: { who: CharacterId; host: HostFrame; art: string[] }) {
+const Host = memo(function Host({ who, host, art, lapel }: { who: CharacterId; host: HostFrame; art: string[]; lapel?: Lapel }) {
     const prevGesture = useRef(host.gesture);
     const action = gestureAction(host.gesture);
     const pound = who === 'don' && action === 'pound';
@@ -183,7 +183,7 @@ const Host = memo(function Host({ who, host, art }: { who: CharacterId; host: Ho
         <div className={styles.host} data-who={who} data-flinch={host.flinch || undefined} data-desk-action={deskAction || undefined}>
             <div className={styles.breath}>
                 <div className={styles.body} data-motion={host.motion ?? undefined} style={{ '--fade': `${fade}ms`, '--contact-y': `${settle}%` } as React.CSSProperties}>
-                    <HostArtwork who={who} gesture={host.gesture} open={host.open} art={art} />
+                    <HostArtwork who={who} gesture={host.gesture} open={host.open} art={art} lapel={lapel} />
                 </div>
             </div>
             {host.reaction && <ReactionParticles who={who} reaction={host.reaction} />}
@@ -281,6 +281,10 @@ function Lockup({ tl }: { tl: Timeline }) {
             <i className={styles.bumperNavy} />
             <Artwork className={styles.bumperDon} pose="don-thumbs-up" smallOnly />
             <Artwork className={styles.bumperRon} pose="ron-default" smallOnly />
+            {meta.lapel === 'poppy' && <>
+                <Poppy className={styles.bumperDon} spot={lapelSpot('don', 'don-thumbs-up')} />
+                <Poppy className={styles.bumperRon} spot={lapelSpot('ron', 'ron-default')} />
+            </>}
             <div className={styles.bumperType}>
                 <b>Coach&rsquo;s</b>
                 <b>Corner</b>
@@ -354,7 +358,7 @@ function Studio({ tl, frame, teams, players, banners, started, playing, introOff
                         <div className={styles.deskTop} aria-hidden="true" />
                         <div className={styles.spill} aria-hidden="true" />
                         <Monitor graphic={graphic} index={frame.monitor} previous={tl.monitor[frame.monitor - 1]?.value} teams={teams} players={players} running={playing} />
-                        {CHARACTERS.map(who => <Host key={who} who={who} host={frame.hosts[who]} art={art.current![who]} />)}
+                        {CHARACTERS.map(who => <Host key={who} who={who} host={frame.hosts[who]} art={art.current![who]} lapel={tl.meta.lapel} />)}
                         <div className={styles.keyLight} aria-hidden="true" />
                         <div className={styles.desk} aria-hidden="true">
                             <div className={styles.deskFront}>

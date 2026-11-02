@@ -16,6 +16,13 @@ test('the pilot parses cleanly and lasts about four minutes', () => {
     assert.ok(minutes > 3 && minutes < 5, `runtime ${minutes.toFixed(2)} min`);
 });
 
+test('the front matter can pin a poppy on both hosts', () => {
+    assert.equal(parseScript('---\ntitle: Test\nlapel: poppy\n---\n').meta.lapel, 'poppy');
+    assert.equal(parseScript(head).meta.lapel, undefined);
+    const wrong = parseScript('---\ntitle: Test\nlapel: rose\n---\n');
+    assert.ok(hasErrors(wrong) && wrong.meta.lapel === undefined);
+});
+
 test('inline markup becomes styled parts with smart typography', () => {
     const [line] = lines(`${head}DON: !!THE DRAFT.!! That's what I said. {sneak fast: psst} --`);
     const text = line.parts.filter(p => p.kind === 'text');
