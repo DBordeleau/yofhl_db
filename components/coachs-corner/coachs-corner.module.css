@@ -1307,7 +1307,7 @@
     z-index: 8;
     overflow: hidden;
     background: #0a1022;
-    animation: bumper-out .75s cubic-bezier(.7, 0, .3, 1) calc(5250ms + var(--offset)) both;
+    animation: bumper-out .75s cubic-bezier(.7, 0, .3, 1) calc(var(--intro, 6000ms) - 750ms + var(--offset)) both;
 }
 
 .bumper,

@@ -1,5 +1,6 @@
 import { CHARACTERS, gestureAction, type CharacterId, type Delivery } from './cast';
-import { firedBetween, INTRO_MS, type Timeline } from './timeline';
+import type { Timeline } from './timeline';
+import { INTRO_MS } from './transport';
 import type { SoundId } from './sound-bank';
 
 export interface VoiceCue {
@@ -56,6 +57,4 @@ export function compileAudioCues(tl: Timeline): AudioCue[] {
     return cues.sort((a, b) => a.t - b.t);
 }
 
-/** A stalled/background tab must not replay a backlog of syllables all at once. */
-export const audioCuesBetween = (cues: AudioCue[], from: number, to: number, rate: number) =>
-    firedBetween(cues, Math.max(from, to - 120 * rate), to, cue => cue.t);
+export { audioCuesBetween } from './transport';

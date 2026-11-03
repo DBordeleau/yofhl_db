@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { frameSignature } from '../../components/coachs-corner/use-show';
 import { compileAudioCues } from './audio-cues';
 import { allArt, artFor, CAST, gestureAfter, resolveGesture } from './cast';
 import { parseScript } from './script';
-import { compile, frameAt } from './timeline';
+import { compile, frameAt, frameSignature } from './timeline';
 
 const head = '---\ntitle: Wardrobe artwork check\n---\n';
 const variants = ['halloween', 'alternate-1', 'alternate-2', 'alternate-3'];

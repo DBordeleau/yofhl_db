@@ -120,13 +120,13 @@ export default function Player({ script, episodeKey, teams, players = [], banner
     const [audioError, setAudioError] = useState('');
     // sound is on unless the viewer muted it; pressing Watch is the gesture browsers need
     const [soundOn, setSoundOn] = useState(true);
-    const show = useShow(tl, { sound: soundOn, audio });
+    const theme = useRef<HTMLAudioElement | null>(null);
+    const show = useShow(tl, { sound: soundOn, audio, theme });
     const rootRef = useRef<HTMLDivElement>(null);
     const railRef = useRef<HTMLDivElement>(null);
     const [fullscreen, setFullscreen] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const isFullscreen = fullscreen || expanded;
-    const [introOffset, setIntroOffset] = useState(0);
     const { frame, playing, started, time } = show;
 
     useEffect(() => () => audio.dispose(), [audio]);
@@ -148,23 +148,12 @@ export default function Player({ script, episodeKey, teams, players = [], banner
         try { localStorage.setItem(SOUND_KEY, next ? 'on' : 'off'); } catch { /* storage blocked */ }
     }, [soundOn, enableAudio]);
 
-    // the bumper remembers where it was entered so seeks and pauses resume it in place
     const startPlay = useCallback(() => {
         if (soundOn) enableAudio();
-        const t = show.timeRef.current >= tl.duration ? 0 : show.timeRef.current;
-        if (t < INTRO_MS) {
-            setIntroOffset(t);
-            // start the theme inside the click itself; Safari ignores play() called later
-            const audio = theme.current;
-            if (audio) { audio.muted = !soundOn; audio.currentTime = t / 1000; void audio.play().catch(() => {}); }
-        }
         show.play();
         if (episodeKey) markEpisodeSeen(episodeKey);
-    }, [show, soundOn, tl, episodeKey, enableAudio]);
-    const seek = useCallback((t: number) => {
-        if (t < INTRO_MS) setIntroOffset(Math.max(0, t));
-        show.seek(t);
-    }, [show]);
+    }, [show, soundOn, episodeKey, enableAudio]);
+    const { seek } = show;
 
     const stepLine = useCallback((dir: 1 | -1) => {
         const now = show.timeRef.current;
@@ -276,23 +265,6 @@ export default function Player({ script, episodeKey, teams, players = [], banner
         return () => target.removeEventListener('keydown', onKey);
     }, [keys, toggle, stepLine, toggleSound, toggleFullscreen]);
 
-    // the intro theme follows the clock: it starts, pauses and seeks with the bumper
-    const theme = useRef<HTMLAudioElement | null>(null);
-    const inIntro = frame.phase === 'intro';
-    useEffect(() => {
-        const audio = theme.current;
-        if (!audio) return;
-        audio.muted = !soundOn;
-        audio.volume = 0.8;
-        const t = show.timeRef.current;
-        if (playing && t < INTRO_MS) {
-            audio.currentTime = t / 1000;
-            void audio.play().catch(() => { /* blocked until a gesture */ });
-        } else {
-            audio.pause();
-        }
-    }, [playing, soundOn, introOffset, inIntro, show.timeRef]);
-
     const ended = started && frame.phase === 'end';
     const current = frame.line >= 0 ? tl.lines[frame.line] : null;
 
@@ -303,7 +275,7 @@ export default function Player({ script, episodeKey, teams, players = [], banner
             <div className={styles.presentation}>
                 <div className={styles.frame}>
                     <audio ref={theme} src={THEME_URL} preload="auto" />
-                    <Studio tl={tl} frame={frame} teams={teams} players={players} banners={banners} started={started} playing={playing} introOffset={introOffset} fullscreen={isFullscreen} />
+                    <Studio tl={tl} frame={frame} teams={teams} players={players} banners={banners} started={started} playing={playing} bumper={show.bumper} fullscreen={isFullscreen} />
 
                     {!started && <TitleCard tl={tl} />}
                     {!started && (

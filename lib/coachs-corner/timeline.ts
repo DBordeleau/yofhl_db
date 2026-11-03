@@ -1,12 +1,13 @@
 import { CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, type CharacterId, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
 import type { Cue, Graphic, Meta, Script, Span } from './script';
+import { INTRO_MS, phaseAt, type Phase } from './transport';
+
+export { INTRO_MS };
 
 // Compiles a parsed script into an absolute-time timeline, then answers "what does the studio look
 // like at time t?" as a pure function. Playback, seeking, scrubbing and the admin preview all read
 // the same frames, so a show always plays identically.
 
-// the intro theme runs 5.9 s
-export const INTRO_MS = 6000;
 const OUTRO_MS = 1800;
 const LINE_GAP_MS = 180;
 const MIN_SYLLABLE_MS = 80;
@@ -277,7 +278,7 @@ export interface CaptionFrame {
 }
 
 export interface Frame {
-    phase: 'intro' | 'show' | 'end';
+    phase: Phase;
     hosts: Record<CharacterId, HostFrame>;
     captions: Record<CharacterId, CaptionFrame | null>;
     monitor: number;
@@ -290,7 +291,7 @@ export interface Frame {
 }
 
 export function frameAt(tl: Timeline, t: number): Frame {
-    const phase = t < INTRO_MS ? 'intro' : t >= tl.showEnd + 400 ? 'end' : 'show';
+    const phase = phaseAt(t, tl.showEnd);
     const line = lastAt(tl.lines, t, l => l.t0);
     const lastClear = tl.clears.length ? tl.clears[lastAt(tl.clears, t, x => x)] ?? -1 : -1;
     const punchIndex = lastAt(tl.punches, t, p => p.t);
@@ -341,12 +342,18 @@ export function frameAt(tl: Timeline, t: number): Frame {
     };
 }
 
-/** sounds and flaps that fire in (from, to], for audio */
-export const firedBetween = <T>(items: T[], from: number, to: number, time: (item: T) => number) => {
-    const out: T[] = [];
-    let i = lastAt(items, from, time) + 1;
-    for (; i < items.length && time(items[i]) <= to; i++) out.push(items[i]);
-    return out;
+/** What a viewer can see in a frame. The show only re-renders when this changes. */
+export const frameSignature = (f: Frame) => {
+    let s = `${f.phase}|${f.monitor}|${f.shot}|${f.punch?.index ?? -1}|${f.line}|${Math.ceil(f.clock / 1000)}`;
+    for (const who of CHARACTERS) {
+        const h = f.hosts[who];
+        const c = f.captions[who];
+        s += `|${h.gesture}${h.open ? 1 : 0}${h.motion ?? '-'}${h.flinch ? 1 : 0}|${c ? `${c.line}.${c.shown}.${c.active ? 1 : 0}${c.knocked ? 1 : 0}` : '-'}`;
+        // Publish the short contact animation, then return to sparse updates.
+        if (who === 'don' && gestureAction(h.gesture) === 'pound') s += `|impact:${Math.min(10, Math.floor(h.gestureMs / 16))}`;
+        if (h.reaction) s += `|fx:${h.reaction.effect}:${Math.floor(h.reaction.elapsed / 32)}`;
+    }
+    return s;
 };
 
 export const lineAtTime = (tl: Timeline, t: number) => lastAt(tl.lines, t, l => l.t0);

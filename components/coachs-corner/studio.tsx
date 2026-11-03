@@ -5,6 +5,7 @@ import Artwork, { HostArtwork, Poppy, lapelSpot } from './artwork';
 import { CAST, CHARACTERS, gestureAction, type CharacterId, type Lapel } from '@/lib/coachs-corner/cast';
 import type { CaptionFrame, Frame, HostFrame, Line, Timeline } from '@/lib/coachs-corner/timeline';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
+import type { BumperState } from '@/lib/coachs-corner/transport';
 import { reactionParticles, reactionStill, type Particle } from '@/lib/coachs-corner/reactions';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import Monitor, { spillColour } from './monitor';
@@ -296,10 +297,10 @@ function Lockup({ tl }: { tl: Timeline }) {
     );
 }
 
-/** the six-second open, timed to the theme's hits */
+/** the open, timed to the theme's hits; its closing wipe ends with the intro */
 function Bumper({ tl, offset, paused }: { tl: Timeline; offset: number; paused: boolean }) {
     return (
-        <div className={styles.bumper} style={{ '--offset': `${-offset}ms` } as React.CSSProperties} data-paused={paused || undefined} aria-hidden="true">
+        <div className={styles.bumper} style={{ '--offset': `${-offset}ms`, '--intro': `${INTRO_MS}ms` } as React.CSSProperties} data-paused={paused || undefined} aria-hidden="true">
             <Lockup tl={tl} />
             <i className={styles.bumperFlash} />
         </div>
@@ -317,6 +318,9 @@ export function TitleCard({ tl, closing }: { tl: Timeline; closing?: boolean }) 
 
 // ---------- the studio ----------
 
+/** How far into the segment a line can start and still get the chyron, which runs its own 6 s animation. */
+const CHYRON_WINDOW_MS = 6000;
+
 export interface StudioProps {
     tl: Timeline;
     frame: Frame;
@@ -325,13 +329,13 @@ export interface StudioProps {
     banners: StudioBanner[];
     started: boolean;
     playing: boolean;
-    /** time when the bumper mounted, so a paused or seeked intro picks up mid-animation */
-    introOffset: number;
+    /** where the bumper mounted, so a paused or seeked intro picks up mid-animation */
+    bumper: BumperState | null;
     /** the page header is out of view, so the show titles itself */
     fullscreen?: boolean;
 }
 
-function Studio({ tl, frame, teams, players, banners, started, playing, introOffset, fullscreen }: StudioProps) {
+function Studio({ tl, frame, teams, players, banners, started, playing, bumper, fullscreen }: StudioProps) {
     // Mounted artwork only ever grows, so decoded images survive script edits in the
     // editor, and poses a newly pasted script adds (a new suit) still get mounted.
     const art = useRef<Record<CharacterId, string[]>>({ don: [], ron: [] });
@@ -343,7 +347,7 @@ function Studio({ tl, frame, teams, players, banners, started, playing, introOff
     const spill = spillColour(graphic, teams);
     const live = started && frame.phase !== 'intro';
     const overtime = frame.clock < 0;
-    const chyron = fullscreen && live && frame.line >= 0 && tl.lines[frame.line].t0 - INTRO_MS < 6000 && frame.phase === 'show';
+    const chyron = fullscreen && live && frame.line >= 0 && tl.lines[frame.line].t0 - INTRO_MS < CHYRON_WINDOW_MS && frame.phase === 'segment';
 
     return (
         <div className={styles.studio} data-shot={frame.shot} style={{ '--spill': spill } as React.CSSProperties}>
@@ -387,7 +391,7 @@ function Studio({ tl, frame, teams, players, banners, started, playing, introOff
                     <span>{[slotLabel(tl.meta), tl.meta.title].filter(Boolean).join(' · ')}</span>
                 </div>
             )}
-            {started && frame.phase === 'intro' && <Bumper key={introOffset} tl={tl} offset={introOffset} paused={!playing} />}
+            {started && bumper && <Bumper key={bumper.mount} tl={tl} offset={bumper.offset} paused={bumper.paused} />}
         </div>
     );
 }

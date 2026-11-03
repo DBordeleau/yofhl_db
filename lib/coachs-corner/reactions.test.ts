@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseScript } from './script';
-import { compile, frameAt, INTRO_MS } from './timeline';
+import { compile, frameAt, INTRO_MS, frameSignature } from './timeline';
 import { compileAudioCues } from './audio-cues';
 import { reactionParticles } from './reactions';
-import { frameSignature } from '../../components/coachs-corner/use-show';
 
 test('reaction cues validate their host, effect and bounded duration', () => {
     for (const cue of ['don happy', 'ron shocked', 'don happy 6s', 'don shocked 800ms']) {
