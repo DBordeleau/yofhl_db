@@ -202,7 +202,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
         await client.query('update league.coachs_corner_episodes set duration_ms = 1234, title = $2 where id = $1', [saved.id, 'Old title']);
         const drift = [{ id: saved.id, slug: '2027-week-2-summary', fields: [
             { field: 'title', stored: 'Old title', compiled: 'Summary check' },
-            { field: 'durationMs', stored: 1234, compiled: summary.runtime },
+            { field: 'runtime', stored: 1234, compiled: summary.runtime },
         ] }];
         assert.deepEqual(await verifyEpisodeSummaries(), drift);
         const others = (await data.getAllEpisodes()).filter(e => e.id !== saved.id);

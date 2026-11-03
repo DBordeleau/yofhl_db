@@ -57,7 +57,8 @@ export interface Timeline {
     gestures: Record<CharacterId, Key<string>[]>;
     flaps: Record<CharacterId, [number, number][]>;
     voice: Record<CharacterId, { t0: number; t1: number; delivery: Delivery }[]>;
-    monitor: Key<Graphic>[];
+    /** each cut keeps the script line that cued it, for diagnostics */
+    monitor: (Key<Graphic> & { line: number })[];
     shots: Key<Shot>[];
     sounds: Key<Sound>[];
     reactions: ReactionBeat[];
@@ -90,7 +91,7 @@ export function compile(script: Script): Timeline {
     const gestures = Object.fromEntries(CHARACTERS.map(c => [c, [] as Key<string>[]])) as Timeline['gestures'];
     const flaps = Object.fromEntries(CHARACTERS.map(c => [c, [] as [number, number][]])) as Timeline['flaps'];
     const voice = Object.fromEntries(CHARACTERS.map(c => [c, [] as Timeline['voice'][CharacterId]])) as Timeline['voice'];
-    const monitor: Key<Graphic>[] = [];
+    const monitor: Timeline['monitor'] = [];
     const shots: Key<Shot>[] = [{ t: 0, value: 'auto' }];
     const sounds: Key<Sound>[] = [];
     const reactions: ReactionBeat[] = [];
@@ -112,15 +113,15 @@ export function compile(script: Script): Timeline {
         if (e.kind !== 'stage') continue;
         for (const cue of e.cues) {
             if (cue.type === 'pose') rest[cue.who] = cue.gesture;
-            else if (cue.type === 'monitor') { monitor.push({ t: 0, value: cue.graphic }); monitorSet = true; }
+            else if (cue.type === 'monitor') { monitor.push({ t: 0, value: cue.graphic, line: e.line }); monitorSet = true; }
             else if (cue.type === 'cam') shots.push({ t: 0, value: cue.shot });
         }
     }
-    if (!monitorSet) monitor.push({ t: 0, value: { type: 'title', title: meta.title, sub: meta.week ? `Week ${meta.week}` : undefined } });
+    if (!monitorSet) monitor.push({ t: 0, value: { type: 'title', title: meta.title, sub: meta.week ? `Week ${meta.week}` : undefined }, line: 1 });
     for (const c of CHARACTERS) setGesture(c, rest[c], 0);
 
     let t = INTRO_MS;
-    const applyCue = (cue: Cue, speaker?: CharacterId): string | undefined => {
+    const applyCue = (cue: Cue, line: number, speaker?: CharacterId): string | undefined => {
         switch (cue.type) {
             case 'pause': t += cue.ms; break;
             case 'reaction': reactions.push({ t, who: cue.who, effect: cue.effect, duration: cue.duration }); break;
@@ -131,7 +132,7 @@ export function compile(script: Script): Timeline {
                 break;
             case 'cam': shots.push({ t, value: cue.shot }); break;
             case 'sfx': sounds.push({ t, value: cue.sound }); break;
-            case 'monitor': monitor.push({ t, value: cue.graphic }); break;
+            case 'monitor': monitor.push({ t, value: cue.graphic, line }); break;
             case 'clear': clears.push(t); break;
         }
         return undefined;
@@ -139,7 +140,7 @@ export function compile(script: Script): Timeline {
 
     for (const event of events.slice(first)) {
         if (event.kind === 'stage') {
-            for (const cue of event.cues) applyCue(cue);
+            for (const cue of event.cues) applyCue(cue, event.line);
             continue;
         }
 
@@ -198,7 +199,7 @@ export function compile(script: Script): Timeline {
         for (const part of event.parts) {
             if (part.kind === 'text') speak(part.text, part.style);
             else {
-                const g = applyCue(part.cue, who);
+                const g = applyCue(part.cue, event.line, who);
                 if (g) { inlineGesture = g; if (g !== lastGesture) { setGesture(who, g, t); lastGesture = g; } }
             }
         }

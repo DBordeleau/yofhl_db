@@ -40,7 +40,7 @@ try {
     if (errors.length) throw new Error(errors.map(item => `Line ${item.line}: ${item.message}`).join('\n'));
     // Bundle the performance only: the timeline and the audio cues the player plays. The parsed script,
     // with its comments and stage notes, the packet and the local path stay out of this public file.
-    const performance = { timeline: compiled.timeline, audioCues: compiled.audioCues, diagnostics: compiled.diagnostics };
+    const performed = { timeline: compiled.timeline, audioCues: compiled.audioCues, diagnostics: compiled.diagnostics };
     const episode = { id: id.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'episode',
         title: compiled.meta.title, sourceKind, scriptSha256: createHash('sha256').update(source).digest('hex') };
     await mkdir(directory, { recursive: true });
@@ -49,7 +49,7 @@ try {
         plugins: [{ name: 'selected-episode', setup(build) {
             build.onResolve({ filter: /^coachs-episode-scan-input$/ }, () => ({ path: 'selected-episode', namespace: 'episode' }));
             build.onLoad({ filter: /.*/, namespace: 'episode' }, () => ({
-                contents: `export const episode = ${JSON.stringify(episode)}; export const compiled = ${JSON.stringify(performance)};`, loader: 'js',
+                contents: `export const episode = ${JSON.stringify(episode)}; export const compiled = ${JSON.stringify(performed)};`, loader: 'js',
             }));
         } }] });
     const bundle = built.outputFiles[0].contents;

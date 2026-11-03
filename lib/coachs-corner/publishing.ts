@@ -42,7 +42,6 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
     // intact; optional NHL headshots fall back to existing portrait URLs.
     const players = publish ? await getStudioPlayers(episode.playerRefs) : null;
     const snapshot = players === null ? null : JSON.stringify(players);
-    const duration = summary.runtime;
     try {
         const [row] = input.id !== null ? await rows<EpisodeWrite>(sql`
             with previous as materialized (
@@ -50,7 +49,7 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
             ), changed as (
                 update league.coachs_corner_episodes e
                 set slug = ${slug}, title = ${title}, season = ${season}, week = ${week}, script = ${input.script},
-                    duration_ms = ${duration}, updated_at = now(), players = ${snapshot}::jsonb,
+                    duration_ms = ${summary.runtime}, updated_at = now(), players = ${snapshot}::jsonb,
                     -- an edit keeps the original air date, so a fixed-up old episode never jumps ahead of the latest
                     published_at = case when ${publish} then coalesce(p.published_at, now()) else null end
                 from previous p where e.id = p.id and (${publish} or p.published_at is null)
@@ -58,7 +57,7 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
             ) select * from changed`)
             : await rows<EpisodeWrite>(sql`
                 insert into league.coachs_corner_episodes (slug, title, season, week, script, duration_ms, players, published_at)
-                values (${slug}, ${title}, ${season}, ${week}, ${input.script}, ${duration}, ${snapshot}::jsonb,
+                values (${slug}, ${title}, ${season}, ${week}, ${input.script}, ${summary.runtime}, ${snapshot}::jsonb,
                     case when ${publish} then now() else null end)
                 returning id, slug, null::text as "oldSlug", ${publish}::boolean as "publicChanged"`);
         // The condition lives in the UPDATE, not a separate check: a stale editor
@@ -87,7 +86,7 @@ export async function deleteEpisodeRecord(id: number): Promise<EpisodeWrite | un
     return row;
 }
 
-type SummaryField = 'title' | 'season' | 'week' | 'durationMs';
+type SummaryField = 'title' | 'season' | 'week' | 'runtime';
 export interface SummaryDrift {
     id: number;
     slug: string;
@@ -100,12 +99,12 @@ export interface SummaryDrift {
 // date are never touched, and neither is updated_at: this repairs a cache, it isn't an edit.
 export async function verifyEpisodeSummaries({ fix = false } = {}): Promise<SummaryDrift[]> {
     const stored = await rows<{ id: number; slug: string; script: string } & Record<SummaryField, string | number | null>>(sql`
-        select id, slug, script, title, season, week, duration_ms as "durationMs" from league.coachs_corner_episodes order by id`);
+        select id, slug, script, title, season, week, duration_ms as runtime from league.coachs_corner_episodes order by id`);
     const drifts: SummaryDrift[] = [];
     for (const row of stored) {
         const { summary } = episodeFrom(row.script);
-        const compiled: Record<SummaryField, string | number | null> = { title: summary.title, season: summary.season, week: summary.week, durationMs: summary.runtime };
-        const fields = (['title', 'season', 'week', 'durationMs'] as const)
+        const compiled: Record<SummaryField, string | number | null> = { title: summary.title, season: summary.season, week: summary.week, runtime: summary.runtime };
+        const fields = (['title', 'season', 'week', 'runtime'] as const)
             .filter(field => row[field] !== compiled[field])
             .map(field => ({ field, stored: row[field], compiled: compiled[field] }));
         if (!fields.length) continue;

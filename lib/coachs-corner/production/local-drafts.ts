@@ -4,7 +4,6 @@ import { createHash } from 'node:crypto';
 import { parseFactPacket, type FactPacket } from './facts';
 import { episodeFrom, type Episode } from '../episode';
 import type { Diagnostic } from '../script';
-import { lineAtTime } from '../timeline';
 import { artUrl, THEME_URL } from '../media';
 import { CURRENT_SOUND_BANK } from '../sound-bank';
 import { findTeam } from '../teams';
@@ -81,7 +80,7 @@ export const draftEpisode = (draft: LocalDraft): Episode =>
     episodeFrom(draft.script, { slug: draft.slug, knownTeam: ref => !!findTeam(draft.facts.teams, ref) });
 
 /** Pass the episode the preview already compiled, so the checks and the preview see the same one. */
-export async function checkDraft(draft: LocalDraft, root = process.cwd(), episode = draftEpisode(draft)): Promise<DraftReport> {
+export async function checkDraft(draft: LocalDraft, { root = process.cwd(), episode = draftEpisode(draft) }: { root?: string; episode?: Episode } = {}): Promise<DraftReport> {
     const { meta, timeline } = episode;
     const diagnostics = [...episode.diagnostics];
     const report = (severity: 'error' | 'warning', message: string, line = 1) => diagnostics.push({ severity, message, line });
@@ -106,12 +105,12 @@ export async function checkDraft(draft: LocalDraft, root = process.cwd(), episod
         const player = draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase());
         if (!player || player.fpts === null || player.fpg === null || player.season === null) report('warning', `No complete frozen fantasy statistics for ${name}; run coachs:stats -- --slug ${draft.slug}. Resolve missing archive records with sourced evidence or an honest graphic fallback.`);
     }
-    // every monitor cue is on the timeline's monitor track; the line playing when it cuts is where to look
-    for (const { t, value: graphic } of timeline.monitor) {
+    // every monitor cue is on the timeline's monitor track, with the line that cued it
+    for (const { value: graphic, line } of timeline.monitor) {
         if (graphic.type !== 'gap') continue;
         const seasons = new Set([graphic.base, ...graphic.others].map(name =>
             draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase())?.season).filter(season => season != null));
-        if (seasons.size > 1) report('error', 'Gap graphics must compare fantasy points from the same archived season.', timeline.lines[lineAtTime(timeline, t)]?.sourceLine ?? 1);
+        if (seasons.size > 1) report('error', 'Gap graphics must compare fantasy points from the same archived season.', line);
     }
     const urls = [...timeline.art.flatMap(id => [artUrl(id), artUrl(id, true)]), THEME_URL];
     // File-backed effects and voices must exist even when no explicit sfx cue names them.

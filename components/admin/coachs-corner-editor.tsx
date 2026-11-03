@@ -59,8 +59,10 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
     const gutter = useRef<HTMLDivElement>(null);
     const deferred = useDeferredValue(text);
 
-    // one compile per change drives the diagnostics, the readout and the preview player; the saved slug gives the label
-    const compiled = useMemo(() => episodeFrom(deferred, { slug: episode.slug, knownTeam: ref => !!findTeam(teams, ref) }), [deferred, episode.slug, teams]);
+    // one compile per change drives the diagnostics, the readout and the preview player. A typed slug labels it as
+    // publishing will; an untouched one is still derived from this compile, so the saved slug stands in.
+    const labelSlug = slugTouched ? slug : episode.slug;
+    const compiled = useMemo(() => episodeFrom(deferred, { slug: labelSlug, knownTeam: ref => !!findTeam(teams, ref) }), [deferred, labelSlug, teams]);
     const { timeline: tl, meta } = compiled;
 
     // headshots and stat lines for >> player graphics, fetched when the set of names changes

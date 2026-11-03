@@ -20,7 +20,7 @@ export default async function LocalDraftPage({ params }: { params: Promise<{ slu
     }
     // compiled once: the checks, the preview player, the share card and the pull quote all read it
     const episode = draftEpisode(draft);
-    const report = await checkDraft(draft, undefined, episode);
+    const report = await checkDraft(draft, { episode });
     const captured = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(draft.facts.capturedAt));
     return <main className={`${archivoItalic.variable} mx-auto max-w-7xl px-4 py-8`}>
         <Link className="text-sm underline" href="/coachs-corner/local">All local drafts</Link>
