@@ -1,6 +1,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { connect, type Db } from './lib/connect';
 import { normalizeName } from './lib/league-config';
+import { seasonLabel } from '../../lib/seasons';
 
 // Compares the new database with the live site's API, using only the seasons the live site has.
 //   npm run db:verify
@@ -18,7 +19,6 @@ const legacyChampions: { year: number; team: string | null }[] = [
     { year: 2024, team: 'Varrock Dark Wizards' },
     { year: 2025, team: 'Hamhung Hall Monitors' },
 ];
-const seasonLabel = (year: number) => `${year - 1}–${String(year).slice(2)}`;
 const close = (a: number, b: number) => Math.abs(a - b) < 0.006;
 
 const live = async <T,>(path: string): Promise<T> => {

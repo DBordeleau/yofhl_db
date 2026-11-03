@@ -1,3 +1,5 @@
+import { nhlSeasonId } from '../fantrax/season';
+
 export interface NhlSearchPlayer { playerId: string; name: string; positionCode: string; teamAbbrev?: string | null; lastTeamAbbrev?: string | null }
 export interface NhlSeasonStats {
     season: number; gameTypeId: number; leagueAbbrev: string; gamesPlayed: number;
@@ -34,7 +36,7 @@ export function playerAge(birthDate: string | null, on: string) {
 
 export function profileDetails(profile: NhlProfile, season: number, checkedAt: string): Omit<PlayerDetails, 'fantasyPoints' | 'fantasyPerGame' | 'age'> {
     const regularSeasons = profile.seasonTotals?.filter(row => row.leagueAbbrev === 'NHL' && row.gameTypeId === 2);
-    const seasonId = (season - 1) * 10000 + season;
+    const seasonId = nhlSeasonId(season);
     let seasonRows = regularSeasons?.filter(row => row.season === seasonId) ?? [];
     const combined = seasonRows.find(row => /^(total|totals|\d+ teams?)$/i.test(row.teamName?.default ?? ''));
     if (combined) seasonRows = [combined];

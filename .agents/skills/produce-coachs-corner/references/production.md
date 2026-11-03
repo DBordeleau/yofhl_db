@@ -12,7 +12,7 @@ npm run coachs:prepare -- --slug 2026-10-19 --recap
 
 Choose one command. `--period` is a Fantrax matchup scoring period, not a daily roster period. `--recap` matches the previous Toronto Monday through Sunday to the weekly calendar; use it for the regular Monday episode. The default without either flag selects the current period. See [weekly recaps](weekly-recap.md) for the distinction between Sunday results and Fantrax's Monday administrative cutoff. Fantrax reports the starting season year; the saved packet and script use the ending year.
 
-`prepare` creates `local/coachs-corner/episodes/<slug>/` and refuses to replace an existing draft. If the slug already exists, inspect and continue it. The directory contains:
+`prepare` creates `local/coachs-corner/episodes/<slug>/` and refuses to replace an existing draft. If the slug already exists, inspect and continue it. Local slugs are air dates; the published slug follows the rule in [SKILL.md](../SKILL.md#deliver-and-retain). The directory contains:
 
 | File | Owner and use |
 | --- | --- |

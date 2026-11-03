@@ -157,7 +157,7 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
 
 export function buildChases(source: RecordSource, live: LeagueSnapshot | null, stats: RosterStats | null, team?: number): Chase[] {
     if (!live) return [];
-    const currentYear = live.seasonYear + 1;
+    const currentYear = live.seasonYear;
     const chases: Chase[] = [];
     const add = (candidate: Omit<Chase, 'total' | 'gap' | 'target'>) => {
         const total = round(candidate.archived + candidate.current);

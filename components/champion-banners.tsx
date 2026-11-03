@@ -8,9 +8,8 @@ import { seasonLabel } from '@/lib/league';
 import TeamBadge from '@/components/team-badge';
 
 // Jagr Cup championship banners hanging from the rafters. Each links to that season's historical summary.
-const ChampionBanners: FC<{ seasons: BannerSeason[] }> = ({ seasons }) => {
-    // a season in progress has no champion yet and gets no banner; newest first, matching the Seasons menu
-    const banners = seasons.filter((s) => s.team || s.playoffStatus === 'cancelled').reverse();
+// `published` comes from the season archive, newest first, matching the Seasons menu.
+const ChampionBanners: FC<{ published: BannerSeason[] }> = ({ published: banners }) => {
     const pathname = usePathname();
     const match = pathname.match(/^\/season\/(\d{4})/);
     const selectedYear = match ? parseInt(match[1], 10) : null;

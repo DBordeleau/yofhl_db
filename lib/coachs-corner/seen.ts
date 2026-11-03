@@ -1,10 +1,11 @@
-const STORAGE_PREFIX = 'coachs-corner:seen:v1:';
+// v2 keys by episode id, so renaming a slug never resets the badge; v1 keys were slugs.
+const STORAGE_PREFIX = 'coachs-corner:seen:v2:';
 const SEEN_EVENT = 'coachs-corner:seen';
 // Keep the badge dismissed for this visit if browser storage is unavailable.
 const unpersisted = new Set<string>();
 
-export const episodeSeenKey = (episode: { slug: string; publishedAt: string | null }) =>
-    `${episode.slug}:${episode.publishedAt ?? 'pilot'}`;
+export const episodeSeenKey = (episode: { id: number | null; publishedAt: string | null }) =>
+    `${episode.id ?? 'pilot'}:${episode.publishedAt ?? 'pilot'}`;
 
 export function hasSeenEpisode(episodeKey: string): boolean {
     if (typeof window === 'undefined') return false;

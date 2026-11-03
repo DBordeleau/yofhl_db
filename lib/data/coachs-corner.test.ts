@@ -47,7 +47,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
         throw new Error(`Unexpected network request: ${url}`);
     });
     await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
-    await client.exec(`insert into league.seasons values (2026, '2025-26', 'complete');
+    await client.exec(`insert into league.seasons values (2026, '2025–26', 'complete');
         insert into league.players values ('p1', 'Player One');
         insert into league.player_seasons (player_id, season_year, positions, nhl_team, fpts, fpg)
         values ('p1', 2026, array['C'], 'TOR', 100, 2);`);
@@ -178,5 +178,14 @@ test('publishing and real Next data caching against disposable Postgres', async 
         await data.getEpisodePlayers(episode);
         assert.equal(queries, before + 1);
         assert.equal(network, 2);
+    });
+    await t.test('publishing needs a slug that leads with the episode season year, or no year at all', async () => {
+        const before = queries;
+        const rejected = await saveEpisodeRecord({ id: null, slug: '2026-week-4-recap', script: screenplay('Start year'), publish: true });
+        assert.ok('error' in rejected && /2027/.test(rejected.error), JSON.stringify(rejected));
+        assert.equal(queries, before, 'a rejected slug never writes');
+        apply(await saveEpisodeRecord({ id: null, slug: '2027-week-4-recap', script: screenplay('Season year'), publish: true }));
+        apply(await saveEpisodeRecord({ id: null, slug: 'opening-week', script: screenplay('No year'), publish: true }));
+        apply(await saveEpisodeRecord({ id: null, slug: '2026-week-5-draft', script: screenplay('Draft') }));
     });
 });

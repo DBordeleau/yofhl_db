@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
-import { getBannerSeasons, getFranchiseCards } from './league';
+import { getFranchiseCards, getSeasonArchive } from './league';
 import { leagueTags } from './cache-tags';
 import { playerHref, playerSlug } from '../player-url';
 import { seasonLabel } from '../league';
@@ -20,7 +20,7 @@ export const getSearchDirectory = cached(async (): Promise<SearchEntry[]> => {
             join league.team_seasons t on t.id = st.team_season_id
             join league.franchises f on f.id = st.franchise_id
             order by st.season_year`),
-        getBannerSeasons(),
+        getSeasonArchive(),
     ]);
     // Match getPlayer's preference for an exact, unwrapped ID if legacy IDs collide.
     const seen = new Set<string>();
@@ -50,9 +50,8 @@ export const getSearchDirectory = cached(async (): Promise<SearchEntry[]> => {
         entries.push({ kind: 'awards', id: award.id, title: award.label, subtitle: award.honor,
             href: awardHref(award.name), aliases: [{ text: award.name }, { text: award.id }] });
     }
-    for (const season of seasons) {
-        // Incomplete imports are not proof that a season is the live Fantrax season.
-        if (!season.team && season.playoffStatus !== 'cancelled') continue;
+    // oldest first, the order search has always listed seasons in
+    for (const season of [...seasons.published].reverse()) {
         entries.push({ kind: 'seasons', id: String(season.year), title: seasonLabel(season.year),
             subtitle: season.playoffStatus === 'cancelled' ? 'Playoffs cancelled' : `Jagr Cup champions: ${season.team}`,
             href: `/season/${season.year}`, logo: season.logo, abbreviation: season.abbreviation,

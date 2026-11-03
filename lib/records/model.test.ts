@@ -108,7 +108,7 @@ test('live milestones replace the current season, preserve cents, and never turn
         { id: '*abc*', name: 'Player', year: 2026, points: 3950.75, positions: ['RW'] },
         { id: '*abc*', name: 'Player', year: 2027, points: 10, positions: ['RW'] },
     ];
-    const live: LeagueSnapshot = { fetchedAt: '2026-10-16T12:00:00Z', seasonYear: 2026, teams: [{ id: 't1', franchiseId: 1, name: 'Team 1', abbreviation: 'T1', logo: null, owner: null, rank: 1, record: '2-0-0', points: 100,
+    const live: LeagueSnapshot = { fetchedAt: '2026-10-16T12:00:00Z', seasonYear: 2027, teams: [{ id: 't1', franchiseId: 1, name: 'Team 1', abbreviation: 'T1', logo: null, owner: null, rank: 1, record: '2-0-0', points: 100,
         players: [{ id: 'abc', name: 'Player', position: 'RW', lineupPosition: 'RW', nhlTeam: 'BOS', status: 'ACTIVE', archiveId: '*abc*' }] }], scoringPeriods: [], rosterPeriod: null, schedule: [], playoffTeams: 4, lastRegularSeasonPeriod: 22, finalPeriods: [] };
     const stats: RosterStats = { fetchedAt: live.fetchedAt, players: { abc: { points: 42.75, perGame: 6.11 } } };
     const chase = buildChases(data, live, stats).find(c => c.id === 'player-abc')!;

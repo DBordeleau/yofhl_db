@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { findByName, loadLeagueConfig } from './db/lib/league-config';
 import { parseStandings } from './db/lib/fantrax';
+import { seasonYearFromFantrax } from '../lib/fantrax/season';
 import type { RivalryGame } from '../lib/rivalries/model';
 
 // Run with node --import tsx scripts/export-rivalry-history.ts. Saved responses avoid repeat API calls.
@@ -56,7 +57,7 @@ async function main() {
             await writeFile(rawPath, JSON.stringify(raw, null, 2));
         }
         assert.equal(raw.leagueId, leagueId);
-        assert.equal(raw.info.seasonYear + 1, year);
+        assert.equal(seasonYearFromFantrax(raw.info.seasonYear), year);
         const cutoff = raw.info.playoffs.lastRegularSeasonPeriod;
         assert.deepEqual(raw.periods.map(p => p.period), raw.info.matchups.filter(p => p.period <= cutoff).map(p => p.period));
         const ids = new Map(Object.entries(raw.info.teamInfo).map(([id, team]) => {

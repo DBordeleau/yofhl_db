@@ -23,9 +23,9 @@ test('a verified selector skips projection discovery for leaders and rosters', a
         calls.push(input);
         return response(input.statusOrTeamFilter === 'ALL_TAKEN' ? rosterTable() : table());
     });
-    const code = await discoverScoringSeason('league', 2026);
-    await loadScoringLeaders('league', 2026, code);
-    await loadRosterStats('league', 2026, code);
+    const code = await discoverScoringSeason('league', 2027);
+    await loadScoringLeaders('league', 2027, code);
+    await loadRosterStats('league', 2027, code);
     assert.equal(calls.length, 3);
     assert.equal(calls[1].seasonOrProjection, season.code);
     assert.equal(calls[2].seasonOrProjection, season.code);
@@ -38,7 +38,7 @@ test('a stale selector is recovered using verified current-season metadata', asy
         const code = JSON.parse(init.body as string).msgs[0].data.seasonOrProjection;
         return response(code === season.code ? table() : { ...table(), displayedSeasonOrProjection: { ...season, name: 'Projected - Season' } });
     });
-    assert.equal((await loadScoringLeaders('league', 2026, 'obsolete')).length, 2);
+    assert.equal((await loadScoringLeaders('league', 2027, 'obsolete')).length, 2);
     assert.equal(calls, 2);
 });
 
@@ -51,7 +51,7 @@ test('loads current league-scored skaters and goalies directly from Fantrax with
         assert.equal(init.cache, 'no-store');
         return response(table());
     });
-    assert.deepEqual(await loadScoringLeaders('league', 2026), [
+    assert.deepEqual(await loadScoringLeaders('league', 2027), [
         { id: 'skater', name: 'Scoring Skater', position: 'C,LW', points: 69.5, perGame: 13.9, teamId: 'team-a', team: 'Reapers' },
         { id: 'goalie', name: 'Scoring Goalie', position: 'G', points: 32, perGame: 6.4, teamId: null, team: 'FA' },
     ]);
@@ -63,7 +63,7 @@ test('explicitly selects the current regular season when Fantrax defaults to pro
         calls.push(JSON.parse(init.body as string).msgs[0].data);
         return response(calls.length === 1 ? { ...table(), displayedSeasonOrProjection: { ...season, name: 'Projected - Season' } } : table());
     });
-    assert.equal((await loadScoringLeaders('league', 2026)).length, 2);
+    assert.equal((await loadScoringLeaders('league', 2027)).length, 2);
     assert.equal(calls[1].seasonOrProjection, season.code);
 });
 
@@ -75,7 +75,7 @@ test('returns all ten leaders from a season with more players', async t => {
         cells: [{ content: 'FA' }, { content: '10' }, { content: String(100 - index) }],
     }));
     t.mock.method(globalThis, 'fetch', async () => response(data));
-    const leaders = await loadScoringLeaders('league', 2026);
+    const leaders = await loadScoringLeaders('league', 2027);
     assert.equal(leaders.length, 10);
     assert.equal(leaders[9].id, 'player-9');
     assert.equal(leaders[9].points, 91);
@@ -88,10 +88,10 @@ test('handles reordered columns and excludes unplayed or non-positive totals', a
     data.statsTable[0].cells[0].content = '1,234.5';
     data.statsTable[1].cells[0].content = '—';
     t.mock.method(globalThis, 'fetch', async () => response(data));
-    assert.deepEqual((await loadScoringLeaders('league', 2026)).map(player => player.points), [1234.5]);
-    assert.equal((await loadScoringLeaders('league', 2026))[0].perGame, 13.9);
+    assert.deepEqual((await loadScoringLeaders('league', 2027)).map(player => player.points), [1234.5]);
+    assert.equal((await loadScoringLeaders('league', 2027))[0].perGame, 13.9);
     data.statsTable[0].cells[0].content = '0';
-    assert.deepEqual(await loadScoringLeaders('league', 2026), []);
+    assert.deepEqual(await loadScoringLeaders('league', 2027), []);
 });
 
 test('preserves zero and missing per-game averages and rejects invalid or absent averages', async t => {
@@ -99,13 +99,13 @@ test('preserves zero and missing per-game averages and rejects invalid or absent
     t.mock.method(globalThis, 'fetch', async () => response(data));
     data.statsTable[0].cells[1].content = '0';
     data.statsTable[1].cells[1].content = '—';
-    assert.deepEqual((await loadScoringLeaders('league', 2026)).map(player => player.perGame), [0, null]);
+    assert.deepEqual((await loadScoringLeaders('league', 2027)).map(player => player.perGame), [0, null]);
     data.statsTable[0].cells[1].content = 'broken';
-    await assert.rejects(loadScoringLeaders('league', 2026), /Fantrax scoring stat is invalid/);
+    await assert.rejects(loadScoringLeaders('league', 2027), /Fantrax scoring stat is invalid/);
     delete (data.statsTable[0].cells[1] as { content?: string }).content;
-    await assert.rejects(loadScoringLeaders('league', 2026), /Fantrax scoring stat is missing/);
+    await assert.rejects(loadScoringLeaders('league', 2027), /Fantrax scoring stat is missing/);
     data.tableHeader.cells[1].key = 'unexpected';
-    await assert.rejects(loadScoringLeaders('league', 2026), /Fantrax scoring columns are missing/);
+    await assert.rejects(loadScoringLeaders('league', 2027), /Fantrax scoring columns are missing/);
 });
 
 test('rejects wrong seasons, sorting, incomplete tables, duplicate players, and invalid scores', async t => {
@@ -125,12 +125,12 @@ test('rejects wrong seasons, sorting, incomplete tables, duplicate players, and 
         { ...base, tableHeader: { cells: [{ key: 'fpts' }] } },
         { ...base, statsTable: [base.statsTable[0], base.statsTable[0]] },
         { ...base, statsTable: [{ ...base.statsTable[0], cells: [{ content: 'FA' }, { content: '10' }, { content: 'broken' }] }, base.statsTable[1]] },
-    ]) await assert.rejects(loadScoringLeaders('league', 2026), /Fantrax/);
+    ]) await assert.rejects(loadScoringLeaders('league', 2027), /Fantrax/);
 });
 
 test('reports upstream failures instead of treating them as no scoring yet', async t => {
     t.mock.method(globalThis, 'fetch', async () => new Response('', { status: 503 }));
-    await assert.rejects(loadScoringLeaders('league', 2026), /503/);
+    await assert.rejects(loadScoringLeaders('league', 2027), /503/);
 });
 
 const rosterTable = () => ({
@@ -150,7 +150,7 @@ test('loads roster totals and per-game stats by column key, including negative s
         assert.equal(request.maxResultsPerPage, '1000');
         return response(rosterTable());
     });
-    assert.deepEqual(await loadRosterStats('league', 2026), {
+    assert.deepEqual(await loadRosterStats('league', 2027), {
         skater: { points: 1234.5, perGame: 13.9 }, goalie: { points: -5, perGame: -2.5 },
     });
 });
@@ -160,7 +160,7 @@ test('preserves real zeros and distinguishes missing roster stats', async t => {
     data.statsTable[0].cells = [{ content: '0' }, { content: '0' }];
     data.statsTable[1].cells = [{ content: '—' }, { content: 'N/A' }];
     t.mock.method(globalThis, 'fetch', async () => response(data));
-    assert.deepEqual(await loadRosterStats('league', 2026), {
+    assert.deepEqual(await loadRosterStats('league', 2027), {
         skater: { points: 0, perGame: 0 }, goalie: { points: null, perGame: null },
     });
 });
@@ -178,12 +178,12 @@ test('rejects wrong roster filters, seasons, incomplete pages, duplicates and in
         { ...base, statsTable: [base.statsTable[0], base.statsTable[0]] },
         { ...base, statsTable: [{ ...base.statsTable[0], cells: [{ content: 'broken' }, { content: '10' }] }, base.statsTable[1]] },
         { ...base, statsTable: [{ ...base.statsTable[0], cells: [] }, base.statsTable[1]] },
-    ]) await assert.rejects(loadRosterStats('league', 2026), /Fantrax/);
+    ]) await assert.rejects(loadRosterStats('league', 2027), /Fantrax/);
 });
 
 test('keeps roster stats failures distinct from a league with no rostered players', async t => {
     t.mock.method(globalThis, 'fetch', async () => response({ ...rosterTable(), statsTable: [], paginatedResultSet: { pageNumber: 1, totalNumResults: 0 } }));
-    assert.deepEqual(await loadRosterStats('league', 2026), {});
+    assert.deepEqual(await loadRosterStats('league', 2027), {});
     t.mock.method(globalThis, 'fetch', async () => new Response('', { status: 503 }));
-    await assert.rejects(loadRosterStats('league', 2026), /503/);
+    await assert.rejects(loadRosterStats('league', 2027), /503/);
 });

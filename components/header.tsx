@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AwardType, BannerSeason } from "@/lib/data/league";
+import type { SeasonArchive } from "@/lib/seasons";
 import { AWARDS, awardHref, getAwardDefinition } from "@/lib/awards";
 import { formatFpts, seasonLabel } from "@/lib/league";
 import { playerHref } from "@/lib/player-url";
@@ -28,7 +29,7 @@ export interface NavFranchise { id: number; name: string; abbreviation: string; 
 export interface NavData {
     latestCoachsCornerEpisode: string | null;
     awards: AwardType[];
-    seasons: BannerSeason[];
+    seasonArchive: SeasonArchive<BannerSeason>;
     franchises: NavFranchise[];
     allTime: NavLeader[];
     singleSeason: NavLeader[];
@@ -44,7 +45,7 @@ const MENUS: { id: Menu; label: string }[] = [
 
 const chevron = <svg className={styles.chevron} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>;
 
-const Header: React.FC<NavData> = ({ awards, seasons, franchises, allTime, singleSeason, latestCoachsCornerEpisode }) => {
+const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime, singleSeason, latestCoachsCornerEpisode }) => {
     const pathname = usePathname();
     const owner = useOwnerNavigation();
     const [open, setOpen] = useState<Menu | null>(null);
@@ -71,8 +72,7 @@ const Header: React.FC<NavData> = ({ awards, seasons, franchises, allTime, singl
         ...awards.filter((award) => !getAwardDefinition(award.name)).map((award) => ({ name: award.name, label: award.label, description: award.description, href: awardHref(award.name) })),
     ];
     // the rafters, newest champion first; a season in progress has no banner yet
-    const banners = seasons.filter((s) => s.team || s.playoffStatus === 'cancelled').reverse();
-    const currentSeason = [...seasons].reverse().find((s) => !s.team && s.playoffStatus !== 'cancelled');
+    const { published: banners, current: currentSeason } = seasonArchive;
     const teams = [...franchises].sort((a, b) => a.name.localeCompare(b.name));
 
     useEffect(() => {

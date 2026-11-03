@@ -22,7 +22,8 @@ import { teamShareCard } from '@/lib/share/model';
 import { teamComparisonHref } from '@/lib/compare/state';
 import franchise from '@/components/franchise.module.css';
 import stage from '@/components/franchise-stage.module.css';
-import { getBannerSeasons } from '@/lib/data/league';
+import { isPublished } from '@/lib/seasons';
+import { getSeasonArchive } from '@/lib/data/league';
 
 export async function generateStaticParams() {
     return (await getFranchiseCards()).map((t) => ({ ID: String(t.ID) }));
@@ -34,11 +35,10 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
     if (!team) notFound();
     const scope = { franchiseId: id };
     const [honors, draft, transactions, historySeasons, archive] = await Promise.all([
-        getFranchiseHonors(id), getFranchiseDraft(id), getHistory(scope, 'trade'), getHistorySeasons(scope), getBannerSeasons(),
+        getFranchiseHonors(id), getFranchiseDraft(id), getHistory(scope, 'trade'), getHistorySeasons(scope), getSeasonArchive(),
     ]);
-    const availableYears = new Set(archive.filter(season => season.team || season.playoffStatus === 'cancelled').map(season => season.year));
-    const recentCup = [...team.championships].filter(year => availableYears.has(year)).sort((a, b) => b - a)[0];
-    const recentSeason = team.seasons.filter(season => availableYears.has(season.year)).sort((a, b) => b.year - a.year)[0];
+    const recentCup = [...team.championships].filter(year => isPublished(archive, year)).sort((a, b) => b - a)[0];
+    const recentSeason = team.seasons.filter(season => isPublished(archive, season.year)).sort((a, b) => b.year - a.year)[0];
 
     const leadingPlayer = team.leaders[0];
     const cups = team.championships.length;

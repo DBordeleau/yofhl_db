@@ -42,7 +42,7 @@ test('real cached readers refresh edited data while preserving unrelated seasons
     t.mock.method(globalThis, 'fetch', async () => { throw new Error('Tests must not access the network'); });
     await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
     await client.exec(`
-        insert into league.seasons values (2025, '2024-25', 'complete'), (2026, '2025-26', 'complete');
+        insert into league.seasons values (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete');
         insert into league.franchises (id, display_name, first_season) values (1, 'One', 2025), (2, 'Two', 2025);
         insert into league.team_seasons (id, season_year, franchise_id, name, fantrax_name, abbreviation, division, division_rank, wins, losses, ties, fpts_for, fpts_against)
         select (y-2025)*2+f, y, f, 'Team '||f, 'Team '||f, 'T'||f, 1, f, 10, 5, 0, 1000-f, 500
@@ -153,7 +153,7 @@ test('real cached readers refresh edited data while preserving unrelated seasons
     assert.equal((await league.getPlayer('plain'))?.name, 'Plain ID');
     assert.equal(await league.getPlayer('missing-player'), null);
     await client.exec(`
-        insert into league.seasons values (2020, '2019-20', 'cancelled'), (2027, '2026-27', 'complete');
+        insert into league.seasons values (2020, '2019–20', 'cancelled'), (2027, '2026–27', 'complete');
         insert into league.owners (id, name) values (1, 'Former Owner'), (2, 'New Owner');
         update league.team_seasons set owner_id=1 where season_year=2025;
         update league.team_seasons set owner_id=2 where season_year=2026;

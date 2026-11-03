@@ -8,13 +8,16 @@ import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner
 import playerPortraits from '@/lib/records/player-portraits.json';
 import { fallbackColours } from '@/lib/team-branding';
 import { cached, rows } from './db';
-import { getBannerSeasons, getFranchiseCards } from './league';
+import { getFranchiseCards, getSeasonArchive } from './league';
+import { seasonLabel } from '../seasons';
 import { getTeamBranding } from './team-branding';
 
 export const COACHS_CORNER_TAG = 'coachs-corner';
 export const episodeTag = (slug: string) => `coachs-corner:episode:${slug}`;
 
 export interface EpisodeSummary {
+    /** null for the bundled pilot until it is saved to the database */
+    id: number | null;
     slug: string;
     title: string;
     season: number | null;
@@ -33,12 +36,12 @@ const pilot = (): Episode => {
     const script = parseScript(PILOT_SCRIPT);
     const { meta, showEnd } = compile(script);
     return {
-        slug: PILOT_SLUG, title: meta.title, season: meta.season ?? null, week: meta.week ?? null,
+        id: null, slug: PILOT_SLUG, title: meta.title, season: meta.season ?? null, week: meta.week ?? null,
         durationMs: showEnd, publishedAt: meta.date ? `${meta.date}T12:00:00Z` : null, script: PILOT_SCRIPT, players: pilotPlayers,
     };
 };
 
-const summary = sql`slug, title, season, week, duration_ms as "durationMs", published_at::text as "publishedAt"`;
+const summary = sql`id, slug, title, season, week, duration_ms as "durationMs", published_at::text as "publishedAt"`;
 
 /** published episodes, newest first, with the pilot at the end unless it was republished */
 export const getPublishedEpisodes = cached(async (): Promise<EpisodeSummary[]> => {
@@ -48,24 +51,24 @@ export const getPublishedEpisodes = cached(async (): Promise<EpisodeSummary[]> =
         where published_at is not null order by published_at desc, id desc`);
     if (found.some(r => r.slug === PILOT_SLUG)) return found;
     const p = pilot();
-    return [...found, { slug: p.slug, title: p.title, season: p.season, week: p.week, durationMs: p.durationMs, publishedAt: p.publishedAt }];
-}, 'coachs-corner-episodes-v4', [COACHS_CORNER_TAG]);
+    return [...found, { id: p.id, slug: p.slug, title: p.title, season: p.season, week: p.week, durationMs: p.durationMs, publishedAt: p.publishedAt }];
+}, 'coachs-corner-episodes-v5', [COACHS_CORNER_TAG]);
 
 export const getPublishedEpisode = cached(async (slug: string): Promise<Episode | null> => {
     const [row] = await rows<Episode>(sql`select ${summary}, script, players from league.coachs_corner_episodes where slug = ${slug} limit 1`);
     if (row?.publishedAt) return row;
     return slug === PILOT_SLUG ? pilot() : null;
-}, 'coachs-corner-episode-v5', slug => [episodeTag(slug)]);
+}, 'coachs-corner-episode-v6', slug => [episodeTag(slug)]);
 
 // ---------- admin ----------
 
 export interface AdminEpisode extends Episode { id: number; updatedAt: string }
 
 export const getAllEpisodes = () => rows<EpisodeSummary & { id: number; updatedAt: string }>(sql`
-    select ${summary}, id, updated_at::text as "updatedAt" from league.coachs_corner_episodes order by updated_at desc`);
+    select ${summary}, updated_at::text as "updatedAt" from league.coachs_corner_episodes order by updated_at desc`);
 
 export const getEpisodeById = async (id: number): Promise<AdminEpisode | null> => {
-    const [row] = await rows<AdminEpisode>(sql`select ${summary}, id, script, players, updated_at::text as "updatedAt"
+    const [row] = await rows<AdminEpisode>(sql`select ${summary}, script, players, updated_at::text as "updatedAt"
         from league.coachs_corner_episodes where id = ${id} limit 1`);
     return row ?? null;
 };
@@ -89,10 +92,10 @@ export const getStudioTeams = async (): Promise<StudioTeam[]> => {
 
 /** the most recent champions, oldest first, for the rafters behind the desk */
 export const getStudioBanners = async (): Promise<StudioBanner[]> => {
-    const [seasons, palettes] = await Promise.all([getBannerSeasons(), getTeamBranding()]);
+    const [{ seasons }, palettes] = await Promise.all([getSeasonArchive(), getTeamBranding()]);
     return seasons.filter(s => s.team && s.abbreviation).slice(-8).map(s => {
         const colours = (s.franchiseId && palettes[s.franchiseId]) || fallbackColours;
-        return { label: s.label, team: s.team!, abbreviation: s.abbreviation!, primary: colours.primary, secondary: colours.secondary };
+        return { label: seasonLabel(s.year), team: s.team!, abbreviation: s.abbreviation!, primary: colours.primary, secondary: colours.secondary };
     });
 };
 

@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { eq, inArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
+import { seasonLabel } from '@/lib/seasons';
 import { connect, refreshViews, type Db } from './lib/connect';
 import { prepareHistory, writeHistory } from './lib/history';
 import { enrichDraftDevelopment } from './lib/draft-development';
@@ -29,7 +30,6 @@ const DATA_DIR = process.env.YOFHL_DATA_DIR ?? 'data';
 const LEGACY_AWARDS = 'league/seed/legacy-awards.json';
 const LEGACY_ROSTERS = 'league/seed/legacy-championship-rosters.json';
 
-const seasonLabel = (year: number) => `${year - 1}–${String(year).slice(2)}`;
 
 interface SeasonFiles {
     year: number;

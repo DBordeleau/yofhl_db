@@ -13,9 +13,10 @@ import ChampionRoster from '@/components/champion-roster';
 import TeamBadge from '@/components/team-badge';
 import Arrow from '@/components/arrow';
 import { JagrCupIcon } from '@/components/trophy-icons';
-import { getBannerSeasons, getChampionRoster, getSeasonDetail, getSingleSeasonLeaderboard } from '@/lib/data/league';
+import { getSeasonArchive, getChampionRoster, getSeasonDetail, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { getSeasonDraft } from '@/lib/data/history';
 import { seasonLabel } from '@/lib/league';
+import { neighbours } from '@/lib/seasons';
 import ExploreNext from '@/components/explore-next';
 import ShareButton from '@/components/share/share-button';
 import { seasonShareCard } from '@/lib/share/model';
@@ -26,9 +27,9 @@ export async function generateMetadata({ params }: { params: Promise<{ year: str
     return { title: `${seasonLabel(Number(year))} Season · YOFHL` };
 }
 
-// every season with a banner is built ahead of time
+// every published season is built ahead of time
 export async function generateStaticParams() {
-    return (await getBannerSeasons()).map((s) => ({ year: String(s.year) }));
+    return (await getSeasonArchive()).published.map((s) => ({ year: String(s.year) }));
 }
 
 // A season's champion, roster, bracket, standings, player leaders, and draft class.
@@ -38,8 +39,8 @@ export default async function SeasonPage({ params }: {
     const { year } = await params;
     if (!/^\d{4}$/.test(year)) notFound();
     const seasonYear = Number(year);
-    const archive = await getBannerSeasons();
-    const season = archive.find((s) => s.year === seasonYear);
+    const archive = await getSeasonArchive();
+    const season = archive.published.find((s) => s.year === seasonYear);
     if (!season) notFound();
     const cancelled = season.playoffStatus === 'cancelled';
     const [detail, leaders, draft, champ] = await Promise.all([
@@ -51,10 +52,8 @@ export default async function SeasonPage({ params }: {
     const playoffTeams = Array.from(new Set(detail.games.filter((g) => g.bracket === 'championship').flatMap((g) => [g.away.franchiseId, g.home.franchiseId])));
     const finalGame = detail.games.filter((g) => g.bracket === 'championship').sort((a, b) => b.round - a.round)[0];
     if (!cancelled && !champ) notFound();
-    const listed = archive.filter(row => row.team || row.playoffStatus === 'cancelled');
-    const availableYears = listed.map(row => row.year).sort((a, b) => a - b);
-    const previous = availableYears.filter(value => value < seasonYear).at(-1);
-    const next = availableYears.find(value => value > seasonYear);
+    const { newer: next, older: previous } = neighbours(archive, seasonYear);
+    const label = seasonLabel(seasonYear);
     const leader = leaders.rows[0];
     const sections = [
         ...(champ ? [{ id: 'championship-roster', label: 'Champion’s roster' }] : []),
@@ -67,7 +66,7 @@ export default async function SeasonPage({ params }: {
     return (
         <div className={styles.page}>
             <SeasonArrival />
-            <section key={seasonYear} className={styles.hero} aria-label={`${season.label} season`}>
+            <section key={seasonYear} className={styles.hero} aria-label={`${label} season`}>
                 {/* newer seasons sit to the left, older to the right, the same way the banners above run */}
                 <div className={styles.heroTop}>
                     {next
@@ -81,7 +80,7 @@ export default async function SeasonPage({ params }: {
                 <div className={styles.heroBody}>
                     {champ ? <TeamBadge logo={champ.logo} abbreviation={champ.abbreviation} teamName={champ.team} size={150} sizeClass="h-[74px] w-[74px] sm:h-[110px] sm:w-[110px] md:h-[150px] md:w-[150px]" ring="glow" priority /> : null}
                     <div className={styles.heroText}>
-                        <SeasonPicker year={seasonYear} seasons={listed} />
+                        <SeasonPicker year={seasonYear} seasons={archive.published} />
                         {champ ? <>
                             <h1>{champ.team}</h1>
                             <div className={styles.heroLine}>
@@ -90,7 +89,7 @@ export default async function SeasonPage({ params }: {
                             </div>
                         </> : <>
                             <h1>Playoffs cancelled</h1>
-                            <p className={styles.heroLine}><span className={styles.owner}>The {season.label} playoffs were cancelled due to the COVID-19 pandemic.</span></p>
+                            <p className={styles.heroLine}><span className={styles.owner}>The {label} playoffs were cancelled due to the COVID-19 pandemic.</span></p>
                         </>}
                     </div>
                     {champ ? <JagrCupIcon sizes="210px" className={styles.cup} /> : null}
@@ -98,7 +97,7 @@ export default async function SeasonPage({ params }: {
                 <span className={`banner-stripes ${styles.stripes}`} />
             </section>
 
-            <PageContents key={`contents-${seasonYear}`} variant="bar" title={season.label} contentId="season-sections" sections={sections} />
+            <PageContents key={`contents-${seasonYear}`} variant="bar" title={label} contentId="season-sections" sections={sections} />
 
             <div id="season-sections" className={`${contentsStyles.sections} ${styles.sections} flex flex-col gap-10`}>
                 {champ ? <div id="championship-roster" key={champ.year} className={`${contentsStyles.anchor} mx-auto w-full max-w-board`}>

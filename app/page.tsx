@@ -39,12 +39,12 @@ export default async function HomePage() {
     const latestEpisode = episodes[0];
     const opening = snapshot?.scoringPeriods[0];
     const preseason = opening ? now < Date.parse(opening.startDate) : false;
-    const season = snapshot ? seasonLabel(snapshot.seasonYear + 1) : 'Current season';
+    const season = snapshot ? seasonLabel(snapshot.seasonYear) : 'Current season';
     const updated = snapshot ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(snapshot.fetchedAt)) : null;
     const totalGames = snapshot?.teams.some(team => team.record && team.record !== '0-0-0');
     const seasonPeriods = snapshot?.scoringPeriods.map(item => item.number) ?? [];
     const playoffTeams = snapshot ? PLAYOFF_TEAMS : 0;
-    const seasonYear = snapshot ? snapshot.seasonYear + 1 : null;
+    const seasonYear = snapshot?.seasonYear ?? null;
 
     return <main className={styles.home}>
         <section className={styles.hero} aria-labelledby="home-heading">

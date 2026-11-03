@@ -1,3 +1,5 @@
+import { fantraxSeasonName } from '../fantrax/season';
+
 export const PLAYER_STATS = [
     { id: 'goals', label: 'Goals', column: 'G' },
     { id: 'assists', label: 'Assists', column: 'A' },
@@ -21,7 +23,7 @@ interface StatsPage {
 
 export function parseCategoryPage(value: unknown, year: number, pageNumber: number) {
     const data = value as StatsPage;
-    const name = `${year - 1}-${String(year).slice(-2)} Reg Season - YTD`;
+    const name = fantraxSeasonName(year);
     if (data?.displayedView !== 'STATS' || data.displayedPosOrGroup !== 'HOCKEY_SKATING' || data.displayedStatusOrTeam !== 'ALL' ||
         data.displayedSeasonOrProjection?.name !== name || data.displayedSeasonOrProjection.timeframeTypeCode !== 'YEAR_TO_DATE' ||
         !data.displayedSeasonOrProjection.code.startsWith('SEASON_') || !Array.isArray(data.statsTable) || !Array.isArray(data.tableHeader?.cells) ||
