@@ -7,6 +7,7 @@ import { CORRECTION_WINDOW_MS, DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, scoresAreA
 import { FANTRAX_LEAGUE_ID } from './config';
 import { getManualFinalPeriods } from './final-weeks';
 import { getSavedCurrentSeason } from './snapshot-store';
+import { fantraxApiUrl, readLeagueInfo } from './api';
 
 export { FANTRAX_LEAGUE_ID, FANTRAX_LEAGUE_URL } from './config';
 
@@ -18,6 +19,7 @@ const FRANCHISE_IDS: Record<string, number> = {
 };
 
 interface LeagueInfo {
+    /** the season year; Fantrax's own start year is converted as the response is read */
     seasonYear: number;
     teamInfo: Record<string, { name: string; id: string }>;
     scoringPeriods: Period[];
@@ -38,9 +40,7 @@ interface Standing {
 interface PlayerInfo { name: string; position: string; team?: string }
 
 async function request<T>(endpoint: string, parameters: Record<string, string> = {}): Promise<T> {
-    const url = new URL(`https://www.fantrax.com/fxea/general/${endpoint}`);
-    url.search = new URLSearchParams(parameters).toString();
-    const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+    const response = await fetch(fantraxApiUrl(endpoint, parameters), { cache: 'no-store', signal: AbortSignal.timeout(12000) });
     if (!response.ok) throw new Error(`Fantrax ${endpoint} returned ${response.status}`);
     return response.json();
 }
@@ -62,9 +62,9 @@ async function loadFantrax() {
     if (!info.teamInfo || !info.scoringPeriods?.length || !rosters.rosters || !Array.isArray(standings)) {
         throw new Error('Fantrax returned an incomplete league snapshot');
     }
-    return { info, rosters, standings, fetchedAt };
+    return { info: readLeagueInfo(info), rosters, standings, fetchedAt };
 }
-const getDailyFantrax = unstable_cache(loadFantrax, ['fantrax-daily-v3', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG, FANTRAX_CURRENT_TAG] });
+const getDailyFantrax = unstable_cache(loadFantrax, ['fantrax-daily-v4', FANTRAX_LEAGUE_ID], { revalidate: DAY, tags: [FANTRAX_TAG, FANTRAX_CURRENT_TAG] });
 const getSource = async () => (await getSavedCurrentSeason())?.source ?? getDailyFantrax();
 async function loadPlayerDirectory() {
     const players = await request<Record<string, PlayerInfo>>('getPlayerIds', { sport: 'NHL' });

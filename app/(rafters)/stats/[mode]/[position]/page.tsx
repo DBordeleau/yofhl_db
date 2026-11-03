@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Leaderboard from '@/components/leaderboard';
-import { getAllTimeLeaderboard, getBannerSeasons, getSingleSeasonLeaderboard } from '@/lib/data/league';
-import { LEADERBOARD_MODES as MODES, LEADERBOARD_POSITIONS as POSITIONS } from '@/lib/league';
+import { getAllTimeLeaderboard, getSeasonArchive, getSingleSeasonLeaderboard } from '@/lib/data/league';
+import { LEADERBOARD_MODES as MODES, LEADERBOARD_POSITIONS as POSITIONS, seasonLabel } from '@/lib/league';
 
 export async function generateMetadata({ params }: { params: Promise<{ mode: string }> }) {
     const { mode } = await params;
@@ -24,11 +24,11 @@ export default async function StatsPage({
     const q = (search.q ?? '').slice(0, 60);
     const page = Math.max(1, parseInt(search.page ?? '1', 10) || 1);
 
-    const [data, seasons] = await Promise.all([
+    const [data, { published }] = await Promise.all([
         mode === 'all-time' ? getAllTimeLeaderboard(position, page, q) : getSingleSeasonLeaderboard(position, page, q),
-        getBannerSeasons(),
+        getSeasonArchive(),
     ]);
-    const seasonRange = seasons.length ? `${seasons[0].label} — ${seasons[seasons.length - 1].label}` : '';
+    const seasonRange = published.length ? `${seasonLabel(published.at(-1)!.year)} — ${seasonLabel(published[0].year)}` : '';
 
     return <div className="pt-8 md:pt-12"><Leaderboard mode={mode} position={position} q={q} data={data} seasonRange={seasonRange} /></div>;
 }

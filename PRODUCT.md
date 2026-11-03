@@ -8,7 +8,7 @@ web
 
 ## Users
 
-The owners of the YOFHL (Ye Olde Fantasy Hockey League), a keeper fantasy hockey league run among friends on Fantrax since 2019, plus anyone they send links to. Most visits come from links dropped in the league group chat, so phones and desktops matter equally.
+The owners of the YOFHL (Ye Olde Fantasy Hockey League), a keeper fantasy hockey league run among friends on Fantrax since 2018, plus anyone they send links to. Most visits come from links dropped in the league group chat, so phones and desktops matter equally.
 
 ## Product Purpose
 

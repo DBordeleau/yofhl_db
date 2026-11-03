@@ -17,7 +17,7 @@ async function leagueDatabase() {
 
 // Franchises as [id, logo], and team seasons as [franchise, season, logo].
 async function seedTeams(db: PGlite, franchises: [number, string | null][], seasons: [number, number, string | null][] = []) {
-    await db.exec('insert into league.seasons values (2025, \'2024-25\', \'complete\'), (2026, \'2025-26\', \'complete\')');
+    await db.exec('insert into league.seasons values (2025, \'2024–25\', \'complete\'), (2026, \'2025–26\', \'complete\')');
     for (const [id, logo] of franchises) {
         await db.query('insert into league.franchises (id, display_name, logo_url, first_season) values ($1, $2, $3, 2025)', [id, `Franchise ${id}`, logo]);
     }

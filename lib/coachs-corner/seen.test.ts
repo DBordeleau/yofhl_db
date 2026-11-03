@@ -13,10 +13,10 @@ function browser(t: TestContext, storage: Pick<Storage, 'getItem' | 'setItem'>) 
 test('viewing persists per publication, without older episodes resetting the latest', t => {
     const stored = new Map<string, string>();
     browser(t, { getItem: key => stored.get(key) ?? null, setItem: (key, value) => { stored.set(key, value); } });
-    const latest = episodeSeenKey({ slug: 'week-2', publishedAt: '2026-10-17T12:00:00Z' });
-    const older = episodeSeenKey({ slug: 'week-1', publishedAt: null });
-    const upcoming = episodeSeenKey({ slug: 'week-3', publishedAt: '2026-10-24T12:00:00Z' });
-    const republished = episodeSeenKey({ slug: 'week-2', publishedAt: '2026-10-18T12:00:00Z' });
+    const latest = episodeSeenKey({ id: 2, publishedAt: '2026-10-17T12:00:00Z' });
+    const older = episodeSeenKey({ id: null, publishedAt: null });
+    const upcoming = episodeSeenKey({ id: 3, publishedAt: '2026-10-24T12:00:00Z' });
+    const republished = episodeSeenKey({ id: 2, publishedAt: '2026-10-18T12:00:00Z' });
 
     assert.equal(hasSeenEpisode(latest), false);
     markEpisodeSeen(older);
@@ -30,6 +30,15 @@ test('viewing persists per publication, without older episodes resetting the lat
     assert.equal(hasSeenEpisode(republished), false, 'republishing creates a new viewing marker');
     stored.clear();
     assert.equal(hasSeenEpisode(latest), false, 'clearing browser data resets viewing');
+});
+
+test('renaming an episode’s slug keeps it seen', t => {
+    const stored = new Map<string, string>();
+    browser(t, { getItem: key => stored.get(key) ?? null, setItem: (key, value) => { stored.set(key, value); } });
+    const before = { id: 4, slug: '2026-week-2-recap', publishedAt: '2026-10-26T12:00:00Z' };
+    const renamed = { ...before, slug: '2027-week-2-recap' };
+    markEpisodeSeen(episodeSeenKey(before));
+    assert.equal(hasSeenEpisode(episodeSeenKey(renamed)), true);
 });
 
 test('badges update in the current tab and other tabs, and unsubscribe cleanly', t => {

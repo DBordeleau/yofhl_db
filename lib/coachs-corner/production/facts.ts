@@ -1,5 +1,6 @@
 import type { StudioPlayer, StudioTeam } from '../teams';
 import { FANTRAX_LEAGUE_ID } from '../../fantrax/config';
+import { fantraxApiUrl, readLeagueInfo } from '../../fantrax/api';
 import { playerName, type Period } from '../../fantrax/model';
 import { eraFor, findByName, type LeagueConfig } from '../../../scripts/db/lib/league-config';
 import { suggestedPalettes, fallbackColours } from '../../team-branding';
@@ -128,10 +129,10 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
     }
     const fetcher = options.fetcher ?? fetch;
     const started = new Date().toISOString();
-    const url = (endpoint: string, params: Record<string, string> = {}) => `https://www.fantrax.com/fxea/general/${endpoint}?${new URLSearchParams({ leagueId: FANTRAX_LEAGUE_ID, ...params })}`;
+    const url = (endpoint: string, params: Record<string, string> = {}) => fantraxApiUrl(endpoint, { leagueId: FANTRAX_LEAGUE_ID, ...params });
     const responses = await Promise.all([
         request(url('getLeagueInfo', { excludePlayerInfo: 'true' }), fetcher), request(url('getStandings'), fetcher),
-        request(url('getTeamRosters'), fetcher), request('https://www.fantrax.com/fxea/general/getPlayerIds?sport=NHL', fetcher),
+        request(url('getTeamRosters'), fetcher), request(fantraxApiUrl('getPlayerIds', { sport: 'NHL' }), fetcher),
     ]);
     const [infoResult, standingsResult, rosterResult, directoryResult] = responses;
     const info = infoResult.value as { seasonYear: number; teamInfo: Record<string, { name: string }>; scoringPeriods: Period[];
@@ -150,8 +151,7 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
         ? periods.find(p => Date.parse(p.endDate) >= Date.parse(started)) ?? periods.at(-1)!
         : periods.find(p => p.number === options.period));
     if (!period) throw new Error(`Unknown scoring period ${options.period}. Choose one from the league calendar.`);
-    // Fantrax uses the starting year; this site's screenplay uses the ending year.
-    const season = info.seasonYear + 1;
+    const season = readLeagueInfo(info).seasonYear;
     const teams = Object.entries(info.teamInfo).map(([id, team]): FactTeam => {
         const standing = standings.find(s => s.teamId === id);
         if (!standing || !finite(standing.rank) || !finite(standing.totalPointsFor) || typeof standing.points !== 'string') throw new Error(`Missing standings for ${team.name}`);

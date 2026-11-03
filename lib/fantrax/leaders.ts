@@ -1,3 +1,5 @@
+import { fantraxSeasonName } from './season';
+
 interface StatsPage {
     displayedStatusOrTeam: string;
     displayedPosOrGroup: string;
@@ -40,7 +42,7 @@ async function loadStatsTable(leagueId: string, seasonYear: number, roster = fal
         return data;
     }
 
-    const seasonName = `${seasonYear}-${String(seasonYear + 1).slice(-2)} Reg Season - YTD`;
+    const seasonName = fantraxSeasonName(seasonYear);
     let data = await request(seasonCode);
     if (data.displayedSeasonOrProjection?.name !== seasonName) {
         const season = data.seasonOrProjections.find(item => item.name === seasonName);

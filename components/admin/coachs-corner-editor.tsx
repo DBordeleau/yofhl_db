@@ -13,8 +13,9 @@ import { findTeam, type StudioBanner, type StudioPlayer, type StudioTeam } from 
 
 interface EditableEpisode { id: number | null; slug: string; script: string; publishedAt: string | null }
 
-const slugFrom = (title: string, week?: number) =>
-    [week !== undefined ? `week-${week}` : null, title].filter(Boolean).join(' ')
+// <season year>-week-<N>-<words>; publishing rejects a slug whose year isn't the episode's season
+const slugFrom = (title: string, week?: number, season?: number) =>
+    [season, week !== undefined ? `week-${week}` : null, title].filter(Boolean).join(' ')
         .toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 
 const mmss = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}`;
@@ -79,7 +80,7 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
         for (const d of script.diagnostics) if (m.get(d.line) !== 'error') m.set(d.line, d.severity);
         return m;
     }, [script]);
-    const effectiveSlug = slugTouched ? slug : slugFrom(script.meta.title, script.meta.week);
+    const effectiveSlug = slugTouched ? slug : slugFrom(script.meta.title, script.meta.week, script.meta.season);
 
     const goToLine = (line: number) => {
         const el = area.current;

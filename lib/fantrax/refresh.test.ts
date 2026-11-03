@@ -84,8 +84,8 @@ test('refresh publishes a coherent snapshot, preserves unrelated caches and reta
     const snapshot = await getLeagueSnapshot();
     assert.deepEqual(snapshot.finalPeriods, [1]);
     assert.equal((await getMatchupScores(1))?.matchups[0].away.score, 20, 'new standings cannot expose older scores');
-    assert.equal((await getScoringLeaders(2026)).players[0].points, 20);
-    assert.equal((await getRosterStats(2026)).players.p.points, 20);
+    assert.equal((await getScoringLeaders(2027)).players[0].points, 20);
+    assert.equal((await getRosterStats(2027)).players.p.points, 20);
     assert.equal(network, afterRefresh, 'the published snapshot serves without repeated Fantrax requests');
     assert.ok(entries.has('archive-sentinel'));
     const saved = (await client.query<{ data: CurrentSeasonData }>('select data from league.fantrax_snapshots')).rows[0].data;

@@ -8,7 +8,7 @@ import type { BannerSeason } from '@/lib/data/league';
 import { seasonLabel } from '@/lib/league';
 import styles from './season-page.module.css';
 
-// The season's year in the hero. On phones, where the banner rail is hidden, the year is also the switch: tapping it opens every season.
+// The season's year in the hero; `seasons` are the published seasons, newest first. On phones, where the banner rail is hidden, the year is also the switch: tapping it opens every season.
 export default function SeasonPicker({ year, seasons }: { year: number; seasons: BannerSeason[] }) {
     const [open, setOpen] = useState(false);
     const root = useRef<HTMLDivElement>(null);
@@ -42,9 +42,9 @@ export default function SeasonPicker({ year, seasons }: { year: number; seasons:
         </button>
         {open && <nav id="season-list" className={styles.guide} aria-label="Seasons">
             <ul>
-                {[...seasons].reverse().map((season) => <li key={season.year}>
+                {seasons.map((season) => <li key={season.year}>
                     <Link href={`/season/${season.year}`} className={styles.guideRow} aria-current={season.year === year ? 'page' : undefined} onClick={() => setOpen(false)}>
-                        <span className={styles.guideSlab}>{season.label}</span>
+                        <span className={styles.guideSlab}>{seasonLabel(season.year)}</span>
                         {season.team ? <TeamBadge logo={season.logo} abbreviation={season.abbreviation} teamName={null} size={30} ring="none" /> : null}
                         <span className={styles.guideWho}><b>{season.team ?? 'Playoffs cancelled'}</b>{season.owner ? <small>{season.owner}</small> : null}</span>
                     </Link>

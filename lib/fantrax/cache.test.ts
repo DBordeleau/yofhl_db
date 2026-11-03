@@ -74,7 +74,7 @@ test('matchups refresh after the correction window, then reuse final scores unti
     invalidScores = false;
     assert.equal((await getMatchupScores(1))?.matchups[0].away.score, 5, 'failed final-score loads are retried');
 
-    await getLeagueSnapshot();
+    assert.equal((await getLeagueSnapshot()).seasonYear, 2027, 'the 2026 Fantrax start year leaves the adapter as season year 2027');
     await getLeagueSnapshot();
     assert.equal(directoryCalls, 1);
     const directory = [...entries].find(([key]) => key.includes('fantrax-player-directory'));

@@ -13,7 +13,7 @@ test('player card uses the displayed archive totals and groups trophies, and can
     assert.equal(card.href, '/player/one');
     assert.deepEqual([card.totalFPts, card.fpg, card.cups, card.seasons], [123.45, 1.23, 0, 0]);
     assert.deepEqual(card.trophies.map(row => [row.name, row.count]), [['Wayne Gretzky Award', 2]]);
-    const season: BannerSeason = { year: 2020, label: '2019–20', playoffStatus: 'cancelled', team: null, owner: null, logo: null, abbreviation: null, franchiseId: null };
+    const season: BannerSeason = { year: 2020, playoffStatus: 'cancelled', team: null, owner: null, logo: null, abbreviation: null, franchiseId: null };
     const cancelled = seasonShareCard(season, [{ ID: 'x', Player: 'Someone', Position: 'C', FPts: 1, FPG: 1 } as never]);
     assert.equal(cancelled.cancelled, true);
     assert.equal(cancelled.team, null);

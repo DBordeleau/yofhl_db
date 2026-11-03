@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { matchNhlPlayer, playerAge, type NhlProfile, type NhlSearchPlayer } from '../../../lib/keepers/player-details';
 import type { DraftDevelopmentFacts } from '../../../lib/draft/development';
+import { nhlSeasonId } from '../../../lib/fantrax/season';
 import { draftPicks } from '../../../db/schema';
 import type { Db } from './connect';
 import type { HistoryImport } from './history';
@@ -87,7 +88,7 @@ function createLoader(newestYear: number): FactsLoader {
         const experienceNeeded = needsExperience(pick, profile.birthDate!);
         let games: number | null = null;
         if (experienceNeeded) {
-            const seasonId = (pick.seasonYear - 1) * 10000 + pick.seasonYear;
+            const seasonId = nhlSeasonId(pick.seasonYear);
             const hasSeason = profile.seasonTotals!.some(row => row.leagueAbbrev === 'NHL' && row.gameTypeId === 2 && row.season === seasonId);
             const log = hasSeason ? await cachedJson<GameLog>(`${cachePath}/${profile.playerId}-${seasonId}.json`, () =>
                 request<GameLog>(`https://api-web.nhle.com/v1/player/${profile!.playerId}/game-log/${seasonId}/2`)) : { gameLog: [] };

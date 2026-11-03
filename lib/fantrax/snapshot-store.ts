@@ -7,7 +7,7 @@ import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG } from './cache-policy';
 
 const getSavedSnapshot = unstable_cache(async () => (await rows<{ data: CurrentSeasonData }>(sql`
     select data from league.fantrax_snapshots where league_id = ${FANTRAX_LEAGUE_ID}
-`))[0]?.data ?? null, ['fantrax-saved-snapshot', FANTRAX_LEAGUE_ID], {
+`))[0]?.data ?? null, ['fantrax-saved-snapshot-v2', FANTRAX_LEAGUE_ID], {
     revalidate: DAY, tags: [FANTRAX_TAG, FANTRAX_CURRENT_TAG],
 });
 

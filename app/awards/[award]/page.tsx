@@ -9,7 +9,7 @@ import { getAwardTypes, getAwardWinners, getTeamAwardWinners } from '@/lib/data/
 import { awardFromSlug, awardSlug, seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import ExploreNext from '@/components/explore-next';
-import { getBannerSeasons } from '@/lib/data/league';
+import { getSeasonArchive } from '@/lib/data/league';
 
 export async function generateStaticParams() {
     const names = new Set([...AWARDS.map((award) => award.name), ...(await getAwardTypes()).map((award) => award.name)]);
@@ -34,7 +34,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
     const latest = winners[0];
     const latestHref = latest?.PlayerID ? playerHref(latest.PlayerID) : latest?.TeamID ? `/teams/${latest.TeamID}` : null;
     const label = definition?.label ?? award.label;
-    const latestSeason = latest && (await getBannerSeasons()).find(season => season.year === latest.Year && (season.team || season.playoffStatus === 'cancelled'));
+    const latestSeason = latest && (await getSeasonArchive()).published.find(season => season.year === latest.Year);
     const href = `/awards/${awardSlug(award.name)}`;
 
     return (
@@ -70,7 +70,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
             </section>
             <ExploreNext currentHref={href} links={[
                 latestHref ? { href: latestHref, title: latest.Winner, reason: `Latest winner · ${seasonLabel(latest.Year)}` } : null,
-                latestSeason ? { href: `/season/${latestSeason.year}`, title: latestSeason.label, reason: 'Explore the latest award-winning season' } : null,
+                latestSeason ? { href: `/season/${latestSeason.year}`, title: seasonLabel(latestSeason.year), reason: 'Explore the latest award-winning season' } : null,
                 { href: '/awards', title: 'All league awards', reason: 'Discover the league’s other honors' },
             ]} />
         </main>

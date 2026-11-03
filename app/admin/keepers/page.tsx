@@ -29,7 +29,7 @@ export default async function KeeperAdminPage() {
     ]);
     const teams = allTeams.filter(team => !team.defunct).map(team => {
         const submission = submissions.find(item => item.franchiseId === team.id) ?? null;
-        const current = snapshot?.seasonYear === KEEPER_SEASON - 1 && submission && Date.parse(snapshot.fetchedAt) > Date.parse(submission.submittedAt)
+        const current = snapshot?.seasonYear === KEEPER_SEASON && submission && Date.parse(snapshot.fetchedAt) > Date.parse(submission.submittedAt)
             ? snapshot.teams.find(item => item.franchiseId === team.id)?.players : undefined;
         const status = submissionStatus(submission, current);
         const review = submission?.rookieId ? currentRookieReview(submission.rookieReviews[submission.rookieId])?.status ?? 'pending' : null;

@@ -1,9 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
-import { getBannerSeasons } from '@/lib/data/league';
+import { getSeasonArchive } from '@/lib/data/league';
 
-// Open the latest completed historical season.
+// Open the latest season.
 export default async function SeasonRedirect() {
-    const latest = (await getBannerSeasons()).filter((s) => s.team || s.playoffStatus === 'cancelled').at(-1);
+    const { latest } = await getSeasonArchive();
     if (!latest) notFound();
     redirect(`/season/${latest.year}`);
 }

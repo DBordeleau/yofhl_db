@@ -34,13 +34,16 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
     const slug = cleanSlug(input.slug || script.meta.title || 'episode');
     if (!slug) return { error: 'Give the episode a URL slug.' };
     if (['local', 'audio-preview'].includes(slug)) return { error: 'That URL is reserved. Choose another slug.' };
+    const season = script.meta.season ?? null;
+    // slugs lead with the season year (GLOSSARY.md), never Fantrax's start year; a slug with no year is fine
+    const slugYear = /^(\d{4})-/.exec(slug)?.[1];
+    if (publish && slugYear && Number(slugYear) !== season) return { error: `The slug starts with ${slugYear}, but the episode is about season ${season ?? '(none)'}. Start it with the season year, the year the season ends in.` };
     const tl = compile(script);
     // Resolve before the write. A failed stats lookup must leave the live episode
     // intact; optional NHL headshots fall back to existing portrait URLs.
     const players = publish ? await getStudioPlayers(playerRefs(script)) : null;
     const snapshot = players === null ? null : JSON.stringify(players);
     const title = script.meta.title || 'Untitled episode';
-    const season = script.meta.season ?? null;
     const week = script.meta.week ?? null;
     // the length the player shows: the bumper counts, the end card after the last line does not
     const duration = Math.round(tl.showEnd);

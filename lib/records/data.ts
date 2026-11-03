@@ -45,6 +45,6 @@ export async function getRecordBook(filter: { team?: number; position?: string; 
         ...entry, portrait: entry.href.startsWith('/player/') ? portraits[entry.href.slice('/player/'.length)] : undefined,
     })) }));
     return { teams: source.teams, records, chases: buildChases(source, live, stats),
-        formats, format, stat: filter.stat, through: Math.max(...source.seasons.map(s => s.year)), liveYear: live ? live.seasonYear + 1 : null,
+        formats, format, stat: filter.stat, through: Math.max(...source.seasons.map(s => s.year)), liveYear: live?.seasonYear ?? null,
         updated: stats ? [stats.fetchedAt, live!.fetchedAt].sort()[0] : live?.fetchedAt ?? null, playerStatsAvailable: stats !== null, seasonUrl: FANTRAX_LEAGUE_URL };
 }

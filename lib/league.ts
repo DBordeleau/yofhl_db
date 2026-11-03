@@ -24,7 +24,7 @@ export const splitPositions = (position: string) =>
     position.split(",").map((p) => p.trim()).filter(Boolean);
 
 // 2023 -> "2022–23"
-export const seasonLabel = (year: number) => `${year - 1}–${String(year).slice(2)}`;
+export { seasonLabel } from './seasons';
 
 export const standingsTeamId = (franchiseId: number) => `standings-team-${franchiseId}`;
 export const playoffTeamId = (franchiseId: number, round: number, bracket = 'championship') =>

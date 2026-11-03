@@ -6,7 +6,7 @@ import { matchupFormat } from '@/lib/records/model';
 import { formatFpts, seasonLabel, teamSeasonHref } from '@/lib/league';
 import styles from '@/components/records/records.module.css';
 import ExploreNext from '@/components/explore-next';
-import { getBannerSeasons } from '@/lib/data/league';
+import { getSeasonArchive } from '@/lib/data/league';
 import { teamComparisonHref } from '@/lib/compare/state';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,7 @@ export default async function RecordGame({ params }: { params: Promise<{ id: str
     const period = source.periods.find(p => p.year === game.year && p.period === game.round);
     const format = period ? matchupFormat(period) : null;
     if (game.stage !== 'regular' || !format) notFound();
-    const season = (await getBannerSeasons()).find(row => row.year === game.year && (row.team || row.playoffStatus === 'cancelled'));
+    const season = (await getSeasonArchive()).published.find(row => row.year === game.year);
     const sides = [{ id: game.away, name: game.awayName, points: game.awayScore }, { id: game.home, name: game.homeName, points: game.homeScore }];
     const scores = source.games.filter(g => g.year === game.year && g.round === game.round).flatMap(g => [{ id: g.away, name: g.awayName, points: g.awayScore }, { id: g.home, name: g.homeName, points: g.homeScore }]).sort((a, b) => b.points - a.points);
     const date = (value: string) => new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`));
@@ -40,7 +40,7 @@ export default async function RecordGame({ params }: { params: Promise<{ id: str
         <ExploreNext currentHref={`/records/game/${game.id}`} links={[
             ...sides.map(side => ({ href: `/teams/${side.id}`, title: side.name, reason: 'Explore this franchise’s history' })),
             { href: teamComparisonHref(game.away, game.home), title: 'Compare these teams', reason: 'Their complete head-to-head record' },
-            season ? { href: `/season/${season.year}`, title: season.label, reason: 'See the season around this matchup' } : null,
+            season ? { href: `/season/${season.year}`, title: seasonLabel(season.year), reason: 'See the season around this matchup' } : null,
         ]} />
     </main>;
 }

@@ -12,7 +12,7 @@ import type { SQL } from 'drizzle-orm';
 // Franchise 1 is the real Hub City → Paddyville franchise; its owner has since renamed it.
 // Franchise 2 has no owner edits and an imported display name that its latest season replaced.
 const SEED = `
-    insert into league.seasons values (2020, '2019-20', 'cancelled'), (2026, '2025-26', 'complete');
+    insert into league.seasons values (2020, '2019–20', 'cancelled'), (2026, '2025–26', 'complete');
     insert into league.owners (id, name) values (1, 'Sean Crocker'), (2, 'Pat Henriksson'), (3, 'Daniel Sauve'), (4, 'Cameron Bowie');
     insert into league.franchises (id, display_name, logo_url, first_season, folded_after_season) values
         (1, 'Paddyville Lucifers', '/pvlslogo.png', 2020, null),

@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import type { SeasonIdentity } from '../team-identity';
+import { seasonArchive } from '../seasons';
 
 // Every query the site makes. Each is cached until the next import or admin edit (see ./db).
 // Field names in PascalCase match what the existing table components already expect.
@@ -10,7 +11,6 @@ export const PAGE_SIZE = 25;
 
 export interface BannerSeason {
     year: number;
-    label: string;
     playoffStatus: 'complete' | 'cancelled';
     team: string | null;
     abbreviation: string | null;
@@ -77,7 +77,6 @@ export interface PlayerProfile {
 
 export interface ChampionRoster {
     year: number;
-    label: string;
     team: string;
     abbreviation: string;
     owner: string | null;
@@ -161,7 +160,7 @@ const toSearch = (q: string) => (q.trim() ? `%${q.trim()}%` : null);
 export const getBannerSeasons = cached(
     () =>
         rows<BannerSeason>(sql`
-            select s.year, s.label, s.playoff_status as "playoffStatus",
+            select s.year, s.playoff_status as "playoffStatus",
                    st.name as team, st.abbreviation, st.logo, o.name as owner, st.franchise_id as "franchiseId"
             from league.seasons s
             left join league.season_results r on r.season_year = s.year
@@ -172,6 +171,9 @@ export const getBannerSeasons = cached(
     'banner-seasons',
     [leagueTags.banners],
 );
+
+/** every season, sorted into published, latest and current (see lib/seasons.ts); no query of its own */
+export const getSeasonArchive = async () => seasonArchive(await getBannerSeasons());
 
 export const getAwardTypes = cached(
     () => rows<AwardType>(sql`select name, label, description from league.award_types order by sort_order`),
@@ -295,7 +297,7 @@ export const getArchivedPlayerIds = cached(
 
 export const getChampionRoster = cached(async (year: number): Promise<ChampionRoster | null> => {
     const [season] = await rows<Omit<ChampionRoster, 'rows'>>(sql`
-        select s.year, s.label, st.name as team, st.abbreviation, st.logo, o.name as owner
+        select s.year, st.name as team, st.abbreviation, st.logo, o.name as owner
         from league.seasons s
         join league.season_results r on r.season_year = s.year
         join league.season_teams st on st.team_season_id = r.champion_team_season_id
