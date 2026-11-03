@@ -1,12 +1,12 @@
 import type { Episode, EpisodeSummary } from '@/lib/data/coachs-corner';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import { episodeSeenKey } from '@/lib/coachs-corner/seen';
-import { pullQuote } from '@/lib/coachs-corner/pull-quote';
+import type { Episode as CompiledEpisode } from '@/lib/coachs-corner/episode';
 import { episodeShareCard } from '@/lib/share/model';
 import { episodeLabel } from '@/lib/coachs-corner/episode-label';
 import { archivoItalic } from './fonts';
 import EpisodePicker, { type PickerEpisode } from './episode-picker';
-import Player from './player';
+import EpisodePlayer from './episode-player';
 import styles from './page.module.css';
 
 const runtime = (ms: number) => {
@@ -17,10 +17,9 @@ const runtime = (ms: number) => {
 const aired = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : null;
 
-export default function ShowPage({ episode, episodes, teams, players, banners }: { episode: Episode; episodes: EpisodeSummary[]; teams: StudioTeam[]; players: StudioPlayer[]; banners: StudioBanner[] }) {
+export default function ShowPage({ episode, compiled, episodes, teams, players, banners }: { episode: Episode; compiled: CompiledEpisode; episodes: EpisodeSummary[]; teams: StudioTeam[]; players: StudioPlayer[]; banners: StudioBanner[] }) {
     const index = episodes.findIndex(e => e.slug === episode.slug);
     const previous = index >= 0 ? episodes[index + 1] : undefined;
-    const label = episodeLabel(episode);
     const guide: PickerEpisode[] = (index >= 0 ? episodes : [episode, ...episodes]).map(e => ({
         slug: e.slug, href: `/coachs-corner/${e.slug}`, label: episodeLabel(e), title: e.title,
         aired: aired(e.publishedAt), airedIso: e.publishedAt, runtime: runtime(e.durationMs), seenKey: episodeSeenKey(e),
@@ -34,9 +33,9 @@ export default function ShowPage({ episode, episodes, teams, players, banners }:
                     <EpisodePicker episodes={guide} current={episode.slug} />
                 </header>
 
-                <Player key={episodeSeenKey(episode)} episodeKey={episodeSeenKey(episode)} script={episode.script} teams={teams} players={players} banners={banners} label={label}
+                <EpisodePlayer key={episodeSeenKey(episode)} episodeKey={episodeSeenKey(episode)} script={episode.script} slug={episode.slug} teams={teams} players={players} banners={banners}
                     nextHref={previous ? `/coachs-corner/${previous.slug}` : undefined}
-                    share={episodeShareCard(episode, pullQuote(episode.script))} />
+                    share={episodeShareCard({ ...episode, durationMs: compiled.summary.runtime }, compiled.pullQuote)} />
             </div>
         </main>
     );

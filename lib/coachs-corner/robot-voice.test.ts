@@ -1,17 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compileAudioCues, type VoiceCue } from './audio-cues';
+import type { VoiceCue } from './audio-cues';
 import { AUDIO_PREVIEW_SCRIPT } from './audio-preview';
 import { PILOT_SCRIPT } from './pilot';
-import { parseScript } from './script';
-import { compile } from './timeline';
+import { episodeFrom } from './episode';
 import { robotSyllable } from './robot-voice';
 
 const voice: VoiceCue = { who: 'don', delivery: 'normal', duration: 120, progress: 0.5, variation: 0,
     question: false, wordStart: true, phraseEnd: false, cutoff: false, interrupting: false };
 
 test('preview and full pilot syllables leave quiet gaps and ordered envelopes at every supported speed', () => {
-    const cues = [AUDIO_PREVIEW_SCRIPT, PILOT_SCRIPT].flatMap(script => compileAudioCues(compile(parseScript(script))));
+    const cues = [AUDIO_PREVIEW_SCRIPT, PILOT_SCRIPT].flatMap(script => episodeFrom(script).audioCues);
     for (const cue of cues) {
         if (!cue.voice) continue;
         for (const rate of [0.75, 1, 1.25, 1.5, 2]) {

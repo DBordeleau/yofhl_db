@@ -52,7 +52,9 @@ test('publishing and real Next data caching against disposable Postgres', async 
         insert into league.player_seasons (player_id, season_year, positions, nhl_team, fpts, fpg)
         values ('p1', 2026, array['C'], 'TOR', 100, 2);`);
     const data = await import('./coachs-corner');
-    const { saveEpisodeRecord, deleteEpisodeRecord, unpublishEpisodeRecord, publicationEffects } = await import('../coachs-corner/publishing');
+    const { episodeFrom } = await import('../coachs-corner/episode');
+    const refsOf = (episode: { script: string }) => episodeFrom(episode.script).playerRefs;
+    const { saveEpisodeRecord, deleteEpisodeRecord, unpublishEpisodeRecord, publicationEffects, verifyEpisodeSummaries } = await import('../coachs-corner/publishing');
     const apply = (change: Awaited<ReturnType<typeof saveEpisodeRecord>> | undefined) => {
         assert.ok(change && !('error' in change), JSON.stringify(change));
         const effects = publicationEffects(change);
@@ -117,7 +119,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
         fetchMock.mock.mockImplementation(async () => { throw new Error('Public pages must not fetch NHL data'); });
         for (let i = 0; i < 10; i++) {
             const cached = await data.getPublishedEpisode('week-two');
-            assert.equal((await data.getEpisodePlayers(cached!))[0].fpts, 100);
+            assert.equal((await data.getEpisodePlayers(cached!, refsOf(cached!)))[0].fpts, 100);
             await data.getPublishedEpisodes();
         }
         assert.equal(queries, before, 'ten views cause zero database queries');
@@ -163,7 +165,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
     });
     await t.test('the bundled pilot keeps its 2025-26 player snapshot without live stats or NHL lookups', async () => {
         const before = queries;
-        const players = await data.getEpisodePlayers(data.pilotEpisode());
+        const players = await data.getEpisodePlayers(data.pilotEpisode(), refsOf(data.pilotEpisode()));
         assert.deepEqual(players.map(p => [p.name, p.season, p.fpts]), [
             ['Tom Wilson', 2026, 372], ['William Nylander', 2026, 378.25], ['Nico Hischier', 2026, 382.25],
         ]);
@@ -174,8 +176,8 @@ test('publishing and real Next data caching against disposable Postgres', async 
         entries.clear();
         const episode = { ...data.pilotEpisode(), script: screenplay('Legacy', true), players: null };
         const before = queries;
-        assert.equal((await data.getEpisodePlayers(episode))[0].fpts, 200);
-        await data.getEpisodePlayers(episode);
+        assert.equal((await data.getEpisodePlayers(episode, refsOf(episode)))[0].fpts, 200);
+        await data.getEpisodePlayers(episode, refsOf(episode));
         assert.equal(queries, before + 1);
         assert.equal(network, 2);
     });
@@ -187,5 +189,31 @@ test('publishing and real Next data caching against disposable Postgres', async 
         apply(await saveEpisodeRecord({ id: null, slug: '2027-week-4-recap', script: screenplay('Season year'), publish: true }));
         apply(await saveEpisodeRecord({ id: null, slug: 'opening-week', script: screenplay('No year'), publish: true }));
         apply(await saveEpisodeRecord({ id: null, slug: '2026-week-5-draft', script: screenplay('Draft') }));
+    });
+    await t.test('publishing stores the episode module summary, and verify finds and fixes rows that drifted from it', async () => {
+        const script = screenplay('Summary check', true);
+        const { summary } = episodeFrom(script);
+        const saved = apply(await saveEpisodeRecord({ id: null, slug: '2027-week-2-summary', script, publish: true }));
+        const stored = await data.getEpisodeById(saved.id);
+        assert.deepEqual([stored?.title, stored?.season, stored?.week, stored?.durationMs], ['Summary check', 2027, 2, summary.runtime]);
+        assert.deepEqual(await verifyEpisodeSummaries(), [], 'every row was written by the current compiler');
+
+        // as if published by an older compiler
+        await client.query('update league.coachs_corner_episodes set duration_ms = 1234, title = $2 where id = $1', [saved.id, 'Old title']);
+        const drift = [{ id: saved.id, slug: '2027-week-2-summary', fields: [
+            { field: 'title', stored: 'Old title', compiled: 'Summary check' },
+            { field: 'durationMs', stored: 1234, compiled: summary.runtime },
+        ] }];
+        assert.deepEqual(await verifyEpisodeSummaries(), drift);
+        const others = (await data.getAllEpisodes()).filter(e => e.id !== saved.id);
+        assert.deepEqual(await verifyEpisodeSummaries({ fix: true }), drift, 'fix reports what it rewrote');
+
+        const fixed = await data.getEpisodeById(saved.id);
+        assert.deepEqual([fixed?.title, fixed?.durationMs], ['Summary check', summary.runtime]);
+        assert.deepEqual(fixed?.players, stored?.players, 'the frozen players snapshot stays');
+        assert.equal(fixed?.publishedAt, stored?.publishedAt, 'the first air date stays');
+        assert.equal(fixed?.updatedAt, stored?.updatedAt, 'a cache repair is not an edit');
+        assert.deepEqual((await data.getAllEpisodes()).filter(e => e.id !== saved.id), others, 'up-to-date rows are untouched');
+        assert.deepEqual(await verifyEpisodeSummaries({ fix: true }), [], 'running fix twice changes nothing');
     });
 });

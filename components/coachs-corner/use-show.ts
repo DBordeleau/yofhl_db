@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { frameAt, frameSignature, type Frame, type Timeline } from '@/lib/coachs-corner/timeline';
-import { compileAudioCues } from '@/lib/coachs-corner/audio-cues';
+import type { Episode } from '@/lib/coachs-corner/episode';
+import { frameAt, frameSignature, type Frame } from '@/lib/coachs-corner/timeline';
 import { createTransport, type BumperState, type TransportOutput } from '@/lib/coachs-corner/transport';
 import type { ShowAudio } from './audio';
 
@@ -11,8 +11,6 @@ import type { ShowAudio } from './audio';
 // to the studio. The frame is a pure function of time, so React only re-renders when something
 // visible changes (a word lands, a mouth opens, a pose changes).
 
-/** Before the first play the studio shows its opening picture, not the bumper. */
-const OPENING_PICTURE_MS = 5999;
 /** The theme is moved back into step with show time when it drifts further than this. */
 const THEME_DRIFT_MS = 150;
 const THEME_VOLUME = 0.8;
@@ -42,12 +40,12 @@ interface ShowOptions {
     theme: React.RefObject<HTMLAudioElement | null>;
 }
 
-export function useShow(tl: Timeline, { sound: soundOn, startAt, audio, theme }: ShowOptions): Show {
-    const audioCues = useMemo(() => compileAudioCues(tl), [tl]);
+export function useShow(episode: Episode, { sound: soundOn, startAt, audio, theme }: ShowOptions): Show {
+    const { timeline: tl, audioCues, openingPicture } = episode;
     const timeRef = useRef(startAt ?? 0);
     const [firstTransport] = useState(() => createTransport(tl, audioCues, { time: startAt }));
     const transport = useRef(firstTransport);
-    const [frame, setFrame] = useState(() => frameAt(tl, startAt ?? OPENING_PICTURE_MS));
+    const [frame, setFrame] = useState(() => startAt === undefined ? openingPicture : frameAt(tl, startAt));
     const [time, setTime] = useState(startAt ?? 0);
     const [playing, setPlaying] = useState(false);
     const [started, setStarted] = useState(startAt !== undefined);
@@ -97,7 +95,7 @@ export function useShow(tl: Timeline, { sound: soundOn, startAt, audio, theme }:
         if (label || !out.playing) setTime(out.time);
     }, [applyTheme, audio, tl, publish]);
 
-    // a new script (admin edits) keeps the playhead and speed where they were
+    // a recompiled script (admin edits) keeps the playhead and speed where they were
     const firstTimeline = useRef(true);
     useEffect(() => {
         if (firstTimeline.current) { firstTimeline.current = false; return; }
@@ -106,8 +104,8 @@ export function useShow(tl: Timeline, { sound: soundOn, startAt, audio, theme }:
         transport.current = createTransport(tl, audioCues, { time: timeRef.current, speed: rate });
         if (wasPlaying) apply(transport.current.play(performance.now()), { force: true });
         else if (started) apply(transport.current.seek(timeRef.current), { force: true });
-        else setFrame(frameAt(tl, OPENING_PICTURE_MS));
-    }, [tl, audioCues]); // eslint-disable-line react-hooks/exhaustive-deps
+        else setFrame(openingPicture);
+    }, [episode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         audio.sync(playing, soundOn, timeRef.current, tl.showEnd);

@@ -23,8 +23,6 @@ export interface Meta {
     pace: number;
     /** something both hosts wear on the lapel all episode, whatever Don's suit */
     lapel?: Lapel;
-    /** the schedule slot the public page names ("Pilot"); set by the page, not the front matter */
-    label?: string;
 }
 
 export type Graphic =

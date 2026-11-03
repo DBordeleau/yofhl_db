@@ -1,4 +1,5 @@
-// Kept apart from pilot.ts so client code can name the pilot without bundling its script.
+// The episode module's label rule (GLOSSARY.md: Label). Kept apart from episode.ts and pilot.ts so the
+// listing surfaces can label a stored summary without bundling the compiler or the pilot's script.
 
 export const PILOT_SLUG = 'opening-week';
 

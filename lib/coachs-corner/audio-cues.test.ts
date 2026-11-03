@@ -1,15 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { AUDIO_PREVIEW_SCRIPT } from './audio-preview';
-import { audioCuesBetween, compileAudioCues } from './audio-cues';
-import { parseScript } from './script';
-import { compile, frameAt, frameSignature } from './timeline';
+import { audioCuesBetween } from './audio-cues';
+import { episodeFrom } from './episode';
+import { frameAt, frameSignature } from './timeline';
 
 test('a desk-pound is one explicit contact cue during a silent pose, with no sound on seek', () => {
-    const script = parseScript('---\ntitle: Desk contact\n---\nRON (deadpan): You did.\n[don: pound-ready, 220ms]\n[don: pound, sfx: desk-pound, 480ms]\nDON (point): I looked at the rest!');
-    assert.deepEqual(script.diagnostics, []);
-    const tl = compile(script);
-    const cues = compileAudioCues(tl);
+    const episode = episodeFrom('---\ntitle: Desk contact\n---\nRON (deadpan): You did.\n[don: pound-ready, 220ms]\n[don: pound, sfx: desk-pound, 480ms]\nDON (point): I looked at the rest!');
+    assert.deepEqual(episode.diagnostics, []);
+    const { timeline: tl, audioCues: cues } = episode;
     const knocks = cues.filter(cue => cue.id === 'desk-pound');
     assert.equal(knocks.length, 1);
     const contact = knocks[0].t;
@@ -34,11 +33,10 @@ test('a desk-pound is one explicit contact cue during a silent pose, with no sou
 });
 
 test('the short comparison includes both speakers, a yell and one timed tie adjustment', () => {
-    const script = parseScript(AUDIO_PREVIEW_SCRIPT);
-    assert.deepEqual(script.diagnostics, []);
-    const tl = compile(script);
+    const episode = episodeFrom(AUDIO_PREVIEW_SCRIPT);
+    assert.deepEqual(episode.diagnostics, []);
+    const { timeline: tl, audioCues: cues } = episode;
     assert.ok(tl.showEnd > 30000 && tl.showEnd < 45000);
-    const cues = compileAudioCues(tl);
     for (const who of ['don', 'ron'] as const) {
         const voice = cues.filter(cue => cue.id === who);
         assert.equal(voice.length, tl.flaps[who].length);
@@ -48,7 +46,7 @@ test('the short comparison includes both speakers, a yell and one timed tie adju
     const ties = cues.filter(cue => cue.id === 'tie');
     assert.equal(ties.length, 1);
     assert.equal(ties[0].t, tl.gestures.don.find(cue => cue.value === 'tie')!.t);
-    assert.deepEqual(compileAudioCues(tl), cues);
+    assert.deepEqual(episodeFrom(AUDIO_PREVIEW_SCRIPT).audioCues, cues);
 });
 
 test('dispatch excludes the prior boundary and drops stale events after a stalled frame', () => {
@@ -59,15 +57,14 @@ test('dispatch excludes the prior boundary and drops stale events after a stalle
 });
 
 test('a tie present before playback is silent, and automatic rest poses have no Foley', () => {
-    const tl = compile(parseScript('[don: tie]\nDON: Hello.\nRON (deadpan): No.'));
-    const cues = compileAudioCues(tl);
+    const { timeline: tl, audioCues: cues } = episodeFrom('[don: tie]\nDON: Hello.\nRON (deadpan): No.');
     assert.ok(tl.gestures.don.some(cue => cue.value === 'tie'));
     assert.equal(cues.filter(cue => cue.id === 'tie').length, 0);
 });
 
 test('word accents, phrase endings and interruptions follow the script, including real pauses', () => {
-    const tl = compile(parseScript('RON: Saturday, really?\nDON: I thought--\nRON: No.\nDON: But--\n[1s]\nRON: Anyway.'));
-    const voices = compileAudioCues(tl).filter(cue => cue.voice);
+    const { timeline: tl, audioCues } = episodeFrom('RON: Saturday, really?\nDON: I thought--\nRON: No.\nDON: But--\n[1s]\nRON: Anyway.');
+    const voices = audioCues.filter(cue => cue.voice);
     for (const line of tl.lines) {
         const spoken = voices.filter(cue => cue.id === line.speaker && cue.t >= line.t0 && cue.t < line.t1);
         assert.equal(spoken.filter(cue => cue.voice!.wordStart).length, line.words.length);

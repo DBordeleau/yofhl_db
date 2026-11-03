@@ -1,11 +1,11 @@
 import type { CharacterId } from './cast';
-import { parseScript } from './script';
+import type { Script } from './script';
 
 export interface PullQuote { who: CharacterId; text: string }
 
 /** The episode's best shout for a share card: the longest all-caps yell (!!…!!) that fits a plate, then any yell, then a short first line. */
-export function pullQuote(source: string): PullQuote | null {
-    const lines = parseScript(source).events.flatMap(event => event.kind === 'line' ? [event] : []);
+export function pullQuote(script: Script): PullQuote | null {
+    const lines = script.events.flatMap(event => event.kind === 'line' ? [event] : []);
     const shouts = lines.flatMap(line => {
         const runs: string[] = [];
         let run = '';

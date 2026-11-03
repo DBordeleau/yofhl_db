@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { checkDraft, loadLocalDraft, localPreviewAllowed, validSlug } from '@/lib/coachs-corner/production/local-drafts';
+import { checkDraft, draftEpisode, loadLocalDraft, localPreviewAllowed, validSlug } from '@/lib/coachs-corner/production/local-drafts';
 import LocalDraftPreview from '@/components/coachs-corner/local-draft-preview';
 import { archivoItalic } from '@/components/coachs-corner/fonts';
 
@@ -18,7 +18,9 @@ export default async function LocalDraftPage({ params }: { params: Promise<{ slu
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') notFound();
         return <main className="mx-auto max-w-4xl p-8"><h1 className="text-2xl font-bold">Draft needs repair</h1><p className="mt-4">{(error as Error).message}</p><Link className="underline" href="/coachs-corner/local">All local drafts</Link></main>;
     }
-    const report = await checkDraft(draft);
+    // compiled once: the checks, the preview player, the share card and the pull quote all read it
+    const episode = draftEpisode(draft);
+    const report = await checkDraft(draft, undefined, episode);
     const captured = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(draft.facts.capturedAt));
     return <main className={`${archivoItalic.variable} mx-auto max-w-7xl px-4 py-8`}>
         <Link className="text-sm underline" href="/coachs-corner/local">All local drafts</Link>
@@ -27,7 +29,7 @@ export default async function LocalDraftPage({ params }: { params: Promise<{ slu
             <span className="rounded bg-ink px-3 py-1 text-sm font-bold text-white">Unpublished local draft</span>
         </div>
         <p className="mb-5 text-sm text-ink-muted">{draft.facts.kind === 'reference' ? 'Pilot reference' : `Week ${draft.facts.period?.number} · ${draft.facts.phase}`} · Facts captured {captured} Toronto time</p>
-        <LocalDraftPreview key={draft.revision} slug={slug} script={draft.script} teams={draft.facts.teams} players={draft.facts.players} report={report} />
+        <LocalDraftPreview key={draft.revision} slug={slug} script={draft.script} episode={episode} teams={draft.facts.teams} players={draft.facts.players} report={report} />
         <div className="mt-6 grid gap-4 md:grid-cols-2">
             <details className="rounded-xl border border-line-strong bg-white p-4"><summary className="cursor-pointer font-bold">Episode brief</summary><pre className="mt-3 whitespace-pre-wrap font-sans text-sm">{draft.brief}</pre></details>
             <details className="rounded-xl border border-line-strong bg-white p-4" open><summary className="cursor-pointer font-bold">Editorial review</summary><pre className="mt-3 whitespace-pre-wrap font-sans text-sm">{draft.review}</pre></details>

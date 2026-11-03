@@ -54,3 +54,37 @@ A season whose playoffs did not happen (2019–20). It is published and has no c
 **Draft year**:
 The calendar year a draft or lottery is held in: the season year minus one. "2026 Draft" and "2026 Draft Pick, Round 1" belong to the 2026–27 season. This matches Fantrax and the NHL and is not drift.
 _Avoid_: draft season
+
+## Coach's Corner
+
+**Script**:
+The plain-text screenplay an episode is written and stored as: front matter, lines, stage directions and monitor cues.
+_Avoid_: screenplay (in code), source
+
+**Episode**:
+Everything a surface needs from one script, compiled once by the episode module (`lib/coachs-corner/episode.ts`): meta, diagnostics, timeline, audio cues, opening picture, pull quote, label, player refs and summary.
+_Avoid_: show (the whole program is the show)
+
+**Timeline**:
+A script compiled to absolute show times: when every word, mouth flap, pose, monitor cut, camera shot and sound happens.
+
+**Show time**:
+The episode's own clock, in milliseconds from the start of the intro. The intro always runs at 1×; speed applies to the segment only.
+
+**Intro**:
+The first six seconds of show time, when the bumper and theme play.
+
+**Segment**:
+The part of the show after the intro, where the hosts talk. As a length, it is the runtime minus the intro. Only the production tools (the editor's readout, the local draft report) show it.
+
+**Runtime**:
+Show time at normal speed from the start of the intro to the end of the last line: what the player clock shows. It is the only length viewers see, and the one stored with each episode.
+_Avoid_: duration, length (unqualified)
+
+**Label**:
+An episode's slot on the schedule: "Pilot" for the pilot, otherwise "Week N" from the script's week, otherwise none.
+_Avoid_: slot label, week label
+
+**Opening picture**:
+What the studio shows before the first play: the set as the segment begins, from the cues ahead of the first line or reaction.
+_Avoid_: poster frame

@@ -2,14 +2,14 @@
 
 import { THEME_URL } from '@/lib/coachs-corner/media';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FiMaximize, FiMinimize, FiPause, FiPlay, FiRotateCcw, FiSkipBack, FiSkipForward, FiVolume2, FiVolumeX } from 'react-icons/fi';
 import ShareButton from '@/components/share/share-button';
 import type { ShareCard } from '@/lib/share/model';
 import { CAST } from '@/lib/coachs-corner/cast';
 import { markEpisodeSeen } from '@/lib/coachs-corner/seen';
-import { parseScript } from '@/lib/coachs-corner/script';
-import { compile, INTRO_MS, lineAtTime, type Timeline } from '@/lib/coachs-corner/timeline';
+import type { Episode } from '@/lib/coachs-corner/episode';
+import { INTRO_MS, lineAtTime, type Timeline } from '@/lib/coachs-corner/timeline';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import { createShowAudio, type ShowAudio } from './audio';
 import Studio, { TitleCard } from './studio';
@@ -90,7 +90,8 @@ function Scrubber({ tl, show }: { tl: Timeline; show: Show }) {
 }
 
 export interface PlayerProps {
-    script: string;
+    /** compiled once by the page or editor; the player never parses */
+    episode: Episode;
     /** Only public episodes record viewing; admin previews omit this key. */
     episodeKey?: string;
     teams: StudioTeam[];
@@ -106,22 +107,17 @@ export interface PlayerProps {
     audio?: ShowAudio;
     /** Public episodes get a share card button in the control bar. */
     share?: ShareCard;
-    /** the episode's schedule slot, like "Pilot" or "Week 2", for the title card and chyron */
-    label?: string | null;
 }
 
-export default function Player({ script, episodeKey, teams, players = [], banners = [], keys = 'page', cue, onLine, nextHref, audio: suppliedAudio, share, label }: PlayerProps) {
-    const tl = useMemo(() => {
-        const compiled = compile(parseScript(script));
-        return label ? { ...compiled, meta: { ...compiled.meta, label } } : compiled;
-    }, [script, label]);
+export default function Player({ episode, episodeKey, teams, players = [], banners = [], keys = 'page', cue, onLine, nextHref, audio: suppliedAudio, share }: PlayerProps) {
+    const tl = episode.timeline;
     const [ownAudio] = useState(() => createShowAudio());
     const audio = suppliedAudio ?? ownAudio;
     const [audioError, setAudioError] = useState('');
     // sound is on unless the viewer muted it; pressing Watch is the gesture browsers need
     const [soundOn, setSoundOn] = useState(true);
     const theme = useRef<HTMLAudioElement | null>(null);
-    const show = useShow(tl, { sound: soundOn, audio, theme });
+    const show = useShow(episode, { sound: soundOn, audio, theme });
     const rootRef = useRef<HTMLDivElement>(null);
     const railRef = useRef<HTMLDivElement>(null);
     const [fullscreen, setFullscreen] = useState(false);
@@ -275,16 +271,16 @@ export default function Player({ script, episodeKey, teams, players = [], banner
             <div className={styles.presentation}>
                 <div className={styles.frame}>
                     <audio ref={theme} src={THEME_URL} preload="auto" />
-                    <Studio tl={tl} frame={frame} teams={teams} players={players} banners={banners} started={started} playing={playing} bumper={show.bumper} fullscreen={isFullscreen} />
+                    <Studio episode={episode} frame={frame} teams={teams} players={players} banners={banners} started={started} playing={playing} bumper={show.bumper} fullscreen={isFullscreen} />
 
-                    {!started && <TitleCard tl={tl} />}
+                    {!started && <TitleCard episode={episode} />}
                     {!started && (
                         <button type="button" className={styles.poster} onClick={startPlay}>
                             <span className={styles.posterSlab}><FiPlay aria-hidden="true" className={styles.fillIcon} /> Watch</span>
                             <span className={styles.posterTime}>{mmss(tl.showEnd)}</span>
                         </button>
                     )}
-                    {ended && <TitleCard tl={tl} closing />}
+                    {ended && <TitleCard episode={episode} closing />}
                     {ended && (
                         <div className={styles.endCard}>
                             <button type="button" className={styles.posterSlab} onClick={() => { seek(0); startPlay(); }}>

@@ -5,14 +5,16 @@ import { AUDIO_PREVIEW_SCRIPT } from '@/lib/coachs-corner/audio-preview';
 import { TIE_RUSTLES } from '@/lib/coachs-corner/tie-rustles';
 import { TV_SWITCHES } from '@/lib/coachs-corner/tv-switches';
 import { CURRENT_SOUND_BANK, STUDIO_SOUND_BANK, type SoundBank, type SoundId, type SoundSource } from '@/lib/coachs-corner/sound-bank';
-import { compile, INTRO_MS } from '@/lib/coachs-corner/timeline';
-import { parseScript } from '@/lib/coachs-corner/script';
+import { episodeFrom } from '@/lib/coachs-corner/episode';
+import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import type { StudioBanner, StudioTeam } from '@/lib/coachs-corner/teams';
 import { createShowAudio } from './audio';
 import Player from './player';
 import styles from './audio-preview.module.css';
 
-const timeline = compile(parseScript(AUDIO_PREVIEW_SCRIPT));
+// the markers below and the player read the same compiled episode
+const episode = episodeFrom(AUDIO_PREVIEW_SCRIPT);
+const { timeline } = episode;
 const tieTime = timeline.gestures.don.find(cue => cue.value === 'tie')!.t;
 const yellTime = timeline.punches.find(cue => cue.who === 'don')!.t;
 const monitorTime = timeline.monitor.find(cue => cue.t > INTRO_MS)!.t;
@@ -134,7 +136,7 @@ export default function AudioPreview({ teams, banners }: { teams: StudioTeam[]; 
                 <p>Switch while playing. Same scene, same timing.</p>
             </div>
 
-            <Player script={AUDIO_PREVIEW_SCRIPT} teams={teams} banners={banners} audio={audio} cue={cue} keys="focus" />
+            <Player episode={episode} teams={teams} banners={banners} audio={audio} cue={cue} keys="focus" />
 
             <div className={styles.passages} role="group" aria-label="Replay a passage">
                 <button type="button" onClick={() => jump(0)}>Replay from start</button>
