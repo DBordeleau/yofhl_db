@@ -3,8 +3,7 @@ import test from 'node:test';
 import { AUDIO_PREVIEW_SCRIPT } from './audio-preview';
 import { audioCuesBetween, compileAudioCues } from './audio-cues';
 import { parseScript } from './script';
-import { compile, frameAt } from './timeline';
-import { frameSignature } from '../../components/coachs-corner/use-show';
+import { compile, frameAt, frameSignature } from './timeline';
 
 test('a desk-pound is one explicit contact cue during a silent pose, with no sound on seek', () => {
     const script = parseScript('---\ntitle: Desk contact\n---\nRON (deadpan): You did.\n[don: pound-ready, 220ms]\n[don: pound, sfx: desk-pound, 480ms]\nDON (point): I looked at the rest!');

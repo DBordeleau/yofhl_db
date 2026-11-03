@@ -1,26 +1,21 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CHARACTERS, gestureAction } from '@/lib/coachs-corner/cast';
-import { frameAt, INTRO_MS, type Frame, type Timeline } from '@/lib/coachs-corner/timeline';
-import { audioCuesBetween, compileAudioCues } from '@/lib/coachs-corner/audio-cues';
+import { frameAt, frameSignature, type Frame, type Timeline } from '@/lib/coachs-corner/timeline';
+import { compileAudioCues } from '@/lib/coachs-corner/audio-cues';
+import { createTransport, type BumperState, type TransportOutput } from '@/lib/coachs-corner/transport';
 import type { ShowAudio } from './audio';
 
-// One requestAnimationFrame clock drives the show. The frame is a pure function of time, so React
-// only re-renders when something visible changes (a word lands, a mouth opens, a pose changes).
+// The transport owns show time; this hook runs its animation-frame loop and applies each output:
+// cues to the Web Audio graph, theme commands to the theme's audio element, and the bumper state
+// to the studio. The frame is a pure function of time, so React only re-renders when something
+// visible changes (a word lands, a mouth opens, a pose changes).
 
-export const frameSignature = (f: Frame) => {
-    let s = `${f.phase}|${f.monitor}|${f.shot}|${f.punch?.index ?? -1}|${f.line}|${Math.ceil(f.clock / 1000)}`;
-    for (const who of CHARACTERS) {
-        const h = f.hosts[who];
-        const c = f.captions[who];
-        s += `|${h.gesture}${h.open ? 1 : 0}${h.motion ?? '-'}${h.flinch ? 1 : 0}|${c ? `${c.line}.${c.shown}.${c.active ? 1 : 0}${c.knocked ? 1 : 0}` : '-'}`;
-        // Publish the short contact animation, then return to sparse updates.
-        if (who === 'don' && gestureAction(h.gesture) === 'pound') s += `|impact:${Math.min(10, Math.floor(h.gestureMs / 16))}`;
-        if (h.reaction) s += `|fx:${h.reaction.effect}:${Math.floor(h.reaction.elapsed / 32)}`;
-    }
-    return s;
-};
+/** Before the first play the studio shows its opening picture, not the bumper. */
+const OPENING_PICTURE_MS = 5999;
+/** The theme is moved back into step with show time when it drifts further than this. */
+const THEME_DRIFT_MS = 150;
+const THEME_VOLUME = 0.8;
 
 export interface Show {
     frame: Frame;
@@ -29,6 +24,7 @@ export interface Show {
     playing: boolean;
     started: boolean;
     rate: number;
+    bumper: BumperState | null;
     play: () => void;
     pause: () => void;
     toggle: () => void;
@@ -39,23 +35,32 @@ export interface Show {
     timeRef: React.MutableRefObject<number>;
 }
 
-export function useShow(tl: Timeline, { sound: soundOn, startAt, audio }: { sound: boolean; startAt?: number; audio: ShowAudio }): Show {
+interface ShowOptions {
+    sound: boolean;
+    startAt?: number;
+    audio: ShowAudio;
+    theme: React.RefObject<HTMLAudioElement | null>;
+}
+
+export function useShow(tl: Timeline, { sound: soundOn, startAt, audio, theme }: ShowOptions): Show {
     const audioCues = useMemo(() => compileAudioCues(tl), [tl]);
     const timeRef = useRef(startAt ?? 0);
-    const [frame, setFrame] = useState(() => frameAt(tl, startAt ?? INTRO_MS - 1));
+    const [firstTransport] = useState(() => createTransport(tl, audioCues, { time: startAt }));
+    const transport = useRef(firstTransport);
+    const [frame, setFrame] = useState(() => frameAt(tl, startAt ?? OPENING_PICTURE_MS));
     const [time, setTime] = useState(startAt ?? 0);
     const [playing, setPlaying] = useState(false);
     const [started, setStarted] = useState(startAt !== undefined);
-    const [rate, setRate] = useState(1);
+    const [rate, setRateState] = useState(1);
+    const [bumper, setBumper] = useState<BumperState | null>(null);
     const sigRef = useRef(frameSignature(frame));
     const listeners = useRef(new Set<(t: number) => void>());
     const soundRef = useRef(soundOn);
     soundRef.current = soundOn;
-    const rateRef = useRef(rate);
-    rateRef.current = rate;
+    const playingRef = useRef(false);
+    const lastLabel = useRef(0);
 
     const publish = useCallback((t: number, force = false) => {
-        // before the first play the studio shows its opening picture, not the bumper
         const f = frameAt(tl, t);
         const sig = frameSignature(f);
         if (force || sig !== sigRef.current) {
@@ -65,62 +70,88 @@ export function useShow(tl: Timeline, { sound: soundOn, startAt, audio }: { soun
         listeners.current.forEach(fn => fn(t));
     }, [tl]);
 
-    // a new script (admin edits) keeps the playhead where it was
+    const applyTheme = useCallback((out: TransportOutput) => {
+        const el = theme.current;
+        if (!el) return;
+        el.muted = !soundRef.current;
+        el.volume = THEME_VOLUME;
+        if (out.theme === 'pause') el.pause();
+        else if (out.theme) {
+            el.currentTime = out.theme.play / 1000;
+            void el.play().catch(() => { /* blocked until a gesture */ });
+        } else if (out.playing && out.phase === 'intro' && !el.paused && Math.abs(el.currentTime * 1000 - out.time) > THEME_DRIFT_MS) {
+            el.currentTime = out.time / 1000;
+        }
+    }, [theme]);
+
+    // Every transport operation goes through here, so all of them leave the show in the same state.
+    const apply = useCallback((out: TransportOutput, { force = false, label = false } = {}) => {
+        timeRef.current = out.time;
+        applyTheme(out);
+        if (soundRef.current) for (const cue of out.cues) audio.fire(cue, out.rate);
+        audio.sync(out.playing, soundRef.current, out.time, tl.showEnd);
+        setBumper(prev => prev?.mount === out.bumper?.mount && prev?.paused === out.bumper?.paused ? prev : out.bumper);
+        playingRef.current = out.playing;
+        setPlaying(out.playing);
+        publish(out.time, force);
+        if (label || !out.playing) setTime(out.time);
+    }, [applyTheme, audio, tl, publish]);
+
+    // a new script (admin edits) keeps the playhead and speed where they were
+    const firstTimeline = useRef(true);
     useEffect(() => {
+        if (firstTimeline.current) { firstTimeline.current = false; return; }
         audio.stop();
-        timeRef.current = Math.min(timeRef.current, tl.duration);
-        if (started) publish(timeRef.current, true);
-        else setFrame(frameAt(tl, INTRO_MS - 1));
-    }, [tl, publish, started, audio]);
+        const wasPlaying = playingRef.current;
+        transport.current = createTransport(tl, audioCues, { time: timeRef.current, speed: rate });
+        if (wasPlaying) apply(transport.current.play(performance.now()), { force: true });
+        else if (started) apply(transport.current.seek(timeRef.current), { force: true });
+        else setFrame(frameAt(tl, OPENING_PICTURE_MS));
+    }, [tl, audioCues]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         audio.sync(playing, soundOn, timeRef.current, tl.showEnd);
-        return () => audio.stop();
-    }, [audio, playing, soundOn, tl]);
+        const el = theme.current;
+        // muting silences the theme in place, so unmuting brings it back at the right point
+        if (el) el.muted = !soundOn;
+    }, [audio, playing, soundOn, tl, theme]);
+    useEffect(() => () => audio.stop(), [audio]);
 
     useEffect(() => {
-        const onVisibility = () => { if (document.hidden) setPlaying(false); };
+        const onVisibility = () => { if (document.hidden && playingRef.current) apply(transport.current.pause()); };
         document.addEventListener('visibilitychange', onVisibility);
         return () => document.removeEventListener('visibilitychange', onVisibility);
-    }, []);
+    }, [apply]);
 
     useEffect(() => {
         if (!playing) return;
         let raf = 0;
-        let last = performance.now();
-        let lastLabel = 0;
         const tick = (now: number) => {
-            const prev = timeRef.current;
-            const t = Math.min(tl.duration, prev + (now - last) * rateRef.current);
-            last = now;
-            timeRef.current = t;
-
-            audio.sync(true, soundRef.current, t, tl.showEnd);
-            if (soundRef.current && t > prev)
-                for (const cue of audioCuesBetween(audioCues, prev, t, rateRef.current)) audio.fire(cue, rateRef.current);
-
-            publish(t);
-            if (now - lastLabel > 100) { lastLabel = now; setTime(t); }
-            if (t >= tl.duration) { setPlaying(false); setTime(t); return; }
-            raf = requestAnimationFrame(tick);
+            const label = now - lastLabel.current > 100;
+            if (label) lastLabel.current = now;
+            const out = transport.current.tick(now);
+            apply(out, { label });
+            if (out.playing) raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(raf);
-    }, [playing, tl, publish, audio, audioCues]);
+    }, [playing, apply]);
 
+    // Called from the click itself: the theme command applies inside the gesture, which Safari needs.
     const play = useCallback(() => {
-        if (timeRef.current >= tl.duration) timeRef.current = 0;
         setStarted(true);
-        setPlaying(true);
-    }, [tl]);
-    const pause = useCallback(() => setPlaying(false), []);
+        apply(transport.current.play(performance.now()), { force: true, label: true });
+    }, [apply]);
+    const pause = useCallback(() => apply(transport.current.pause()), [apply]);
     const seek = useCallback((t: number) => {
         audio.stop();
-        timeRef.current = Math.max(0, Math.min(tl.duration, t));
         setStarted(true);
-        setTime(timeRef.current);
-        publish(timeRef.current, true);
-    }, [tl, publish, audio]);
+        apply(transport.current.seek(t), { force: true, label: true });
+    }, [audio, apply]);
+    const setRate = useCallback((next: number) => {
+        transport.current.setSpeed(next);
+        setRateState(next);
+    }, []);
 
     const subscribe = useCallback((fn: (t: number) => void) => {
         listeners.current.add(fn);
@@ -129,7 +160,7 @@ export function useShow(tl: Timeline, { sound: soundOn, startAt, audio }: { soun
     }, []);
 
     return useMemo(() => ({
-        frame, time, playing, started, rate,
+        frame, time, playing, started, rate, bumper,
         play, pause, toggle: () => (playing ? pause() : play()), seek, setRate, subscribe, timeRef,
-    }), [frame, time, playing, started, rate, play, pause, seek, subscribe]);
+    }), [frame, time, playing, started, rate, bumper, play, pause, seek, setRate, subscribe]);
 }

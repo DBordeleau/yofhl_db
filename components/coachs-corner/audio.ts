@@ -1,6 +1,6 @@
 import { CAST, DELIVERIES, type CharacterId } from '@/lib/coachs-corner/cast';
 import type { AudioCue, VoiceCue } from '@/lib/coachs-corner/audio-cues';
-import { INTRO_MS } from '@/lib/coachs-corner/timeline';
+import { INTRO_MS } from '@/lib/coachs-corner/transport';
 import { CURRENT_SOUND_BANK, STUDIO_ROOM, TIE_RUSTLE, sourceKey, type SoundBank, type SoundId } from '@/lib/coachs-corner/sound-bank';
 import { robotSyllable } from '@/lib/coachs-corner/robot-voice';
 
@@ -15,6 +15,9 @@ export interface ShowAudio {
     stop: () => void;
     dispose: () => void;
 }
+
+/** How long before the segment the room tone starts. */
+const ROOM_TONE_LEAD_MS = 400;
 
 /** One audio graph per player. No sound starts until unlock() runs in a user gesture. */
 export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): ShowAudio {
@@ -295,7 +298,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
     const startRoom = (time: number) => {
         const c = ctx!;
         const at = c.currentTime;
-        if ('files' in bank.room.source) return fileSound({ t: 0, id: 'room' }, 1, at, true, Math.max(0, time - INTRO_MS + 400) / 1000);
+        if ('files' in bank.room.source) return fileSound({ t: 0, id: 'room' }, 1, at, true, Math.max(0, time - INTRO_MS + ROOM_TONE_LEAD_MS) / 1000);
         if (bank.room.source.synth !== 'studio-room') return false;
         roomNoise ??= makeNoise(11, 157);
         const src = c.createBufferSource();
@@ -310,7 +313,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         gain.gain.linearRampToValueAtTime(STUDIO_ROOM.noiseGain, at + STUDIO_ROOM.fadeSeconds);
         src.connect(hp).connect(lp).connect(gain).connect(bus('room'));
         track('room', src, gain, [hp, lp]);
-        src.start(at, Math.max(0, time - INTRO_MS + 400) / 1000 % roomNoise.duration);
+        src.start(at, Math.max(0, time - INTRO_MS + ROOM_TONE_LEAD_MS) / 1000 % roomNoise.duration);
         const hum = c.createOscillator();
         const humGain = c.createGain();
         hum.frequency.value = 120;
@@ -340,7 +343,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         fire,
         sync: (playing, audible, time, end) => {
             if (!playing || !audible) { if (active.size) stopSlot(); return; }
-            const wantsRoom = time >= INTRO_MS - 400 && time < end && bank.room.gain > 0;
+            const wantsRoom = time >= INTRO_MS - ROOM_TONE_LEAD_MS && time < end && bank.room.gain > 0;
             if (!wantsRoom && roomPlaying) stopSlot('room');
             if (wantsRoom && !roomPlaying && ctx?.state === 'running') roomPlaying = startRoom(time);
         },
