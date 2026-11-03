@@ -1,8 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { rows } from '../data/db';
 import { COACHS_CORNER_TAG, episodeTag, getStudioPlayers } from '../data/coachs-corner';
-import { hasErrors, parseScript, playerRefs } from './script';
-import { compile } from './timeline';
+import { episodeFrom } from './episode';
 
 export interface EpisodeInput { id: number | null; slug: string; script: string; publish?: boolean }
 export interface EpisodeWrite { id: number; slug: string; oldSlug: string | null; publicChanged: boolean }
@@ -28,25 +27,21 @@ const isUniqueViolation = (error: unknown): boolean => {
 // actual SQL and cache effects be tested against disposable Postgres.
 export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult> {
     if (input.id !== null && (!Number.isSafeInteger(input.id) || input.id <= 0)) return { error: 'Invalid episode ID.' };
-    const script = parseScript(input.script);
+    const episode = episodeFrom(input.script);
+    const { summary } = episode;
     const publish = input.publish === true;
-    if (publish && hasErrors(script)) return { error: 'Fix the errors in the script before publishing.' };
-    const slug = cleanSlug(input.slug || script.meta.title || 'episode');
+    if (publish && episode.hasErrors) return { error: 'Fix the errors in the script before publishing.' };
+    const slug = cleanSlug(input.slug || episode.meta.title || 'episode');
     if (!slug) return { error: 'Give the episode a URL slug.' };
     if (['local', 'audio-preview'].includes(slug)) return { error: 'That URL is reserved. Choose another slug.' };
-    const season = script.meta.season ?? null;
+    const { title, season, week } = summary;
     // slugs lead with the season year (GLOSSARY.md), never Fantrax's start year; a slug with no year is fine
     const slugYear = /^(\d{4})-/.exec(slug)?.[1];
     if (publish && slugYear && Number(slugYear) !== season) return { error: `The slug starts with ${slugYear}, but the episode is about season ${season ?? '(none)'}. Start it with the season year, the year the season ends in.` };
-    const tl = compile(script);
     // Resolve before the write. A failed stats lookup must leave the live episode
     // intact; optional NHL headshots fall back to existing portrait URLs.
-    const players = publish ? await getStudioPlayers(playerRefs(script)) : null;
+    const players = publish ? await getStudioPlayers(episode.playerRefs) : null;
     const snapshot = players === null ? null : JSON.stringify(players);
-    const title = script.meta.title || 'Untitled episode';
-    const week = script.meta.week ?? null;
-    // the length the player shows: the bumper counts, the end card after the last line does not
-    const duration = Math.round(tl.showEnd);
     try {
         const [row] = input.id !== null ? await rows<EpisodeWrite>(sql`
             with previous as materialized (
@@ -54,7 +49,7 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
             ), changed as (
                 update league.coachs_corner_episodes e
                 set slug = ${slug}, title = ${title}, season = ${season}, week = ${week}, script = ${input.script},
-                    duration_ms = ${duration}, updated_at = now(), players = ${snapshot}::jsonb,
+                    duration_ms = ${summary.runtime}, updated_at = now(), players = ${snapshot}::jsonb,
                     -- an edit keeps the original air date, so a fixed-up old episode never jumps ahead of the latest
                     published_at = case when ${publish} then coalesce(p.published_at, now()) else null end
                 from previous p where e.id = p.id and (${publish} or p.published_at is null)
@@ -62,7 +57,7 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
             ) select * from changed`)
             : await rows<EpisodeWrite>(sql`
                 insert into league.coachs_corner_episodes (slug, title, season, week, script, duration_ms, players, published_at)
-                values (${slug}, ${title}, ${season}, ${week}, ${input.script}, ${duration}, ${snapshot}::jsonb,
+                values (${slug}, ${title}, ${season}, ${week}, ${input.script}, ${summary.runtime}, ${snapshot}::jsonb,
                     case when ${publish} then now() else null end)
                 returning id, slug, null::text as "oldSlug", ${publish}::boolean as "publicChanged"`);
         // The condition lives in the UPDATE, not a separate check: a stale editor
@@ -89,4 +84,34 @@ export async function deleteEpisodeRecord(id: number): Promise<EpisodeWrite | un
         delete from league.coachs_corner_episodes where id = ${id}
         returning id, slug, slug as "oldSlug", published_at is not null as "publicChanged"`);
     return row;
+}
+
+type SummaryField = 'title' | 'season' | 'week' | 'runtime';
+export interface SummaryDrift {
+    id: number;
+    slug: string;
+    fields: { field: SummaryField; stored: string | number | null; compiled: string | number | null }[];
+}
+
+// The stored title, season, week and runtime are a cache of the episode module's summary for the
+// listing surfaces. A compiler change makes them stale; this recompiles every stored script and
+// reports (and with `fix`, rewrites) only the rows that drifted. The players snapshot and first air
+// date are never touched, and neither is updated_at: this repairs a cache, it isn't an edit.
+export async function verifyEpisodeSummaries({ fix = false } = {}): Promise<SummaryDrift[]> {
+    const stored = await rows<{ id: number; slug: string; script: string } & Record<SummaryField, string | number | null>>(sql`
+        select id, slug, script, title, season, week, duration_ms as runtime from league.coachs_corner_episodes order by id`);
+    const drifts: SummaryDrift[] = [];
+    for (const row of stored) {
+        const { summary } = episodeFrom(row.script);
+        const compiled: Record<SummaryField, string | number | null> = { title: summary.title, season: summary.season, week: summary.week, runtime: summary.runtime };
+        const fields = (['title', 'season', 'week', 'runtime'] as const)
+            .filter(field => row[field] !== compiled[field])
+            .map(field => ({ field, stored: row[field], compiled: compiled[field] }));
+        if (!fields.length) continue;
+        drifts.push({ id: row.id, slug: row.slug, fields });
+        if (fix) await rows(sql`update league.coachs_corner_episodes
+            set title = ${summary.title}, season = ${summary.season}, week = ${summary.week}, duration_ms = ${summary.runtime}
+            where id = ${row.id}`);
+    }
+    return drifts;
 }

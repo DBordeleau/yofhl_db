@@ -2,8 +2,8 @@ import { readFile, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { parseFactPacket, type FactPacket } from './facts';
-import { parseScript, playerRefs, type Diagnostic } from '../script';
-import { compile, INTRO_MS } from '../timeline';
+import { episodeFrom, type Episode } from '../episode';
+import type { Diagnostic } from '../script';
 import { artUrl, THEME_URL } from '../media';
 import { CURRENT_SOUND_BANK } from '../sound-bank';
 import { findTeam } from '../teams';
@@ -68,20 +68,25 @@ export async function listLocalDrafts(root = process.cwd()): Promise<string[]> {
 
 export interface DraftReport {
     diagnostics: Diagnostic[];
-    durationSeconds: number;
+    /** the segment's length: the runtime without the intro */
+    segmentSeconds: number;
     words: { don: number; ron: number };
     art: string[];
 }
 const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-export async function checkDraft(draft: LocalDraft, root = process.cwd()): Promise<DraftReport> {
-    const parsed = parseScript(draft.script, { knownTeam: ref => !!findTeam(draft.facts.teams, ref) });
-    const timeline = compile(parsed);
-    const diagnostics = [...parsed.diagnostics];
+/** The draft as the preview plays it, with warnings for teams the fact packet doesn't know. */
+export const draftEpisode = (draft: LocalDraft): Episode =>
+    episodeFrom(draft.script, { slug: draft.slug, knownTeam: ref => !!findTeam(draft.facts.teams, ref) });
+
+/** Pass the episode the preview already compiled, so the checks and the preview see the same one. */
+export async function checkDraft(draft: LocalDraft, { root = process.cwd(), episode = draftEpisode(draft) }: { root?: string; episode?: Episode } = {}): Promise<DraftReport> {
+    const { meta, timeline } = episode;
+    const diagnostics = [...episode.diagnostics];
     const report = (severity: 'error' | 'warning', message: string, line = 1) => diagnostics.push({ severity, message, line });
-    if (draft.facts.kind === 'live' && parsed.meta.season !== draft.facts.season) report('error', 'Script season must match the fact packet ending year.');
-    if (draft.facts.period && parsed.meta.week !== draft.facts.period.number) report('error', 'Script week must match the exported scoring period.');
-    const names = new Set([...playerRefs(parsed), ...draft.pronunciations.map(p => p.name)]);
+    if (draft.facts.kind === 'live' && meta.season !== draft.facts.season) report('error', 'Script season must match the fact packet ending year.');
+    if (draft.facts.period && meta.week !== draft.facts.period.number) report('error', 'Script week must match the exported scoring period.');
+    const names = new Set([...episode.playerRefs, ...draft.pronunciations.map(p => p.name)]);
     for (const name of names) {
         const player = draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase());
         if (!player || player.bornInNorthAmerica === null) report('warning', `Unverified birthplace: ${name}. Enrich facts for every named player, including dialogue-only names.`);
@@ -96,18 +101,16 @@ export async function checkDraft(draft: LocalDraft, root = process.cwd()): Promi
             }
         }
     }
-    for (const name of playerRefs(parsed)) {
+    for (const name of episode.playerRefs) {
         const player = draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase());
         if (!player || player.fpts === null || player.fpg === null || player.season === null) report('warning', `No complete frozen fantasy statistics for ${name}; run coachs:stats -- --slug ${draft.slug}. Resolve missing archive records with sourced evidence or an honest graphic fallback.`);
     }
-    for (const event of parsed.events) {
-        const cues = event.kind === 'stage' ? event.cues : event.parts.flatMap(part => part.kind === 'cue' ? [part.cue] : []);
-        for (const cue of cues) {
-            if (cue.type !== 'monitor' || cue.graphic.type !== 'gap') continue;
-            const seasons = new Set([cue.graphic.base, ...cue.graphic.others].map(name =>
-                draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase())?.season).filter(season => season != null));
-            if (seasons.size > 1) report('error', 'Gap graphics must compare fantasy points from the same archived season.', event.line);
-        }
+    // every monitor cue is on the timeline's monitor track, with the line that cued it
+    for (const { value: graphic, line } of timeline.monitor) {
+        if (graphic.type !== 'gap') continue;
+        const seasons = new Set([graphic.base, ...graphic.others].map(name =>
+            draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase())?.season).filter(season => season != null));
+        if (seasons.size > 1) report('error', 'Gap graphics must compare fantasy points from the same archived season.', line);
     }
     const urls = [...timeline.art.flatMap(id => [artUrl(id), artUrl(id, true)]), THEME_URL];
     // File-backed effects and voices must exist even when no explicit sfx cue names them.
@@ -119,5 +122,5 @@ export async function checkDraft(draft: LocalDraft, root = process.cwd()): Promi
     }
     const words = { don: 0, ron: 0 };
     for (const line of timeline.lines) words[line.speaker] += line.words.length;
-    return { diagnostics, durationSeconds: (timeline.showEnd - INTRO_MS) / 1000, words, art: timeline.art };
+    return { diagnostics, segmentSeconds: episode.summary.segment / 1000, words, art: timeline.art };
 }

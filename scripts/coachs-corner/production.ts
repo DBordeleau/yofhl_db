@@ -6,7 +6,7 @@ import { captureFacts, referencePacket, parseFactPacket } from '../../lib/coachs
 import { captureArchivedStats } from '../../lib/coachs-corner/production/archived-stats';
 import { checkDraft, draftDirectory, loadLocalDraft, DRAFT_ROOT } from '../../lib/coachs-corner/production/local-drafts';
 import { PILOT_SCRIPT } from '../../lib/coachs-corner/pilot';
-import { parseScript, playerRefs } from '../../lib/coachs-corner/script';
+import { episodeFrom } from '../../lib/coachs-corner/episode';
 
 async function replaceFacts(dir: string, facts: ReturnType<typeof parseFactPacket>) {
     const backup = `facts-${Date.now()}.json`;
@@ -37,10 +37,10 @@ async function main() {
     if (command === 'stats') {
         if (values.pilot || values.from || values.refresh || values.period) throw new Error('stats enriches an existing snapshot; use only --slug, --players and --season.');
         const draft = await loadLocalDraft(values.slug);
-        const parsed = parseScript(draft.script);
-        if (parsed.diagnostics.some(d => d.severity === 'error')) throw new Error('Fix script parsing errors before capturing graphic statistics.');
-        if (parsed.meta.season !== draft.facts.season) throw new Error('Script season must match the fact packet ending year before capturing statistics.');
-        const names = [...playerRefs(parsed), ...(requestedPlayers ?? [])];
+        const episode = episodeFrom(draft.script, { slug: draft.slug });
+        if (episode.hasErrors) throw new Error('Fix script parsing errors before capturing graphic statistics.');
+        if (episode.summary.season !== draft.facts.season) throw new Error('Script season must match the fact packet ending year before capturing statistics.');
+        const names = [...episode.playerRefs, ...(requestedPlayers ?? [])];
         const facts = await captureArchivedStats(draft.facts, names, { season: values.season ? Number(values.season) : undefined });
         if (facts === draft.facts) { console.log('No player/gap graphics or additional --players to capture.'); return; }
         const backup = await replaceFacts(dir, facts);
@@ -75,7 +75,7 @@ async function main() {
             : await captureFacts(config, { recap: values.recap, airDate: values['air-date'],
                 period: values.recap ? undefined : values.period ? Number(values.period) : previous?.facts.period?.number,
                 players: [...(requestedPlayers ?? previous?.facts.players.map(p => p.name) ?? []),
-                    ...(previous ? playerRefs(parseScript(previous.script)) : [])] });
+                    ...(previous ? episodeFrom(previous.script).playerRefs : [])] });
     if (!values.pilot && !values.from) facts = await captureArchivedStats(facts, facts.players.map(p => p.name));
     const factsText = JSON.stringify(facts, null, 2) + '\n';
     if (command === 'facts') {

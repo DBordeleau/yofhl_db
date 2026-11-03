@@ -2,18 +2,17 @@
 // Build with build-episode-scan.mjs; this diagnostic is not part of the player.
 import { createShowAudio } from '../../components/coachs-corner/audio.ts';
 import { CURRENT_SOUND_BANK } from '../../lib/coachs-corner/sound-bank.ts';
-import { compileAudioCues } from '../../lib/coachs-corner/audio-cues.ts';
-import { episode, script } from 'coachs-episode-scan-input';
-import { compile, INTRO_MS } from '../../lib/coachs-corner/timeline.ts';
+import { episode, compiled } from 'coachs-episode-scan-input';
+import { INTRO_MS } from '../../lib/coachs-corner/transport.ts';
 
-const timeline = compile(script);
-const cues = compileAudioCues(timeline);
+// compiled by the episode module at build time: the same timeline and cues the player plays
+const { timeline, audioCues: cues } = compiled;
 const sampleRate = 48000;
 const duration = timeline.duration / 1000;
 const status = document.getElementById('status');
 const results = document.getElementById('results');
 const report = { episode: timeline.meta.title, episodeId: episode.id, sourceKind: episode.sourceKind, scriptSha256: episode.scriptSha256,
-    scriptWarnings: script.diagnostics, showSeconds: timeline.showEnd / 1000, renderedSeconds: duration,
+    scriptWarnings: compiled.diagnostics, showSeconds: timeline.showEnd / 1000, renderedSeconds: duration,
     sampleRate, channels: 2, defaults: CURRENT_SOUND_BANK, method: 'Continuous Chromium offline render, one-second scheduling windows',
     passes: {}, checks: {} };
 const display = message => { status.textContent = message; results.textContent = JSON.stringify(report, null, 2); };

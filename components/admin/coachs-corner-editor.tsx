@@ -7,8 +7,8 @@ import Player from '@/components/coachs-corner/player';
 import { archivoItalic } from '@/components/coachs-corner/fonts';
 import { deleteEpisode, lookupPlayers, saveEpisode, unpublishEpisode } from '@/app/admin/coachs-corner/actions';
 import { CAST, CHARACTERS, SHOTS, SOUNDS } from '@/lib/coachs-corner/cast';
-import { parseScript, playerRefs } from '@/lib/coachs-corner/script';
-import { compile, INTRO_MS } from '@/lib/coachs-corner/timeline';
+import { episodeFrom } from '@/lib/coachs-corner/episode';
+import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import { findTeam, type StudioBanner, type StudioPlayer, type StudioTeam } from '@/lib/coachs-corner/teams';
 
 interface EditableEpisode { id: number | null; slug: string; script: string; publishedAt: string | null }
@@ -59,12 +59,15 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
     const gutter = useRef<HTMLDivElement>(null);
     const deferred = useDeferredValue(text);
 
-    const script = useMemo(() => parseScript(deferred, { knownTeam: ref => !!findTeam(teams, ref) }), [deferred, teams]);
-    const tl = useMemo(() => compile(script), [script]);
+    // one compile per change drives the diagnostics, the readout and the preview player. A typed slug labels it as
+    // publishing will; an untouched one is still derived from this compile, so the saved slug stands in.
+    const labelSlug = slugTouched ? slug : episode.slug;
+    const compiled = useMemo(() => episodeFrom(deferred, { slug: labelSlug, knownTeam: ref => !!findTeam(teams, ref) }), [deferred, labelSlug, teams]);
+    const { timeline: tl, meta } = compiled;
 
     // headshots and stat lines for >> player graphics, fetched when the set of names changes
     const [players, setPlayers] = useState<StudioPlayer[]>([]);
-    const names = playerRefs(script).join('|');
+    const names = compiled.playerRefs.join('|');
     useEffect(() => {
         if (!names) { setPlayers([]); return; }
         let live = true;
@@ -73,14 +76,14 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
         }, 500);
         return () => { live = false; window.clearTimeout(timer); };
     }, [names]);
-    const errors = script.diagnostics.filter(d => d.severity === 'error');
+    const errors = compiled.diagnostics.filter(d => d.severity === 'error');
     const lineCount = text.split('\n').length;
     const marks = useMemo(() => {
         const m = new Map<number, 'error' | 'warning'>();
-        for (const d of script.diagnostics) if (m.get(d.line) !== 'error') m.set(d.line, d.severity);
+        for (const d of compiled.diagnostics) if (m.get(d.line) !== 'error') m.set(d.line, d.severity);
         return m;
-    }, [script]);
-    const effectiveSlug = slugTouched ? slug : slugFrom(script.meta.title, script.meta.week, script.meta.season);
+    }, [compiled]);
+    const effectiveSlug = slugTouched ? slug : slugFrom(meta.title, meta.week, meta.season);
 
     const goToLine = (line: number) => {
         const el = area.current;
@@ -182,13 +185,13 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
                 </div>
 
                 <div className="mt-4 rounded-2xl border border-line bg-white p-4" aria-live="polite">
-                    {script.diagnostics.length === 0 ? (
-                        <p className="text-sm font-semibold text-[#1E7A4D]">No problems. {tl.lines.length} lines, {mmss(tl.showEnd - INTRO_MS)} long.</p>
+                    {compiled.diagnostics.length === 0 ? (
+                        <p className="text-sm font-semibold text-[#1E7A4D]">No problems. {tl.lines.length} lines · segment {mmss(compiled.summary.segment)} · runtime {mmss(compiled.summary.runtime)}</p>
                     ) : (
                         <>
                             <p className="mb-2 text-sm font-bold">{errors.length ? `${errors.length} to fix before publishing` : 'Warnings'}</p>
                             <ul className="max-h-48 space-y-1 overflow-auto">
-                                {script.diagnostics.map((d, i) => (
+                                {compiled.diagnostics.map((d, i) => (
                                     <li key={i}>
                                         <button type="button" onClick={() => goToLine(d.line)} className="flex w-full gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-ice">
                                             <span className={`w-14 flex-none font-mono text-xs font-bold leading-5 ${d.severity === 'error' ? 'text-rink-red' : 'text-gold-deep'}`}>Line {d.line}</span>
@@ -204,7 +207,7 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
 
             <aside className={`min-w-0 xl:sticky xl:top-4 ${archivoItalic.variable}`}>
                 <div className="rounded-2xl bg-[#070b18] p-2">
-                    <Player script={deferred} teams={teams} players={players} banners={banners} keys="focus" cue={cue} onLine={onLine} />
+                    <Player episode={compiled} teams={teams} players={players} banners={banners} keys="focus" cue={cue} onLine={onLine} />
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
                     <button type="button" onClick={previewFromCursor} className="min-h-11 rounded-xl bg-ink px-4 font-bold text-white hover:bg-[#232C4A]">Preview from cursor</button>

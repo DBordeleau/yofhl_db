@@ -74,6 +74,23 @@ test('gap graphics reject mixed seasons in stage and inline cues; missing stats 
     }
 });
 
+test('a mixed-season gap graphic is reported on the line that cues it', async () => {
+    // the dialogue starts on line 7, after the front matter and a blank line
+    for (const [dialogue, line] of [
+        ['RON: First.\n\n>> gap "Tom Wilson" "William Nylander"\n\nRON: Last year.', 9],
+        ['RON: First.\n\nRON: The gap. [>> gap "Tom Wilson" "William Nylander"]', 9],
+        ['>> gap "Tom Wilson" "William Nylander"\n\nRON: Last year.', 7],
+    ] as const) {
+        const episode = draft(dialogue);
+        episode.facts.players = [
+            { ...player('Tom Wilson', true), season: 2026, fpts: 372, fpg: 5.17 },
+            { ...player('William Nylander', true), season: 2025, fpts: 378.25, fpg: 5.82 },
+        ];
+        const gap = (await checkDraft(episode)).diagnostics.find(d => /same archived season/.test(d.message));
+        assert.equal(gap?.line, line, dialogue);
+    }
+});
+
 test('file loader reloads edits, reports missing artwork, and rejects symlink escapes', async t => {
     const prefix = path.join(os.tmpdir(), 'coachs-production-');
     const root = await mkdtemp(prefix);
@@ -92,7 +109,7 @@ test('file loader reloads edits, reports missing artwork, and rejects symlink es
     assert.notEqual(second.revision, first.revision);
     assert.match(second.script, /Revised/);
     assert.deepEqual(await listLocalDrafts(root), ['sample']);
-    assert.ok((await checkDraft(second, root)).diagnostics.some(d => /Missing asset/.test(d.message)));
+    assert.ok((await checkDraft(second, { root })).diagnostics.some(d => /Missing asset/.test(d.message)));
     await assert.rejects(readDraftFile('sample', '../../secret', root), /Unsupported draft file/);
     const outside = path.join(root, 'outside');
     await mkdir(outside);

@@ -34,27 +34,22 @@ try {
         id = pilot.PILOT_SLUG;
         sourceKind = 'bundled-pilot';
     }
-    const { parseScript } = await tsImport('../../lib/coachs-corner/script.ts', import.meta.url);
-    const script = parseScript(source);
-    const errors = script.diagnostics.filter(item => item.severity === 'error');
+    const { episodeFrom } = await tsImport('../../lib/coachs-corner/episode.ts', import.meta.url);
+    const compiled = episodeFrom(source);
+    const errors = compiled.diagnostics.filter(item => item.severity === 'error');
     if (errors.length) throw new Error(errors.map(item => `Line ${item.line}: ${item.message}`).join('\n'));
-    // Keep performed content and cues only. Do not bundle the packet, local path,
-    // script comments, or stage notes into the temporary public diagnostic.
-    script.events = script.events.map(event => {
-        if (event.kind !== 'stage') return event;
-        const stage = { ...event };
-        delete stage.note;
-        return stage;
-    });
+    // Bundle the performance only: the timeline and the audio cues the player plays. The parsed script,
+    // with its comments and stage notes, the packet and the local path stay out of this public file.
+    const performed = { timeline: compiled.timeline, audioCues: compiled.audioCues, diagnostics: compiled.diagnostics };
     const episode = { id: id.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'episode',
-        title: script.meta.title, sourceKind, scriptSha256: createHash('sha256').update(source).digest('hex') };
+        title: compiled.meta.title, sourceKind, scriptSha256: createHash('sha256').update(source).digest('hex') };
     await mkdir(directory, { recursive: true });
     const built = await build({ entryPoints: [fileURLToPath(new URL('episode-scan.mjs', import.meta.url))],
         outfile: fileURLToPath(js), bundle: true, platform: 'browser', format: 'esm', write: false,
         plugins: [{ name: 'selected-episode', setup(build) {
             build.onResolve({ filter: /^coachs-episode-scan-input$/ }, () => ({ path: 'selected-episode', namespace: 'episode' }));
             build.onLoad({ filter: /.*/, namespace: 'episode' }, () => ({
-                contents: `export const episode = ${JSON.stringify(episode)}; export const script = ${JSON.stringify(script)};`, loader: 'js',
+                contents: `export const episode = ${JSON.stringify(episode)}; export const compiled = ${JSON.stringify(performed)};`, loader: 'js',
             }));
         } }] });
     const bundle = built.outputFiles[0].contents;

@@ -3,7 +3,8 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Artwork, { HostArtwork, Poppy, lapelSpot } from './artwork';
 import { CAST, CHARACTERS, gestureAction, type CharacterId, type Lapel } from '@/lib/coachs-corner/cast';
-import type { CaptionFrame, Frame, HostFrame, Line, Timeline } from '@/lib/coachs-corner/timeline';
+import type { Episode } from '@/lib/coachs-corner/episode';
+import type { CaptionFrame, Frame, HostFrame, Line } from '@/lib/coachs-corner/timeline';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import type { BumperState } from '@/lib/coachs-corner/transport';
 import { reactionParticles, reactionStill, type Particle } from '@/lib/coachs-corner/reactions';
@@ -270,12 +271,8 @@ const clock = (ms: number) => {
     return `${over ? '+' : ''}${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
-// the page's label ("Pilot") wins; an admin preview falls back to the script's week
-const slotLabel = (meta: Timeline['meta']) => meta.label ?? (meta.week !== undefined ? `Week ${meta.week}` : null);
-
-function Lockup({ tl }: { tl: Timeline }) {
-    const { meta } = tl;
-    const slot = slotLabel(meta);
+function Lockup({ episode }: { episode: Episode }) {
+    const { meta, label: slot } = episode;
     return (
         <>
             <i className={styles.bumperRed} />
@@ -298,20 +295,20 @@ function Lockup({ tl }: { tl: Timeline }) {
 }
 
 /** the open, timed to the theme's hits; its closing wipe ends with the intro */
-function Bumper({ tl, offset, paused }: { tl: Timeline; offset: number; paused: boolean }) {
+function Bumper({ episode, offset, paused }: { episode: Episode; offset: number; paused: boolean }) {
     return (
         <div className={styles.bumper} style={{ '--offset': `${-offset}ms`, '--intro': `${INTRO_MS}ms` } as React.CSSProperties} data-paused={paused || undefined} aria-hidden="true">
-            <Lockup tl={tl} />
+            <Lockup episode={episode} />
             <i className={styles.bumperFlash} />
         </div>
     );
 }
 
 /** the still title card shown before the episode starts, and again as the closing card */
-export function TitleCard({ tl, closing }: { tl: Timeline; closing?: boolean }) {
+export function TitleCard({ episode, closing }: { episode: Episode; closing?: boolean }) {
     return (
         <div className={styles.bumper} data-still data-closing={closing || undefined} aria-hidden="true">
-            <Lockup tl={tl} />
+            <Lockup episode={episode} />
         </div>
     );
 }
@@ -322,7 +319,7 @@ export function TitleCard({ tl, closing }: { tl: Timeline; closing?: boolean }) 
 const CHYRON_WINDOW_MS = 6000;
 
 export interface StudioProps {
-    tl: Timeline;
+    episode: Episode;
     frame: Frame;
     teams: StudioTeam[];
     players: StudioPlayer[];
@@ -335,7 +332,8 @@ export interface StudioProps {
     fullscreen?: boolean;
 }
 
-function Studio({ tl, frame, teams, players, banners, started, playing, bumper, fullscreen }: StudioProps) {
+function Studio({ episode, frame, teams, players, banners, started, playing, bumper, fullscreen }: StudioProps) {
+    const tl = episode.timeline;
     // Mounted artwork only ever grows, so decoded images survive script edits in the
     // editor, and poses a newly pasted script adds (a new suit) still get mounted.
     const art = useRef<Record<CharacterId, string[]>>({ don: [], ron: [] });
@@ -388,10 +386,10 @@ function Studio({ tl, frame, teams, players, banners, started, playing, bumper, 
             )}
             {chyron && (
                 <div className={styles.chyron} aria-hidden="true">
-                    <span>{[slotLabel(tl.meta), tl.meta.title].filter(Boolean).join(' · ')}</span>
+                    <span>{[episode.label, tl.meta.title].filter(Boolean).join(' · ')}</span>
                 </div>
             )}
-            {started && bumper && <Bumper key={bumper.mount} tl={tl} offset={bumper.offset} paused={bumper.paused} />}
+            {started && bumper && <Bumper key={bumper.mount} episode={episode} offset={bumper.offset} paused={bumper.paused} />}
         </div>
     );
 }

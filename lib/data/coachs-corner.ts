@@ -2,8 +2,7 @@ import { sql } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
 import { PILOT_SCRIPT, PILOT_SLUG } from '@/lib/coachs-corner/pilot';
 import pilotPlayers from '@/lib/coachs-corner/pilot-players.json';
-import { parseScript, playerRefs } from '@/lib/coachs-corner/script';
-import { compile } from '@/lib/coachs-corner/timeline';
+import { episodeFrom, scriptAirDate } from '@/lib/coachs-corner/episode';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import playerPortraits from '@/lib/records/player-portraits.json';
 import { fallbackColours } from '@/lib/team-branding';
@@ -22,7 +21,7 @@ export interface EpisodeSummary {
     title: string;
     season: number | null;
     week: number | null;
-    /** the length the player shows, intro bumper included */
+    /** the episode's runtime, intro included: what the player clock shows. A cache of the episode module's summary. */
     durationMs: number;
     publishedAt: string | null;
 }
@@ -33,11 +32,10 @@ export interface Episode extends EpisodeSummary {
 }
 
 const pilot = (): Episode => {
-    const script = parseScript(PILOT_SCRIPT);
-    const { meta, showEnd } = compile(script);
+    const { summary } = episodeFrom(PILOT_SCRIPT, { slug: PILOT_SLUG });
     return {
-        id: null, slug: PILOT_SLUG, title: meta.title, season: meta.season ?? null, week: meta.week ?? null,
-        durationMs: showEnd, publishedAt: meta.date ? `${meta.date}T12:00:00Z` : null, script: PILOT_SCRIPT, players: pilotPlayers,
+        id: null, slug: PILOT_SLUG, title: summary.title, season: summary.season, week: summary.week,
+        durationMs: summary.runtime, publishedAt: scriptAirDate(summary.date), script: PILOT_SCRIPT, players: pilotPlayers,
     };
 };
 
@@ -52,13 +50,13 @@ export const getPublishedEpisodes = cached(async (): Promise<EpisodeSummary[]> =
     if (found.some(r => r.slug === PILOT_SLUG)) return found;
     const p = pilot();
     return [...found, { id: p.id, slug: p.slug, title: p.title, season: p.season, week: p.week, durationMs: p.durationMs, publishedAt: p.publishedAt }];
-}, 'coachs-corner-episodes-v5', [COACHS_CORNER_TAG]);
+}, 'coachs-corner-episodes-v6', [COACHS_CORNER_TAG]);
 
 export const getPublishedEpisode = cached(async (slug: string): Promise<Episode | null> => {
     const [row] = await rows<Episode>(sql`select ${summary}, script, players from league.coachs_corner_episodes where slug = ${slug} limit 1`);
     if (row?.publishedAt) return row;
     return slug === PILOT_SLUG ? pilot() : null;
-}, 'coachs-corner-episode-v6', slug => [episodeTag(slug)]);
+}, 'coachs-corner-episode-v7', slug => [episodeTag(slug)]);
 
 // ---------- admin ----------
 
@@ -153,5 +151,6 @@ export const getStudioPlayers = async (names: string[]): Promise<StudioPlayer[]>
 // Legacy database episodes use cached league statistics and local portrait URLs
 // until explicitly republished with a frozen snapshot. The pilot has its own snapshot.
 const legacyPlayers = cached(studioPlayerStats, 'coachs-corner-player-stats-v1');
-export const getEpisodePlayers = (episode: Episode): Promise<StudioPlayer[]> =>
-    episode.players !== null ? Promise.resolve(episode.players) : legacyPlayers(playerRefs(parseScript(episode.script)));
+/** `refs` are the compiled episode's player refs, so the loader never parses a script itself. */
+export const getEpisodePlayers = (episode: Episode, refs: string[]): Promise<StudioPlayer[]> =>
+    episode.players !== null ? Promise.resolve(episode.players) : legacyPlayers(refs);

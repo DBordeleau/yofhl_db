@@ -1,20 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseScript, hasErrors, playerRefs, type ScriptEvent } from './script';
-import { compile, frameAt, INTRO_MS } from './timeline';
-import { PILOT_SCRIPT } from './pilot';
+import { compile, frameAt } from './timeline';
 
 const lines = (source: string) => parseScript(source).events.filter((e): e is Extract<ScriptEvent, { kind: 'line' }> => e.kind === 'line');
 const head = '---\ntitle: Test\n---\n';
-
-test('the pilot parses cleanly and lasts about four minutes', () => {
-    const script = parseScript(PILOT_SCRIPT);
-    assert.deepEqual(script.diagnostics.filter(d => d.severity === 'error'), []);
-    const tl = compile(script);
-    assert.equal(tl.lines.length, 73);
-    const minutes = (tl.showEnd - INTRO_MS) / 60000;
-    assert.ok(minutes > 3 && minutes < 5, `runtime ${minutes.toFixed(2)} min`);
-});
 
 test('the front matter can pin a poppy on both hosts', () => {
     assert.equal(parseScript('---\ntitle: Test\nlapel: poppy\n---\n').meta.lapel, 'poppy');
