@@ -5,14 +5,11 @@ import { pickWinner, publicLottery, type LotteryRecord, type LotteryResponse, ty
 import { drawQuery, lotteryColumns, publicLotteryQuery } from './queries';
 
 export const getLotteryTeams = () => rows<LotteryTeam>(sql`
-    select f.id, coalesce(m.name, f.display_name) as name, coalesce(t.abbreviation, left(coalesce(m.name, f.display_name), 3)) as abbreviation,
-           coalesce(m.logo_url, t.logo_url, f.logo_url) as logo
-    from league.franchises f
-    left join league.team_management m on m.franchise_id = f.id
-    left join lateral (select abbreviation, wins, fpts_for, logo_url from league.team_seasons
-                      where franchise_id = f.id order by season_year desc limit 1) t on true
-    where f.folded_after_season is null
-    order by t.wins asc nulls last, t.fpts_for asc nulls last, f.id`);
+    select c.id, c.name, c.abbreviation, c.logo
+    from league.current_teams c
+    left join league.team_seasons t on t.id = c.latest_team_season_id
+    where not c.defunct
+    order by t.wins asc nulls last, t.fpts_for asc nulls last, c.id`);
 
 export const getCurrentLottery = async () => (await rows<LotteryRecord>(sql`
     select ${lotteryColumns} from league.draft_lotteries where is_current = true limit 1`))[0] ?? null;

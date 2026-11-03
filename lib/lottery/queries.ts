@@ -4,16 +4,14 @@ import { FINALE_MS, INTRO_MS, REVEAL_MS, type LotteryEntry } from './model';
 export const lotteryColumns = sql`id, title, starts_at as "startsAt", entries, version,
     is_current as "isCurrent", cancelled_at as "cancelledAt", winner_id as "winnerId", drawn_at as "drawnAt"`;
 
-// Keep the saved order, names and odds; resolve artwork the same way as team pages.
+// Keep the saved order, names and odds; artwork is the current identity's, as on team pages.
+// The logo saved with the entry is a last resort, for a franchise that no longer exists.
 export const lotteryLogosQuery = (entries: LotteryEntry[] | SQL) => sql`
     select (entry->>'id')::int as id, entry->>'name' as name,
            entry->>'abbreviation' as abbreviation, (entry->>'odds')::float8 as odds,
-           coalesce(m.logo_url, t.logo_url, f.logo_url, entry->>'logo') as logo
+           coalesce(c.logo, entry->>'logo') as logo
     from jsonb_array_elements(${Array.isArray(entries) ? JSON.stringify(entries) : entries}::jsonb) with ordinality as draw(entry, position)
-    left join league.franchises f on f.id = (entry->>'id')::int
-    left join league.team_management m on m.franchise_id = f.id
-    left join lateral (select logo_url from league.team_seasons
-                       where franchise_id = f.id order by season_year desc limit 1) t on true
+    left join league.current_teams c on c.id = (entry->>'id')::int
     order by position`;
 
 // One round trip returns the event, current artwork and authoritative database time,

@@ -2,18 +2,13 @@ import { sql } from 'drizzle-orm';
 import type { TeamColours } from '../team-branding';
 
 const teamsQuery = (ownerUid?: string) => sql`
-    select f.id, coalesce(m.name, t.name, f.display_name) as name,
-           coalesce(m.logo_url, t.logo_url, f.logo_url) as logo,
-           coalesce(t.abbreviation, '') as abbreviation,
-           f.folded_after_season is not null as defunct,
+    select c.id, c.name, c.logo, c.abbreviation, c.defunct,
            m.owner_uid as "ownerUid", m.owner_email as "ownerEmail",
            m.invite_expires_at as "inviteExpiresAt", coalesce(m.version, 0) as version, m.branding
-    from league.franchises f
-    left join league.team_management m on m.franchise_id = f.id
-    left join lateral (select name, logo_url, abbreviation from league.team_seasons
-        where franchise_id = f.id order by season_year desc limit 1) t on true
-    ${ownerUid === undefined ? sql`` : sql`where m.owner_uid = ${ownerUid} and f.folded_after_season is null`}
-    order by f.folded_after_season is not null, f.id`;
+    from league.current_teams c
+    left join league.team_management m on m.franchise_id = c.id
+    ${ownerUid === undefined ? sql`` : sql`where m.owner_uid = ${ownerUid} and not c.defunct`}
+    order by c.defunct, c.id`;
 
 export const managedTeamsQuery = teamsQuery();
 export const ownedTeamQuery = (uid: string) => teamsQuery(uid);

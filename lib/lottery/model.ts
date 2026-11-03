@@ -1,3 +1,5 @@
+import type { CurrentIdentity } from '../team-identity';
+
 // Shared presentation rules. Odds are percentages with at most two decimal places.
 export const EASTERN_ZONE = 'America/Toronto';
 export const INTRO_MS = 12_000;
@@ -5,12 +7,8 @@ export const REVEAL_MS = 10_000;
 export const FINALE_MS = 15_000;
 export const NAV_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-export interface LotteryTeam {
-    id: number;
-    name: string;
-    abbreviation: string;
-    logo: string | null;
-}
+// The draw lists active franchises only, so defunct is implied.
+export type LotteryTeam = Omit<CurrentIdentity, 'defunct'>;
 
 export interface LotteryEntry extends LotteryTeam {
     odds: number | null; // null means a fixed-order team outside the draw

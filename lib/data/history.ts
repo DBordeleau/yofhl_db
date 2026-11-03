@@ -5,6 +5,11 @@ import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind
 import { visibleTransactionEvents } from '@/lib/history/visibility';
 import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/development';
 
+// Draft and transaction rows show each team's season identity, not the name Fantrax recorded.
+// The recorded name stands in only where the franchise has no team season that year.
+const seasonTeamJson = (season: string, franchise: string, recorded: string) => sql.raw(`jsonb_build_object('id', ${franchise},
+    'name', coalesce(${season}.name, ${recorded}), 'abbreviation', ${season}.abbreviation, 'logo', ${season}.logo)`);
+
 export const getFranchiseHonors = cached(async (id: number): Promise<FranchiseHonors> => {
     const [primeMinisters, awards] = await Promise.all([
         rows<FranchiseHonors['primeMinisters'][number]>(sql`
@@ -40,13 +45,13 @@ type SeasonDraftRow = Omit<SeasonDraftSelection, 'regretEligible'> & { draftedOn
 const getSeasonDraftRows = cached((year: number) => rows<SeasonDraftRow>(sql`
     select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",
            coalesce(p.name, d.player_name) as player, d.positions, d.drafted_on::text as "draftedOn", d.development_facts as "developmentFacts",
-           d.franchise_id as "franchiseId", d.team_name as "teamName",
-           t.abbreviation as "teamAbbreviation", t.logo_url as "teamLogo",
+           d.franchise_id as "franchiseId", coalesce(st.name, d.team_name) as "teamName",
+           st.abbreviation as "teamAbbreviation", st.logo as "teamLogo",
            ps.fpts::float8 as points, ps.fpg::float8 as fpg
     from league.draft_picks d
     left join league.players p on p.id = d.player_id
     left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
-    left join league.team_seasons t on t.franchise_id = d.franchise_id and t.season_year = d.season_year
+    left join league.season_teams st on st.franchise_id = d.franchise_id and st.season_year = d.season_year
     where d.season_year = ${year}
     order by d.overall`), 'season-draft-v3-development');
 
@@ -101,23 +106,20 @@ export const getHistory = cached(async (scope: HistoryScope, kind: HistoryKind =
                 case when s.kind = 'draft' then (
                     select jsonb_build_array(jsonb_build_object(
                         'id', s.id, 'playerId', d.player_id, 'label', coalesce(p.name, d.player_name), 'assetKind', 'player', 'action', 'draft', 'from', null,
-                        'to', jsonb_build_object('id', d.franchise_id, 'name', d.team_name, 'abbreviation', ts.abbreviation, 'logo', case when ts.id is not null then ts.logo_url else f.logo_url end)))
+                        'to', case when d.franchise_id is not null then ${seasonTeamJson('st', 'd.franchise_id', 'd.team_name')} end))
                     from league.draft_picks d
                     left join league.players p on p.id = d.player_id
-                    left join league.franchises f on f.id = d.franchise_id
-                    left join league.team_seasons ts on ts.franchise_id = d.franchise_id and ts.season_year = d.season_year
+                    left join league.season_teams st on st.franchise_id = d.franchise_id and st.season_year = d.season_year
                     where d.season_year = s.season and d.overall = s.overall
                 ) else (
                     select jsonb_agg(jsonb_build_object(
                         'id', a.id, 'playerId', a.player_id, 'label', a.label, 'assetKind', a.asset_kind, 'action', a.action,
-                        'from', case when a.from_franchise_id is not null then jsonb_build_object('id', a.from_franchise_id, 'name', a.from_name, 'abbreviation', ft.abbreviation, 'logo', case when ft.id is not null then ft.logo_url else ff.logo_url end) end,
-                        'to', case when a.to_franchise_id is not null then jsonb_build_object('id', a.to_franchise_id, 'name', a.to_name, 'abbreviation', tt.abbreviation, 'logo', case when tt.id is not null then tt.logo_url else tf.logo_url end) end
+                        'from', case when a.from_franchise_id is not null then ${seasonTeamJson('fs', 'a.from_franchise_id', 'a.from_name')} end,
+                        'to', case when a.to_franchise_id is not null then ${seasonTeamJson('ts', 'a.to_franchise_id', 'a.to_name')} end
                     ) order by a.source_row)
                     from league.transaction_assets a
-                    left join league.franchises ff on ff.id = a.from_franchise_id
-                    left join league.franchises tf on tf.id = a.to_franchise_id
-                    left join league.team_seasons ft on ft.franchise_id = a.from_franchise_id and ft.season_year = s.season
-                    left join league.team_seasons tt on tt.franchise_id = a.to_franchise_id and tt.season_year = s.season
+                    left join league.season_teams fs on fs.franchise_id = a.from_franchise_id and fs.season_year = s.season
+                    left join league.season_teams ts on ts.franchise_id = a.to_franchise_id and ts.season_year = s.season
                     where a.event_id = s.id
                       and (s.kind <> 'free_agent' or ${player}::text is null or a.player_id = ${player})
                 ) end as assets

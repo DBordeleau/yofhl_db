@@ -44,7 +44,7 @@ The presentation masks positions through the last lottery participant in the sta
 
 With participants occupying the first four positions, pick 4 appears at +12 seconds, pick 3 at +22, and picks 2 and 1 at +32. The celebration ends at +47. The preview adds a ten-second countdown, for 57 seconds total. With participants in the first three positions, the live presentation lasts 37 seconds and the preview lasts 47 seconds.
 
-The room includes a pulsing live indicator and animated pick and row reveals. Reduced-motion preferences disable decorative motion and confetti. Team names link to their franchise pages. Logo lookup tries the latest team-season artwork, then the franchise logo, then the saved event logo, without changing saved odds or results.
+The room includes a pulsing live indicator and animated pick and row reveals. Reduced-motion preferences disable decorative motion and confetti. Team names link to their franchise pages. Logo lookup uses the current identity logo (the same as team pages), then the saved event logo, without changing saved odds or results.
 
 ## Requests and recovery
 

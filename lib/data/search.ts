@@ -15,9 +15,11 @@ export const getSearchDirectory = cached(async (): Promise<SearchEntry[]> => {
             left join league.player_careers c on c.player_id = p.id`),
         getFranchiseCards(),
         rows<{ franchiseId: number; year: number; name: string; importedName: string; franchiseName: string; abbreviation: string }>(sql`
-            select t.franchise_id as "franchiseId", t.season_year as year, t.name, t.fantrax_name as "importedName", f.display_name as "franchiseName", t.abbreviation
-            from league.team_seasons t join league.franchises f on f.id = t.franchise_id
-            order by t.season_year`),
+            select st.franchise_id as "franchiseId", st.season_year as year, st.name, t.fantrax_name as "importedName", f.display_name as "franchiseName", st.abbreviation
+            from league.season_teams st
+            join league.team_seasons t on t.id = st.team_season_id
+            join league.franchises f on f.id = st.franchise_id
+            order by st.season_year`),
         getBannerSeasons(),
     ]);
     // Match getPlayer's preference for an exact, unwrapped ID if legacy IDs collide.

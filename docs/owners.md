@@ -19,9 +19,9 @@ If account creation succeeds but claiming fails, the account still exists. The o
 
 ## Names, logos and history
 
-`league.team_management` stores current names, uploaded logo URLs, claims and invitations. Imports and `db:sync:logos` do not write this table. Public team cards and profiles prefer its current identity over imported values. New lottery configurations use that identity too; existing lottery names remain saved snapshots, while artwork resolves to the current logo.
+`league.team_management` stores current names, uploaded logo URLs, claims and invitations. Imports and `db:sync:logos` do not write this table. Every page showing a team today (team cards and pages, search, the header team menu, the lottery, owner pages and the live scoreboard) reads its current identity from the `league.current_teams` view: the owner's name and logo, then the latest team season's, then the franchise's own. New lottery configurations use that identity too; existing lottery names remain saved snapshots, while artwork resolves to the current logo. See [ADR 0001](adr/0001-team-identity-in-database-views.md).
 
-Season pages, historical rosters, trades and drafts retain their recorded identities. Updating current branding does not rename historical seasons or alter Fantrax matching in `league.yml`. Keep maintaining that configuration for imports and future identity eras.
+Season pages, standings, champions, historical rosters, trades and drafts read each season identity from `league.season_teams`, never the current one, so an owner's rename never rewrites history. Drafts and trades show that season identity rather than the spelling recorded in the Fantrax export; `npm run db:report:names` lists the rows where the two differ. Updating current branding does not rename historical seasons or alter Fantrax matching in `league.yml`. Keep maintaining that configuration for imports and future identity eras.
 
 Owners can edit their own active team. Admins can edit any franchise, including claimed and defunct franchises. Every write checks permission on the server. Version checks reject stale edits instead of replacing a newer logo.
 

@@ -11,7 +11,7 @@ import Arrow from '@/components/arrow';
 import { broadcastType as matchupType } from './broadcast-type';
 import { useTeamBranding } from '@/components/team-branding/branding-provider';
 import { fallbackColours, suggestedPalettes } from '@/lib/team-branding';
-import { clubNames } from '@/lib/club-names';
+import { clubName } from '@/lib/team-identity';
 
 // YOFHL forward scoring (defencemen earn 6 and 4), used to put a lead in hockey terms
 const GOAL_POINTS = 5;
@@ -245,7 +245,7 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
                     </a> : <div className={styles.scoreCardTop}>{badge}</div>}
                     <div className={styles.scoreClubs}>{SIDES.map(side => {
                         const team = game.sides[side];
-                        const [place, nickname] = clubNames[team.name] ?? ['', team.name];
+                        const { place, nickname } = clubName(team.team?.franchiseId, team.name);
                         const colours = team.team?.franchiseId ? palettes[team.team.franchiseId] ?? suggestedPalettes[team.team.franchiseId] ?? fallbackColours : fallbackColours;
                         const content = <><span className={styles.scoreArtworkStage} aria-hidden="true"><TeamBadge logo={team.team?.logo ?? null} abbreviation={team.abbreviation} teamName={null} size={180} sizeClass={styles.scoreArtwork} ring="glow" /></span><span className={styles.scoreTeamName} id={`${game.id}-${side}-name`}>{place && <span className={styles.scorePlace}>{place}</span>}<span className={styles.scoreNickname}>{nickname}</span></span></>;
                         const clubStyle = { '--score-club-colour': colours.primary } as CSSProperties;

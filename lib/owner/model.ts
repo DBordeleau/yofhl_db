@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { TeamColours } from '../team-branding';
+import type { CurrentIdentity } from '../team-identity';
 
 export const invitation = () => randomBytes(24).toString('base64url');
 export const hashCode = (code: string) => createHash('sha256').update(code.trim()).digest('hex');
@@ -12,12 +13,7 @@ export function teamName(value: unknown) {
     return name;
 }
 
-export interface ManagedTeam {
-    id: number;
-    name: string;
-    logo: string | null;
-    abbreviation: string;
-    defunct: boolean;
+export interface ManagedTeam extends CurrentIdentity {
     ownerUid: string | null;
     ownerEmail: string | null;
     inviteExpiresAt: string | null;
