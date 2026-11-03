@@ -123,7 +123,7 @@ export async function checkDraft(draft: LocalDraft, { root = process.cwd(), epis
     const cited = (ref: PlayerRef) => episode.playerRefs.some(r => refKey(r) === refKey(ref));
     if (episode.playerRefs.length && (!captured || captured.season !== episode.statsSeason ||
         !episode.playerRefs.every(ref => captured.refs.some(r => refKey(r) === refKey(ref))))) {
-        report('warning', `The player stats weren't captured for this script's players and stats season; run coachs:stats -- --slug ${draft.slug}.`);
+        report('warning', `The player snapshot wasn't captured for this script's players and stats season; run coachs:stats -- --slug ${draft.slug}.`);
     } else if (captured) diagnostics.push(...snapshotDiagnostics(episode, captured.diagnostics.filter(d => cited(d.ref))));
     // every monitor cue is on the timeline's monitor track, with the line that cued it
     for (const { value: graphic, line } of timeline.monitor) {

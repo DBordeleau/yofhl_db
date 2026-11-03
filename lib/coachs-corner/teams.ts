@@ -50,6 +50,8 @@ export interface StudioBanner {
     secondary: string;
 }
 
-/** by Fantrax id when the cue has one, then by name: rows stored before ids, and bare names */
-export const findPlayer = (players: StudioPlayer[], ref: PlayerRef) =>
-    (ref.id ? players.find(p => p.id === ref.id) : undefined) ?? players.find(p => norm(p.name) === norm(ref.name)) ?? null;
+/** by Fantrax id when the cue has one, then by name among rows stored before ids; a bare name by name */
+export const findPlayer = (players: StudioPlayer[], ref: PlayerRef) => {
+    const named = (p: StudioPlayer) => norm(p.name) === norm(ref.name);
+    return (ref.id ? players.find(p => p.id === ref.id) ?? players.find(p => !p.id && named(p)) : players.find(named)) ?? null;
+};

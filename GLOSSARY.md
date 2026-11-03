@@ -69,6 +69,10 @@ _Avoid_: show (the whole program is the show)
 The frozen stats for every player an episode cites, from the episode's stats season (the season before the episode's, unless the script names an earlier one). Players are resolved by name, or by Fantrax id when names collide. Stored on the episode when it's published.
 _Avoid_: player stats (when you mean the frozen set), studio players
 
+**Stats season**:
+The one completed season an episode's player cards quote: the season before the episode's, or the earlier one its `stats:` key names. Never a player's latest row.
+_Avoid_: last season (in code), most recent season
+
 **Timeline**:
 A script compiled to absolute show times: when every word, mouth flap, pose, monitor cut, camera shot and sound happens.
 

@@ -136,12 +136,12 @@ export const snapshotDiagnostics = (episode: Pick<Episode, 'timeline' | 'statsSe
     diagnostics.map(d => ({ line: citationLine(episode, d.ref), ...snapshotMessage(d, episode.statsSeason) }));
 
 /** what the editor needs to show a diagnostic: it places each one on a line itself, so they follow edits */
-export interface PlayerIssue { ref: PlayerRef; severity: 'error' | 'warning'; message: string }
+export interface PlayerIssue { ref: PlayerRef; severity: Diagnostic['severity']; message: string }
 export const playerIssues = (season: number | null, diagnostics: SnapshotDiagnostic[]): PlayerIssue[] =>
     diagnostics.map(d => ({ ref: d.ref, ...snapshotMessage(d, season) }));
 
 /** The wording the draft check and the admin editor share. Ambiguity blocks publishing; the rest are warnings. */
-export function snapshotMessage(diagnostic: SnapshotDiagnostic, season: number | null): { severity: 'error' | 'warning'; message: string } {
+export function snapshotMessage(diagnostic: SnapshotDiagnostic, season: number | null): Pick<Diagnostic, 'severity' | 'message'> {
     const { ref } = diagnostic;
     if (season === null) return { severity: 'warning', message: `No stats for ${cited(ref)}: add season: to the front matter.` };
     const label = seasonLabel(season);

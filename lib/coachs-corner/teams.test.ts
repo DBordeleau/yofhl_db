@@ -9,6 +9,7 @@ test('two players with the same name each show their own stats', () => {
     const players = [player('048x9', 'Elias Pettersson', 309.75), player('0ab12', 'Elias Pettersson', 134)];
     assert.equal(findPlayer(players, { name: 'Elias Pettersson', id: '048x9' })?.fpts, 309.75);
     assert.equal(findPlayer(players, { name: 'Elias Pettersson', id: '0ab12' })?.fpts, 134);
+    assert.equal(findPlayer(players.slice(0, 1), { name: 'Elias Pettersson', id: '0ab12' }), null, 'never the other namesake');
 });
 
 test('a bare name, or a row stored before ids, still resolves by name', () => {
