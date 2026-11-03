@@ -1,7 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { rows } from '../data/db';
-import { COACHS_CORNER_TAG, episodeTag, getStudioPlayers } from '../data/coachs-corner';
+import { COACHS_CORNER_TAG, episodeTag, getPlayerSnapshot } from '../data/coachs-corner';
 import { episodeFrom } from './episode';
+import { snapshotMessage } from './player-snapshot';
 
 export interface EpisodeInput { id: number | null; slug: string; script: string; publish?: boolean }
 export interface EpisodeWrite { id: number; slug: string; oldSlug: string | null; publicChanged: boolean }
@@ -39,9 +40,12 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
     const slugYear = /^(\d{4})-/.exec(slug)?.[1];
     if (publish && slugYear && Number(slugYear) !== season) return { error: `The slug starts with ${slugYear}, but the episode is about season ${season ?? '(none)'}. Start it with the season year, the year the season ends in.` };
     // Resolve before the write. A failed stats lookup must leave the live episode
-    // intact; optional NHL headshots fall back to existing portrait URLs.
-    const players = publish ? await getStudioPlayers(episode.playerRefs) : null;
-    const snapshot = players === null ? null : JSON.stringify(players);
+    // intact; optional NHL headshots fall back to Fantrax portraits.
+    const players = publish ? await getPlayerSnapshot(episode.statsSeason, episode.playerRefs) : null;
+    // a namesake cited by bare name is never published by guess
+    const ambiguous = players?.diagnostics.filter(d => d.kind === 'ambiguous') ?? [];
+    if (ambiguous.length) return { error: ambiguous.map(d => snapshotMessage(d, episode.statsSeason).message).join(' ') };
+    const snapshot = players === null ? null : JSON.stringify(players.players);
     try {
         const [row] = input.id !== null ? await rows<EpisodeWrite>(sql`
             with previous as materialized (

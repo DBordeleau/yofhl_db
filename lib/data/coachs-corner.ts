@@ -2,9 +2,10 @@ import { sql } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
 import { PILOT_SCRIPT, PILOT_SLUG } from '@/lib/coachs-corner/pilot';
 import pilotPlayers from '@/lib/coachs-corner/pilot-players.json';
-import { episodeFrom, scriptAirDate } from '@/lib/coachs-corner/episode';
+import { episodeFrom, scriptAirDate, type Episode as CompiledEpisode } from '@/lib/coachs-corner/episode';
+import { forgiving, nhlLive, noNhl, playerSnapshot, type PlayerSnapshot } from '@/lib/coachs-corner/player-snapshot';
+import type { PlayerRef } from '@/lib/coachs-corner/script';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
-import playerPortraits from '@/lib/records/player-portraits.json';
 import { fallbackColours } from '@/lib/team-branding';
 import { cached, rows } from './db';
 import { getFranchiseCards, getSeasonArchive } from './league';
@@ -99,58 +100,22 @@ export const getStudioBanners = async (): Promise<StudioBanner[]> => {
 
 // ---------- the players the monitor can show ----------
 
-const portraits: Record<string, string> = playerPortraits;
-
 // the NHL's own headshot is far sharper than the league's 96 px portraits
-const nhlHeadshot = unstable_cache(async (name: string, team: string | null): Promise<string | null> => {
-    try {
-        const search = new URL('https://search.d3.nhle.com/api/v1/search/player');
-        search.search = new URLSearchParams({ culture: 'en-us', limit: '20', q: name }).toString();
-        const found = await (await fetch(search, { signal: AbortSignal.timeout(5000) })).json() as { playerId: string; name: string; teamAbbrev?: string | null; lastTeamAbbrev?: string | null }[];
-        const same = found.filter(p => p.name.toLowerCase() === name.toLowerCase());
-        const pick = same.find(p => team && (p.teamAbbrev === team || p.lastTeamAbbrev === team)) ?? same[0];
-        if (!pick || !/^\d+$/.test(pick.playerId)) return null;
-        const landing = await (await fetch(`https://api-web.nhle.com/v1/player/${pick.playerId}/landing`, { signal: AbortSignal.timeout(5000) })).json() as { headshot?: string };
-        return typeof landing.headshot === 'string' && landing.headshot.startsWith('https://') ? landing.headshot : null;
-    } catch {
-        return null;
-    }
-}, ['coachs-corner-headshot-v1'], { revalidate: 60 * 60 * 24 * 7 });
+const week = 60 * 60 * 24 * 7;
+// an outage rejects inside the cache, so only real answers are kept and the next publish asks again
+const cachedNhl = forgiving({
+    search: unstable_cache(nhlLive.search, ['coachs-corner-nhl-search-v1'], { revalidate: week }),
+    headshot: unstable_cache(nhlLive.headshot, ['coachs-corner-nhl-headshot-v1'], { revalidate: week }),
+});
 
-/** last season's fantasy line for each named player, plus a headshot */
-const studioPlayerStats = async (names: string[]): Promise<StudioPlayer[]> => {
-    const selected = Array.from(new Map(names.map(n => [n.trim().toLowerCase(), n.trim()])).values()).filter(Boolean).slice(0, 20);
-    const wanted = selected.map(name => name.toLowerCase());
-    if (!wanted.length) return [];
-    const found = await rows<{ id: string; name: string; season: number; nhl_team: string | null; positions: string[]; fpts: number; fpg: number }>(sql`
-            select distinct on (p.id) replace(p.id, '*', '') as id, p.name, ps.season_year as season, ps.nhl_team, ps.positions,
-                   ps.fpts::float8 as fpts, ps.fpg::float8 as fpg
-            from league.players p join league.player_seasons ps on ps.player_id = p.id
-            where lower(p.name) in ${wanted}
-            order by p.id, ps.season_year desc`);
-    return selected.map(name => {
-        // the most recent season wins when two players share a name
-        const row = found.filter(r => r.name.toLowerCase() === name.trim().toLowerCase()).sort((a, b) => b.season - a.season)[0];
-        const headshot = row ? portraits[row.id] ?? null : null;
-        return {
-            name: row?.name ?? name, headshot, nhlTeam: row?.nhl_team ?? null, positions: row?.positions ?? [],
-            season: row?.season ?? null, fpts: row?.fpts ?? null, fpg: row?.fpg ?? null,
-            games: row && row.fpg ? Math.round(row.fpts / row.fpg) : null,
-        };
-    });
-};
+/** Admin preview and publishing only: NHL lookups never run while serving a public page. */
+export const getPlayerSnapshot = (season: number | null, refs: PlayerRef[]): Promise<PlayerSnapshot> =>
+    playerSnapshot(season, refs, { portraits: cachedNhl });
 
-/** Admin preview/publication only: NHL lookups never run while serving a public page. */
-export const getStudioPlayers = async (names: string[]): Promise<StudioPlayer[]> => {
-    const players = await studioPlayerStats(names);
-    return Promise.all(players.map(async player => ({ ...player,
-        headshot: await nhlHeadshot(player.name, player.nhlTeam) ?? player.headshot,
-    })));
-};
-
-// Legacy database episodes use cached league statistics and local portrait URLs
-// until explicitly republished with a frozen snapshot. The pilot has its own snapshot.
-const legacyPlayers = cached(studioPlayerStats, 'coachs-corner-player-stats-v1');
-/** `refs` are the compiled episode's player refs, so the loader never parses a script itself. */
-export const getEpisodePlayers = (episode: Episode, refs: string[]): Promise<StudioPlayer[]> =>
-    episode.players !== null ? Promise.resolve(episode.players) : legacyPlayers(refs);
+// Episodes stored without a snapshot resolve under the same policy at their own stats season, with
+// Fantrax portraits only, until explicitly republished. The pilot has its own snapshot.
+const legacyPlayers = cached(async (season: number | null, refs: PlayerRef[]): Promise<StudioPlayer[]> =>
+    (await playerSnapshot(season, refs, { portraits: noNhl })).players, 'coachs-corner-legacy-players-v1');
+/** `compiled` is the episode module's output, so the loader never parses a script itself. */
+export const getEpisodePlayers = (episode: Episode, compiled: Pick<CompiledEpisode, 'statsSeason' | 'playerRefs'>): Promise<StudioPlayer[]> =>
+    episode.players !== null ? Promise.resolve(episode.players) : legacyPlayers(compiled.statsSeason, compiled.playerRefs);

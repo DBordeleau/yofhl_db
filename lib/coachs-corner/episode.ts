@@ -1,7 +1,7 @@
 import { compileAudioCues, type AudioCue } from './audio-cues';
 import { episodeLabel } from './episode-label';
 import { pullQuote, type PullQuote } from './pull-quote';
-import { hasErrors, parseScript, playerRefs, type Diagnostic, type Meta } from './script';
+import { graphicPlayers, hasErrors, parseScript, playerRefs, refKey, statsSeason, type Diagnostic, type Meta, type PlayerRef } from './script';
 import { compile, frameAt, type Frame, type Timeline } from './timeline';
 import { INTRO_MS } from './transport';
 
@@ -22,7 +22,7 @@ export interface ScriptSummary {
     runtime: number;
     /** runtime without the intro; production tools only */
     segment: number;
-    players: string[];
+    players: PlayerRef[];
 }
 
 export interface Episode {
@@ -35,7 +35,9 @@ export interface Episode {
     pullQuote: PullQuote | null;
     /** the episode's schedule slot: "Pilot" or "Week N" */
     label: string | null;
-    playerRefs: string[];
+    playerRefs: PlayerRef[];
+    /** the season the player cards quote (GLOSSARY.md: player snapshot) */
+    statsSeason: number | null;
     summary: ScriptSummary;
 }
 
@@ -59,6 +61,7 @@ export function episodeFrom(source: string, { slug, knownTeam }: EpisodeOptions 
         pullQuote: pullQuote(script),
         label: episodeLabel({ slug: slug ?? '', week: meta.week ?? null }),
         playerRefs: players,
+        statsSeason: statsSeason(meta),
         summary: {
             title: meta.title || 'Untitled episode', season: meta.season ?? null, week: meta.week ?? null, date: meta.date ?? null,
             runtime, segment: runtime - INTRO_MS, players,
@@ -68,3 +71,7 @@ export function episodeFrom(source: string, { slug, knownTeam }: EpisodeOptions 
 
 /** Script-dated episodes (the pilot, local drafts) air at noon UTC on their front-matter date. */
 export const scriptAirDate = (date: string | null): string | null => date ? `${date}T12:00:00Z` : null;
+
+/** the line of the first graphic that cites a player, where diagnostics about that player belong */
+export const citationLine = (episode: Pick<Episode, 'timeline'>, ref: PlayerRef): number =>
+    episode.timeline.monitor.find(({ value }) => graphicPlayers(value).some(cited => refKey(cited) === refKey(ref)))?.line ?? 1;

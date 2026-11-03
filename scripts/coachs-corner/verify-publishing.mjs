@@ -177,7 +177,7 @@ export default function ArtReview() {
     };
     let id;
     await check('all four actions reject unauthenticated requests without database writes', async () => {
-        for (const [name, args] of [['saveEpisode', [{ id: null, slug: 'forbidden', script: screenplay('Forbidden'), publish: true }]], ['unpublishEpisode', [1]], ['deleteEpisode', [1]], ['lookupPlayers', [['Player One']]]]) {
+        for (const [name, args] of [['saveEpisode', [{ id: null, slug: 'forbidden', script: screenplay('Forbidden'), publish: true }]], ['unpublishEpisode', [1]], ['deleteEpisode', [1]], ['lookupPlayers', [2026, [{ name: 'Player One' }]]]]) {
             const result = await action(name, args, false);
             assert.ok(result.response.status >= 400 || /\d+:E\{/.test(result.body));
         }

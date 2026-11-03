@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { checkDraft, draftDirectory, listLocalDrafts, loadLocalDraft, localPreviewAllowed, readDraftFile, validSlug, type LocalDraft } from './local-drafts';
+import { checkDraft, draftDirectory, listLocalDrafts, loadLocalDraft, localPreviewAllowed, readDraftFile, validSlug, withStatsSeason, type LocalDraft } from './local-drafts';
 import { referencePacket, type FeaturedPlayer } from './facts';
 import { loadLeagueConfig } from '../../../scripts/db/lib/league-config';
 
@@ -59,19 +59,47 @@ test('script period mismatches and unsupported cues remain errors', async () => 
     assert.ok(errors.some(d => /isn’t a sound/.test(d.message)));
 });
 
-test('gap graphics reject mixed seasons in stage and inline cues; missing stats give the capture command', async () => {
+test('gap graphics reject mixed seasons in stage and inline cues; stats not captured for the script give the capture command', async () => {
     for (const cue of ['>> gap "Tom Wilson" "William Nylander"', 'RON: The gap. [>> gap "Tom Wilson" "William Nylander"]']) {
         const episode = draft(`${cue}\n\nRON: Last year's fantasy points.`);
         episode.facts.players = [
             { ...player('Tom Wilson', true), season: 2026, fpts: 372, fpg: 5.17 },
             { ...player('William Nylander', true), season: 2025, fpts: 378.25, fpg: 5.82 },
         ];
+        episode.facts.playerSnapshot = { season: 2026, refs: [{ name: 'Tom Wilson' }, { name: 'William Nylander' }], diagnostics: [] };
         assert.ok((await checkDraft(episode)).diagnostics.some(d => d.severity === 'error' && /same archived season/.test(d.message)));
         episode.facts.players[1].season = 2026;
         assert.deepEqual((await checkDraft(episode)).diagnostics, []);
-        episode.facts.players[1].fpts = null;
-        assert.ok((await checkDraft(episode)).diagnostics.some(d => /coachs:stats/.test(d.message)));
+        episode.facts.playerSnapshot.refs.pop();
+        assert.ok((await checkDraft(episode)).diagnostics.some(d => d.severity === 'warning' && /coachs:stats/.test(d.message)), 'a player added since the capture');
+        delete episode.facts.playerSnapshot;
+        assert.ok((await checkDraft(episode)).diagnostics.some(d => d.severity === 'warning' && /coachs:stats/.test(d.message)), 'never captured');
     }
+});
+
+test('the check reports the captured snapshot diagnostics in the shared wording, on the citing line', async () => {
+    const episode = draft('RON: First.\n\n>> gap "Elias Pettersson" "Tom Wilson"\n\nRON: Last year.');
+    episode.facts.players = [{ ...player('Tom Wilson', true), season: 2026, fpts: 372, fpg: 5.17 }];
+    episode.facts.playerSnapshot = { season: 2026, refs: [{ name: 'Elias Pettersson' }, { name: 'Tom Wilson' }], diagnostics: [
+        { kind: 'ambiguous', ref: { name: 'Elias Pettersson' }, candidates: [{ id: '048x9', nhlTeam: 'VAN', fpts: 309.75 }, { id: '0ab12', nhlTeam: 'VAN', fpts: 134 }] },
+        { kind: 'no-record', ref: { name: 'Tom Wilson' } },
+    ] };
+    const reported = (await checkDraft(episode)).diagnostics.filter(d => !/Unverified birthplace: Elias Pettersson/.test(d.message));
+    assert.deepEqual(reported.map(d => [d.line, d.severity]), [[9, 'error'], [9, 'warning']]);
+    assert.match(reported[0].message, /“Elias Pettersson” is 2 players in 2025–26: #048x9 \(VAN, 309\.75 FPts\)/);
+    assert.equal(reported[1].message, 'No 2025–26 record for Tom Wilson, so the card shows no stats.');
+    episode.script = episode.script.replace('season: 2027', 'season: 2027\nstats: 2025');
+    assert.ok((await checkDraft(episode)).diagnostics.some(d => /coachs:stats/.test(d.message)), 'captured at another stats season');
+});
+
+test('stats --season writes the stats: key, so publishing quotes the same season', () => {
+    const script = '---\r\ntitle: T\r\nseason: 2027\r\nweek: 1\r\n---\r\nRON: Hi.';
+    assert.equal(withStatsSeason(script, 2025), '---\r\ntitle: T\r\nseason: 2027\r\nstats: 2025\r\nweek: 1\r\n---\r\nRON: Hi.');
+    assert.equal(withStatsSeason(script, 2026), script, 'the default season needs no key');
+    assert.equal(withStatsSeason(withStatsSeason(script, 2025), 2025), withStatsSeason(script, 2025));
+    assert.throws(() => withStatsSeason(withStatsSeason(script, 2025), 2024), /stats: 2025/);
+    assert.throws(() => withStatsSeason(script, 2027), /before 2027/);
+    assert.throws(() => withStatsSeason('RON: No front matter.', 2025), /season:/);
 });
 
 test('a mixed-season gap graphic is reported on the line that cues it', async () => {

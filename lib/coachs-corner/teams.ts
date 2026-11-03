@@ -1,3 +1,5 @@
+import type { PlayerRef } from './script';
+
 // Scripts refer to teams loosely: an abbreviation (HH), an owner's first name (Jeremy) or a word from
 // the team name (Hooterville). The monitor resolves them against the league's current franchises.
 
@@ -25,8 +27,10 @@ export const findTeam = (teams: StudioTeam[], ref: string | undefined): StudioTe
         ?? null;
 };
 
-// Players named by >> player graphics, with last season's fantasy line and a headshot when one exists.
+// A row of an episode's player snapshot (GLOSSARY.md): a cited player's stats-season fantasy line and headshot.
 export interface StudioPlayer {
+    /** Fantrax id without asterisks; episodes published before ids were stored have none */
+    id?: string | null;
     name: string;
     headshot: string | null;
     nhlTeam: string | null;
@@ -46,4 +50,6 @@ export interface StudioBanner {
     secondary: string;
 }
 
-export const findPlayer = (players: StudioPlayer[], name: string) => players.find(p => norm(p.name) === norm(name)) ?? null;
+/** by Fantrax id when the cue has one, then by name: rows stored before ids, and bare names */
+export const findPlayer = (players: StudioPlayer[], ref: PlayerRef) =>
+    (ref.id ? players.find(p => p.id === ref.id) : undefined) ?? players.find(p => norm(p.name) === norm(ref.name)) ?? null;

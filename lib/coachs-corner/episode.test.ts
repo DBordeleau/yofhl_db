@@ -11,9 +11,15 @@ test('the summary holds what the script determines', () => {
     assert.equal(summary.season, 2027);
     assert.equal(summary.week, 3);
     assert.equal(summary.date, '2026-10-22');
-    assert.deepEqual(summary.players, ['Tom Wilson']);
+    assert.deepEqual(summary.players, [{ name: 'Tom Wilson' }]);
     assert.equal(episodeFrom('DON: No front matter.').summary.title, 'Untitled episode');
     assert.equal(episodeFrom('DON: No front matter.').summary.season, null);
+});
+
+test('the stats season is the season before the episode unless the script names an earlier one', () => {
+    assert.equal(episodeFrom(`${head}DON: Hi.`).statsSeason, 2026);
+    assert.equal(episodeFrom(head.replace('season: 2027', 'season: 2027\nstats: 2024') + 'DON: Hi.').statsSeason, 2024);
+    assert.equal(episodeFrom('DON: No front matter.').statsSeason, null);
 });
 
 test('runtime includes the six-second intro and segment does not, both in whole milliseconds', () => {
@@ -52,7 +58,7 @@ test('the opening picture is the set as the segment begins, set by cues before t
 test('the pull quote prefers the longest all-caps yell, then any yell, then a short first line; player refs come from graphics come from the same script', () => {
     const episode = episodeFrom(PILOT_SCRIPT);
     assert.deepEqual(episode.pullQuote, { who: 'don', text: 'I KNOW IT’S A KEEPER LEAGUE, RON.' });
-    assert.deepEqual(episode.playerRefs, ['Tom Wilson', 'William Nylander', 'Nico Hischier']);
+    assert.deepEqual(episode.playerRefs, [{ name: 'Tom Wilson' }, { name: 'William Nylander' }, { name: 'Nico Hischier' }]);
     assert.deepEqual(episodeFrom(`${head}RON: Morning.\n\nDON: !!Well, get going then!!\n`).pullQuote, { who: 'don', text: 'Well, get going then' });
     assert.deepEqual(episodeFrom(`${head}RON: The draft was Saturday, Don.\n`).pullQuote, { who: 'ron', text: 'The draft was Saturday, Don.' });
 });

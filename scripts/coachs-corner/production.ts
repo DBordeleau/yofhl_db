@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { loadLeagueConfig } from '../db/lib/league-config';
 import { captureFacts, referencePacket, parseFactPacket } from '../../lib/coachs-corner/production/facts';
 import { captureArchivedStats } from '../../lib/coachs-corner/production/archived-stats';
-import { checkDraft, draftDirectory, loadLocalDraft, DRAFT_ROOT } from '../../lib/coachs-corner/production/local-drafts';
+import { checkDraft, draftDirectory, loadLocalDraft, withStatsSeason, DRAFT_ROOT } from '../../lib/coachs-corner/production/local-drafts';
 import { PILOT_SCRIPT } from '../../lib/coachs-corner/pilot';
 import { episodeFrom } from '../../lib/coachs-corner/episode';
 
@@ -23,7 +23,7 @@ async function main() {
     } });
     const command = positionals[0];
     if (values.help || !command) {
-        console.log(`Coach's Corner local production\n\nprepare --slug <slug> [--recap [--air-date YYYY-MM-DD] | --period <scoring-period>] [--players "Name,Name"]\nprepare --slug <slug> --pilot                 Offline pilot reference\nprepare --slug <slug> --from <facts.json>      Reuse an existing snapshot\nfacts --slug <slug> [--recap | --period <n>] --refresh  Back up and replace facts only\nstats --slug <slug> [--season <ending-year>]  Freeze archive stats for script graphics\ncheck --slug <slug>                          Validate script, assets and names\n\nFiles: ${DRAFT_ROOT}/<slug>/\nPreview: http://localhost:3000/coachs-corner/local/<slug>\n--recap selects the previous Monday through Sunday in America/Toronto, including before Monday's Fantrax rollover.\n--air-date selects the recap relative to an intended broadcast date; live observation times stay unchanged.\nIt reselects the recap week on refresh; ordinary refresh keeps the snapshot's period.\nLive exports are fetched now; historical cutoffs cannot be reconstructed.\n--players also supports facts refresh and stats. Include dialogue-only players.\nLive captures include prior-season YOFHL stats for named players.\nstats defaults to episode season minus one, preserves live facts, and backs up facts.json.\nCommands never publish or write to the database.`);
+        console.log(`Coach's Corner local production\n\nprepare --slug <slug> [--recap [--air-date YYYY-MM-DD] | --period <scoring-period>] [--players "Name,Name"]\nprepare --slug <slug> --pilot                 Offline pilot reference\nprepare --slug <slug> --from <facts.json>      Reuse an existing snapshot\nfacts --slug <slug> [--recap | --period <n>] --refresh  Back up and replace facts only\nstats --slug <slug> [--season <ending-year>]  Freeze the player snapshot for script graphics\ncheck --slug <slug>                          Validate script, assets and names\n\nFiles: ${DRAFT_ROOT}/<slug>/\nPreview: http://localhost:3000/coachs-corner/local/<slug>\n--recap selects the previous Monday through Sunday in America/Toronto, including before Monday's Fantrax rollover.\n--air-date selects the recap relative to an intended broadcast date; live observation times stay unchanged.\nIt reselects the recap week on refresh; ordinary refresh keeps the snapshot's period.\nLive exports are fetched now; historical cutoffs cannot be reconstructed.\n--players also supports facts refresh and stats. Include dialogue-only players.\nLive captures include prior-season YOFHL stats for named players.\nstats uses the script's stats season: the season before the episode, or its stats: key. --season writes that key.\nstats preserves live facts and backs up facts.json.\nCommands never publish or write to the database.`);
         return;
     }
     if (!['prepare', 'facts', 'stats', 'check'].includes(command) || positionals.length !== 1) throw new Error('Unknown command. Use --help.');
@@ -37,17 +37,24 @@ async function main() {
     if (command === 'stats') {
         if (values.pilot || values.from || values.refresh || values.period) throw new Error('stats enriches an existing snapshot; use only --slug, --players and --season.');
         const draft = await loadLocalDraft(values.slug);
-        const episode = episodeFrom(draft.script, { slug: draft.slug });
+        // --season is the script's stats: key, so the published episode quotes the same season
+        const script = values.season ? withStatsSeason(draft.script, Number(values.season)) : draft.script;
+        const episode = episodeFrom(script, { slug: draft.slug });
         if (episode.hasErrors) throw new Error('Fix script parsing errors before capturing graphic statistics.');
-        if (episode.summary.season !== draft.facts.season) throw new Error('Script season must match the fact packet ending year before capturing statistics.');
-        const names = [...episode.playerRefs, ...(requestedPlayers ?? [])];
-        const facts = await captureArchivedStats(draft.facts, names, { season: values.season ? Number(values.season) : undefined });
+        if (episode.summary.season !== draft.facts.season || episode.statsSeason === null) throw new Error('Script season must match the fact packet ending year before capturing statistics.');
+        const refs = [...episode.playerRefs, ...(requestedPlayers ?? []).map(name => ({ name }))];
+        const facts = await captureArchivedStats(draft.facts, refs, { season: episode.statsSeason });
         if (facts === draft.facts) { console.log('No player/gap graphics or additional --players to capture.'); return; }
         const backup = await replaceFacts(dir, facts);
+        if (script !== draft.script) {
+            await writeFile(path.join(dir, 'script.next.txt'), script);
+            await rename(path.join(dir, 'script.next.txt'), path.join(dir, 'script.txt'));
+            console.log(`Added stats: ${values.season} to the script front matter.`);
+        }
         console.log(`Updated archived player statistics only; previous snapshot retained as ${backup}. Live matchup/roster data and capture times are unchanged.`);
-        console.log(JSON.stringify({ players: facts.players.filter(p => names.some(name => name.toLowerCase() === p.name.toLowerCase()))
-            .map(({ name, season, fpts, fpg, games, statsSource }) => ({ name, season, fpts, fpg, games, statsSource })),
-            limitations: facts.limitations.filter(note => note.startsWith('Archived YOFHL stats for ')) }, null, 2));
+        console.log(JSON.stringify({ players: facts.players.slice(0, facts.playerSnapshot?.refs.length ?? 0)
+            .map(({ id, name, season, fpts, fpg, games, statsSource }) => ({ id, name, season, fpts, fpg, games, statsSource })),
+            limitations: facts.limitations.filter(note => note.startsWith('Archived YOFHL stats')) }, null, 2));
         return;
     }
     if (command === 'check') {
@@ -70,13 +77,18 @@ async function main() {
         catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
     }
     const config = loadLeagueConfig();
+    const previousEpisode = previous && episodeFrom(previous.script);
     let facts = values.from ? parseFactPacket(JSON.parse(await readFile(values.from, 'utf8')))
         : values.pilot ? referencePacket(config, 2027)
             : await captureFacts(config, { recap: values.recap, airDate: values['air-date'],
                 period: values.recap ? undefined : values.period ? Number(values.period) : previous?.facts.period?.number,
                 players: [...(requestedPlayers ?? previous?.facts.players.map(p => p.name) ?? []),
-                    ...(previous ? episodeFrom(previous.script).playerRefs : [])] });
-    if (!values.pilot && !values.from) facts = await captureArchivedStats(facts, facts.players.map(p => p.name));
+                    ...(previousEpisode?.playerRefs.map(ref => ref.name) ?? [])] });
+    if (!values.pilot && !values.from) {
+        // a refresh keeps the script's own refs and stats season; a new draft has only names, at the season before
+        facts = await captureArchivedStats(facts, [...(previousEpisode?.playerRefs ?? []), ...facts.players.map(p => ({ name: p.name }))],
+            { season: previousEpisode?.statsSeason ?? facts.season - 1 });
+    }
     const factsText = JSON.stringify(facts, null, 2) + '\n';
     if (command === 'facts') {
         const backup = await replaceFacts(dir, facts);

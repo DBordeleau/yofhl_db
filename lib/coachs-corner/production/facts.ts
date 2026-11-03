@@ -1,4 +1,6 @@
 import type { StudioPlayer, StudioTeam } from '../teams';
+import type { PlayerRef } from '../script';
+import type { SnapshotDiagnostic } from '../player-snapshot';
 import { FANTRAX_LEAGUE_ID } from '../../fantrax/config';
 import { fantraxApiUrl, readLeagueInfo } from '../../fantrax/api';
 import { playerName, type Period } from '../../fantrax/model';
@@ -36,6 +38,8 @@ export interface FactPacket {
     rosters: { teamId: string; players: { id: string; name: string; position: string; nhlTeam: string | null; status: string }[] }[];
     rosterPeriod: number | null;
     players: FeaturedPlayer[];
+    /** the last stats capture: the refs it resolved, at which stats season, and what was wrong (the draft check reports these) */
+    playerSnapshot?: { season: number; refs: PlayerRef[]; diagnostics: SnapshotDiagnostic[] };
     sources: Source[];
     limitations: string[];
 }
@@ -227,6 +231,8 @@ export function parseFactPacket(value: unknown): FactPacket {
         !packet.teams.every(t => t && Number.isInteger(t.id) && typeof t.name === 'string' && typeof t.abbreviation === 'string' && typeof t.primary === 'string' && typeof t.secondary === 'string') ||
         !packet.sources.every(s => s && typeof s.url === 'string' && timestamp(s.fetchedAt)) ||
         !packet.limitations.every(s => typeof s === 'string') ||
+        (packet.playerSnapshot !== undefined && (!Number.isInteger(packet.playerSnapshot?.season) ||
+            !Array.isArray(packet.playerSnapshot.refs) || !Array.isArray(packet.playerSnapshot.diagnostics))) ||
         !packet.players.every(p => p && typeof p.name === 'string' && [true, false, null].includes(p.bornInNorthAmerica) &&
             (p.birthCountry === null || typeof p.birthCountry === 'string') &&
             (birthRegion(p.birthCountry) === null || birthRegion(p.birthCountry) === p.bornInNorthAmerica) &&

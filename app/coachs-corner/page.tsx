@@ -16,6 +16,6 @@ export default async function CoachsCorner() {
     if (!episode) notFound();
     // the share card, pull quote and player refs read this; the player compiles the same script in the browser
     const compiled = episodeFrom(episode.script, { slug: episode.slug });
-    const [players, banners] = await Promise.all([getEpisodePlayers(episode, compiled.playerRefs), getStudioBanners()]);
+    const [players, banners] = await Promise.all([getEpisodePlayers(episode, compiled), getStudioBanners()]);
     return <ShowPage episode={episode} compiled={compiled} episodes={episodes} teams={teams} players={players} banners={banners} />;
 }

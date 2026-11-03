@@ -5,7 +5,7 @@ import {
 
 // Parser for Coach's Corner screenplays. The format is documented in docs/coachs-corner.md; in short:
 //
-//   ---                                  front matter: title, week, season, date, segment, pace, lapel
+//   ---                                  front matter: title, week, season, stats, date, segment, pace, lapel
 //   DON (point): Yeah. !!THE DRAFT.!!    a line: speaker, optional (gesture, delivery, speed, then X)
 //     [beat] {sneak: muttered aside}     indented lines continue it; [cues] and {styles} work inline
 //   [don: stare, 1.9s] Don stares.       a stage line: cues and a hold; trailing text is a note
@@ -16,6 +16,8 @@ export interface Meta {
     title: string;
     week?: number;
     season?: number;
+    /** the season the player cards quote, when it isn't the one before `season`; always earlier than it */
+    stats?: number;
     date?: string;
     /** planned segment length in ms; the on-air clock runs into overtime past it */
     segment?: number;
@@ -25,19 +27,22 @@ export interface Meta {
     lapel?: Lapel;
 }
 
+/** a player a graphic cites: by name, or by name and Fantrax id (no asterisks) when two players share it */
+export interface PlayerRef { name: string; id?: string }
+
 export type Graphic =
     | { type: 'off' } | { type: 'bars' } | { type: 'static' } | { type: 'logo' }
     | { type: 'title'; title: string; sub?: string }
     | { type: 'team'; team: string; caption?: string }
     | { type: 'matchup'; home: string; away: string; homeScore?: string; awayScore?: string; caption?: string; status?: 'final' }
     | { type: 'pick'; pick: string; team?: string; player: string; detail?: string }
-    | { type: 'stat'; value: string; label?: string; detail?: string; team?: string; player?: string }
+    | { type: 'stat'; value: string; label?: string; detail?: string; team?: string; player?: PlayerRef }
     | { type: 'list'; title: string; rows: { team?: string; label?: string; value: string }[] }
     | { type: 'standings'; title: string; rows: { team: string; wins: number; losses: number; points: string }[] }
     | { type: 'compare'; home: string; away: string; homeScore?: string; awayScore?: string; rows: { label: string; home: string; away: string; highlight?: boolean }[] }
-    | { type: 'numbers'; team?: string; player?: string; caption?: string; items: { value: string; label: string }[] }
-    | { type: 'player'; name: string; team?: string; caption?: string; mood?: 'hearts' }
-    | { type: 'gap'; base: string; others: string[] };
+    | { type: 'numbers'; team?: string; player?: PlayerRef; caption?: string; items: { value: string; label: string }[] }
+    | { type: 'player'; player: PlayerRef; team?: string; caption?: string; mood?: 'hearts' }
+    | { type: 'gap'; base: PlayerRef; others: PlayerRef[] };
 
 export type Cue =
     | { type: 'pause'; ms: number }
@@ -126,6 +131,11 @@ const tokenize = (raw: string) => {
 
 const isNumberish = (s: string) => /^[+-]?\d+(\.\d+)?$/.test(s);
 
+const ID_ERROR = 'Write the Fantrax id without its asterisks, like "Elias Pettersson" #048x9.';
+/** a Fantrax id written after a quoted name: #048x9 */
+const fantraxId = (token: string) => /^#([0-9a-z]+)$/i.exec(token)?.[1].toLowerCase();
+const playerRef = (name: string, id: string | undefined): PlayerRef => (id ? { name, id } : { name });
+
 const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'list', 'standings'] as const;
 
 export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; teams: string[] } => {
@@ -133,14 +143,27 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
     const space = trimmed.search(/\s/);
     const type = (space < 0 ? trimmed : trimmed.slice(0, space)).toLowerCase();
     let rest = space < 0 ? '' : trimmed.slice(space + 1).trim();
-    // stat and numbers can feature a player's headshot: with "Brady Tkachuk"
-    let player: string | undefined;
-    const featured = type === 'stat' || type === 'numbers' ? rest.match(/(?:^|\s)with\s+(?:"([^"]+)"|“([^”]+)”)/i) : null;
+    // stat and numbers can feature a player's headshot: with "Brady Tkachuk", or with "Elias Pettersson" #048x9
+    let player: PlayerRef | undefined;
+    const featured = type === 'stat' || type === 'numbers' ? rest.match(/(?:^|\s)with\s+(?:"([^"]+)"|“([^”]+)”)(?:\s+(#\S*))?/i) : null;
     if (featured) {
-        player = smarten(featured[1] ?? featured[2]);
+        if (featured[3] && !fantraxId(featured[3])) return { error: ID_ERROR, teams: [] };
+        player = playerRef(smarten(featured[1] ?? featured[2]), featured[3] && fantraxId(featured[3]));
         rest = (rest.slice(0, featured.index) + ' ' + rest.slice(featured.index! + featured[0].length)).trim();
     }
     const tokens = tokenize(rest);
+    // player and gap name players in quotes, each optionally followed by its Fantrax id
+    const named: PlayerRef[] = [];
+    const unnamed: string[] = [];
+    let badId = false;
+    if (type === 'player' || type === 'gap') tokens.forEach((t, i) => {
+        if (t.quoted) named.push({ name: smarten(t.value) });
+        else if (t.value.startsWith('#') && tokens[i - 1]?.quoted) {
+            const id = fantraxId(t.value);
+            if (id) named[named.length - 1] = playerRef(named[named.length - 1].name, id); else badId = true;
+        } else unnamed.push(t.value);
+    });
+    if (badId) return { error: ID_ERROR, teams: [] };
     const quoted = tokens.filter(t => t.quoted).map(t => smarten(t.value));
     const bare = tokens.filter(t => !t.quoted).map(t => t.value);
     const teams: string[] = [];
@@ -223,14 +246,14 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
             return { graphic: { type, team: ref ? team(ref) : undefined, items, ...(player ? { player } : {}), ...(caption ? { caption } : {}) }, teams };
         }
         case 'player': {
-            if (!quoted[0]) return { error: 'Name the player in quotes, like >> player "Tom Wilson" Lali hearts "76th overall".', teams };
-            const mood = bare.some(t => t.toLowerCase() === 'hearts') ? 'hearts' as const : undefined;
-            const ref = bare.find(t => t.toLowerCase() !== 'hearts');
-            return { graphic: { type, name: quoted[0], team: ref ? team(ref) : undefined, caption: quoted[1], mood }, teams };
+            if (!named[0]) return { error: 'Name the player in quotes, like >> player "Tom Wilson" Lali hearts "76th overall".', teams };
+            const mood = unnamed.some(t => t.toLowerCase() === 'hearts') ? 'hearts' as const : undefined;
+            const ref = unnamed.find(t => t.toLowerCase() !== 'hearts');
+            return { graphic: { type, player: named[0], team: ref ? team(ref) : undefined, caption: named[1]?.name, mood }, teams };
         }
         case 'gap': {
-            if (quoted.length < 2) return { error: 'A gap compares players by last season’s FPts, like >> gap "Tom Wilson" "William Nylander".', teams };
-            return { graphic: { type, base: quoted[0], others: quoted.slice(1, 4) }, teams };
+            if (named.length < 2) return { error: 'A gap compares players by last season’s FPts, like >> gap "Tom Wilson" "William Nylander".', teams };
+            return { graphic: { type, base: named[0], others: named.slice(1, 4) }, teams };
         }
         case 'standings': {
             const titleMatch = rest.match(/^(?:"([^"]*)"|“([^”]*)”)\s*/);
@@ -456,6 +479,7 @@ export function parseScript(source: string, options: ParseOptions = {}): Script 
     const diagnostics: Diagnostic[] = [];
     const events: ScriptEvent[] = [];
     const meta: Meta = { title: '', pace: DEFAULT_PACE };
+    let stats: { season: number; line: number } | undefined;
     const lines = source.replace(/\r\n?/g, '\n').split('\n');
     let i = 0;
 
@@ -483,6 +507,7 @@ export function parseScript(source: string, options: ParseOptions = {}): Script 
                 if (key === 'title') meta.title = smarten(value);
                 else if (key === 'week') { if (/^\d+$/.test(value)) meta.week = Number(value); else report('error', 'week should be a number.'); }
                 else if (key === 'season') { if (/^\d{4}$/.test(value)) meta.season = Number(value); else report('error', 'season is the year the season ends in, like 2027.'); }
+                else if (key === 'stats') { if (/^\d{4}$/.test(value)) stats = { season: Number(value), line: n + 1 }; else report('error', 'stats is the year an earlier season ends in, like 2025.'); }
                 else if (key === 'date') { if (/^\d{4}-\d{2}-\d{2}$/.test(value)) meta.date = value; else report('error', 'date looks like 2026-10-14.'); }
                 else if (key === 'segment') { const ms = parseClock(value); if (ms) meta.segment = ms; else report('error', 'segment is a length like 3:30.'); }
                 else if (key === 'pace') { if (/^\d{2,3}$/.test(value)) meta.pace = Number(value); else report('error', 'pace is words per minute, like 180.'); }
@@ -492,6 +517,10 @@ export function parseScript(source: string, options: ParseOptions = {}): Script 
             i = end + 1;
         }
     }
+    // the cards quote a completed season, so stats: must come before the episode's own
+    if (stats && meta.season !== undefined && stats.season < meta.season) meta.stats = stats.season;
+    else if (stats) diagnostics.push({ line: stats.line, severity: 'error', message: meta.season === undefined
+        ? 'stats needs a season: to come before.' : `stats must be a season before ${meta.season}, like ${meta.season - 2}.` });
 
     let open: Extract<ScriptEvent, { kind: 'line' }> | null = null;
     let openText = '';
@@ -572,14 +601,26 @@ export function parseScript(source: string, options: ParseOptions = {}): Script 
 
 export const hasErrors = (script: Script) => script.diagnostics.some(d => d.severity === 'error');
 
-/** players named by graphics (player, gap, or stat/numbers with "…"), for looking up headshots and stats */
-export const playerRefs = (script: Script) => Array.from(new Set(script.events.flatMap(e => {
-    const cues = e.kind === 'stage' ? e.cues : e.parts.flatMap(p => (p.kind === 'cue' ? [p.cue] : []));
-    return cues.flatMap(c => {
-        if (c.type !== 'monitor') return [];
-        if (c.graphic.type === 'player') return [c.graphic.name];
-        if (c.graphic.type === 'gap') return [c.graphic.base, ...c.graphic.others];
-        if ((c.graphic.type === 'stat' || c.graphic.type === 'numbers') && c.graphic.player) return [c.graphic.player];
-        return [];
-    });
-})));
+/** the season an episode's player cards quote: the one before the episode's, unless `stats:` names an earlier one */
+export const statsSeason = (meta: Meta): number | null => meta.stats ?? (meta.season === undefined ? null : meta.season - 1);
+
+/** the players one graphic cites (player, gap, or stat/numbers with "…") */
+export const graphicPlayers = (graphic: Graphic): PlayerRef[] => {
+    if (graphic.type === 'player') return [graphic.player];
+    if (graphic.type === 'gap') return [graphic.base, ...graphic.others];
+    if ((graphic.type === 'stat' || graphic.type === 'numbers') && graphic.player) return [graphic.player];
+    return [];
+};
+
+/** the same player cited twice: names compare loosely, ids exactly */
+export const refKey = (ref: PlayerRef) => `${ref.name.trim().toLowerCase()}#${ref.id ?? ''}`;
+
+/** players named by graphics, first citation first, for looking up headshots and stats */
+export const playerRefs = (script: Script): PlayerRef[] => {
+    const refs = new Map<string, PlayerRef>();
+    for (const e of script.events) {
+        const cues = e.kind === 'stage' ? e.cues : e.parts.flatMap(p => (p.kind === 'cue' ? [p.cue] : []));
+        for (const c of cues) if (c.type === 'monitor') for (const ref of graphicPlayers(c.graphic)) if (!refs.has(refKey(ref))) refs.set(refKey(ref), ref);
+    }
+    return [...refs.values()];
+};

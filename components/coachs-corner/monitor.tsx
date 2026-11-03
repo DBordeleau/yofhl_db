@@ -194,10 +194,10 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                                 {player?.headshot
                                     // eslint-disable-next-line @next/next/no-img-element
                                     ? <img src={player.headshot} alt="" referrerPolicy="no-referrer" />
-                                    : <span>{graphic.player.split(/\s+/).map(w => w[0]).join('')}</span>}
+                                    : <span>{graphic.player.name.split(/\s+/).map(w => w[0]).join('')}</span>}
                             </div>
                             <div>
-                                <b>{player?.name ?? graphic.player}</b>
+                                <b>{player?.name ?? graphic.player.name}</b>
                                 {(graphic.caption || team) && <span>{team && <Logo team={team} />}{[team?.name, graphic.caption].filter(Boolean).join(' · ')}</span>}
                             </div>
                         </div>
@@ -217,7 +217,7 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
             );
         }
         case 'player': {
-            const player = findPlayer(players, graphic.name);
+            const player = findPlayer(players, graphic.player);
             const team = findTeam(teams, graphic.team);
             const line = player?.fpts != null
                 ? [`${player.fpts.toLocaleString('en-CA', { maximumFractionDigits: 1 })} FPts`, player.fpg != null ? `${player.fpg.toFixed(2)} FP/G` : null, player.games ? `${player.games} GP` : null].filter(Boolean).join(' · ')
@@ -231,11 +231,11 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                         {player?.headshot
                             // eslint-disable-next-line @next/next/no-img-element
                             ? <img src={player.headshot} alt="" referrerPolicy="no-referrer" />
-                            : <span>{graphic.name.split(/\s+/).map(w => w[0]).join('')}</span>}
+                            : <span>{graphic.player.name.split(/\s+/).map(w => w[0]).join('')}</span>}
                         {graphic.mood === 'hearts' && <Heart />}
                     </div>
                     <div className={styles.gPlayerText}>
-                        <b>{player?.name ?? graphic.name}</b>
+                        <b>{player?.name ?? graphic.player.name}</b>
                         {graphic.caption && <em>{graphic.caption}</em>}
                         {line && <span><small>{player?.season ? seasonLabel(player.season) : 'Last season'}</small>{line}</span>}
                         {team && <i><Logo team={team} />{team.name}</i>}
@@ -246,7 +246,7 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
         case 'gap': {
             const fmt = (n: number) => n.toLocaleString('en-CA', { maximumFractionDigits: 2 });
             const base = findPlayer(players, graphic.base);
-            const people = [graphic.base, ...graphic.others].map(name => ({ name, player: findPlayer(players, name) }));
+            const people = [graphic.base, ...graphic.others].map(ref => ({ name: ref.name, player: findPlayer(players, ref) }));
             const season = base?.season ?? people.find(p => p.player?.season)?.player?.season;
             return (
                 <div className={styles.gGap}>
@@ -255,7 +255,7 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                         {people.map(({ name, player }, i) => {
                             const diff = i > 0 && player?.fpts != null && base?.fpts != null ? player.fpts - base.fpts : null;
                             return (
-                                <li key={name} data-base={i === 0 || undefined} style={{ '--row': i } as React.CSSProperties}>
+                                <li key={i} data-base={i === 0 || undefined} style={{ '--row': i } as React.CSSProperties}>
                                     <div className={styles.gGapShot}>
                                         {player?.headshot
                                             // eslint-disable-next-line @next/next/no-img-element
