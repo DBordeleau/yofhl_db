@@ -129,15 +129,49 @@ test('compare, numbers and player graphics parse', () => {
     const graphics = script.events.flatMap(e => e.kind === 'stage' ? e.cues : []).map(c => c.type === 'monitor' && c.graphic);
     assert.deepEqual(graphics[0], { type: 'compare', home: 'Reapers', away: 'TEEHAW', homeScore: '158', awayScore: '114.1', rows: [{ label: 'G', home: '12', away: '8', highlight: undefined }, { label: 'Hit', home: '29', away: '17', highlight: true }] });
     assert.deepEqual(graphics[1], { type: 'numbers', team: 'HH', items: [{ value: '1', label: 'goal' }, { value: '18', label: 'assists' }] });
-    assert.deepEqual(graphics[2], { type: 'player', name: 'Tom Wilson', team: 'Lali', caption: '76th overall', mood: 'hearts' });
-    assert.deepEqual(playerRefs(script), ['Tom Wilson']);
+    assert.deepEqual(graphics[2], { type: 'player', player: { name: 'Tom Wilson' }, team: 'Lali', caption: '76th overall', mood: 'hearts' });
+    assert.deepEqual(playerRefs(script), [{ name: 'Tom Wilson' }]);
+});
+
+test('every player cue can pin a namesake by Fantrax id, and refs carry the id', () => {
+    const script = parseScript(`${head}>> player "Elias Pettersson" #048x9 VAN "Lali's guy"
+>> gap "Elias Pettersson" #048X9 "Elias Pettersson" #0ab12 "Tom Wilson"
+>> stat "2x" "Hat tricks" VWIZ with "Elias Pettersson" #0ab12
+RON: Hi. [>> numbers Lali 1 goal with "Elias Pettersson" #048x9 "Week 1"]`);
+    assert.deepEqual(script.diagnostics, []);
+    const graphics = script.events.flatMap(e => e.kind === 'stage' ? e.cues : e.parts.flatMap(p => p.kind === 'cue' ? [p.cue] : []))
+        .map(c => c.type === 'monitor' && c.graphic);
+    assert.deepEqual(graphics[0], { type: 'player', player: { name: 'Elias Pettersson', id: '048x9' }, team: 'VAN', caption: 'Lali’s guy', mood: undefined });
+    assert.deepEqual(graphics[1], { type: 'gap', base: { name: 'Elias Pettersson', id: '048x9' }, others: [{ name: 'Elias Pettersson', id: '0ab12' }, { name: 'Tom Wilson' }] });
+    assert.deepEqual(graphics[2], { type: 'stat', value: '2x', label: 'Hat tricks', detail: undefined, team: 'VWIZ', player: { name: 'Elias Pettersson', id: '0ab12' } });
+    assert.deepEqual(graphics[3], { type: 'numbers', team: 'Lali', items: [{ value: '1', label: 'goal' }], player: { name: 'Elias Pettersson', id: '048x9' }, caption: 'Week 1' });
+    assert.deepEqual(playerRefs(script), [{ name: 'Elias Pettersson', id: '048x9' }, { name: 'Elias Pettersson', id: '0ab12' }, { name: 'Tom Wilson' }]);
+});
+
+test('an id keeps its asterisks out', () => {
+    const script = parseScript(`${head}>> player "Elias Pettersson" #*048x9*\nRON: Hi.`);
+    assert.match(script.diagnostics.map(d => d.message).join('\n'), /without its asterisks/);
+});
+
+test('the stats season is the season before the episode unless the front matter names an earlier one', () => {
+    const front = (lines: string) => parseScript(`---\ntitle: T\n${lines}\n---\nRON: Hi.`);
+    assert.equal(front('season: 2027').meta.stats, undefined);
+    const retro = front('season: 2027\nstats: 2025');
+    assert.deepEqual(retro.diagnostics, []);
+    assert.equal(retro.meta.stats, 2025);
+    for (const value of ['2027', '2028', 'last year']) {
+        const wrong = front(`season: 2027\nstats: ${value}`);
+        assert.ok(hasErrors(wrong), value);
+        assert.equal(wrong.meta.stats, undefined);
+    }
+    assert.ok(hasErrors(front('stats: 2025')), 'stats needs a season to be earlier than');
 });
 
 test('stat and numbers graphics can feature a player headshot', () => {
     const script = parseScript(`${head}>> stat "2x" "Hat tricks" "Oct 13 and 15" VWIZ with "Brady Tkachuk"\n>> numbers Lali 0 goals, 0 assists with "Tom Wilson" "Oct 12–18 · 3 GP"\n>> numbers HH 2 goals "Week 1"\nRON: Hi.`);
     const graphics = script.events.flatMap(e => e.kind === 'stage' ? e.cues : []).map(c => c.type === 'monitor' && c.graphic);
-    assert.deepEqual(graphics[0], { type: 'stat', value: '2x', label: 'Hat tricks', detail: 'Oct 13 and 15', team: 'VWIZ', player: 'Brady Tkachuk' });
-    assert.deepEqual(graphics[1], { type: 'numbers', team: 'Lali', items: [{ value: '0', label: 'goals' }, { value: '0', label: 'assists' }], player: 'Tom Wilson', caption: 'Oct 12–18 · 3 GP' });
+    assert.deepEqual(graphics[0], { type: 'stat', value: '2x', label: 'Hat tricks', detail: 'Oct 13 and 15', team: 'VWIZ', player: { name: 'Brady Tkachuk' } });
+    assert.deepEqual(graphics[1], { type: 'numbers', team: 'Lali', items: [{ value: '0', label: 'goals' }, { value: '0', label: 'assists' }], player: { name: 'Tom Wilson' }, caption: 'Oct 12–18 · 3 GP' });
     assert.deepEqual(graphics[2], { type: 'numbers', team: 'HH', items: [{ value: '2', label: 'goals' }], caption: 'Week 1' });
-    assert.deepEqual(playerRefs(script), ['Brady Tkachuk', 'Tom Wilson']);
+    assert.deepEqual(playerRefs(script), [{ name: 'Brady Tkachuk' }, { name: 'Tom Wilson' }]);
 });

@@ -7,7 +7,9 @@ import Player from '@/components/coachs-corner/player';
 import { archivoItalic } from '@/components/coachs-corner/fonts';
 import { deleteEpisode, lookupPlayers, saveEpisode, unpublishEpisode } from '@/app/admin/coachs-corner/actions';
 import { CAST, CHARACTERS, SHOTS, SOUNDS } from '@/lib/coachs-corner/cast';
-import { episodeFrom } from '@/lib/coachs-corner/episode';
+import { citationLine, episodeFrom } from '@/lib/coachs-corner/episode';
+import type { PlayerIssue } from '@/lib/coachs-corner/player-snapshot';
+import { refKey, type PlayerRef } from '@/lib/coachs-corner/script';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import { findTeam, type StudioBanner, type StudioPlayer, type StudioTeam } from '@/lib/coachs-corner/teams';
 
@@ -65,24 +67,31 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
     const compiled = useMemo(() => episodeFrom(deferred, { slug: labelSlug, knownTeam: ref => !!findTeam(teams, ref) }), [deferred, labelSlug, teams]);
     const { timeline: tl, meta } = compiled;
 
-    // headshots and stat lines for >> player graphics, fetched when the set of names changes
+    // the player snapshot Publish would store, fetched when the stats season or the cited players change
     const [players, setPlayers] = useState<StudioPlayer[]>([]);
-    const names = compiled.playerRefs.join('|');
+    const [issues, setIssues] = useState<PlayerIssue[]>([]);
+    const cited = JSON.stringify([compiled.statsSeason, compiled.playerRefs]);
     useEffect(() => {
-        if (!names) { setPlayers([]); return; }
+        const [season, refs] = JSON.parse(cited) as [number | null, PlayerRef[]];
+        if (!refs.length) { setPlayers([]); setIssues([]); return; }
         let live = true;
         const timer = window.setTimeout(() => {
-            lookupPlayers(names.split('|')).then(found => { if (live) setPlayers(found); }).catch(() => {});
+            lookupPlayers(season, refs).then(found => { if (live) { setPlayers(found.players); setIssues(found.issues); } }).catch(() => {});
         }, 500);
         return () => { live = false; window.clearTimeout(timer); };
-    }, [names]);
-    const errors = compiled.diagnostics.filter(d => d.severity === 'error');
+    }, [cited]);
+    // an ambiguous player is an error like any other, so it disables Publish; each sits on the line citing that player
+    const diagnostics = useMemo(() => [...compiled.diagnostics, ...issues
+        .filter(issue => compiled.playerRefs.some(ref => refKey(ref) === refKey(issue.ref)))
+        .map(({ ref, severity, message }) => ({ line: citationLine(compiled, ref), severity, message }))]
+        .sort((a, b) => a.line - b.line), [compiled, issues]);
+    const errors = diagnostics.filter(d => d.severity === 'error');
     const lineCount = text.split('\n').length;
     const marks = useMemo(() => {
         const m = new Map<number, 'error' | 'warning'>();
-        for (const d of compiled.diagnostics) if (m.get(d.line) !== 'error') m.set(d.line, d.severity);
+        for (const d of diagnostics) if (m.get(d.line) !== 'error') m.set(d.line, d.severity);
         return m;
-    }, [compiled]);
+    }, [diagnostics]);
     const effectiveSlug = slugTouched ? slug : slugFrom(meta.title, meta.week, meta.season);
 
     const goToLine = (line: number) => {
@@ -185,13 +194,13 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
                 </div>
 
                 <div className="mt-4 rounded-2xl border border-line bg-white p-4" aria-live="polite">
-                    {compiled.diagnostics.length === 0 ? (
+                    {diagnostics.length === 0 ? (
                         <p className="text-sm font-semibold text-[#1E7A4D]">No problems. {tl.lines.length} lines · segment {mmss(compiled.summary.segment)} · runtime {mmss(compiled.summary.runtime)}</p>
                     ) : (
                         <>
                             <p className="mb-2 text-sm font-bold">{errors.length ? `${errors.length} to fix before publishing` : 'Warnings'}</p>
                             <ul className="max-h-48 space-y-1 overflow-auto">
-                                {compiled.diagnostics.map((d, i) => (
+                                {diagnostics.map((d, i) => (
                                     <li key={i}>
                                         <button type="button" onClick={() => goToLine(d.line)} className="flex w-full gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-ice">
                                             <span className={`w-14 flex-none font-mono text-xs font-bold leading-5 ${d.severity === 'error' ? 'text-rink-red' : 'text-gold-deep'}`}>Line {d.line}</span>

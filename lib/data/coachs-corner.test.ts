@@ -5,8 +5,9 @@ import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { SQL } from 'drizzle-orm';
+import type { StudioPlayer } from '../coachs-corner/teams';
 
-const screenplay = (title: string, player = false) => `---\ntitle: ${title}\nseason: 2027\nweek: 2\n---\n${player ? '>> player "Player One"\n' : ''}DON: Welcome to the show.\n\nRON: Good evening.`;
+const screenplay = (title: string, player: boolean | string = false) => `---\ntitle: ${title}\nseason: 2027\nweek: 2\n---\n${player ? `>> ${player === true ? 'player "Player One"' : player}\n` : ''}DON: Welcome to the show.\n\nRON: Good evening.`;
 
 test('publishing and real Next data caching against disposable Postgres', async t => {
     const client = new PGlite();
@@ -40,12 +41,13 @@ test('publishing and real Next data caching against disposable Postgres', async 
         return db.execute(query);
     });
     let network = 0;
-    const fetchMock = t.mock.method(globalThis, 'fetch', async (url: string | URL | Request) => {
+    const nhl = async (url: string | URL | Request) => {
         network++;
-        if (String(url).includes('search.d3.nhle.com')) return Response.json([{ playerId: '123', name: 'Player One', teamAbbrev: 'TOR' }]);
+        if (String(url).includes('search.d3.nhle.com')) return Response.json(new URL(String(url)).searchParams.get('q') === 'Player One' ? [{ playerId: '123', name: 'Player One', teamAbbrev: 'TOR' }] : []);
         if (String(url).includes('/123/landing')) return Response.json({ headshot: 'https://assets.nhle.com/test-player.png' });
         throw new Error(`Unexpected network request: ${url}`);
-    });
+    };
+    const fetchMock = t.mock.method(globalThis, 'fetch', nhl);
     await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
     await client.exec(`insert into league.seasons values (2026, '2025–26', 'complete');
         insert into league.players values ('p1', 'Player One');
@@ -53,7 +55,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
         values ('p1', 2026, array['C'], 'TOR', 100, 2);`);
     const data = await import('./coachs-corner');
     const { episodeFrom } = await import('../coachs-corner/episode');
-    const refsOf = (episode: { script: string }) => episodeFrom(episode.script).playerRefs;
+    const refsOf = (episode: { script: string }) => episodeFrom(episode.script);
     const { saveEpisodeRecord, deleteEpisodeRecord, unpublishEpisodeRecord, publicationEffects, verifyEpisodeSummaries } = await import('../coachs-corner/publishing');
     const apply = (change: Awaited<ReturnType<typeof saveEpisodeRecord>> | undefined) => {
         assert.ok(change && !('error' in change), JSON.stringify(change));
@@ -111,8 +113,8 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.equal((await data.getPublishedEpisodes())[0].title, 'Published');
         const episode = await data.getPublishedEpisode('week-two');
         assert.ok(episode);
-        assert.equal(episode.players?.[0].fpts, 100);
-        assert.equal(episode.players?.[0].headshot, 'https://assets.nhle.com/test-player.png');
+        assert.deepEqual(episode.players, [{ id: 'p1', name: 'Player One', headshot: 'https://assets.nhle.com/test-player.png',
+            nhlTeam: 'TOR', positions: ['C'], season: 2026, fpts: 100, fpg: 2, games: null }], 'no games played is derived from FPts / FP/G');
         assert.equal(network, 2);
         await client.exec('update league.player_seasons set fpts=200');
         const before = queries;
@@ -172,14 +174,32 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.equal(queries, before, 'the episode must not drift to the latest database season');
         assert.equal(network, 2, 'the archived portraits need no NHL lookup');
     });
-    await t.test('legacy player fallback caches one stats query without NHL lookups', async () => {
+    await t.test('legacy player fallback quotes the episode’s own stats season, caches one stats query and makes no NHL lookups', async () => {
         entries.clear();
+        await client.exec(`insert into league.seasons values (2027, '2026–27', 'complete');
+            insert into league.player_seasons (player_id, season_year, positions, nhl_team, fpts, fpg) values ('p1', 2027, array['C'], 'TOR', 999, 9);`);
         const episode = { ...data.pilotEpisode(), script: screenplay('Legacy', true), players: null };
         const before = queries;
-        assert.equal((await data.getEpisodePlayers(episode, refsOf(episode)))[0].fpts, 200);
+        const [player] = await data.getEpisodePlayers(episode, refsOf(episode));
+        assert.deepEqual([player.season, player.fpts, player.games], [2026, 200, null], 'never the newer 2026–27 line');
         await data.getEpisodePlayers(episode, refsOf(episode));
         assert.equal(queries, before + 1);
         assert.equal(network, 2);
+        const retro = { ...episode, script: screenplay('Legacy', true).replace('season: 2027', 'season: 2028\nstats: 2027') };
+        assert.equal((await data.getEpisodePlayers(retro, refsOf(retro)))[0].fpts, 999);
+    });
+    await t.test('publishing refuses a namesake cited by bare name, and the Fantrax id publishes each one', async () => {
+        await client.exec(`insert into league.players values ('*048x9*', 'Elias Pettersson'), ('*0ab12*', 'Elias Pettersson');
+            insert into league.player_seasons (player_id, season_year, positions, nhl_team, fpts, fpg)
+            values ('*048x9*', 2026, array['C'], 'VAN', 309.75, 4.2), ('*0ab12*', 2026, array['D'], 'VAN', 134, 1.9);`);
+        const count = async () => (await client.query<{ n: number }>('select count(*)::int as n from league.coachs_corner_episodes')).rows[0].n;
+        const before = await count();
+        const refused = await saveEpisodeRecord({ id: null, slug: 'petterssons', script: screenplay('Petterssons', 'gap "Elias Pettersson" "Player One"'), publish: true });
+        assert.ok('error' in refused && /#048x9 \(VAN, 309\.75 FPts\).*#0ab12 \(VAN, 134 FPts\)/.test(refused.error), JSON.stringify(refused));
+        assert.equal(await count(), before, 'an ambiguous episode is never written');
+        const saved = apply(await saveEpisodeRecord({ id: null, slug: 'petterssons', script: screenplay('Petterssons', 'gap "Elias Pettersson" #048x9 "Elias Pettersson" #0ab12'), publish: true }));
+        const stored = await data.getEpisodeById(saved.id);
+        assert.deepEqual(stored?.players?.map(p => [p.id, p.fpts, p.games]), [['048x9', 309.75, null], ['0ab12', 134, null]]);
     });
     await t.test('publishing needs a slug that leads with the episode season year, or no year at all', async () => {
         const before = queries;
@@ -215,5 +235,24 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.equal(fixed?.updatedAt, stored?.updatedAt, 'a cache repair is not an edit');
         assert.deepEqual((await data.getAllEpisodes()).filter(e => e.id !== saved.id), others, 'up-to-date rows are untouched');
         assert.deepEqual(await verifyEpisodeSummaries({ fix: true }), [], 'running fix twice changes nothing');
+    });
+    await t.test('the local draft and the published episode show identical player rows for one script and archive', async () => {
+        fetchMock.mock.mockImplementation(nhl);
+        const { captureArchivedStats } = await import('../coachs-corner/production/archived-stats');
+        const { referencePacket } = await import('../coachs-corner/production/facts');
+        const { loadLeagueConfig } = await import('../../scripts/db/lib/league-config');
+        const { findPlayer } = await import('../coachs-corner/teams');
+        const script = screenplay('Agreement', 'gap "Player One" "Elias Pettersson" #048x9 "Elias Pettersson" #0ab12 "Nobody Here"');
+        const episode = episodeFrom(script);
+        const draft = await captureArchivedStats(referencePacket(loadLeagueConfig(), 2027), episode.playerRefs, { season: episode.statsSeason! });
+        const saved = apply(await saveEpisodeRecord({ id: null, slug: 'agreement', script, publish: true }));
+        const published = (await data.getEpisodeById(saved.id))?.players ?? [];
+        const card = ({ id, name, headshot, nhlTeam, positions, season, fpts, fpg, games }: StudioPlayer) => ({ id, name, headshot, nhlTeam, positions, season, fpts, fpg, games });
+        const shown = (players: StudioPlayer[]) => episode.playerRefs.map(ref => card(findPlayer(players, ref)!));
+        assert.deepEqual(shown(draft.players), shown(published));
+        assert.deepEqual(published.map(card), shown(published), 'the episode stores only the cited players, in order');
+        assert.deepEqual(published.map(p => [p.id, p.fpts, p.headshot]), [
+            ['p1', 200, 'https://assets.nhle.com/test-player.png'], ['048x9', 309.75, 'https://fantraximg.com/si/headshots/NHL/hs048x9_96_9.png'], ['0ab12', 134, null], [null, null, null],
+        ]);
     });
 });

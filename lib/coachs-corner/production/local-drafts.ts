@@ -3,10 +3,11 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { parseFactPacket, type FactPacket } from './facts';
 import { episodeFrom, type Episode } from '../episode';
-import type { Diagnostic } from '../script';
+import { parseScript, refKey, statsSeason, type Diagnostic, type PlayerRef } from '../script';
+import { snapshotDiagnostics } from '../player-snapshot';
 import { artUrl, THEME_URL } from '../media';
 import { CURRENT_SOUND_BANK } from '../sound-bank';
-import { findTeam } from '../teams';
+import { findPlayer, findTeam } from '../teams';
 
 export const DRAFT_ROOT = 'local/coachs-corner/episodes';
 export const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) && slug.length <= 80 && !/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/.test(slug);
@@ -66,6 +67,22 @@ export async function listLocalDrafts(root = process.cwd()): Promise<string[]> {
     }
 }
 
+/** `coachs:stats --season`: an older stats season lives in the script's stats: key, so publishing quotes it too. */
+export function withStatsSeason(script: string, season: number): string {
+    const { meta } = parseScript(script);
+    if (meta.stats === undefined ? statsSeason(meta) === season : meta.stats === season) return script;
+    if (meta.stats !== undefined) throw new Error(`The script already says stats: ${meta.stats}. Change it there, or leave out --season.`);
+    const lines = script.split('\n');
+    const end = lines[0]?.trim() === '---' ? lines.findIndex((l, n) => n > 0 && l.trim() === '---') : -1;
+    const at = lines.findIndex((l, n) => n < end && /^season\s*:/i.test(l.trim()));
+    if (at < 0) throw new Error('Add season: to the script front matter before choosing a stats season.');
+    lines.splice(at + 1, 0, `stats: ${season}${lines[at].endsWith('\r') ? '\r' : ''}`);
+    const out = lines.join('\n');
+    const problem = parseScript(out).diagnostics.find(d => d.line === at + 2 && d.severity === 'error');
+    if (problem) throw new Error(problem.message);
+    return out;
+}
+
 export interface DraftReport {
     diagnostics: Diagnostic[];
     /** the segment's length: the runtime without the intro */
@@ -86,7 +103,7 @@ export async function checkDraft(draft: LocalDraft, { root = process.cwd(), epis
     const report = (severity: 'error' | 'warning', message: string, line = 1) => diagnostics.push({ severity, message, line });
     if (draft.facts.kind === 'live' && meta.season !== draft.facts.season) report('error', 'Script season must match the fact packet ending year.');
     if (draft.facts.period && meta.week !== draft.facts.period.number) report('error', 'Script week must match the exported scoring period.');
-    const names = new Set([...episode.playerRefs, ...draft.pronunciations.map(p => p.name)]);
+    const names = new Set([...episode.playerRefs.map(ref => ref.name), ...draft.pronunciations.map(p => p.name)]);
     for (const name of names) {
         const player = draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase());
         if (!player || player.bornInNorthAmerica === null) report('warning', `Unverified birthplace: ${name}. Enrich facts for every named player, including dialogue-only names.`);
@@ -101,15 +118,17 @@ export async function checkDraft(draft: LocalDraft, { root = process.cwd(), epis
             }
         }
     }
-    for (const name of episode.playerRefs) {
-        const player = draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase());
-        if (!player || player.fpts === null || player.fpg === null || player.season === null) report('warning', `No complete frozen fantasy statistics for ${name}; run coachs:stats -- --slug ${draft.slug}. Resolve missing archive records with sourced evidence or an honest graphic fallback.`);
-    }
+    // the snapshot coachs:stats captured stands for this script only if it covers every cited player at its stats season
+    const captured = draft.facts.playerSnapshot;
+    const cited = (ref: PlayerRef) => episode.playerRefs.some(r => refKey(r) === refKey(ref));
+    if (episode.playerRefs.length && (!captured || captured.season !== episode.statsSeason ||
+        !episode.playerRefs.every(ref => captured.refs.some(r => refKey(r) === refKey(ref))))) {
+        report('warning', `The player snapshot wasn't captured for this script's players and stats season; run coachs:stats -- --slug ${draft.slug}.`);
+    } else if (captured) diagnostics.push(...snapshotDiagnostics(episode, captured.diagnostics.filter(d => cited(d.ref))));
     // every monitor cue is on the timeline's monitor track, with the line that cued it
     for (const { value: graphic, line } of timeline.monitor) {
         if (graphic.type !== 'gap') continue;
-        const seasons = new Set([graphic.base, ...graphic.others].map(name =>
-            draft.facts.players.find(p => p.name.toLowerCase() === name.toLowerCase())?.season).filter(season => season != null));
+        const seasons = new Set([graphic.base, ...graphic.others].map(ref => findPlayer(draft.facts.players, ref)?.season).filter(season => season != null));
         if (seasons.size > 1) report('error', 'Gap graphics must compare fantasy points from the same archived season.', line);
     }
     const urls = [...timeline.art.flatMap(id => [artUrl(id), artUrl(id, true)]), THEME_URL];
