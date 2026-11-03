@@ -17,7 +17,8 @@ const getRecordArchive = cached(async () => {
         getFranchiseCards(),
         rows<PlayerSeason>(sql`select p.id, p.name, ps.season_year as year, ps.fpts::float8 as points, ps.positions
             from league.player_seasons ps join league.players p on p.id = ps.player_id order by ps.season_year`),
-        rows<TeamSeason>(sql`select franchise_id as team, name, season_year as year, wins, losses, ties, fpts_for::float8 as points, logo_url as logo, abbreviation from league.team_seasons`),
+        rows<TeamSeason>(sql`select t.franchise_id as team, st.name, t.season_year as year, t.wins, t.losses, t.ties, t.fpts_for::float8 as points, st.logo, st.abbreviation
+            from league.team_seasons t join league.season_teams st on st.team_season_id = t.id`),
         rows<Award>(sql`select a.player_id as player, p.name, at.label as award, a.season_year as year, t.franchise_id as team
             from league.awards a join league.players p on p.id = a.player_id join league.award_types at on at.id = a.award_type_id
             left join league.team_seasons t on t.id = a.team_season_id`),

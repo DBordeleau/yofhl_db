@@ -160,7 +160,14 @@ The lottery uses uncached reads and server time instead of the league cache. Its
 
 ## Schema
 
-[db/schema.ts](../db/schema.ts) defines the tables. [db/migrations](../db/migrations/) contains the SQL history, including the materialized views.
+[db/schema.ts](../db/schema.ts) defines the tables. [db/migrations](../db/migrations/) contains the SQL history, including the materialized views and the team identity views.
+
+Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-database-views.md)); every query that shows a team joins one of them instead of repeating the fallback. They store nothing and need no refresh.
+
+| View | One row per | Contents |
+| --- | --- | --- |
+| `current_teams` | franchise | Current identity: the owner's name and logo, then the latest team season's, then the franchise's own; abbreviation falls back to the first three letters of the name; `defunct`; `latest_team_season_id` |
+| `season_teams` | team season | Season identity: that season's name, abbreviation and logo, with the franchise logo when the season has none |
 
 | Tables | Contents |
 | --- | --- |
@@ -208,6 +215,7 @@ The award gallery includes two team trophies as well as the six individual award
 | `npm run db:import:history -- --dry-run` | Parse and validate history without opening a database connection |
 | `npm run db:import:history` | Apply migrations and replace supplied history in an existing league database |
 | `npm run db:sync:logos` | Sync configured franchise and era logos; no stats import or status sync |
+| `npm run db:report:names` | List draft and transaction rows whose recorded team name differs from the season identity name |
 | `npm run db:migrate` | Apply committed migrations without importing league data |
 | `npm run db:generate` | Generate a migration after changing `db/schema.ts`; review the SQL before applying it |
 | `npm run test:lottery` | Run model and in-memory database tests for the lottery |

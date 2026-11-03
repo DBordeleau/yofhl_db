@@ -27,6 +27,7 @@
     "db:import:history": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import-history.ts",
     "db:sync:logos": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/sync-logos.ts",
     "db:import": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import.ts",
+    "db:report:names": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/report-name-changes.ts",
     "db:verify": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/verify.ts",
     "coachs:assets": "node scripts/coachs-corner/assets.mjs",
     "prebuild": "npm run coachs:assets",

@@ -17,7 +17,7 @@ import KeeperReminder from '@/components/keepers/reminder';
 import { KEEPERS_ENABLED } from '@/lib/keepers/model';
 import Arrow from '@/components/arrow';
 import MobileNav, { type MobileSheet } from '@/components/navigation/mobile-nav';
-import { clubNickname } from '@/lib/club-names';
+import { clubName } from '@/lib/team-identity';
 import { isPrivateRoute } from '@/lib/navigation';
 import HeaderSearch from '@/components/search/header-search';
 import NewEpisodeBadge from '@/components/coachs-corner/new-episode-badge';
@@ -201,7 +201,7 @@ const Header: React.FC<NavData> = ({ awards, seasons, franchises, allTime, singl
                 {teams.map((team) => <li key={team.id}>
                     <Link href={`/teams/${team.id}`} className={styles.sheetTeam} aria-label={team.name}>
                         <TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={null} size={48} ring="none" sizeClass={styles.sheetTeamBadge} />
-                        <span aria-hidden="true">{clubNickname(team.name)}</span>
+                        <span aria-hidden="true">{clubName(team.id, team.name).nickname}</span>
                     </Link>
                 </li>)}
             </ul>

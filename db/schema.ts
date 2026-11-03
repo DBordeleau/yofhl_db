@@ -314,6 +314,28 @@ export const franchiseRecords = league.materializedView('franchise_records', {
     finals: integer('finals').array().notNull(), // season years reached the final (won or lost)
 }).existing();
 
+// ---- team identity: plain views, so owner edits show at once (SQL in the team identity migration, ADR 0001) ----
+
+// A franchise's current identity: owner's choice, then the latest team season, then the franchise itself.
+export const currentTeams = league.view('current_teams', {
+    id: integer('id').notNull(),
+    name: text('name').notNull(),
+    abbreviation: text('abbreviation').notNull(),
+    logo: text('logo'),
+    defunct: boolean('defunct').notNull(),
+    latestTeamSeasonId: integer('latest_team_season_id'), // for season stats and owner; null before a first season
+}).existing();
+
+// A franchise's season identity: what it was called and wore in one team season.
+export const seasonTeams = league.view('season_teams', {
+    teamSeasonId: integer('team_season_id').notNull(),
+    franchiseId: integer('franchise_id').notNull(),
+    seasonYear: integer('season_year').notNull(),
+    name: text('name').notNull(),
+    abbreviation: text('abbreviation').notNull(),
+    logo: text('logo'),
+}).existing();
+
 // Coach's Corner episodes: screenplay scripts written in the admin (format in docs/coachs-corner.md).
 // Drafts have no published_at; the public page shows published episodes, newest first.
 export const coachsCornerEpisodes = league.table('coachs_corner_episodes', {

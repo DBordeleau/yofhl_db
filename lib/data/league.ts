@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
+import type { SeasonIdentity } from '../team-identity';
 
 // Every query the site makes. Each is cached until the next import or admin edit (see ./db).
 // Field names in PascalCase match what the existing table components already expect.
@@ -161,10 +162,11 @@ export const getBannerSeasons = cached(
     () =>
         rows<BannerSeason>(sql`
             select s.year, s.label, s.playoff_status as "playoffStatus",
-                   t.name as team, t.abbreviation, t.logo_url as logo, o.name as owner, t.franchise_id as "franchiseId"
+                   st.name as team, st.abbreviation, st.logo, o.name as owner, st.franchise_id as "franchiseId"
             from league.seasons s
             left join league.season_results r on r.season_year = s.year
-            left join league.team_seasons t on t.id = r.champion_team_season_id
+            left join league.season_teams st on st.team_season_id = r.champion_team_season_id
+            left join league.team_seasons t on t.id = st.team_season_id
             left join league.owners o on o.id = t.owner_id
             order by s.year`),
     'banner-seasons',
@@ -199,13 +201,13 @@ export const getSingleSeasonLeaderboard = cached(async (position: string, page: 
         select ps.player_id as "ID", p.name as "Player", array_to_string(ps.positions, ', ') as "Position",
                ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG", ps.season_year as "Year",
                coalesce(t.abbreviation, 'FA') as "YOFHLTeam", t.franchise_id::text as "TeamID",
-               t.name as "teamName", t.logo_url as "teamLogo",
+               t.name as "teamName", t.logo as "teamLogo",
                (select count(*)::int from league.awards a where a.player_id = ps.player_id and a.season_year = ps.season_year) as awards,
                exists (select 1 from league.championship_rosters c where c.player_id = ps.player_id and c.season_year = ps.season_year) as "Champion",
                count(*) over ()::int as total
         from league.player_seasons ps
         join league.players p on p.id = ps.player_id
-        left join league.team_seasons t on t.id = ps.team_season_id
+        left join league.season_teams t on t.team_season_id = ps.team_season_id
         where ps.fpts > 0
           and (${season}::int is null or ps.season_year = ${season})
           and (${pos}::text is null or ${pos}::text = any(ps.positions))
@@ -231,18 +233,18 @@ export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null
     const [career, playerStats, awards, championships] = await Promise.all([
         rows<{ rank: number; total: number; fpg: number; seasons: number; positions: string[]; team_id: number | null; team_name: string | null; team_logo: string | null; team_abbreviation: string | null }>(sql`
             select pc.all_time_rank as rank, pc.total_fpts::float8 as total, pc.fpg::float8 as fpg, pc.seasons, pc.positions,
-                   t.franchise_id as team_id, t.name as team_name, t.logo_url as team_logo, t.abbreviation as team_abbreviation
+                   t.franchise_id as team_id, t.name as team_name, t.logo as team_logo, t.abbreviation as team_abbreviation
             from league.player_careers pc
-            left join league.team_seasons t on t.id = pc.latest_team_season_id
+            left join league.season_teams t on t.team_season_id = pc.latest_team_season_id
             where pc.player_id = ${id}`),
         rows<PlayerSeason>(sql`
             select ps.season_year as "Year", ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG",
                    array_to_string(ps.positions, ',') as "Position",
                    coalesce(t.abbreviation, 'FA') as "YOFHLTeam", t.franchise_id::text as "TeamID",
-                   t.name as "teamName", t.logo_url as "teamLogo",
+                   t.name as "teamName", t.logo as "teamLogo",
                    exists (select 1 from league.championship_rosters c where c.player_id = ps.player_id and c.season_year = ps.season_year) as "Champion"
             from league.player_seasons ps
-            left join league.team_seasons t on t.id = ps.team_season_id
+            left join league.season_teams t on t.team_season_id = ps.team_season_id
             where ps.player_id = ${id}
             order by ps.season_year`),
         rows<PlayerProfile['awards'][number]>(sql`
@@ -255,7 +257,7 @@ export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null
             select c.season_year as season, t.name as team
             from league.championship_rosters c
             join league.season_results r on r.season_year = c.season_year
-            join league.team_seasons t on t.id = r.champion_team_season_id
+            join league.season_teams t on t.team_season_id = r.champion_team_season_id
             where c.player_id = ${id}
             order by c.season_year`),
     ]);
@@ -293,10 +295,11 @@ export const getArchivedPlayerIds = cached(
 
 export const getChampionRoster = cached(async (year: number): Promise<ChampionRoster | null> => {
     const [season] = await rows<Omit<ChampionRoster, 'rows'>>(sql`
-        select s.year, s.label, t.name as team, t.abbreviation, t.logo_url as logo, o.name as owner
+        select s.year, s.label, st.name as team, st.abbreviation, st.logo, o.name as owner
         from league.seasons s
         join league.season_results r on r.season_year = s.year
-        join league.team_seasons t on t.id = r.champion_team_season_id
+        join league.season_teams st on st.team_season_id = r.champion_team_season_id
+        join league.team_seasons t on t.id = st.team_season_id
         left join league.owners o on o.id = t.owner_id
         where s.year = ${year}`);
     if (!season) return null;
@@ -314,37 +317,31 @@ export const getChampionRoster = cached(async (year: number): Promise<ChampionRo
 export const getFranchiseCards = cached(
     () =>
         rows<FranchiseCard>(sql`
-            select f.id as "ID", coalesce(m.name, t.name) as "Team", t.abbreviation as "Abbreviation", o.name as "Owner",
-                   f.folded_after_season is not null as defunct,
+            select c.id as "ID", c.name as "Team", c.abbreviation as "Abbreviation", o.name as "Owner", c.defunct,
                    fr.wins as "Wins", fr.losses as "Losses", fr.ties as "Ties", fr.fpts_for::float8 as "FPF",
-                   fr.championships, fr.finals, coalesce(m.logo_url, t.logo_url, f.logo_url) as "LogoUrl"
-            from league.franchises f
-            left join league.team_management m on m.franchise_id = f.id
-            join league.franchise_records fr on fr.franchise_id = f.id
-            join lateral (
-                select * from league.team_seasons ts where ts.franchise_id = f.id order by ts.season_year desc limit 1
-            ) t on true
+                   fr.championships, fr.finals, c.logo as "LogoUrl"
+            from league.current_teams c
+            join league.franchise_records fr on fr.franchise_id = c.id
+            left join league.team_seasons t on t.id = c.latest_team_season_id
             left join league.owners o on o.id = t.owner_id
-            order by fr.wins desc`),
+            order by fr.wins desc, c.id`),
     'franchise-cards',
     [leagueTags.franchiseCards],
 );
 
 export const getFranchise = cached(async (id: number): Promise<FranchiseDetail | null> => {
     const [franchise] = await rows<Omit<FranchiseDetail, 'leaders' | 'seasons'>>(sql`
-        select f.id, coalesce(m.name, t.name) as name, t.abbreviation, coalesce(m.logo_url, t.logo_url, f.logo_url) as logo,
+        select c.id, c.name, c.abbreviation, c.logo,
                o.name as owner, f.first_season as "firstSeason", f.folded_after_season as "foldedAfterSeason",
                fr.wins, fr.losses, fr.ties, fr.fpts_for::float8 as "fptsFor", fr.fpts_against::float8 as "fptsAgainst",
                fr.championships, fr.finals,
-               array(select distinct ts.name from league.team_seasons ts where ts.franchise_id = f.id and ts.name <> coalesce(m.name, t.name)) as "formerNames"
-        from league.franchises f
-        left join league.team_management m on m.franchise_id = f.id
-        join league.franchise_records fr on fr.franchise_id = f.id
-        join lateral (
-            select * from league.team_seasons ts where ts.franchise_id = f.id order by ts.season_year desc limit 1
-        ) t on true
+               array(select distinct s.name from league.season_teams s where s.franchise_id = c.id and s.name <> c.name) as "formerNames"
+        from league.current_teams c
+        join league.franchises f on f.id = c.id
+        join league.franchise_records fr on fr.franchise_id = c.id
+        left join league.team_seasons t on t.id = c.latest_team_season_id
         left join league.owners o on o.id = t.owner_id
-        where f.id = ${id}`);
+        where c.id = ${id}`);
     if (!franchise) return null;
     const [leaders, seasons] = await Promise.all([rows<LeaderRow>(sql`
         with stints as (
@@ -365,7 +362,7 @@ export const getFranchise = cached(async (id: number): Promise<FranchiseDetail |
         group by s.player_id, p.name
         order by "FPts" desc, p.name`),
         rows<FranchiseSeason>(sql`
-            select t.season_year as year, t.name, o.name as owner, t.wins, t.losses, t.ties,
+            select t.season_year as year, st.name, o.name as owner, t.wins, t.losses, t.ties,
                    t.fpts_for::float8 as "fptsFor", t.fpts_against::float8 as "fptsAgainst",
                    s.playoff_status as "playoffStatus",
                    (select max(m.round) from league.matchups m
@@ -374,6 +371,7 @@ export const getFranchise = cached(async (id: number): Promise<FranchiseDetail |
                    (select max(m.round) from league.matchups m
                      where m.season_year = t.season_year and m.stage = 'playoff' and m.bracket = 'championship') as "finalRound"
             from league.team_seasons t
+            join league.season_teams st on st.team_season_id = t.id
             join league.seasons s on s.year = t.season_year
             left join league.owners o on o.id = t.owner_id
             where t.franchise_id = ${id}
@@ -387,11 +385,11 @@ export const getAwardWinners = cached(async (name: string) => {
     if (!award) return null;
     const winners = await rows<AwardWinner>(sql`
         select a.season_year as "Year", p.name as "Winner", p.id as "PlayerID", t.name as "Team", t.franchise_id as "TeamID",
-               t.logo_url as "TeamLogo", ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG"
+               t.logo as "TeamLogo", ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG"
         from league.awards a
         join league.award_types at on at.id = a.award_type_id
         join league.players p on p.id = a.player_id
-        left join league.team_seasons t on t.id = a.team_season_id
+        left join league.season_teams t on t.team_season_id = a.team_season_id
         left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = a.season_year
         where at.name = ${name}
         order by a.season_year desc`);
@@ -406,11 +404,12 @@ export const getTeamAwardWinners = cached(async (award: 'jagr-cup' | 'prime-mini
               where other.season_year = t.season_year and other.franchise_id <> t.franchise_id
                 and other.fpts_for >= t.fpts_for)`;
     return rows<AwardWinner>(sql`
-        select t.season_year as "Year", t.name as "Winner", '' as "PlayerID",
-               t.name as "Team", t.franchise_id as "TeamID", o.name as "Owner", t.logo_url as "TeamLogo",
+        select t.season_year as "Year", st.name as "Winner", '' as "PlayerID",
+               st.name as "Team", t.franchise_id as "TeamID", o.name as "Owner", st.logo as "TeamLogo",
                t.fpts_for::float8 as "FPts", null::float8 as "FPG",
                t.wins || '–' || t.losses || case when t.ties > 0 then '–' || t.ties else '' end as "Record"
         from league.team_seasons t
+        join league.season_teams st on st.team_season_id = t.id
         left join league.owners o on o.id = t.owner_id
         where ${criterion}
         order by t.season_year desc`);
@@ -427,12 +426,8 @@ export const searchPlayers = cached(
     'player-search',
 );
 
-export interface StandingRow {
+export interface StandingRow extends SeasonIdentity {
     teamSeasonId: number;
-    franchiseId: number;
-    name: string;
-    abbreviation: string;
-    logo: string | null;
     owner: string | null;
     division: number;
     divisionRank: number;
@@ -443,11 +438,7 @@ export interface StandingRow {
     fptsAgainst: number;
 }
 
-export interface BracketTeam {
-    franchiseId: number;
-    name: string;
-    abbreviation: string;
-    logo: string | null;
+export interface BracketTeam extends SeasonIdentity {
     score: number;
 }
 
@@ -472,11 +463,12 @@ export interface SeasonDetail {
 export const getSeasonDetail = cached(async (year: number): Promise<SeasonDetail> => {
     const [standings, games] = await Promise.all([
         rows<StandingRow>(sql`
-            select t.id as "teamSeasonId", t.franchise_id as "franchiseId", t.name, t.abbreviation,
-                   t.logo_url as logo, o.name as owner,
+            select t.id as "teamSeasonId", t.franchise_id as "franchiseId", st.name, st.abbreviation,
+                   st.logo, o.name as owner,
                    t.division, t.division_rank as "divisionRank", t.wins, t.losses, t.ties,
                    t.fpts_for::float8 as "fptsFor", t.fpts_against::float8 as "fptsAgainst"
             from league.team_seasons t
+            join league.season_teams st on st.team_season_id = t.id
             left join league.owners o on o.id = t.owner_id
             where t.season_year = ${year}
             order by t.division, t.division_rank, t.wins desc, t.fpts_for desc`),
@@ -488,11 +480,11 @@ export const getSeasonDetail = cached(async (year: number): Promise<SeasonDetail
         }>(sql`
             select m.id, m.round, m.bracket, m.slot, m.score_adjusted,
                    nullif(concat_ws(' · ', m.note, o.note), '') as note, w.franchise_id as winner,
-                   a.franchise_id as a_id, a.name as a_name, a.abbreviation as a_abbr, a.logo_url as a_logo, m.away_score::float8 as a_score,
-                   h.franchise_id as h_id, h.name as h_name, h.abbreviation as h_abbr, h.logo_url as h_logo, m.home_score::float8 as h_score
+                   a.franchise_id as a_id, a.name as a_name, a.abbreviation as a_abbr, a.logo as a_logo, m.away_score::float8 as a_score,
+                   h.franchise_id as h_id, h.name as h_name, h.abbreviation as h_abbr, h.logo as h_logo, m.home_score::float8 as h_score
             from league.matchups m
-            join league.team_seasons a on a.id = m.away_team_season_id
-            join league.team_seasons h on h.id = m.home_team_season_id
+            join league.season_teams a on a.team_season_id = m.away_team_season_id
+            join league.season_teams h on h.team_season_id = m.home_team_season_id
             left join league.team_seasons w on w.id = m.winner_team_season_id
             left join league.matchup_overrides o
                    on o.season_year = m.season_year and o.round = m.round

@@ -16,8 +16,8 @@ export const getRivalryData = cached(async () => {
                    m.away_score::float8 as "awayScore", m.home_score::float8 as "homeScore", w.franchise_id as winner,
                    m.score_adjusted as adjusted, nullif(concat_ws(' · ', m.note, o.note), '') as note
             from league.matchups m
-            join league.team_seasons a on a.id = m.away_team_season_id
-            join league.team_seasons h on h.id = m.home_team_season_id
+            join league.season_teams a on a.team_season_id = m.away_team_season_id
+            join league.season_teams h on h.team_season_id = m.home_team_season_id
             left join league.team_seasons w on w.id = m.winner_team_season_id
             left join league.matchup_overrides o on o.season_year = m.season_year and o.round = m.round
                 and o.franchise_a = least(a.franchise_id, h.franchise_id) and o.franchise_b = greatest(a.franchise_id, h.franchise_id)

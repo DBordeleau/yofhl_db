@@ -1,22 +1,41 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
+import { drizzle } from 'drizzle-orm/pglite';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
 import { archiveCompletedQuery, cancelQuery, drawQuery, editQuery, lotteryLogosQuery, publicLotteryQuery } from './queries';
 import { publicLottery, type LotteryEntry, type LotteryRecord } from './model';
 
-test('database enforces one draw, edit/cancel deadlines, stale version protection and one current event', async () => {
-    // In-memory Postgres: these tests never connect to the league database.
+// In-memory Postgres built from the real migrations: these tests never connect to the league database.
+async function leagueDatabase() {
     const db = new PGlite();
+    await migrate(drizzle(db), { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
+    return db;
+}
+
+// Franchises as [id, logo], and team seasons as [franchise, season, logo].
+async function seedTeams(db: PGlite, franchises: [number, string | null][], seasons: [number, number, string | null][] = []) {
+    await db.exec('insert into league.seasons values (2025, \'2024-25\', \'complete\'), (2026, \'2025-26\', \'complete\')');
+    for (const [id, logo] of franchises) {
+        await db.query('insert into league.franchises (id, display_name, logo_url, first_season) values ($1, $2, $3, 2025)', [id, `Franchise ${id}`, logo]);
+    }
+    for (const [franchise, year, logo] of seasons) {
+        await db.query(`insert into league.team_seasons (season_year, franchise_id, name, fantrax_name, abbreviation, logo_url,
+            division, division_rank, wins, losses, ties, fpts_for, fpts_against) values ($1, $2, $3, $3, $4, $5, 1, 1, 0, 0, 0, 0, 0)`,
+            [year, franchise, `Team ${franchise}`, `T${franchise}`, logo]);
+    }
+}
+
+test('database enforces one draw, edit/cancel deadlines, stale version protection and one current event', async () => {
+    const db = await leagueDatabase();
     const dialect = new PgDialect();
     const run = (query: SQL) => { const { sql, params } = dialect.sqlToQuery(query); return db.query(sql, params); };
     const id = '00000000-0000-4000-8000-000000000001';
     const entries: LotteryEntry[] = [40, 30, 20, 10, null].map((odds, i) => ({ id: i + 1, name: `Team ${i}`, abbreviation: `T${i}`, logo: null, odds }));
     try {
-        await db.exec('create schema league; create table league.franchises (id integer primary key); insert into league.franchises values (1),(2),(3),(4),(5);');
-        await db.exec(readFileSync('db/migrations/0003_draft_lotteries.sql', 'utf8'));
+        await seedTeams(db, [1, 2, 3, 4, 5].map(id => [id, null]));
         await db.query(`insert into league.draft_lotteries (id,title,starts_at,entries) values ($1,'Test',clock_timestamp()+interval '1 hour',$2::jsonb)`, [id, JSON.stringify(entries)]);
         assert.equal((await run(drawQuery(id, 1, 2))).rows.length, 0, 'cannot draw early');
         await assert.rejects(db.query(`insert into league.draft_lotteries (title,starts_at,entries) values ('Duplicate',now(),$1::jsonb)`, [JSON.stringify(entries)]), /unique/);
@@ -50,20 +69,16 @@ test('database enforces one draw, edit/cancel deadlines, stale version protectio
 });
 
 test('lottery logos match team pages and repair saved snapshots without changing the draw', async () => {
-    const db = new PGlite();
+    const db = await leagueDatabase();
     try {
-        await db.exec(`create schema league;
-            create table league.franchises (id integer primary key, logo_url text);
-            create table league.team_management (franchise_id integer primary key, logo_url text);
-            create table league.team_seasons (franchise_id integer, season_year integer, logo_url text);
-            insert into league.franchises values (1, '/franchise.png'), (2, '/fallback.png'), (3, null), (4, null);
-            insert into league.team_seasons values (1, 2025, '/old.png'), (1, 2026, '/current.png'), (2, 2026, null);`);
+        await seedTeams(db, [[1, '/franchise.png'], [2, '/fallback.png'], [3, null], [4, null]],
+            [[1, 2025, '/old.png'], [1, 2026, '/current.png'], [2, 2026, null]]);
         const entries: LotteryEntry[] = [1, 2, 3, 4, 5].map((id) => ({ id, name: `Saved team ${id}`, abbreviation: `T${id}`, logo: id >= 3 && id !== 4 ? '/saved.png' : null, odds: id <= 4 ? 25 : null }));
         const { sql: query, params } = new PgDialect().sqlToQuery(lotteryLogosQuery(entries));
         const result = (await db.query<LotteryEntry>(query, params)).rows;
         assert.deepEqual(result, entries.map((entry, index) => ({ ...entry, logo: ['/current.png', '/fallback.png', '/saved.png', null, '/saved.png'][index] })));
         assert.equal(entries[0].logo, null, 'saved entries are not mutated');
-        await db.exec("insert into league.team_management values (1, '/owner.webp')");
+        await db.exec("insert into league.team_management (franchise_id, logo_url) values (1, '/owner.webp')");
         const updated = (await db.query<LotteryEntry>(query, params)).rows;
         assert.equal(updated[0].logo, '/owner.webp');
         assert.equal(updated[0].name, entries[0].name, 'saved event names are preserved');
@@ -71,7 +86,7 @@ test('lottery logos match team pages and repair saved snapshots without changing
 });
 
 test('public read returns event, artwork and database clock together, including empty and cancelled events', async t => {
-    const db = new PGlite();
+    const db = await leagueDatabase();
     const originalUrl = process.env.DATABASE_URL_V2;
     process.env.DATABASE_URL_V2 = 'postgresql://test:test@localhost/test';
     const { getDb } = await import('../data/db');
@@ -93,14 +108,8 @@ test('public read returns event, artwork and database clock together, including 
     const id = '00000000-0000-4000-8000-000000000001';
     const entries: LotteryEntry[] = [2, 1].map(id => ({ id, name: `Saved ${id}`, abbreviation: `T${id}`, odds: 50, logo: null }));
     try {
-        await db.exec(`create schema league;
-            create table league.franchises (id integer primary key, logo_url text);
-            create table league.team_management (franchise_id integer primary key, logo_url text);
-            create table league.team_seasons (franchise_id integer, season_year integer, logo_url text);
-            insert into league.franchises values (1, '/fallback.png'), (2, null);
-            insert into league.team_seasons values (2, 2025, '/old.png'), (2, 2026, '/latest.png');
-            insert into league.team_management values (1, '/owner.webp');`);
-        await db.exec(readFileSync('db/migrations/0003_draft_lotteries.sql', 'utf8'));
+        await seedTeams(db, [[1, '/fallback.png'], [2, null]], [[2, 2025, '/old.png'], [2, 2026, '/latest.png']]);
+        await db.exec("insert into league.team_management (franchise_id, logo_url) values (1, '/owner.webp')");
         const empty = await read();
         assert.equal(empty.record, null);
         assert.ok(Number.isFinite(new Date(empty.now).getTime()));
