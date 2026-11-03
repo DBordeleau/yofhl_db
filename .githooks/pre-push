@@ -1,0 +1,3 @@
+#!/bin/sh
+# Rejects pushes of branches not named <type>/<issue>-<slug>. Enabled by `npm install` (core.hooksPath).
+exec node "$(git rev-parse --show-toplevel)/scripts/git/branch-name.mjs"

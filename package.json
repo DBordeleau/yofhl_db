@@ -8,6 +8,8 @@
     "coachs:stats": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/coachs-corner/production.ts stats",
     "coachs:check": "node --import tsx scripts/coachs-corner/production.ts check",
     "coachs:verify-summaries": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/coachs-corner/verify-summaries.ts",
+    "prepare": "git config core.hooksPath .githooks || exit 0",
+    "test:hooks": "node --test scripts/git/*.test.mjs",
     "test:coachs": "node --import tsx --test lib/coachs-corner/*.test.ts lib/coachs-corner/production/*.test.ts lib/data/coachs-corner.test.ts",
     "dev": "next dev --port 3000",
     "build": "next build",

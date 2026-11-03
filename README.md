@@ -131,7 +131,7 @@ The browsing feature requires **$0 in additional hosting services**: no new depe
 
 ## Deployment
 
-The GitHub repository is connected to the Vercel project `yofhl-db`. Its production branch is `master`. Branch pushes create preview deployments; updates to `master` deploy the production site.
+The GitHub repository is connected to the Vercel project `yofhl-db`. Its production branch is `master`. Branch pushes create preview deployments; updates to `master` deploy the production site. Pushed branches are named `<type>/<issue>-<slug>` (`feat/42-electrum-wallet-detection`; types `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`). `npm install` turns on the pre-push hook in `.githooks/` that rejects any other name, so `master` only changes through merged pull requests.
 
 Configure the [environment variables](docs/data.md#environment) for each Vercel environment. Preview and production deployments use whichever database their variables identify. A preview pointed at the production database can write production data through admin actions or a lottery request after its start time.
 
