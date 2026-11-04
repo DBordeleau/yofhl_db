@@ -64,7 +64,7 @@ Open [localhost:3000](http://localhost:3000). For a new database, follow the [se
 
 Owners can open the [brand studio](docs/team-branding.md) from **Manage Team** to save their three team colours and banner style. Commissioners can open each team's studio from `/admin/teams`.
 
-The web app uses Neon's HTTP driver. PGlite is supported by the database scripts and tests only; the web app cannot run against a `pglite:` URL. Use a separate Neon database or branch when testing admin writes or lottery scheduling.
+The web app uses Neon's HTTP driver. PGlite is supported by the database scripts and tests only; the web app cannot run against a `pglite:` URL. Use a separate Neon database or branch when testing curated edits or lottery scheduling.
 
 ## Check changes
 
