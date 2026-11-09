@@ -6,6 +6,7 @@ import { seasonLabel } from '@/lib/seasons';
 import { connect, refreshViews, type Db } from './lib/connect';
 import { prepareHistory, writeHistory } from './lib/history';
 import { enrichDraftDevelopment } from './lib/draft-development';
+import { prepareFantraxTeams, writeFantraxTeams } from './lib/fantrax-teams';
 import { parsePlayerStats, parsePlayoffs, parseStandings, type PlayerStatRow, type StandingRow } from './lib/fantrax';
 import {
     eraFor,
@@ -437,6 +438,9 @@ const main = async () => {
             const season = prepareSeason(config, files, errors, matchupOverrides);
             if (season) prepared.push(season);
         }
+        // every season's Fantrax IDs, including a live season with no CSVs yet
+        const fantraxTeams = prepareFantraxTeams(config);
+        errors.push(...fantraxTeams.errors);
         if (errors.length) {
             const unique = Array.from(new Set(errors));
             console.error(`Import stopped, nothing was written. Fix these and run it again:\n\n${unique.map((e) => `  • ${e}`).join('\n')}\n`);
@@ -447,6 +451,7 @@ const main = async () => {
         await enrichDraftDevelopment(db, history.picks);
         console.log(`Importing ${years.map(seasonLabel).join(', ')} into ${label}`);
         await writeLeague(db, config);
+        await writeFantraxTeams(db, fantraxTeams.rows);
 
         // players on a ring or award list must survive even with 0 points as a free agent
         const keep = new Set<string>();
