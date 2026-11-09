@@ -11,7 +11,7 @@ export async function ownedKeeperTeam(uid: string) {
 export async function getKeeperSubmission(franchiseId: number) {
     return (await rows<KeeperSubmission>(keeperSubmissionQuery(franchiseId)))[0] ?? null;
 }
-export async function getKeeperRoster(franchiseId: number, fresh = false) {
+export async function getKeeperRoster(franchiseId: number, fresh: boolean) {
     const live = await getLiveSeason({ now: Date.now(), fresh });
     if (live.status === 'unavailable') throw new Error('Your Fantrax roster is unavailable. Try again before submitting.');
     if (live.value.seasonYear !== KEEPER_SEASON) throw new Error('The Fantrax league does not match this keeper season. Contact the admin.');

@@ -14,8 +14,9 @@ export async function GET() {
     let keepers = null;
     if (KEEPERS_ENABLED && team && keepersOpen()) {
         const submission = await getKeeperSubmission(team.id);
-        // An API outage must not make an existing submission look missing.
-        const current = submission ? await getKeeperRoster(team.id).catch(() => null) : null;
+        // An API outage must not make an existing submission look missing. Only the submission status is reported,
+        // so the cached live season is enough.
+        const current = submission ? await getKeeperRoster(team.id, false).catch(() => null) : null;
         const newerRoster = current && submission && Date.parse(current.fetchedAt) > Date.parse(submission.submittedAt) ? current.roster : undefined;
         keepers = { status: submissionStatus(submission, newerRoster), serverNow: new Date().toISOString() };
     }
