@@ -10,6 +10,7 @@
     "coachs:check": "node --import tsx scripts/coachs-corner/production.ts check",
     "coachs:verify-summaries": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/coachs-corner/verify-summaries.ts",
     "prepare": "git config core.hooksPath .githooks || exit 0",
+    "test": "node --import tsx --test \"lib/**/*.test.ts\" \"scripts/**/*.test.ts\" \"scripts/git/*.test.mjs\"",
     "test:hooks": "node --test scripts/git/*.test.mjs",
     "test:coachs": "node --import tsx --test lib/coachs-corner/*.test.ts lib/coachs-corner/production/*.test.ts lib/data/coachs-corner.test.ts",
     "dev": "next dev --port 3000",
