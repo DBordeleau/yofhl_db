@@ -45,7 +45,9 @@ test('refresh publishes a coherent snapshot, preserves unrelated caches and reta
         switch (url.pathname.split('/').pop()) {
             case 'getLeagueInfo': return Response.json({ seasonYear: 2026, teamInfo: { a: { name: 'A' }, b: { name: 'B' } }, rosterPeriods: [],
                 playoffs: { numPlayoffTeams: 2, lastRegularSeasonPeriod: 1 },
-                scoringPeriods: [{ number: 1, startDate: '2026-10-12T13:00:00-0400', endDate: '2026-10-19T18:59:59-0400' }],
+                // Weeks 2–4 are the league's three playoff rounds, which leaves week 1 in the regular season.
+                scoringPeriods: [{ number: 1, startDate: '2026-10-12T13:00:00-0400', endDate: '2026-10-19T18:59:59-0400' },
+                    ...[2, 3, 4].map(number => ({ number, startDate: `2026-11-0${number}T13:00:00-0400`, endDate: `2026-11-0${number}T18:59:59-0400` }))],
                 matchups: [{ period: 1, matchupList: [{ away: { id: 'a' }, home: { id: 'b' } }] }] });
             case 'getTeamRosters': return Response.json({ period: 1, rosters: {} });
             case 'getStandings': return Response.json([{ teamId: 'a', rank: 1, points: settled ? '1-0-0' : '0-0-0' }, { teamId: 'b', rank: 2, points: settled ? '0-1-0' : '0-0-0' }]);

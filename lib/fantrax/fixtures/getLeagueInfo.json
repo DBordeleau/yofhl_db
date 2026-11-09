@@ -1,0 +1,32 @@
+{
+  "seasonYear": 2026,
+  "teamInfo": {
+    "aaaa1111live0001": { "name": "Paddyville Lucifers", "id": "aaaa1111live0001" },
+    "bbbb2222live0002": { "name": "New Purrsey Devils", "id": "bbbb2222live0002" },
+    "cccc3333live0003": { "name": "Retro Phenoms", "id": "cccc3333live0003" },
+    "dddd4444live0004": { "name": "Expansion Hopefuls", "id": "dddd4444live0004" }
+  },
+  "scoringPeriods": [
+    { "number": 2, "startDate": "2026-10-19T13:00:00-0400", "endDate": "2026-10-26T03:59:59-0400" },
+    { "number": 1, "startDate": "2026-10-07T13:00:00-0400", "endDate": "2026-10-19T03:59:59-0400" },
+    { "number": 3, "startDate": "2026-10-26T13:00:00-0400", "endDate": "2026-11-02T03:59:59-0500" }
+  ],
+  "rosterPeriods": [
+    { "number": 14, "startDate": "2026-10-20T00:00:00-0400", "endDate": "2026-10-20T23:59:59-0400" },
+    { "number": 15, "startDate": "2026-10-21T00:00:00-0400", "endDate": "2026-10-21T23:59:59-0400" }
+  ],
+  "matchups": [
+    { "period": 1, "matchupList": [
+      { "away": { "name": "Paddyville Lucifers", "id": "aaaa1111live0001" }, "home": { "name": "New Purrsey Devils", "id": "bbbb2222live0002" } },
+      { "away": { "name": "Retro Phenoms", "id": "cccc3333live0003" }, "home": { "name": "Expansion Hopefuls", "id": "dddd4444live0004" } }
+    ] },
+    { "period": 2, "matchupList": [
+      { "away": { "name": "Paddyville Lucifers", "id": "aaaa1111live0001" }, "home": { "name": "Retro Phenoms", "id": "cccc3333live0003" } },
+      { "away": { "name": "New Purrsey Devils", "id": "bbbb2222live0002" }, "home": { "name": "Expansion Hopefuls", "id": "dddd4444live0004" } }
+    ] },
+    { "period": 3, "matchupList": [
+      { "away": { "TBD": true }, "home": { "TBD": true } }
+    ] }
+  ],
+  "playoffs": { "numPlayoffTeams": 4, "lastRegularSeasonPeriod": 22, "firstPlayoffPeriod": 23 }
+}

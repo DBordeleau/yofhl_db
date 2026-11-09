@@ -1,5 +1,8 @@
 import { fantraxSeasonName } from './season';
 
+export type Fetcher = (input: string, init?: RequestInit) => Promise<Response>;
+const globalFetch: Fetcher = (input, init) => fetch(input, init);
+
 interface StatsPage {
     displayedStatusOrTeam: string;
     displayedPosOrGroup: string;
@@ -18,12 +21,12 @@ interface StatsPage {
 }
 
 // shortcut: Fantrax's website stats endpoint is undocumented; replace it when a supported player-stats API is available.
-async function loadStatsTable(leagueId: string, seasonYear: number, roster = false, seasonCode?: string) {
+async function loadStatsTable(leagueId: string, seasonYear: number, roster = false, seasonCode?: string, fetcher = globalFetch) {
     const filter = roster ? 'ALL_TAKEN' : 'ALL';
     // shortcut: one page covers this league; add pagination if rosters ever exceed 1,000 players.
     const limit = roster ? 1000 : 10;
     async function request(season?: string): Promise<StatsPage> {
-        const response = await fetch(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
+        const response = await fetcher(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(12000),
             body: JSON.stringify({ msgs: [{ method: 'getPlayerStats', data: {
                 leagueId, view: 'STATS', statusOrTeamFilter: filter, positionOrGroup: 'ALL', sortType: 'SCORE', sortReversed: false,
@@ -62,12 +65,12 @@ function numericStat(value: string | undefined) {
     return number;
 }
 
-export async function discoverScoringSeason(leagueId: string, seasonYear: number) {
-    return (await loadStatsTable(leagueId, seasonYear)).displayedSeasonOrProjection.code;
+export async function discoverScoringSeason(leagueId: string, seasonYear: number, fetcher = globalFetch) {
+    return (await loadStatsTable(leagueId, seasonYear, false, undefined, fetcher)).displayedSeasonOrProjection.code;
 }
 
-export async function loadScoringLeaders(leagueId: string, seasonYear: number, seasonCode?: string) {
-    const data = await loadStatsTable(leagueId, seasonYear, false, seasonCode);
+export async function loadScoringLeaders(leagueId: string, seasonYear: number, seasonCode?: string, fetcher = globalFetch) {
+    const data = await loadStatsTable(leagueId, seasonYear, false, seasonCode, fetcher);
     const pointsColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fpts');
     const perGameColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fptsPerGame');
     const teamColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'status');
@@ -88,8 +91,8 @@ export async function loadScoringLeaders(leagueId: string, seasonYear: number, s
     }).filter(player => player.points > 0).sort((a, b) => b.points - a.points);
 }
 
-export async function loadRosterStats(leagueId: string, seasonYear: number, seasonCode?: string) {
-    const data = await loadStatsTable(leagueId, seasonYear, true, seasonCode);
+export async function loadRosterStats(leagueId: string, seasonYear: number, seasonCode?: string, fetcher = globalFetch) {
+    const data = await loadStatsTable(leagueId, seasonYear, true, seasonCode, fetcher);
     const pointsColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fpts');
     const perGameColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fptsPerGame');
     if (pointsColumn < 0 || perGameColumn < 0) throw new Error('Fantrax roster scoring columns are missing');

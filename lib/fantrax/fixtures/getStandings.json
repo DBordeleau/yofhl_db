@@ -1,0 +1,6 @@
+[
+  { "teamId": "bbbb2222live0002", "teamName": "New Purrsey Devils", "rank": 1, "points": "2-0-0", "winPercentage": 1, "gamesBack": 0, "totalPointsFor": 612.5 },
+  { "teamId": "aaaa1111live0001", "teamName": "Paddyville Lucifers", "rank": 2, "points": "1-1-0", "winPercentage": 0.5, "gamesBack": 1, "totalPointsFor": 590.25 },
+  { "teamId": "dddd4444live0004", "teamName": "Expansion Hopefuls", "rank": 3, "points": "1-1-0", "winPercentage": 0.5, "gamesBack": 1, "totalPointsFor": 540 },
+  { "teamId": "cccc3333live0003", "teamName": "Retro Phenoms", "rank": 4, "points": "0-2-0", "winPercentage": 0, "gamesBack": 2, "totalPointsFor": 501.75 }
+]
