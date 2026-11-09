@@ -1,49 +1,12 @@
 import assert from 'node:assert/strict';
-import { AsyncLocalStorage } from 'node:async_hooks';
 import test from 'node:test';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { migrate } from 'drizzle-orm/pglite/migrator';
-import { sql, type SQL } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
+import { disposableLeague } from '../testing/disposable-league';
 import { LEAGUE_TAG } from './cache-tags';
 import { AWARDS, awardHref } from '../awards';
 
 test('curated edits expire exactly the cached readers that show their data', async t => {
-    const client = new PGlite();
-    const db = drizzle(client);
-    const originalUrl = process.env.DATABASE_URL_V2;
-    const originalMode = process.env.NODE_ENV;
-    // Next normally installs these globals. Use its real unstable_cache with a local
-    // cache backend, and execute every SQL query against disposable in-memory Postgres.
-    const globals = ['AsyncLocalStorage', '__incrementalCache'] as const;
-    const descriptors = globals.map(key => Object.getOwnPropertyDescriptor(globalThis, key));
-    t.after(async () => {
-        t.mock.restoreAll();
-        await client.close();
-        if (originalUrl === undefined) delete process.env.DATABASE_URL_V2; else process.env.DATABASE_URL_V2 = originalUrl;
-        if (originalMode === undefined) Reflect.deleteProperty(process.env, 'NODE_ENV'); else Object.assign(process.env, { NODE_ENV: originalMode });
-        globals.forEach((key, i) => { if (descriptors[i]) Object.defineProperty(globalThis, key, descriptors[i]!); else Reflect.deleteProperty(globalThis, key); });
-    });
-    process.env.DATABASE_URL_V2 = 'postgresql://test:test@localhost/test';
-    Object.assign(process.env, { NODE_ENV: 'test' });
-    Object.defineProperty(globalThis, 'AsyncLocalStorage', { value: AsyncLocalStorage, configurable: true });
-    const entries = new Map<string, { value: unknown; tags: string[] }>();
-    Object.defineProperty(globalThis, '__incrementalCache', { configurable: true, value: {
-        generateSimpleCacheKey: async (key: string) => key,
-        get: async (key: string) => entries.get(key) ?? null,
-        set: async (key: string, value: unknown, options: { tags: string[] }) => { entries.set(key, { value, tags: options.tags }); },
-    } });
-    // The curated edits' injected invalidator: expire every cached entry carrying the tag.
-    const invalidate = (tag: string) => {
-        for (const [key, entry] of entries) if (entry.tags.includes(tag)) entries.delete(key);
-    };
-    const cache = { invalidate };
-    const runtime = await import('./db');
-    let queries = 0;
-    t.mock.method(runtime.getDb(), 'execute', (query: SQL) => { queries++; return db.execute(query); });
-    t.mock.method(globalThis, 'fetch', async () => { throw new Error('Tests must not access the network'); });
-    await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
-    await client.exec(`
+    const testLeague = await disposableLeague(t, { app: true, nextCache: true, seed: `
         insert into league.seasons values (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete');
         insert into league.franchises (id, display_name, first_season) values (1, 'One', 2025), (2, 'Two', 2025);
         insert into league.team_seasons (id, season_year, franchise_id, name, fantrax_name, abbreviation, division, division_rank, wins, losses, ties, fpts_for, fpts_against)
@@ -58,10 +21,11 @@ test('curated edits expire exactly the cached readers that show their data', asy
         insert into league.awards values (2026,1,'p1',3);
         insert into league.matchups (season_year,stage,round,bracket,slot,away_team_season_id,home_team_season_id,away_score,home_score,winner_team_season_id)
         values (2025,'playoff',1,'championship',1,1,2,100,90,1), (2026,'playoff',1,'championship',1,3,4,100,90,3);
-        refresh materialized view league.season_results;
-        refresh materialized view league.player_careers;
-        refresh materialized view league.franchise_records;
-    `);
+    ` });
+    const { client, db } = testLeague;
+    // The curated edits' injected invalidator.
+    const invalidate = (tag: string) => testLeague.expire(tag);
+    const cache = { invalidate };
     const league = await import('./league');
     const history = await import('./history');
     const { getRivalryData } = await import('./rivalries');
@@ -89,22 +53,22 @@ test('curated edits expire exactly the cached readers that show their data', asy
     const expectMisses = async (expected: string[]) => {
         const misses = [];
         for (const [name, read] of Object.entries(readers)) {
-            const before = queries;
+            const before = testLeague.queries();
             await read();
-            if (queries > before) misses.push(name);
+            if (testLeague.queries() > before) misses.push(name);
         }
         assert.deepEqual(misses.sort(), [...expected].sort());
     };
     const edits = await import('./curated-edits');
     const saved = <T extends { ok: boolean }>(result: T) => { assert.ok(result.ok, JSON.stringify(result)); return result; };
-    const beforeEmptySearch = queries;
+    const beforeEmptySearch = testLeague.queries();
     await searchPublicDirectory({ q: '---', type: 'all', page: 1 });
-    assert.equal(queries, beforeEmptySearch, 'empty or punctuation-only search never wakes the database');
+    assert.equal(testLeague.queries(), beforeEmptySearch, 'empty or punctuation-only search never wakes the database');
     await expectMisses(Object.keys(readers));
     await expectMisses([]);
-    const beforeQueries = queries;
+    const beforeQueries = testLeague.queries();
     for (const q of ['Player', 'Team', '2026', 'unmatched query']) await searchPublicDirectory({ q, type: 'all', page: 1 });
-    assert.equal(queries, beforeQueries, 'different searches reuse a single cached directory');
+    assert.equal(testLeague.queries(), beforeQueries, 'different searches reuse a single cached directory');
 
     saved(await edits.saveRoster(2026, ['p2'], cache));
     await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'careers', 'player1', 'player2', 'franchise1', 'franchise2', 'discovery']);
