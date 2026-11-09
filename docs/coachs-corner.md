@@ -174,7 +174,7 @@ That's all. The new wardrobe gets every action, the aliases, the editor help and
 
 ### Lapel poppy
 
-`lapel: poppy` in the front matter pins a Remembrance poppy over both hosts' hearts, on the wearer's left lapel, for the whole episode, including the title card. It works with every suit and needs no gesture changes. The poppy is drawn in `components/coachs-corner/artwork.tsx` and placed per pose by `lapelFor` in `lib/coachs-corner/cast.ts`; it slides with Don between poses and is hidden while his hand covers that lapel in `mic`. Leave the key out once the Remembrance episodes are done. Spots are keyed by the normal pose, and every wardrobe shares them. A new action needs its own spot in cast's `LAPEL_SPOTS` if its lapel moves.
+`lapel: poppy` in the front matter pins a Remembrance poppy over both hosts' hearts, on the wearer's left lapel, for the whole episode, including the title card. It works with every wardrobe and needs no gesture changes. The poppy is drawn in `components/coachs-corner/artwork.tsx` and placed per pose by `lapelFor` in `lib/coachs-corner/cast.ts`; it slides with Don between poses and is hidden while his hand covers that lapel in `mic`. Leave the key out once the Remembrance episodes are done. Spots are keyed by the normal pose, and every wardrobe shares them. A new action needs its own spot in cast's `LAPEL_SPOTS` if its lapel moves.
 
 ### Camera and sound
 

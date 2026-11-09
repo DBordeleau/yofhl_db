@@ -5,7 +5,7 @@ import test from 'node:test';
 
 // ADR 0002: cast is the only code that names host art. Everything else asks it by host and gesture,
 // so a new wardrobe never needs a regex widened or a table copied somewhere else.
-const ROOTS = ['app', 'components', 'lib', 'scripts'];
+const ROOTS = ['app', 'assets', 'components', 'lib', 'scripts'];
 const CAST = path.join('lib', 'coachs-corner', 'cast.ts');
 const GOLDENS = path.join('lib', 'coachs-corner', 'goldens');
 // a deploy checker, not runtime code: it fetches the published art at literal URLs

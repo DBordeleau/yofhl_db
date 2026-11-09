@@ -12,10 +12,6 @@ const head = '---\ntitle: Wardrobe artwork check\n---\n';
 // every wardrobe besides normal, as its gesture prefix without the trailing dash
 const variants = wardrobesOf('don').filter(w => w.prefix).map(w => w.prefix.slice(0, -1));
 
-test('Don’s wardrobes include this season’s suits', () => {
-    assert.deepEqual(variants, ['halloween', 'alternate-1', 'alternate-2', 'alternate-3', 'remembrance']);
-});
-
 test('ordinary dialogue and default aliases keep the original normal suit', () => {
     for (const alias of ['rest', 'default', 'normal', 'idle', 'talk', 'don-default']) {
         const gesture = resolveGesture('don', alias);

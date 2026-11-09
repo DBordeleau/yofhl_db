@@ -39,10 +39,10 @@ const deskArmMasks = {
     '.52,.80 .65,.81 .80,.77 1,.70 1,1 .43,1 .40,.94 .405,.91 .44,.86 .48,.83'
   ]
 };
+// Keyed by each host's normal art suffix, so every wardrobe's matching pose (don-<prefix>point) shares its mask.
 const deskPoseMasks = {
-  'don-point': 'point', 'don-point-talk': 'point',
-  'don-thumbs-up': 'thumbs', 'don-thumbs-up-talk': 'thumbs',
-  'don-tie-adjust': 'tie', 'don-mic-remove': 'mic', 'ron-warning': 'warning'
+  don: { point: 'point', 'point-talk': 'point', 'thumbs-up': 'thumbs', 'thumbs-up-talk': 'thumbs', 'tie-adjust': 'tie', 'mic-remove': 'mic' },
+  ron: { warning: 'warning' }
 };
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const maskSvg = document.createElementNS(svgNamespace, 'svg');
@@ -67,7 +67,7 @@ function updateDeskPose(host, id) {
   const foreground = document.getElementById(host + 'Foreground');
   const actor = foreground.parentElement;
   foreground.src = id + '.webp';
-  const mask = deskPoseMasks[id.replace(/^don-(?:halloween|remembrance|alternate-[123])-/, 'don-')];
+  const mask = Object.entries(deskPoseMasks[host]).find(([suffix]) => id.endsWith('-' + suffix))?.[1];
   actor.style.setProperty('--hand-mask', mask ? 'url(#desk-arms-' + mask + ')' : 'inset(65% 0 0)');
   actor.style.setProperty('--contact-left', mask === 'tie' || mask === 'warning' ? '43%' : '4%');
   actor.style.setProperty('--contact-width', mask ? '53%' : '92%');

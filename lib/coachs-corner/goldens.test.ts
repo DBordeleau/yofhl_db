@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { CHARACTERS, poseOf } from './cast';
 import { comparableTimeline } from './golden-timeline';
 import { parseScript } from './script';
 import { compile } from './timeline';
@@ -18,5 +19,7 @@ test('the golden set covers the pilot and this season’s published episodes', (
 
 for (const file of goldens) test(`${file} compiles exactly as it shipped`, () => {
     const golden = JSON.parse(readFileSync(path.join(DIR, file), 'utf8'));
-    assert.deepEqual(comparableTimeline(compile(parseScript(golden.script))), comparableTimeline(golden.timeline));
+    const timeline = compile(parseScript(golden.script));
+    assert.deepEqual(comparableTimeline(timeline), comparableTimeline(golden.timeline));
+    for (const who of CHARACTERS) for (const pose of timeline.art[who]) assert.equal(poseOf(pose)?.host, who, `${pose} is filed under ${who}`);
 });

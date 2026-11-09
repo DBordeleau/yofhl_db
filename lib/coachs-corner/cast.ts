@@ -197,9 +197,9 @@ export const gestureAfter = (who: CharacterId, gesture: string) => CAST[who].ges
 
 /** a gesture's pose with the mouth open or shut; an unknown gesture shows the normal rest */
 export const artFor = (host: CharacterId, gesture: string, { wardrobe = 'normal', mouth }: { wardrobe?: string; mouth: Mouth }): Pose => {
-    const outfit = wardrobesOf(host).find(w => w.id === wardrobe);
-    if (!outfit) throw new Error(`${CAST[host].name} has no ${wardrobe} wardrobe`);
-    const g = CAST[host].gestures[outfit.prefix + gesture] ?? CAST[host].gestures.rest;
+    const match = wardrobesOf(host).find(w => w.id === wardrobe);
+    if (!match) throw new Error(`${CAST[host].name} has no ${wardrobe} wardrobe`);
+    const g = CAST[host].gestures[match.prefix + gesture] ?? CAST[host].gestures.rest;
     return (mouth === 'open' ? g.open ?? g.closed : g.closed ?? g.open)!;
 };
 
@@ -225,7 +225,7 @@ export const mouthClipFor = (host: CharacterId, pose: Pose): string | undefined 
 export const lapelFor = (host: CharacterId, pose: Pose): LapelSpot | null => {
     const { usual, poses } = LAPEL_SPOTS[host];
     const info = POSES.get(pose);
-    return info && info.suffix in poses ? poses[info.suffix] : usual;
+    return info?.host === host && info.suffix in poses ? poses[info.suffix] : usual;
 };
 
 export const allArt = (who: CharacterId) =>
