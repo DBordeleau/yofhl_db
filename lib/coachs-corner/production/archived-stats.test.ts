@@ -1,33 +1,26 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
 import type { SQL } from 'drizzle-orm';
 import { captureArchivedStats } from './archived-stats';
 import { parseFactPacket, referencePacket, unknownPlayer } from './facts';
 import { episodeFrom } from '../episode';
 import { noNhl } from '../player-snapshot';
 import { loadLeagueConfig } from '../../../scripts/db/lib/league-config';
+import { disposableLeague } from '../../testing/disposable-league';
 
 test('graphic stats freeze the episode stats season through the player snapshot, preserve live evidence, and never guess identities or years', async t => {
-    const client = new PGlite();
-    t.after(() => client.close());
-    const db = drizzle(client);
-    await client.exec(`
-        create schema league;
-        create table league.players (id text primary key, name text not null);
-        create table league.player_seasons (player_id text, season_year integer, nhl_team text,
-            positions text[], fpts numeric(8,2), fpg numeric(6,2), primary key (player_id, season_year));
+    const { db } = await disposableLeague(t, { seed: `
+        insert into league.seasons values (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete'), (2027, '2026–27', 'in-progress');
         insert into league.players values ('*003vz*', 'Tom Wilson'), ('nylander', 'William Nylander'),
             ('hischier', 'Nico Hischier'), ('zero', 'Zero Player'), ('future', 'Future Player'),
             ('older', 'Older Player'), ('*048x9*', 'Elias Pettersson'), ('*0ab12*', 'Elias Pettersson');
-        insert into league.player_seasons values
+        insert into league.player_seasons (player_id, season_year, nhl_team, positions, fpts, fpg) values
             ('*003vz*', 2025, 'WSH', '{RW}', 100, 1), ('*003vz*', 2026, 'WSH', '{RW}', 372, 5.17),
             ('*003vz*', 2027, 'WSH', '{RW}', 999, 9), ('nylander', 2026, 'TOR', '{RW}', 378.25, 5.82),
             ('hischier', 2026, 'NJD', '{C}', 382.25, 4.66), ('zero', 2026, 'TOR', '{C}', 0, 0),
             ('future', 2027, 'TOR', '{C}', 50, 1), ('older', 2025, 'TOR', '{C}', 75, 1),
             ('*048x9*', 2026, 'VAN', '{C}', 309.75, 4.2), ('*0ab12*', 2026, 'VAN', '{D}', 134, 1.9);
-    `);
+    ` });
     const packet = referencePacket(loadLeagueConfig(), 2027);
     const birthSource = { url: 'https://example.test/birthplace', fetchedAt: '2026-10-15T12:00:00Z' };
     packet.players = [{ ...unknownPlayer('Tom Wilson'), nhlId: 123, birthCountry: 'CAN', birthCity: 'Toronto',
