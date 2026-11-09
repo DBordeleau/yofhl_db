@@ -54,19 +54,23 @@ test('a league puts back the env, the two globals and fetch once its test ends',
 
 // What only this module may do: build a PGlite, stand in for Next's cache backend, or replace the app's execute.
 // scripts/db/lib/connect.ts builds a PGlite too, but it is the production path for pglite: URLs, not a test.
-const OWN_SETUP = [/new PGlite\b/, /__incrementalCache/, /mock\.method\([^)]*getDb\(\)[^)]*,\s*['"`]execute['"`]/];
+const OWN_SETUP = [/new PGlite\b/, /PGlite\.create\(/, /__incrementalCache/, /mock\.method\([^;]*?,\s*['"`]execute['"`]/];
 const strays = (code: string) => OWN_SETUP.filter(pattern => pattern.test(code)).map(String);
+const EXEMPT = ['lib/testing/disposable-league.ts', 'lib/testing/disposable-league.test.ts'];
 
 test('no test outside the disposable league builds its own database, cache stand-in or execute mock', () => {
     const files = ['lib', 'scripts']
         .flatMap(dir => readdirSync(dir, { recursive: true, encoding: 'utf8' }).map(file => `${dir}/${file.replaceAll('\\', '/')}`))
         .filter(file => /\.test\.(ts|mjs)$/.test(file))
-        .filter(file => !file.startsWith('lib/testing/'));
+        .filter(file => !EXEMPT.includes(file));
     assert.ok(files.length > 50, "the scan finds the repo's test files");
     assert.deepEqual(files.flatMap(file => strays(readFileSync(file, 'utf8')).map(pattern => `${file}: ${pattern}`)), []);
 
-    // Each of the three is caught when a test brings it back.
+    // Each kind is caught when a test brings it back.
     assert.equal(strays('const client = new PGlite();').length, 1);
+    assert.equal(strays('const client = await PGlite.create();').length, 1);
     assert.equal(strays('Object.assign(globalThis, { __incrementalCache: backend });').length, 1);
     assert.equal(strays("t.mock.method(runtime.getDb(), 'execute', (query: SQL) => db.execute(query));").length, 1);
+    assert.equal(strays("const neon = runtime.getDb();\nt.mock.method(neon, 'execute', (query: SQL) => db.execute(query));").length, 1);
+    assert.equal(strays('mock.method(connection, "execute", run);').length, 1);
 });
