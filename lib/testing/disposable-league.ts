@@ -65,7 +65,8 @@ export type DisposableLeague = {
 };
 
 const VIEWS = ['season_results', 'player_careers', 'franchise_records'];
-const GLOBALS = ['AsyncLocalStorage', '__incrementalCache'] as const;
+const ASYNC_STORAGE_GLOBAL = 'AsyncLocalStorage';
+const CACHE_BACKEND_GLOBAL = '__incrementalCache';
 const offline = async () => { throw new Error('Tests must not access the network'); };
 
 export async function disposableLeague(t: TestContext, options: LeagueOptions = {}): Promise<DisposableLeague> {
@@ -114,12 +115,13 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
     const expireWhere = (expired: (key: string, entry: CacheEntry) => boolean) => {
         for (const [key, entry] of entries) if (expired(key, entry)) entries.delete(key);
     };
+    const expireTag = (tag: string) => expireWhere((_, entry) => entry.tags.includes(tag));
     if (options.nextCache) {
         // cached() skips the cache in development.
         replace(undo, process.env, 'NODE_ENV', 'test');
         // Installed before anything imports Next: its async storage modules read this global when they load.
-        replace(undo, globalThis, GLOBALS[0], AsyncLocalStorage);
-        replace(undo, globalThis, GLOBALS[1], backend);
+        replace(undo, globalThis, ASYNC_STORAGE_GLOBAL, AsyncLocalStorage);
+        replace(undo, globalThis, CACHE_BACKEND_GLOBAL, backend);
     }
 
     let queries = 0;
@@ -152,7 +154,7 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
         failNextQuery(sqlContaining, error) { needs('app', 'Failing a query'); failures.push({ sqlContaining, error }); },
         expire(tag) {
             needs('nextCache', 'Expiring a tag');
-            expireWhere((_, entry) => entry.tags.includes(tag));
+            expireTag(tag);
         },
         expireByKey(text) {
             needs('nextCache', 'Expiring by key');
@@ -178,7 +180,7 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
             const result = await workAsyncStorage.run(store as never, fn);
             await Promise.all(Object.values(store.pendingRevalidates));
             const revalidatedTags = [...store.pendingRevalidatedTags];
-            for (const tag of revalidatedTags) expireWhere((_, entry) => entry.tags.includes(tag));
+            for (const tag of revalidatedTags) expireTag(tag);
             return { result, revalidatedTags };
         },
     };
