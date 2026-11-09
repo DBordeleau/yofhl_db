@@ -3,8 +3,9 @@
 // it stands in for is put back when the test ends, and the network is always off unless the test brings a fetch.
 //
 // This module is the only place that knows the seams: the app's reads go through `getDb().execute` in
-// lib/data/db.ts, and unstable_cache finds its backend on `globalThis.__incrementalCache` (with Next's
-// AsyncLocalStorage installed first). A Next upgrade that moves either is fixed here.
+// lib/data/db.ts, unstable_cache finds its backend on `globalThis.__incrementalCache` (with Next's
+// AsyncLocalStorage installed first), and revalidateTag needs Next's work store. A Next upgrade that moves
+// any of them is fixed here.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { TestContext } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
@@ -24,7 +25,10 @@ export type LeagueOptions = {
     fetch?: typeof fetch;
 };
 
+/** `revalidate` is the lifetime in seconds Next stored the entry with (a year for `revalidate: false`). */
 export type CacheEntry = { readonly tags: readonly string[]; readonly revalidate: number };
+/** A cache lookup and the `revalidate` option its loader asked for. */
+export type CacheRead = { readonly key: string; readonly revalidate: number | false | undefined };
 
 export type DisposableLeague = {
     /** The league's own connection, for seeding and checking rows. Its queries are not the app's. */
@@ -36,8 +40,19 @@ export type DisposableLeague = {
     failNextQuery(sqlContaining: string, error: Error): void;
     /** Expire every cache entry carrying `tag`, as revalidateTag does. */
     expire(tag: string): void;
+    /** Expire every cache entry whose key contains `text`. */
+    expireByKey(text: string): void;
+    /** Expire every cache entry stored with this lifetime, as if it had run out. */
+    expireByLifetime(seconds: number): void;
     /** A copy of the cache's entries by key. */
     cacheEntries(): ReadonlyMap<string, CacheEntry>;
+    /** Every cache lookup so far, oldest first. */
+    cacheReads(): readonly CacheRead[];
+    /**
+     * Run `fn` as a Next route (an API route or server action) on this league's cache. Waits for the cache
+     * writes it started, then expires the tags it revalidated, as Next does once a route finishes.
+     */
+    runAsRoute<T>(route: string, fn: () => Promise<T>): Promise<{ result: T; revalidatedTags: string[] }>;
 };
 
 const VIEWS = ['season_results', 'player_careers', 'franchise_records'];
@@ -60,18 +75,27 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
     }
 
     const entries = new Map<string, { value: unknown; tags: string[]; revalidate: number }>();
+    const reads: CacheRead[] = [];
+    const backend = {
+        generateSimpleCacheKey: async (key: string) => key,
+        get: async (key: string, { revalidate }: { revalidate?: number | false }) => {
+            reads.push({ key, revalidate });
+            const entry = entries.get(key);
+            return entry ? { value: entry.value } : null;
+        },
+        set: async (key: string, value: { revalidate: number }, { tags }: { tags: string[] }) => {
+            entries.set(key, { value, tags: [...tags], revalidate: value.revalidate });
+        },
+    };
+    const expireWhere = (expired: (key: string, entry: CacheEntry) => boolean) => {
+        for (const [key, entry] of entries) if (expired(key, entry)) entries.delete(key);
+    };
     if (options.nextCache) {
         // cached() skips the cache in development.
         replace(undo, process.env, 'NODE_ENV', 'test');
         // Installed before anything imports Next: its async storage modules read this global when they load.
         replace(undo, globalThis, GLOBALS[0], AsyncLocalStorage);
-        replace(undo, globalThis, GLOBALS[1], {
-            generateSimpleCacheKey: async (key: string) => key,
-            get: async (key: string) => { const entry = entries.get(key); return entry ? { value: entry.value } : null; },
-            set: async (key: string, value: { revalidate: number }, { tags }: { tags: string[] }) => {
-                entries.set(key, { value, tags: [...tags], revalidate: value.revalidate });
-            },
-        });
+        replace(undo, globalThis, GLOBALS[1], backend);
     }
 
     let queries = 0;
@@ -100,11 +124,34 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
         failNextQuery(sqlContaining, error) { needs('app', 'Failing a query'); failures.push({ sqlContaining, error }); },
         expire(tag) {
             needs('nextCache', 'Expiring a tag');
-            for (const [key, entry] of entries) if (entry.tags.includes(tag)) entries.delete(key);
+            expireWhere((_, entry) => entry.tags.includes(tag));
+        },
+        expireByKey(text) {
+            needs('nextCache', 'Expiring by key');
+            expireWhere(key => key.includes(text));
+        },
+        expireByLifetime(seconds) {
+            needs('nextCache', 'Expiring by lifetime');
+            expireWhere((_, entry) => entry.revalidate === seconds);
         },
         cacheEntries() {
             needs('nextCache', 'Listing cache entries');
             return new Map([...entries].map(([key, { tags, revalidate }]) => [key, { tags: [...tags], revalidate }]));
+        },
+        cacheReads() {
+            needs('nextCache', 'Listing cache reads');
+            return reads.map(read => ({ ...read }));
+        },
+        async runAsRoute(route, fn) {
+            needs('nextCache', 'Running as a route');
+            // Next's request store, cut down to what unstable_cache and revalidateTag read.
+            const { workAsyncStorage } = await import('next/dist/server/app-render/work-async-storage.external');
+            const store = { route, incrementalCache: backend, pendingRevalidatedTags: [] as string[], pendingRevalidates: {} as Record<string, Promise<unknown>> };
+            const result = await workAsyncStorage.run(store as never, fn);
+            await Promise.all(Object.values(store.pendingRevalidates));
+            const revalidatedTags = [...store.pendingRevalidatedTags];
+            for (const tag of revalidatedTags) expireWhere((_, entry) => entry.tags.includes(tag));
+            return { result, revalidatedTags };
         },
     };
 }
