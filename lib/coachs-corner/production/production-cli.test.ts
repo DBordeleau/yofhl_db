@@ -15,7 +15,7 @@ const tsx = pathToFileURL(createRequire(path.resolve('package.json')).resolve('t
 const config: LeagueConfig = { franchises: [
     { id: 1, eras: [{ from: 2027, name: 'Home Team', abbreviations: ['HOME'] }] },
     { id: 2, eras: [{ from: 2027, name: 'Away Team', abbreviations: ['AWAY'] }] },
-], awards: [], seasons: { 2027: { fantrax: { league: 'liveleague', teams: {} } } }, scoreOverrides: [] };
+], awards: [], seasons: { 2027: { fantrax: { league: 'liveleague', teams: { h: 1, a: 2 } } } }, scoreOverrides: [] };
 const periods = [
     { number: 1, startDate: '2026-10-12T13:00:00-04:00', endDate: '2026-10-19T18:59:59-04:00' },
     { number: 2, startDate: '2026-10-19T19:00:00-04:00', endDate: '2026-10-26T18:59:59-04:00' },
@@ -39,7 +39,7 @@ async function workspace(t: { after: (fn: () => Promise<void>) => void }) {
         getLeagueInfo: { seasonYear: 2026, teamInfo: { h: { name: 'Home Team' }, a: { name: 'Away Team' } },
             scoringPeriods: periods, matchups: periods.map(p => ({ period: p.number, matchupList: [{ away: { id: 'a' }, home: { id: 'h' } }] })) },
         getStandings: [{ teamId: 'h', rank: 1, points: '1-0', totalPointsFor: 24 }, { teamId: 'a', rank: 2, points: '0-1', totalPointsFor: 20 }],
-        getTeamRosters: { period: 14, rosters: { h: { rosterItems: [] }, a: { rosterItems: [] } } }, getPlayerIds: {},
+        getTeamRosters: { period: 14, rosters: { h: { rosterItems: [] }, a: { rosterItems: [] } } }, getPlayerIds: { p1: { name: 'Player, Test', position: 'C' } },
         getMatchupScores: { matchups: [{ away: { teamId: 'a', score: 20, gamesPlayed: 3 }, home: { teamId: 'h', score: 24, gamesPlayed: 4 } }] },
     };
     const run = (args: string[], now = '2026-10-26T14:00:00-04:00') => {

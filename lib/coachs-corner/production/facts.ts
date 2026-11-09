@@ -1,9 +1,11 @@
 import type { StudioPlayer, StudioTeam } from '../teams';
 import type { PlayerRef } from '../script';
 import type { SnapshotDiagnostic } from '../player-snapshot';
-import { fantraxApiUrl, readLeagueInfo } from '../../fantrax/api';
+import { createFantraxClient, readCore, toWeekScores, type Fetcher } from '../../fantrax/fantrax-client';
+import type { SourceCore } from '../../fantrax/live-season-source';
 import { playerName, type Period } from '../../fantrax/model';
-import { eraFor, findByName, liveFantraxLeague, type LeagueConfig } from '../../../scripts/db/lib/league-config';
+import { seasonLabel } from '../../seasons';
+import { eraFor, liveFantraxLeague, type Franchise, type LeagueConfig } from '../../../scripts/db/lib/league-config';
 import { suggestedPalettes, fallbackColours } from '../../team-branding';
 
 export interface Source { url: string; fetchedAt: string }
@@ -43,21 +45,36 @@ export interface FactPacket {
     limitations: string[];
 }
 
-type Fetcher = typeof fetch;
 const normalize = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
-const iso = (value: string) => new Date(value.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).toISOString();
 
-async function request(url: string, fetcher: Fetcher): Promise<{ value: unknown; source: Source }> {
-    const response = await fetcher(url, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
-    if (!response.ok) throw new Error(`Source returned HTTP ${response.status}: ${url}`);
-    return { value: await response.json(), source: { url, fetchedAt: new Date().toISOString() } };
+/** Wraps the capture's fetcher: each response that comes back OK becomes a source, in request order, timed at its arrival. */
+function sourceRecorder(fetcher: Fetcher) {
+    const requests: (Source | null)[] = [];
+    const recording: Fetcher = async (url, init) => {
+        const slot = requests.push(null) - 1;
+        const response = await fetcher(url, init);
+        if (response.ok) requests[slot] = { url, fetchedAt: new Date().toISOString() };
+        return response;
+    };
+    return { fetcher: recording, sources: () => requests.filter((source): source is Source => source !== null) };
 }
 
-export function studioTeam(config: LeagueConfig, season: number, name: string): StudioTeam {
-    const match = findByName(config, season, name);
-    if (!match) throw new Error(`Unmapped Fantrax team "${name}" for season ${season}. Update league/league.yml before exporting.`);
-    const { era, franchise } = match;
+async function nhlRequest(url: string, fetcher: Fetcher): Promise<{ value: unknown; source: Source }> {
+    const response = await fetcher(url, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error(`NHL returned HTTP ${response.status}: ${url}`);
+    const fetchedAt = new Date().toISOString();
+    return { value: await response.json(), source: { url, fetchedAt } };
+}
+
+/** the franchise's team season, or none when it hadn't started or had folded by then */
+const teamSeason = (franchise: Franchise, season: number) =>
+    franchise.folded == null || franchise.folded >= season ? eraFor(franchise, season) : undefined;
+
+export function studioTeam(config: LeagueConfig, season: number, franchiseId: number): StudioTeam {
+    const franchise = config.franchises.find(f => f.id === franchiseId);
+    const era = franchise && teamSeason(franchise, season);
+    if (!franchise || !era) throw new Error(`Franchise ${franchiseId} has no team season in ${seasonLabel(season)} in league/league.yml.`);
     const colours = suggestedPalettes[franchise.id] ?? fallbackColours;
     return { id: franchise.id, name: era.name, abbreviation: era.abbreviations[0], owner: era.owner ?? null,
         ownerFirst: era.owner?.split(/\s+/)[0] ?? null, logo: era.logo ?? null, primary: colours.primary, secondary: colours.secondary };
@@ -67,10 +84,8 @@ export function referencePacket(config: LeagueConfig, season: number): FactPacke
     const now = new Date().toISOString();
     return { version: 1, kind: 'reference', captureStartedAt: now, capturedAt: now, timezone: 'America/Toronto',
         leagueId: liveFantraxLeague(config), season, period: null, phase: 'reference', scheduledMatchups: [],
-        teams: config.franchises.filter(f => f.folded == null || f.folded >= season).flatMap(f => {
-            const era = eraFor(f, season);
-            return era ? [{ ...studioTeam(config, season, era.name), fantraxId: '', rank: null, record: null, points: null }] : [];
-        }), matchups: [], rosters: [], rosterPeriod: null, players: [], sources: [],
+        teams: config.franchises.filter(f => teamSeason(f, season))
+            .map(f => ({ ...studioTeam(config, season, f.id), fantraxId: '', rank: null, record: null, points: null })), matchups: [], rosters: [], rosterPeriod: null, players: [], sources: [],
         limitations: ['Pilot reference only. Scores in the script are historical example dialogue, not a current fact export.',
             'Offline reference starts without archived player statistics. Run coachs:stats after writing player/gap graphics.'] };
 }
@@ -90,12 +105,12 @@ export async function lookupFeaturedPlayer(name: string, fetcher: Fetcher = fetc
     const empty = unknownPlayer(name);
     const search = new URL('https://search.d3.nhle.com/api/v1/search/player');
     search.search = new URLSearchParams({ culture: 'en-us', limit: '20', q: name }).toString();
-    const { value } = await request(search.href, fetcher);
+    const { value } = await nhlRequest(search.href, fetcher);
     if (!Array.isArray(value)) throw new Error(`Invalid NHL search for ${name}`);
     const exact = value.filter((p: { name?: string }) => typeof p.name === 'string' && normalize(p.name) === normalize(name));
     if (exact.length !== 1 || !/^\d+$/.test(String(exact[0]?.playerId))) return empty;
     const nhlId = Number(exact[0].playerId);
-    const landing = await request(`https://api-web.nhle.com/v1/player/${nhlId}/landing`, fetcher);
+    const landing = await nhlRequest(`https://api-web.nhle.com/v1/player/${nhlId}/landing`, fetcher);
     const p = landing.value as { playerId?: number; firstName?: { default: string }; lastName?: { default: string }; birthCountry?: string; birthCity?: { default: string }; headshot?: string; currentTeamAbbrev?: string; position?: string };
     if (p.playerId !== nhlId || normalize(`${p.firstName?.default} ${p.lastName?.default}`) !== normalize(name)) return empty;
     const country = typeof p.birthCountry === 'string' ? p.birthCountry : null;
@@ -123,6 +138,35 @@ export function selectRecapPeriod(periods: Period[], now: number): { period: Per
     return { period: matches[0], startDate, endDate };
 }
 
+/**
+ * Each Fantrax team's franchise, from league.yml's `fantrax.teams` map for the season year Fantrax reports.
+ * Entries for Fantrax teams that Fantrax didn't return are ignored.
+ */
+function franchisesFor(config: LeagueConfig, core: SourceCore, leagueId: string): Map<string, number> {
+    const season = seasonLabel(core.seasonYear), block = `seasons.${core.seasonYear}.fantrax`, key = `${block}.teams`;
+    const fantrax = config.seasons[core.seasonYear]?.fantrax;
+    if (!fantrax) throw new Error(`league/league.yml has no fantrax block for ${season}, the season Fantrax reports. Add ${block} with its league and teams.`);
+    if (fantrax.league !== leagueId) throw new Error(`${block}.league is ${fantrax.league}, but the export fetched ${leagueId} for ${season}. Make league/league.yml agree on the live season's league.`);
+    const teams = fantrax.teams ?? {};
+    const mapped = new Map<string, number>();
+    const teamFor = new Map<number, string>();
+    for (const team of core.teams) {
+        const franchiseId = teams[team.id];
+        const fantraxTeam = `Fantrax team "${team.name}" (${team.id})`;
+        if (franchiseId === undefined) throw new Error(`${fantraxTeam} has no franchise for ${season}. Add ${team.id} to ${key} in league/league.yml.`);
+        const franchise = config.franchises.find(f => f.id === franchiseId);
+        if (!franchise) throw new Error(`${fantraxTeam} maps to franchise ${franchiseId}, which isn't in league/league.yml's franchises. Fix ${key}.${team.id}.`);
+        if (!teamSeason(franchise, core.seasonYear)) throw new Error(`${fantraxTeam} maps to franchise ${franchiseId}, which has no team season in ${season}. Fix ${key}.${team.id} or the franchise's eras in league/league.yml.`);
+        const other = teamFor.get(franchiseId);
+        if (other) throw new Error(`Fantrax teams ${other} and ${team.id} are both mapped to franchise ${franchiseId}. Fix ${key} in league/league.yml.`);
+        teamFor.set(franchiseId, team.id);
+        mapped.set(team.id, franchiseId);
+    }
+    return mapped;
+}
+
+type ScoreCategory = { name: string; shortName: string; group: string; away: { value?: number }; home: { value?: number } };
+
 /** Read directly from sources, independent of Next's daily cache and the production database. */
 export async function captureFacts(config: LeagueConfig, options: { period?: number; recap?: boolean; airDate?: string; players?: string[]; fetcher?: Fetcher } = {}): Promise<FactPacket> {
     if (options.recap && options.period !== undefined) throw new Error('Choose --recap or --period, not both.');
@@ -130,64 +174,51 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
         !Number.isFinite(Date.parse(`${options.airDate}T12:00:00Z`)) || new Date(`${options.airDate}T12:00:00Z`).toISOString().slice(0, 10) !== options.airDate)) {
         throw new Error('--air-date requires --recap and a valid YYYY-MM-DD calendar date.');
     }
-    const fetcher = options.fetcher ?? fetch;
+    const recorder = sourceRecorder(options.fetcher ?? fetch);
+    const fantrax = createFantraxClient(recorder.fetcher);
     const started = new Date().toISOString();
     const leagueId = liveFantraxLeague(config);
-    const url = (endpoint: string, params: Record<string, string> = {}) => fantraxApiUrl(endpoint, { leagueId, ...params });
-    const responses = await Promise.all([
-        request(url('getLeagueInfo', { excludePlayerInfo: 'true' }), fetcher), request(url('getStandings'), fetcher),
-        request(url('getTeamRosters'), fetcher), request(fantraxApiUrl('getPlayerIds', { sport: 'NHL' }), fetcher),
-    ]);
-    const [infoResult, standingsResult, rosterResult, directoryResult] = responses;
-    const info = infoResult.value as { seasonYear: number; teamInfo: Record<string, { name: string }>; scoringPeriods: Period[];
-        matchups: { period: number; matchupList: { away: { id?: string }; home: { id?: string } }[] }[] };
-    const standings = standingsResult.value as { teamId: string; rank: number; points: string; totalPointsFor: number }[];
-    const roster = rosterResult.value as { period: number; rosters: Record<string, { rosterItems: { id: string; status: string; position: string }[] }> };
-    const directory = directoryResult.value as Record<string, { name: string; position: string; team?: string }>;
-    if (!Number.isInteger(info?.seasonYear) || !info.teamInfo || !Object.keys(info.teamInfo).length || !Array.isArray(info.scoringPeriods) || !info.scoringPeriods.length || !Array.isArray(info.matchups) ||
-        !Array.isArray(standings) || !roster?.rosters || !Number.isInteger(roster.period) || !directory || !Object.values(directory).every(p => typeof p?.name === 'string')) {
-        throw new Error('Incomplete Fantrax fact export. No previous snapshot has been replaced.');
-    }
-    const periods = info.scoringPeriods.map(p => ({ number: p.number, startDate: iso(p.startDate), endDate: iso(p.endDate) })).sort((a, b) => a.number - b.number);
+    const [league, directory] = await Promise.all([fantrax.league(leagueId), fantrax.playerDirectory()]);
+    const core = readCore(league, directory);
+    const periods = core.weeks;
     // An intended air date selects the editorial week only. Source times and phase stay live.
     const recap = options.recap ? selectRecapPeriod(periods, Date.parse(options.airDate ? `${options.airDate}T12:00:00Z` : started)) : undefined;
     const period = recap?.period ?? (options.period === undefined
         ? periods.find(p => Date.parse(p.endDate) >= Date.parse(started)) ?? periods.at(-1)!
         : periods.find(p => p.number === options.period));
     if (!period) throw new Error(`Unknown scoring period ${options.period}. Choose one from the league calendar.`);
-    const season = readLeagueInfo(info).seasonYear;
-    const teams = Object.entries(info.teamInfo).map(([id, team]): FactTeam => {
-        const standing = standings.find(s => s.teamId === id);
-        if (!standing || !finite(standing.rank) || !finite(standing.totalPointsFor) || typeof standing.points !== 'string') throw new Error(`Missing standings for ${team.name}`);
-        return { ...studioTeam(config, season, team.name), fantraxId: id, rank: standing.rank, record: standing.points, points: standing.totalPointsFor };
+    const season = core.seasonYear;
+    const franchises = franchisesFor(config, core, leagueId);
+    const teams = core.teams.map((team): FactTeam => {
+        const standing = core.standings.find(s => s.teamId === team.id);
+        if (!standing || !finite(standing.rank) || !finite(standing.points) || typeof standing.record !== 'string') throw new Error(`Missing standings for ${team.name}`);
+        return { ...studioTeam(config, season, franchises.get(team.id)!), fantraxId: team.id, rank: standing.rank, record: standing.record, points: standing.points };
     });
     const phase = Date.parse(started) < Date.parse(period.startDate) ? 'upcoming' : Date.parse(started) > Date.parse(period.endDate) ? 'complete' : 'active';
-    const scheduledMatchups = (info.matchups.find(m => m.period === period.number)?.matchupList ?? [])
-        .filter(m => m.away?.id && m.home?.id).map(m => ({ awayId: m.away.id!, homeId: m.home.id! }));
-    const sources = responses.map(r => r.source);
+    const scheduledMatchups = (core.schedule.find(round => round.week === period.number)?.matchups ?? [])
+        .filter(m => m.away.id && m.home.id).map(m => ({ awayId: m.away.id!, homeId: m.home.id! }));
     let matchups: Matchup[] = [];
     if (phase !== 'upcoming') {
-        const scoresResult = await request(url('getMatchupScores', { period: String(period.number) }), fetcher);
-        sources.push(scoresResult.source);
-        const scores = scoresResult.value as { period: number; matchups: (Omit<Matchup, 'categories'> & { categories?: { name: string; shortName: string; group: string; away: { value?: number }; home: { value?: number } }[] })[] };
-        if (scores?.period !== period.number || !Array.isArray(scores.matchups) || !scores.matchups.length) throw new Error('Missing or wrong-period matchup scores');
+        const scores = toWeekScores(await fantrax.weekScores(leagueId, period.number));
         const seen = new Set<string>();
         matchups = scores.matchups.map(m => {
             for (const side of [m.away, m.home]) {
-                if (!side || !teams.some(t => t.fantraxId === side.teamId) || seen.has(side.teamId) || !finite(side.score) || !Number.isInteger(side.gamesPlayed) || side.gamesPlayed < 0) throw new Error('Invalid matchup team, score or player games');
+                if (!teams.some(t => t.fantraxId === side.teamId) || seen.has(side.teamId) || !Number.isInteger(side.gamesPlayed) || side.gamesPlayed < 0) throw new Error('Invalid matchup team, score or player games');
                 seen.add(side.teamId);
             }
-            return { away: m.away, home: m.home, categories: (m.categories ?? []).map(c => ({ name: c.name, shortName: c.shortName, group: c.group,
+            // Fantrax's category breakdown rides along on each matchup; the client passes it through unchecked.
+            const categories = (m as typeof m & { categories?: ScoreCategory[] }).categories ?? [];
+            return { away: m.away, home: m.home, categories: categories.map(c => ({ name: c.name, shortName: c.shortName, group: c.group,
                 away: finite(c.away?.value) ? c.away.value : null, home: finite(c.home?.value) ? c.home.value : null })) };
         });
         if (scheduledMatchups.length && (matchups.length !== scheduledMatchups.length || scheduledMatchups.some(s =>
             !matchups.some(m => m.away.teamId === s.awayId && m.home.teamId === s.homeId)))) throw new Error('Matchup scores do not cover the published schedule');
     }
     const rosters = teams.map(team => {
-        const entries = roster.rosters[team.fantraxId]?.rosterItems;
+        const entries = core.rosters[team.fantraxId];
         if (!Array.isArray(entries)) throw new Error(`Missing roster for ${team.name}`);
         return { teamId: team.fantraxId, players: entries.map(item => {
-            const p = directory[item.id];
+            const p = core.players[item.id];
             if (!p) throw new Error(`Missing player directory entry ${item.id}`);
             return { id: item.id, name: playerName(p.name), position: p.position, nhlTeam: p.team ?? null, status: item.status };
         }) };
@@ -203,9 +234,8 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
     if (recap) limitations.unshift(`Recap covers ${recap.startDate} through ${recap.endDate}, Monday through Sunday in America/Toronto. Fantrax's matchup window ends at ${period.endDate}; phase uses that raw boundary. Calendar selection does not confirm final scores.`);
     for (const name of [...new Set(options.players ?? [])]) {
         try {
-            const player = await lookupFeaturedPlayer(name, fetcher);
+            const player = await lookupFeaturedPlayer(name, recorder.fetcher);
             players.push(player);
-            if (player.source) sources.push(player.source);
             if (player.bornInNorthAmerica === null) limitations.push(`Verify birthplace manually for ${name}; NHL identity or country could not be resolved uniquely.`);
         } catch {
             players.push(unknownPlayer(name));
@@ -213,7 +243,8 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
         }
     }
     return { version: 1, kind: 'live', captureStartedAt: started, capturedAt: new Date().toISOString(), timezone: 'America/Toronto', leagueId,
-        season, period, phase, scheduledMatchups, teams, matchups, rosters, rosterPeriod: roster.period, players, sources, limitations };
+        season, period, phase, scheduledMatchups, teams, matchups, rosters, rosterPeriod: core.lineupPeriod?.number ?? null, players,
+        sources: recorder.sources(), limitations };
 }
 
 export function parseFactPacket(value: unknown): FactPacket {
