@@ -2,7 +2,8 @@
 # Vercel's Ignored Build Step (vercel.json ignoreCommand): exit 0 skips the
 # deployment, any other code builds. A skipped deployment stores no output.
 # Skips pushes that, since the branch's last successful deployment, change only
-# docs, agent notes, tests, or Coach's Corner reference files the site never reads.
+# docs, agent notes, tests and their golden fixtures, or Coach's Corner reference
+# files the site never reads.
 
 base="$VERCEL_GIT_PREVIOUS_SHA"
 # A branch's first deployment, or a base outside Vercel's 10-commit shallow clone: build.
@@ -13,6 +14,7 @@ if git diff --quiet "$base" HEAD -- . \
     ':(exclude).agents/' \
     ':(exclude,glob)**/*.md' \
     ':(exclude,glob)**/*.test.ts' \
+    ':(exclude)lib/coachs-corner/goldens/' \
     ':(exclude)assets/coachs-corner/archive/' \
     ':(exclude)assets/coachs-corner/editorial/' \
     ':(exclude)assets/coachs-corner/scripts/' \
