@@ -40,7 +40,7 @@ Locally, settings belong in uncommitted environment files. On Vercel, configure 
 
 Use a Neon PostgreSQL connection string for the web app. Scripts also accept `DATABASE_URL_V2=pglite:.pglite` for a local database under the ignored `.pglite` directory. PGlite does not serve the website. For import rehearsals, use a separate database and leave `SITE_URL` unset so the script does not refresh a hosted site's cache.
 
-Admin sessions use an HttpOnly cookie scoped to `/admin`, with a 12-hour expiry. Changing the signing secret invalidates existing sessions. When the password is the signing key, changing the password does the same. Each admin write checks the session again.
+Admin sessions use an HttpOnly cookie scoped to `/admin`, with a 12-hour expiry. Changing the signing secret invalidates existing sessions. When the password is the signing key, changing the password does the same. Each curated edit from the admin checks the session again.
 
 ## Adding a new season
 

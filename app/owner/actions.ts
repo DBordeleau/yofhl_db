@@ -1,16 +1,30 @@
 'use server';
 
-import { revalidatePath, revalidateTag } from 'next/cache';
-import { sql } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 import { put, del } from '@vercel/blob';
 import sharp from 'sharp';
 import { isAdmin, requireAdmin } from '@/lib/admin/auth';
 import { rows } from '@/lib/data/db';
-import { leagueTags, teamIdentityTags } from '@/lib/data/cache-tags';
+import { saveTeamBranding as saveBranding, saveTeamIdentity, type Actor } from '@/lib/data/curated-edits';
 import { clearOwnerSession, freshOwnerToken, limitOwnerAction, ownerSession, requireSameOrigin, startOwnerSession } from '@/lib/owner/auth';
-import { hashCode, invitation, teamName, type ManagedTeam } from '@/lib/owner/model';
-import { claimTeamQuery, issueInviteQuery, managedTeamsQuery, saveTeamQuery, updateTeamQuery, saveBrandingQuery } from '@/lib/owner/queries';
+import { hashCode, invitation, teamName } from '@/lib/owner/model';
+import { claimTeamQuery, issueInviteQuery } from '@/lib/owner/queries';
 import { parseTeamColours } from '@/lib/team-branding';
+
+const messages = {
+    'unknown-team': 'That team no longer exists.',
+    'not-owner': 'You cannot edit this team.',
+    defunct: 'This team has folded, so its identity is final.',
+    'stale-version': 'This team changed since you opened it. Reload before saving.',
+};
+
+// The admin, or the signed-in owner; null when the owner session has expired.
+const currentActor = async (): Promise<Actor | null> => {
+    if (await isAdmin()) return { admin: true };
+    const user = await ownerSession();
+    return user ? { uid: user.uid } : null;
+};
+const limitKey = (actor: Actor) => ('uid' in actor ? actor.uid : 'admin');
 
 const refresh = () => {
     revalidatePath('/owner');
@@ -20,16 +34,14 @@ const refresh = () => {
 
 export async function saveTeamBranding(id: number, version: number, value: unknown) {
     await requireSameOrigin();
-    const admin = await isAdmin();
-    const user = admin ? null : await ownerSession();
-    if (!admin && !user) return { error: 'Your session has expired. Please sign in again.' };
+    const actor = await currentActor();
+    if (!actor) return { error: 'Your session has expired. Please sign in again.' };
     if (!Number.isSafeInteger(id) || id <= 0 || !Number.isSafeInteger(version) || version < 0) return { error: 'Invalid team.' };
     const branding = parseTeamColours(value, id);
     if (!branding) return { error: 'Choose three six-digit hex colours and a background style available to your team.' };
-    await limitOwnerAction('save-branding', user?.uid ?? 'admin');
-    const result = await rows(saveBrandingQuery(id, version, branding, user?.uid ?? null, admin));
-    if (!result.length) return { error: 'This team changed or you no longer have access. Reload the page before saving.' };
-    revalidateTag(leagueTags.branding);
+    await limitOwnerAction('save-branding', limitKey(actor));
+    const result = await saveBranding(actor, id, version, branding);
+    if (!result.ok) return { error: messages[result.reason] };
     refresh();
     revalidatePath(`/admin/teams/${id}/branding`);
     return { saved: true };
@@ -80,20 +92,15 @@ export async function createTeamInvitation(id: number) {
 
 export async function saveTeam(form: FormData) {
     await requireSameOrigin();
-    const admin = await isAdmin();
-    const user = admin ? null : await ownerSession();
-    if (!admin && !user) return { error: 'Your session has expired. Please sign in again.' };
-    await limitOwnerAction('save-team', user?.uid ?? 'admin');
+    const actor = await currentActor();
+    if (!actor) return { error: 'Your session has expired. Please sign in again.' };
+    await limitOwnerAction('save-team', limitKey(actor));
     const id = Number(form.get('id'));
     const version = Number(form.get('version'));
     if (!Number.isSafeInteger(id) || !Number.isSafeInteger(version) || version < 0) return { error: 'Invalid team.' };
-    const team = (await rows<ManagedTeam>(managedTeamsQuery)).find((team) => team.id === id);
-    if (!team || (!admin && (team.ownerUid !== user?.uid || team.defunct))) return { error: 'You cannot edit this team.' };
-    if (team.version !== version) return { error: 'This team changed since you opened it. Reload before saving.' };
     let name;
     try { name = teamName(form.get('name')); }
     catch (error) { return { error: (error as Error).message }; }
-    const [previous] = await rows<{ logo: string | null }>(sql`select logo_url as logo from league.team_management where franchise_id = ${id}`);
     let uploaded: string | null = null;
     const file = form.get('logo');
     if (file instanceof File && file.size) {
@@ -112,26 +119,21 @@ export async function saveTeam(form: FormData) {
     }
     let result;
     try {
-        result = await rows(version === 0
-            ? saveTeamQuery(id, version, name, uploaded ?? previous?.logo ?? null, admin)
-            : updateTeamQuery(id, version, name, uploaded ?? previous?.logo ?? null, user?.uid ?? null, admin));
+        result = await saveTeamIdentity(actor, { franchiseId: id, version, name, logoUrl: uploaded });
     } catch {
         // A database timeout can have an unknown commit outcome. Keep the new file
         // rather than risk deleting a logo that the database already references.
         return { error: 'Could not save your team. Please try again.' };
     }
-    if (!result.length) {
+    if (!result.ok) {
         if (uploaded) await del(uploaded).catch(() => {});
-        return { error: 'This team changed while you were saving. Reload before trying again.' };
+        return { error: messages[result.reason] };
     }
-    for (const tag of teamIdentityTags(id)) revalidateTag(tag);
     refresh();
     // Only delete uploads owned by this feature, never checked-in historical artwork.
+    const orphan = result.orphanedLogoUrl;
     try {
-        if (uploaded && previous?.logo && new URL(previous.logo).pathname.startsWith(`/team-logos/${id}/`)) {
-            const references = await rows(sql`select 1 from league.team_seasons where logo_url = ${previous.logo} limit 1`);
-            if (!references.length) await del(previous.logo);
-        }
+        if (orphan && new URL(orphan).pathname.startsWith(`/team-logos/${id}/`)) await del(orphan);
     } catch { console.warn('A replaced team logo could not be cleaned up. The new logo is saved.'); }
     return { saved: true };
 }

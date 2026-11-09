@@ -55,6 +55,12 @@ A season whose playoffs did not happen (2019–20). It is published and has no c
 The calendar year a draft or lottery is held in: the season year minus one. "2026 Draft" and "2026 Draft Pick, Round 1" belong to the 2026–27 season. This matches Fantrax and the NHL and is not drift.
 _Avoid_: draft season
 
+## Editing
+
+**Curated edit**:
+A change an admin or owner makes through the site (identity, profile, curated history), as opposed to data synced from Fantrax. Each kind is one function in the curated edit module (`lib/data/curated-edits.ts`) that checks, writes, refreshes views and expires cached pages.
+_Avoid_: admin write, mutation
+
 ## Coach's Corner
 
 **Script**:

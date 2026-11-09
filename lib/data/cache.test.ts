@@ -5,10 +5,10 @@ import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { sql, type SQL } from 'drizzle-orm';
-import { curatedEditEffects, LEAGUE_TAG, leagueTags, teamIdentityTags, type CuratedEdit } from './cache-tags';
+import { LEAGUE_TAG } from './cache-tags';
 import { AWARDS, awardHref } from '../awards';
 
-test('real cached readers refresh edited data while preserving unrelated seasons and history', async t => {
+test('curated edits expire exactly the cached readers that show their data', async t => {
     const client = new PGlite();
     const db = drizzle(client);
     const originalUrl = process.env.DATABASE_URL_V2;
@@ -33,9 +33,11 @@ test('real cached readers refresh edited data while preserving unrelated seasons
         get: async (key: string) => entries.get(key) ?? null,
         set: async (key: string, value: unknown, options: { tags: string[] }) => { entries.set(key, { value, tags: options.tags }); },
     } });
-    const invalidate = (tags: string[]) => {
-        for (const [key, entry] of entries) if (entry.tags.some(tag => tags.includes(tag))) entries.delete(key);
+    // The curated edits' injected invalidator: expire every cached entry carrying the tag.
+    const invalidate = (tag: string) => {
+        for (const [key, entry] of entries) if (entry.tags.includes(tag)) entries.delete(key);
     };
+    const cache = { invalidate };
     const runtime = await import('./db');
     let queries = 0;
     t.mock.method(runtime.getDb(), 'execute', (query: SQL) => { queries++; return db.execute(query); });
@@ -93,11 +95,8 @@ test('real cached readers refresh edited data while preserving unrelated seasons
         }
         assert.deepEqual(misses.sort(), [...expected].sort());
     };
-    const edit = async (kind: CuratedEdit) => {
-        const effects = curatedEditEffects(kind, 2026);
-        for (const view of effects.views) await db.execute(sql`refresh materialized view league.${sql.identifier(view)}`);
-        invalidate(effects.tags);
-    };
+    const edits = await import('./curated-edits');
+    const saved = <T extends { ok: boolean }>(result: T) => { assert.ok(result.ok, JSON.stringify(result)); return result; };
     const beforeEmptySearch = queries;
     await searchPublicDirectory({ q: '---', type: 'all', page: 1 });
     assert.equal(queries, beforeEmptySearch, 'empty or punctuation-only search never wakes the database');
@@ -107,29 +106,25 @@ test('real cached readers refresh edited data while preserving unrelated seasons
     for (const q of ['Player', 'Team', '2026', 'unmatched query']) await searchPublicDirectory({ q, type: 'all', page: 1 });
     assert.equal(queries, beforeQueries, 'different searches reuse a single cached directory');
 
-    await client.exec("delete from league.championship_rosters where season_year=2026; insert into league.championship_rosters values (2026,'p2');");
-    await edit('roster');
+    saved(await edits.saveRoster(2026, ['p2'], cache));
     await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'careers', 'player1', 'player2', 'franchise1', 'franchise2', 'discovery']);
     assert.deepEqual((await league.getChampionRoster(2026))?.rows.map(row => row.ID), ['p2']);
     assert.equal((await league.getAllTimeLeaderboard('all', 1, '')).rows.find(row => row.ID === 'p2')?.ChampionshipsWon, 1);
 
-    await client.exec("update league.awards set player_id='p2', team_season_id=4 where season_year=2026;");
-    await edit('awards');
+    saved(await edits.saveAwards(2026, [{ award: 'mvp', playerId: 'p2' }], cache));
     await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'player1', 'player2', 'awards', 'honors1', 'honors2', 'records']);
     assert.equal((await league.getAwardWinners('mvp'))?.winners[0].PlayerID, 'p2');
     assert.equal((await history.getFranchiseHonors(1)).awards.length, 0);
     assert.equal((await history.getFranchiseHonors(2)).awards[0].playerId, 'p2');
     assert.equal((await db.execute(sql`select awards from league.player_careers where player_id='p2'`)).rows[0].awards, 1);
 
-    await client.exec('update league.matchups set winner_team_season_id=4 where season_year=2026;');
-    await edit('matchup');
+    saved(await edits.saveMatchup(2026, 2, 2, '', cache));
     await expectMisses(['banners', 'champion26', 'season26', 'leaders26', 'player1', 'player2', 'cards', 'franchise1', 'franchise2', 'cups', 'rivalries', 'records', 'discovery']);
     assert.equal((await league.getBannerSeasons()).find(season => season.year === 2026)?.franchiseId, 2);
     assert.deepEqual((await league.getFranchise(2))?.championships, [2026]);
     assert.equal((await league.getPlayer('p2'))?.championships[0].team, 'Team 2');
 
-    await client.exec("insert into league.team_management (franchise_id,name,logo_url) values (1,'Renamed','/new.webp');");
-    invalidate(teamIdentityTags(1));
+    saved(await edits.saveTeamIdentity({ admin: true }, { franchiseId: 1, version: 0, name: 'Renamed', logoUrl: '/new.webp' }, cache));
     await expectMisses(['cards', 'franchise1', 'rivalries', 'records', 'discovery']);
     assert.equal((await league.getFranchise(1))?.name, 'Renamed');
     assert.equal((await getRivalryData()).teams.find(team => team.ID === 1)?.LogoUrl, '/new.webp');
@@ -138,13 +133,12 @@ test('real cached readers refresh edited data while preserving unrelated seasons
     assert.match((await searchPublicDirectory({ q: 'Team 1', type: 'teams', page: 1 })).groups[0].results[0].subtitle, /Formerly Team 1/);
     assert.equal((await searchPublicDirectory({ q: 'One', type: 'teams', page: 1 })).groups[0].results[0].href, '/teams/1', 'franchise display names remain searchable after renames');
 
-    const colours = { primary: '#123456', secondary: '#ABCDEF', tertiary: '#FFFFFF', treatment: 'stripes' };
-    await db.execute(sql`update league.team_management set branding=${JSON.stringify(colours)}::jsonb where franchise_id=1`);
-    invalidate([leagueTags.branding]);
+    const colours = { primary: '#123456', secondary: '#ABCDEF', tertiary: '#FFFFFF', treatment: 'stripes' } as const;
+    saved(await edits.saveTeamBranding({ admin: true }, 1, 1, colours, cache));
     await expectMisses(['branding']);
     assert.deepEqual((await getTeamBranding())[1], colours);
 
-    invalidate([LEAGUE_TAG]);
+    invalidate(LEAGUE_TAG);
     await expectMisses(Object.keys(readers));
 
     await client.exec("insert into league.players values ('*starred*', 'Wrapped ID'), ('plain', 'Plain ID'), ('*plain*', 'Wrapped collision');");
@@ -158,7 +152,7 @@ test('real cached readers refresh edited data while preserving unrelated seasons
         update league.team_seasons set owner_id=1 where season_year=2025;
         update league.team_seasons set owner_id=2 where season_year=2026;
     `);
-    invalidate([LEAGUE_TAG]);
+    invalidate(LEAGUE_TAG);
     const directory = await getSearchDirectory();
     assert.equal(directory.find(row => row.kind === 'players' && row.id === 'p1')?.careerPoints, 198);
     assert.equal(directory.find(row => row.kind === 'players' && row.id === 'plain')?.careerPoints, 0);
@@ -180,7 +174,7 @@ test('real cached readers refresh edited data while preserving unrelated seasons
     assert(!directory.some(row => row.kind === 'seasons' && row.id === '2027'), 'incomplete seasons cannot link to a 404 page');
 
     await client.exec("update league.player_seasons set fpts=200 where player_id='p2';");
-    await edit('roster');
+    saved(await edits.saveRoster(2026, ['p2'], cache));
     assert.equal((await searchPublicDirectory({ q: 'Player', type: 'players', page: 1 })).groups[0].results[0].id, 'p2', 'refreshed career points change prominence ranking');
     assert.equal((await searchPublicDirectory({ q: 'Player One', type: 'players', page: 1 })).groups[0].results[0].id, 'p1', 'a specific name still beats prominence');
 });

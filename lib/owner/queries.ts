@@ -1,5 +1,4 @@
 import { sql } from 'drizzle-orm';
-import type { TeamColours } from '../team-branding';
 
 const teamsQuery = (ownerUid?: string) => sql`
     select c.id, c.name, c.logo, c.abbreviation, c.defunct,
@@ -35,22 +34,6 @@ export const issueInviteQuery = (id: number, hash: string) => sql`
     where league.team_management.owner_uid is null
     returning franchise_id`;
 
-// Optimistic version check avoids deleting a logo another edit has just installed.
-// Ownership is checked again in this write, not only when rendering the editor.
-export const saveTeamQuery = (id: number, version: number, name: string, logo: string | null, admin: boolean) => sql`
-    insert into league.team_management (franchise_id, name, logo_url)
-    select f.id, ${name}, ${logo} from league.franchises f where f.id = ${id}
-      and ${admin} and ${version} = 0
-    on conflict (franchise_id) do nothing
-    returning franchise_id`;
-
-export const updateTeamQuery = (id: number, version: number, name: string, logo: string | null, uid: string | null, admin: boolean) => sql`
-    update league.team_management m set name = ${name}, logo_url = ${logo}, version = version + 1
-    from league.franchises f
-    where m.franchise_id = ${id} and f.id = m.franchise_id and m.version = ${version}
-      and (${admin} or (m.owner_uid = ${uid} and f.folded_after_season is null))
-    returning m.franchise_id`;
-
 export const rateLimitQuery = (key: string) => sql`
     insert into league.owner_rate_limits (key, attempts, resets_at)
     values (${key}, 1, now() + interval '15 minutes')
@@ -58,19 +41,3 @@ export const rateLimitQuery = (key: string) => sql`
       attempts = case when league.owner_rate_limits.resets_at <= now() then 1 else league.owner_rate_limits.attempts + 1 end,
       resets_at = case when league.owner_rate_limits.resets_at <= now() then now() + interval '15 minutes' else league.owner_rate_limits.resets_at end
     returning attempts`;
-
-// Share the identity version so a colour save cannot silently race a name/logo edit.
-export const saveBrandingQuery = (id: number, version: number, branding: TeamColours, uid: string | null, admin: boolean) => sql`
-    insert into league.team_management as m (franchise_id, branding)
-    select f.id, ${JSON.stringify(branding)}::jsonb from league.franchises f
-    where f.id = ${id} and (${admin} or exists (
-        select 1 from league.team_management owned
-        where owned.franchise_id = f.id and owned.owner_uid = ${uid} and f.folded_after_season is null
-    )) and (${version} = 0 or exists (
-        select 1 from league.team_management current where current.franchise_id = f.id and current.version = ${version}
-    ))
-    on conflict (franchise_id) do update set branding = excluded.branding, version = m.version + 1
-    where m.version = ${version} and (${admin} or (m.owner_uid = ${uid} and exists (
-        select 1 from league.franchises f where f.id = m.franchise_id and f.folded_after_season is null
-    )))
-    returning m.franchise_id`;
