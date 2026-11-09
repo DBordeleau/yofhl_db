@@ -35,13 +35,25 @@ export async function generateAssets(root = process.cwd()) {
     for (const name of (await readdir(art)).filter(name => name.endsWith('.webp'))) {
         const source = `robots-v2/${name}`;
         const original = source.replace(/(?:-640)?\.webp$/, '.png');
-        const input = await readFile(file(original));
+        const input = await readFile(file(original)).catch(error => {
+            if (error.code === 'ENOENT') return null;
+            throw error;
+        });
         const { width, height } = await sharp(await readFile(file(source))).metadata();
-        const inputHash = digest(input);
         const avif = source.replace(/\.webp$/, '.avif');
         const outputPath = file(avif);
         let output = await readFile(outputPath).catch(() => null);
         const old = previous.files?.[avif];
+        // Local-only masters need not ship; verify the committed encode before publishing it.
+        if (!input) {
+            if (!output || !old || old.width !== width || old.height !== height || old.outputHash !== digest(output)) {
+                throw new Error(`Missing or invalid optimized artwork: ${avif}. Restore ${original} to regenerate it.`);
+            }
+            avifBuild.files[avif] = old;
+            sources.push(avif);
+            continue;
+        }
+        const inputHash = digest(input);
         // Committed generated files make normal builds a hash check, not another
         // encode. Source edits, settings changes, or corrupt outputs regenerate.
         if (!output || previous.recipe !== recipe || old?.inputHash !== inputHash ||

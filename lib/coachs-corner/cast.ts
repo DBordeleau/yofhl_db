@@ -96,6 +96,18 @@ export const CAST: Record<CharacterId, Character> = {
             'alternate-3-mic': { closed: art('don-alternate-3-mic-remove') },
             'alternate-3-pound': { closed: art('don-alternate-3-desk-pound') },
             'alternate-3-pound-ready': { closed: art('don-alternate-3-desk-pound-ready') },
+            'remembrance-rest': { closed: art('don-remembrance-default'), open: art('don-remembrance-talk') },
+            'remembrance-point': { closed: art('don-remembrance-point'), open: art('don-remembrance-point-talk') },
+            'remembrance-thumbs': { closed: art('don-remembrance-thumbs-up'), open: art('don-remembrance-thumbs-up-talk') },
+            'remembrance-angry': { open: art('don-remembrance-angry-talk'), after: 'remembrance-rest' },
+            'remembrance-surprised': { open: art('don-remembrance-surprised'), after: 'remembrance-rest' },
+            'remembrance-lean': { open: art('don-remembrance-lean-camera'), after: 'remembrance-rest' },
+            'remembrance-stare': { closed: art('don-remembrance-stare') },
+            'remembrance-pause': { closed: art('don-remembrance-pause') },
+            'remembrance-tie': { closed: art('don-remembrance-tie-adjust') },
+            'remembrance-mic': { closed: art('don-remembrance-mic-remove') },
+            'remembrance-pound': { closed: art('don-remembrance-desk-pound') },
+            'remembrance-pound-ready': { closed: art('don-remembrance-desk-pound-ready') },
         },
         deliveryGestures: { yell: 'angry' },
         voice: { base: 118, spread: 34, wave: 'sawtooth', grit: 0.5 },
@@ -133,7 +145,7 @@ export const GESTURE_ALIASES: Record<string, string> = {
     stop: 'warning',
 };
 
-const WARDROBE_PREFIX = /^(?:halloween|alternate-[123])-/;
+const WARDROBE_PREFIX = /^(?:halloween|remembrance|alternate-[123])-/;
 
 export const resolveGesture = (who: CharacterId, name: string): string | null => {
     const key = name.toLowerCase().replace(/^(don|ron)-/, '');

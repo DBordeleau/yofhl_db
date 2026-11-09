@@ -71,6 +71,11 @@ test('AVIF generation uses PNG originals, reuses unchanged encodes, and repairs 
     assert.notEqual(updated['/coachs-corner/robots-v2/test-pose.avif'], first['/coachs-corner/robots-v2/test-pose.avif']);
     assert.equal(updated['/coachs-corner/robots-v2/test-pose.webp'], undefined, 'WebP exports are not published');
     assert.deepEqual(await readFile(webp), baselineWebp, 'conversion never overwrites the WebP export');
+    await rm(original);
+    assert.deepEqual(await generateAssets(root), updated, 'optimized-only checkouts retain the same immutable URLs');
+    await writeFile(avif, 'corrupt');
+    await assert.rejects(generateAssets(root), /Missing or invalid optimized artwork.*Restore.*test-pose\.png/,
+        'missing masters must not hide a corrupt committed export');
     await sharp(await readFile(path.join(root, 'public', first['/coachs-corner/robots-v2/test-pose.avif']))).raw().toBuffer();
 });
 

@@ -23,6 +23,9 @@ const MOUTH_CLIPS: Record<string, string> = {
     'don-alternate-3-talk': 'ellipse(11% 10% at 54% 41%)',
     'don-alternate-3-point-talk': 'ellipse(11% 10% at 49% 41%)',
     'don-alternate-3-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
+    'don-remembrance-talk': 'ellipse(11% 10% at 54% 41%)',
+    'don-remembrance-point-talk': 'ellipse(11% 10% at 49% 41%)',
+    'don-remembrance-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
     'ron-talk': 'ellipse(14% 8% at 45% 43%)',
 };
 
@@ -61,7 +64,7 @@ const LAPEL_SPOTS: Record<string, [number, number, number] | null> = {
     'don-mic-remove': null,
 };
 export const lapelSpot = (who: CharacterId, body: string) => {
-    const pose = body.replace(/^don-(?:halloween|alternate-\d)-/, 'don-');
+    const pose = body.replace(/^don-(?:halloween|remembrance|alternate-\d)-/, 'don-');
     return pose in LAPEL_SPOTS ? LAPEL_SPOTS[pose] : who === 'don' ? DON_LAPEL : RON_LAPEL;
 };
 

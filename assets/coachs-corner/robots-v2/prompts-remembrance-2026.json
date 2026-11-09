@@ -1,0 +1,166 @@
+{
+  "title": "Don's Remembrance Day poppy suit",
+  "createdDate": "2026-11-09",
+  "method": "built-in image_gen.imagegen",
+  "transparentBackground": true,
+  "canvas": [
+    1254,
+    1254
+  ],
+  "master": "don-remembrance-default.png",
+  "clothingReference": {
+    "description": "Original charcoal-black jacket printed with scarlet black-centred remembrance poppies and muted green leaves; burgundy-red tie. Owner request of 2026-11-09."
+  },
+  "assets": [
+    {
+      "id": "don-remembrance-default",
+      "prompt": "Use case: identity-preserve. Production transparent character cutout, full untrimmed 1254 x 1254 square canvas. Input image is the EDIT TARGET: Don's normal default/listening pose. Change ONLY jacket fabric and tie into a special Remembrance Day suit. Jacket is rich charcoal-black cloth covered in a bold repeating pattern of vivid scarlet remembrance poppies with BLACK circular centres, organic rounded petals, a few understated dark green leaves; medium-large flowers distributed across torso, lapels and sleeves. Respectful and handsome, still Don's flamboyant printed tailoring. Deep burgundy-red silk tie with subtle tonal texture, no stripes. Preserve white shirt/cuffs and white pocket square, black lapel microphone, jacket cut and every pose/identity detail exactly: silver faceted robot face, cyan screen eyes, sculpted white hair, connected white moustache and broad goatee, stern CLOSED mouth seam, hands clasped low, shoulders, scale, margins, lower cutoff, facing slightly screen-right. Same crisp cel-shaded illustration, black outlines and silver shading. No medals, text, logos, additional lapel pin, desk, background, shadows outside silhouette or extra objects. Actual alpha transparency. Match input silhouette and head/hands pixel positions as closely as possible; do not zoom, crop, mirror, or redesign the robot.",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-default.png"
+      ],
+      "useCase": "identity-preserve",
+      "pngSha256": "f73b76a49a443426b50f02dd45cae28ca3764066c70397ea20163e13e84b5880"
+    },
+    {
+      "id": "don-remembrance-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot talk pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth OPEN with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-talk.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "afc93ee54b13f1c32c89b18b46f1bf590415e0b8ce913dbee34ec2afbcb05dee"
+    },
+    {
+      "id": "don-remembrance-point",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot point pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth CLOSED with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot. Keep the raised pointing hand and head exactly in input 1's locations. ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-point.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "5dbbef43df99c36557e3453de5203c59cc12d88b6ba641259455c60a306b36d5"
+    },
+    {
+      "id": "don-remembrance-point-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot point-talk pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth OPEN with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot. Keep the raised pointing hand and head exactly in input 1's locations. ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-point-talk.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "1aa0c4633a95d7f975a160793a47cf25c6af6087891af53ecd33d611947f4fe4"
+    },
+    {
+      "id": "don-remembrance-angry-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot angry-talk pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth OPEN with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-angry-talk.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "f42df8c08d841301a4068fa652edd4d7b890be1aa98a45367b2d2ca263ea0fa8"
+    },
+    {
+      "id": "don-remembrance-surprised",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot surprised pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth OPEN with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-surprised.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "6f94cb00cc27ee2069a8ac9ad5810ddafd944a71bc4ccb5ff60dc7c71cee89c8"
+    },
+    {
+      "id": "don-remembrance-stare",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot stare pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth CLOSED with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-stare.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "c3d139eb1d34dc4603d870966cd322ec5e903fa0282c186443d50c98076af58b"
+    },
+    {
+      "id": "don-remembrance-pause",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot pause pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth CLOSED with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-pause.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "155661d033e85e3b0893ad35c0c87eb6dea2bad54f4e0af8c8299d1896a93dde"
+    },
+    {
+      "id": "don-remembrance-tie-adjust",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot tie-adjust pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth CLOSED with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-tie-adjust.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "a022796c4ed0bc2e50ab8a610880c29dc75268334129ccd40a6f681b4c6322b7"
+    },
+    {
+      "id": "don-remembrance-lean-camera",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot lean-camera pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth OPEN with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-lean-camera.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "02049f3db2bcb69ab1018743c2af0357c1dbfe5a715ed435b98b0b61de146d31"
+    },
+    {
+      "id": "don-remembrance-mic-remove",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot mic-remove pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth CLOSED with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-mic-remove.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "5607a42d08ef6405d7eebafe490a2c12a928a14387a19f944daa779b28001239"
+    },
+    {
+      "id": "don-remembrance-thumbs-up",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot thumbs-up pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth CLOSED with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  Preserve the happy curved cyan eyes and smiling face of input 1.",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-thumbs-up.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "43328375c72fdd9376b274d49c1e446eb18d34ce35fe0e8d947092da939bb590"
+    },
+    {
+      "id": "don-remembrance-thumbs-up-talk",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot thumbs-up-talk pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth OPEN with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  Preserve the happy curved cyan eyes and smiling face of input 1.",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-thumbs-up-talk.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "3491432fc73aafa1e04f8568eb3f64bcd85771be240fe0fd4a0e09b0d2d97daf"
+    },
+    {
+      "id": "don-remembrance-desk-pound",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot desk-pound pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth CLOSED with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-desk-pound.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "c963a762a9b3f9dd6edf6b07a1e6f19955697ff0c04e822965191165036dbcb0"
+    },
+    {
+      "id": "don-remembrance-desk-pound-ready",
+      "useCase": "identity-preserve",
+      "prompt": "Use case: identity-preserve. ONE production transparent character cutout on a full untrimmed 1254 x 1254 square canvas. Input 1 is the EDIT TARGET and absolute geometry/expression reference: Don robot desk-pound-ready pose. Input 2 is CLOTHING REFERENCE ONLY: the selected Remembrance Day default pose. Change ONLY input 1's jacket fabric and tie to match input 2: charcoal-black jacket covered in medium-large scarlet red remembrance poppies with BLACK circular centres and understated dark green leaves; deep burgundy-red textured silk tie. Match reference flower size, palette and print density across lapels, torso and sleeves. Keep white shirt/cuffs and white pocket square, black lapel microphone and its cable where visible. Do NOT copy input 2's pose. Preserve input 1 exactly: head and shoulder positions, hands/finger gestures, mouth CLOSED with the same expression, eye shapes and gaze, silver faceted face, cyan eyes, sculpted white hair, CONNECTED white wraparound moustache and goatee, scale and silhouette, lower cutoff and square margins. Same detailed crisp cel-shaded illustration and black outlines. Respectful remembrance clothing, no medals, no additional lapel pin, no text/logos, no desk, no background, no external shadow, no extra objects. Actual alpha transparency. Do not mirror, crop, trim, recenter, zoom or redesign robot.  ",
+      "referenceImages": [
+        "assets/coachs-corner/robots-v2/don-desk-pound-ready.png",
+        "assets/coachs-corner/robots-v2/don-remembrance-default.png"
+      ],
+      "pngSha256": "c4cf0906a4bf116b0169975d913512614c0dbd8db6bb4faa8b1b21d7fc3f3909"
+    }
+  ],
+  "masterStorage": "PNG masters are local-only and excluded from Git; WebP/AVIF exports are committed."
+}
