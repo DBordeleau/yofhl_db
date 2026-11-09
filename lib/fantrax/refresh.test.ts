@@ -10,7 +10,7 @@ import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { FANTRAX_CURRENT_TAG } from './cache-policy';
-import type { CurrentSeasonData } from './fantrax-client';
+import type { SavedLiveSeason } from './fantrax-client';
 import type { LiveSeason } from './live-season';
 
 const LEAGUE = 'league27';
@@ -96,7 +96,7 @@ test('a refresh publishes the live season without touching archive caches, and a
         assert.equal(result.status, 'available');
         return (result as { value: LiveSeason }).value;
     };
-    const savedSnapshot = async () => (await client.query<{ data: CurrentSeasonData }>('select data from league.fantrax_snapshots')).rows[0].data;
+    const savedSnapshot = async () => (await client.query<{ data: SavedLiveSeason }>('select data from league.fantrax_snapshots')).rows[0].data;
 
     assert.equal((await season()).weeks[0].phase, 'active');
     assert.equal((await getWeekScores(1))?.matchups[0].away.score, 10);
@@ -123,9 +123,9 @@ test('an overlapping older refresh cannot overwrite a newer snapshot', async t =
     t.after(() => client.close());
     // Imported late: Next's cache modules need the AsyncLocalStorage stand-in installed first.
     const { saveSnapshotQuery } = await import('./snapshot-store');
-    const snapshot = (fetchedAt: string) => ({ source: { fetchedAt } }) as CurrentSeasonData;
-    await db.execute(saveSnapshotQuery(snapshot('2026-10-18T22:00:00.000Z'), LEAGUE));
-    await db.execute(saveSnapshotQuery(snapshot('2026-01-01T00:00:00.000Z'), LEAGUE));
-    const stored = (await client.query<{ data: CurrentSeasonData }>('select data from league.fantrax_snapshots')).rows;
+    const snapshot = (fetchedAt: string) => ({ source: { fetchedAt } }) as SavedLiveSeason;
+    await db.execute(saveSnapshotQuery(LEAGUE, snapshot('2026-10-18T22:00:00.000Z')));
+    await db.execute(saveSnapshotQuery(LEAGUE, snapshot('2026-01-01T00:00:00.000Z')));
+    const stored = (await client.query<{ data: SavedLiveSeason }>('select data from league.fantrax_snapshots')).rows;
     assert.deepEqual(stored.map(row => row.data.source.fetchedAt), ['2026-10-18T22:00:00.000Z']);
 });

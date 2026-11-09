@@ -10,7 +10,7 @@ import HeroRink from '@/components/home/hero-rink';
 import HeroStudio from '@/components/home/hero-studio';
 import SectionLink from '@/components/home/section-link';
 import { fantraxLeagueUrl } from '@/lib/fantrax/config';
-import { getLiveSeason } from '@/lib/fantrax/live-season';
+import { fantraxLeagueIdOf, getLiveSeason } from '@/lib/fantrax/live-season';
 import { shortDate } from '@/lib/fantrax/model';
 import { getPublishedEpisodes } from '@/lib/data/coachs-corner';
 import { formatFpts, seasonLabel } from '@/lib/league';
@@ -30,7 +30,7 @@ export default async function HomePage() {
         getPublishedEpisodes().catch(error => { console.error("Coach's Corner episodes unavailable:", error); return []; }),
     ]);
     const live = result.status === 'available' ? result.value : null;
-    const fantraxUrl = fantraxLeagueUrl(live ? live.fantraxLeagueId : result.status === 'unavailable' ? result.fantraxLeagueId : null);
+    const fantraxUrl = fantraxLeagueUrl(fantraxLeagueIdOf(result));
     const leaders = live?.leaders.status === 'available' ? live.leaders.value : null;
     const rosterStats = live?.rosterStats.status === 'available' ? live.rosterStats.value : null;
     const latestEpisode = episodes[0];
@@ -74,7 +74,7 @@ export default async function HomePage() {
                         {live ? <table className={styles.standingsTable}><caption className="sr-only">{season} YOFHL standings. {preseason ? 'Season has not started; all teams are tied.' : ''} {playoffTeams ? `The top ${playoffTeams} teams make the playoffs, and the top ${byeTeams} get first-round byes.` : ''}</caption><thead><tr><th scope="col"><span className="sr-only">Rank</span>#</th><th scope="col">Team</th><th scope="col">W–L–T</th><th scope="col"><abbr title="Fantasy points for">FPts</abbr></th></tr></thead><tbody>
                             {live.standings.rows.flatMap(({ team, rank, record, points, bye, playoffLineBelow }) => {
                                 const name = <span className={styles.standingName}><span>{team.name}</span></span>;
-                                const row = <tr key={team.id} data-bye={bye ? '' : undefined}>
+                                const row = <tr key={team.id}>
                                     {/* the bye belongs to the slot, not the team in it, so the rank cell carries it */}
                                     <td className={styles.standingsRank}>{preseason || !totalGames || rank == null ? '—' : bye ? <span className={styles.byeSlot} title="First-round bye">{rank}</span> : rank}</td>
                                     <th scope="row">{team.href ? <Link href={team.href} className={styles.standingTeam}><TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={36} ring="none" />{name}</Link> : name}</th>

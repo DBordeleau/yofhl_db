@@ -38,7 +38,7 @@ export interface SourceCore {
 /** what a capture reports back: enough to check Fantrax's playoff settings against the league's */
 export type CapturedSeason = Pick<SourceCore, 'fetchedAt' | 'seasonYear' | 'weeks' | 'playoffs'>;
 
-export interface SourceScores {
+export interface WeekScores {
     fetchedAt: string;
     week: number;
     matchups: {
@@ -60,6 +60,13 @@ export interface FantraxTeamRow {
     franchiseId: number;
 }
 
+/** The live season's Fantrax league: the one league.fantrax_teams maps for its latest season year. */
+export function liveFantraxLeagueId(rows: FantraxTeamRow[]): string {
+    const leagueId = rows[0]?.fantraxLeagueId;
+    if (!leagueId) throw new Error("league.fantrax_teams has no Fantrax league; add the season's fantrax block to league.yml and import it");
+    return leagueId;
+}
+
 /** a franchise's current identity, from league.current_teams */
 export interface FranchiseIdentity {
     id: number;
@@ -77,7 +84,7 @@ export interface LiveSeasonSource {
     archivedPlayerIds(): Promise<string[]>;
     /** `fresh` skips the saved snapshot and the caches */
     core(options: { fresh: boolean }): Promise<SourceCore>;
-    weekScores(week: SourceWeek, core: Pick<SourceCore, 'fetchedAt'>): Promise<SourceScores>;
+    weekScores(week: SourceWeek, core: Pick<SourceCore, 'fetchedAt'>): Promise<WeekScores>;
     scoringLeaders(seasonYear: number): Promise<SourceLeaders>;
     rosterStats(seasonYear: number): Promise<RosterStats>;
     manualFinalWeeks(seasonYear: number): Promise<number[]>;

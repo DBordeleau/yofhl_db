@@ -117,8 +117,8 @@ async function currentSurfaces(rows: <T>(query: SQL) => Promise<T[]>, id: number
     const managed = (await rows<Identity & { id: number }>(managedTeamsQuery)).find(team => team.id === id)!;
     const search = (await getSearchDirectory()).find(entry => entry.kind === 'teams' && entry.id === String(id))!;
     const season = await getLiveSeason({ now: Date.now() });
-    assert.equal(season.status, 'available');
-    const live = season.status === 'available' ? season.value.teams.find(team => team.franchiseId === id)! : null!;
+    if (season.status !== 'available') assert.fail('the live season is unavailable');
+    const live = season.value.teams.find(team => team.franchiseId === id)!;
     const surfaces: Record<string, Identity> = {
         'franchise cards': { name: card.Team, abbreviation: card.Abbreviation, logo: card.LogoUrl },
         'team page': { name: page.name, abbreviation: page.abbreviation, logo: page.logo },

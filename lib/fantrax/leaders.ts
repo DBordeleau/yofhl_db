@@ -1,7 +1,7 @@
 import { fantraxSeasonName } from './season';
 
 export type Fetcher = (input: string, init?: RequestInit) => Promise<Response>;
-const globalFetch: Fetcher = (input, init) => fetch(input, init);
+export const globalFetch: Fetcher = (input, init) => fetch(input, init);
 
 interface StatsPage {
     displayedStatusOrTeam: string;

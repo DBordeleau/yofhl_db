@@ -3,7 +3,7 @@ import { cached, rows } from '../data/db';
 import { leagueTags } from '../data/cache-tags';
 import { getFranchiseCards } from '../data/league';
 import { fantraxLeagueUrl } from '../fantrax/config';
-import { getLiveSeason } from '../fantrax/live-season';
+import { fantraxLeagueIdOf, getLiveSeason } from '../fantrax/live-season';
 import regularSeason from '../rivalries/regular-season-history.json';
 import periods from './periods.json';
 import playerCategories from './player-category-history.json';
@@ -48,5 +48,5 @@ export async function getRecordBook(filter: { team?: number; position?: string; 
     })) }));
     return { teams: source.teams, records, chases: buildChases(source, live, stats),
         formats, format, stat: filter.stat, through: Math.max(...source.seasons.map(s => s.year)), liveYear: live?.seasonYear ?? null,
-        updated: stats ? [stats.fetchedAt, live!.fetchedAt].sort()[0] : live?.fetchedAt ?? null, playerStatsAvailable: stats !== null, seasonUrl: fantraxLeagueUrl(live ? live.fantraxLeagueId : result.status === 'unavailable' ? result.fantraxLeagueId : null) };
+        updated: stats ? [stats.fetchedAt, live!.fetchedAt].sort()[0] : live?.fetchedAt ?? null, playerStatsAvailable: stats !== null, seasonUrl: fantraxLeagueUrl(fantraxLeagueIdOf(result)) };
 }

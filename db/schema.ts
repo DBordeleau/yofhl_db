@@ -20,7 +20,7 @@ import type { LotteryEntry } from '@/lib/lottery/model';
 import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 import type { TeamColours } from '@/lib/team-branding';
 import type { DraftDevelopmentFacts } from '@/lib/draft/development';
-import type { CurrentSeasonData } from '@/lib/fantrax/fantrax-client';
+import type { SavedLiveSeason } from '@/lib/fantrax/fantrax-client';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -35,7 +35,7 @@ export const league = pgSchema('league');
 
 export const fantraxSnapshots = league.table('fantrax_snapshots', {
     leagueId: text('league_id').primaryKey(),
-    data: jsonb('data').$type<CurrentSeasonData>().notNull(),
+    data: jsonb('data').$type<SavedLiveSeason>().notNull(),
 });
 
 // Current Fantrax seasons need not have been imported into the historical archive.

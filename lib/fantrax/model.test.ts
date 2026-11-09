@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { automaticFinalPeriods, periodLabel, publishedMatchups, rosterGroup, sortRosterPlayers, type Period, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
+import { automaticFinalPeriods, weekLabel, publishedMatchups, rosterGroup, sortRosterPlayers, type Period, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
 
 const periods: Period[] = [
     { number: 1, startDate: '2026-10-12T17:00:00.000Z', endDate: '2026-10-17T00:59:59.000Z' },
@@ -46,8 +46,8 @@ test('does not infer early Finals from incomplete standings, missing history, du
 });
 
 test('displays the league calendar in Eastern Time even when the UTC day differs', () => {
-    assert.equal(periodLabel(periods[0]), 'Oct 12 – Oct 16');
-    assert.equal(periodLabel(periods[1]), 'Oct 16 – Oct 19');
+    assert.equal(weekLabel(periods[0]), 'Oct 12 – Oct 16');
+    assert.equal(weekLabel(periods[1]), 'Oct 16 – Oct 19');
 });
 
 test('does not present unassigned Fantrax playoff slots as games or team byes', () => {

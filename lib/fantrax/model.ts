@@ -107,8 +107,14 @@ export function shortDate(date: string): string {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' }).format(new Date(date));
 }
 
-export function periodLabel(period: Period): string {
+export function weekLabel(period: Period): string {
     return `${shortDate(period.startDate)} – ${shortDate(period.endDate)}`;
+}
+
+/** Looks up a Fantrax player ID among archive player IDs, some of which are stored wrapped in asterisks. */
+export function archiveIdLookup(archiveIds: string[]): (fantraxId: string) => string | null {
+    const archive = new Map(archiveIds.map(id => [id.replace(/\*/g, ''), id]));
+    return fantraxId => archive.get(fantraxId) ?? null;
 }
 
 export function playerName(name: string): string {

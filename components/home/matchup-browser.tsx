@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { createResultCache } from '@/lib/result-cache';
 import TeamBadge from '@/components/team-badge';
-import { periodLabel, shortDate, type ScheduledMatchup } from '@/lib/fantrax/model';
+import { weekLabel, shortDate, type ScheduledMatchup } from '@/lib/fantrax/model';
 import { fantraxMatchupUrl } from '@/lib/fantrax/config';
 import type { LiveTeam, Week, WeekScores } from '@/lib/fantrax/live-season';
 import styles from './home.module.css';
@@ -219,7 +219,7 @@ export default function MatchupBrowser({ weeks, current, teams, fantraxLeagueId 
                 <button type="button" aria-label="Previous week" disabled={index <= 0 || pending} onClick={() => navigate(weeks[index - 1].number)}><Arrow direction="left" animated={false} /></button>
                 <label className="sr-only" htmlFor="scoring-period">Week</label>
                 <select id="scoring-period" value={selected.number} disabled={pending} onChange={event => navigate(Number(event.target.value))}>
-                    {weeks.map(week => <option value={week.number} key={week.number}>{week.fullName} · {periodLabel(week)}</option>)}
+                    {weeks.map(week => <option value={week.number} key={week.number}>{week.fullName} · {weekLabel(week)}</option>)}
                 </select>
                 <button type="button" aria-label="Next week" disabled={index >= weeks.length - 1 || pending} onClick={() => navigate(weeks[index + 1].number)}><Arrow animated={false} /></button>
             </div>

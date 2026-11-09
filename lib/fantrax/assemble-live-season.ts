@@ -1,9 +1,11 @@
 // The live season module: the current season as Fantrax has it now, already assembled. It only assembles; what
 // it reads comes through the live season source port, so this file is free of Next and Fantrax specifics.
 // Callers use the production binding in live-season.ts.
-import { playerName, automaticFinalPeriods, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
+import { archiveIdLookup, playerName, automaticFinalPeriods, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
 import { PLAYOFF_FORMAT } from './config';
-import type { CapturedSeason, FantraxTeamRow, LiveSeasonSource, SourceCore, SourceWeek } from './live-season-source';
+import { liveFantraxLeagueId, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
+
+export type { WeekScores } from './live-season-source';
 
 export type PlayoffRound = (typeof PLAYOFF_FORMAT.rounds)[number];
 
@@ -56,15 +58,6 @@ export interface Standings {
     byeTeams: number;
 }
 
-export interface WeekScores {
-    fetchedAt: string;
-    week: number;
-    matchups: {
-        away: { teamId: string; score: number; gamesPlayed: number };
-        home: { teamId: string; score: number; gamesPlayed: number };
-    }[];
-}
-
 export interface ScoringLeader {
     id: string;
     name: string;
@@ -100,6 +93,10 @@ export interface LiveSeason {
 /** the whole live season is unavailable when its core snapshot (teams, schedule, weeks) can't be loaded */
 export type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { status: 'unavailable'; fantraxLeagueId: string | null };
 
+/** the live season's Fantrax league, for links to Fantrax; known even while the season is unavailable, unless league.fantrax_teams can't be read */
+export const fantraxLeagueIdOf = (result: LiveSeasonResult): string | null =>
+    result.status === 'available' ? result.value.fantraxLeagueId : result.fantraxLeagueId;
+
 const ROUND_NAMES: Record<PlayoffRound, string> = { Quarterfinals: 'Jagr Cup Quarterfinals', Semifinals: 'Jagr Cup Semifinals', Final: 'Jagr Cup Final' };
 
 /** the playoff rounds are the last weeks of the season, in order; every earlier week is the regular season */
@@ -112,11 +109,6 @@ function stages(weeks: SourceWeek[]) {
 
 /** the last week before the playoff rounds */
 export const lastRegularSeasonWeek = (weeks: SourceWeek[]) => stages(weeks).lastRegularWeek;
-
-const archiveLookup = (ids: string[]) => {
-    const archive = new Map(ids.map(id => [id.replace(/\*/g, ''), id]));
-    return (id: string) => archive.get(id) ?? null;
-};
 
 export function createLiveSeason(source: LiveSeasonSource, options: { now?: () => number } = {}) {
     const clock = options.now ?? (() => Date.now());
@@ -154,7 +146,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         });
     }
 
-    function assembleTeams(core: SourceCore, mapping: FantraxTeamRow[], franchises: Awaited<ReturnType<LiveSeasonSource['franchises']>>, archiveId: (id: string) => string | null) {
+    function assembleStandingRows(core: SourceCore, mapping: FantraxTeamRow[], franchises: Awaited<ReturnType<LiveSeasonSource['franchises']>>, archiveId: (id: string) => string | null) {
         const franchiseFor = new Map(mapping.map(row => [row.fantraxTeamId, row.franchiseId]));
         const identities = new Map(franchises.map(franchise => [franchise.id, franchise]));
         const standings = new Map(core.standings.map(standing => [standing.teamId, standing]));
@@ -185,11 +177,15 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         const [core, mapping, franchises, archive] = await Promise.all([
             source.core({ fresh }), source.fantraxTeams(), source.franchises(), source.archivedPlayerIds(),
         ]);
-        const fantraxLeagueId = mapping[0]?.fantraxLeagueId;
-        if (!fantraxLeagueId) throw new Error('league.fantrax_teams has no Fantrax league for the live season');
-        return { core, mapping, franchises, archiveId: archiveLookup(archive), fantraxLeagueId, manual: await source.manualFinalWeeks(core.seasonYear) };
+        const fantraxLeagueId = liveFantraxLeagueId(mapping);
+        return { core, mapping, franchises, archiveId: archiveIdLookup(archive), fantraxLeagueId, manual: await source.manualFinalWeeks(core.seasonYear) };
     }
 
+    /**
+     * The live season at `now`. `fresh` (keepers) re-reads only the core snapshot and the player directory from
+     * Fantrax, so rosters are current; scores, scoring leaders and roster stats still come from the caches, which
+     * keeps the Fantrax requests per visit unchanged.
+     */
     async function getLiveSeason(options: { now: number; fresh?: boolean }): Promise<LiveSeasonResult> {
         const { now, fresh = false } = options;
         let loaded: Awaited<ReturnType<typeof loadCore>>;
@@ -197,12 +193,12 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
             loaded = await loadCore(fresh);
         } catch (error) {
             console.error('Live season unavailable:', error);
-            const fantraxLeagueId = await source.fantraxTeams().then(rows => rows[0]?.fantraxLeagueId ?? null, () => null);
+            const fantraxLeagueId = await source.fantraxTeams().then(liveFantraxLeagueId).catch(() => null);
             return { status: 'unavailable', fantraxLeagueId };
         }
         const { core, mapping, franchises, archiveId, fantraxLeagueId, manual } = loaded;
         const weeks = assembleWeeks(core, manual, now);
-        const ranked = assembleTeams(core, mapping, franchises, archiveId);
+        const ranked = assembleStandingRows(core, mapping, franchises, archiveId);
         const teams = ranked.map(row => row.team);
         const rows = ranked.map((row, index) => ({
             ...row, bye: index < PLAYOFF_FORMAT.byes,
@@ -210,10 +206,9 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         }));
         // Fantrax's lineup and matchup calendars differ: the current week is the first matchup week not yet over.
         const currentWeek = weeks.find(week => now <= Date.parse(week.endDate)) ?? weeks.at(-1)!;
-        // Sections load as usual even when `fresh` is set: only the core snapshot (rosters included) is re-read.
         const [scores, leaders, rosterStats] = await Promise.all([
             section('scores', async () => currentWeek.phase === 'upcoming' ? null
-                : toWeekScores(await source.weekScores(currentWeek, core))),
+                : source.weekScores(currentWeek, core)),
             section('scoring leaders', async () => {
                 const raw = await source.scoringLeaders(core.seasonYear);
                 return { fetchedAt: raw.fetchedAt, players: raw.players.map(player => ({
@@ -230,15 +225,13 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         } };
     }
 
-    const toWeekScores = (scores: WeekScores): WeekScores => ({ fetchedAt: scores.fetchedAt, week: scores.week, matchups: scores.matchups });
-
     /** For /api/matchups. An unknown week throws a RangeError; a week that hasn't started has no scores yet. */
     async function getWeekScores(week: number): Promise<WeekScores | null> {
         const core = await source.core({ fresh: false });
         const found = core.weeks.find(item => item.number === week);
         if (!found) throw new RangeError('Unknown week');
         if (clock() < Date.parse(found.startDate)) return null;
-        return toWeekScores(await source.weekScores(found, core));
+        return source.weekScores(found, core);
     }
 
     /** For the cron, /api/revalidate and the admin refresh. Publishes only if every Fantrax request succeeds. */

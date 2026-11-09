@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { refreshFantrax, setWeekFinal } from '@/app/admin/fantrax-actions';
-import { periodLabel } from '@/lib/fantrax/model';
+import { weekLabel } from '@/lib/fantrax/model';
 import type { Week } from '@/lib/fantrax/live-season';
 
 type Season = { fetchedAt: string; weeks: Pick<Week, 'number' | 'startDate' | 'endDate' | 'fullName' | 'phase' | 'manualFinal'>[]; currentWeek: number };
@@ -37,7 +37,7 @@ export default function FantraxControls({ season }: { season: Season | null }) {
             <label htmlFor="final-week" className="block text-sm font-bold">Matchup week</label>
             <div className="mt-2 flex flex-wrap items-center gap-3">
                 <select id="final-week" className="min-h-11 max-w-full rounded-xl border border-line-strong bg-white px-3 text-sm" value={selected} disabled={pending} onChange={event => { setSelected(Number(event.target.value)); setResult(null); }}>
-                    {season.weeks.map(item => <option key={item.number} value={item.number}>{item.fullName} · {periodLabel(item)}</option>)}
+                    {season.weeks.map(item => <option key={item.number} value={item.number}>{item.fullName} · {weekLabel(item)}</option>)}
                 </select>
                 <span className="text-sm text-ink-soft">{week.phase === 'final' ? `Final${week.manualFinal ? ' (manual)' : ''}` : week.phase === 'upcoming' ? 'Upcoming' : 'In progress'}</span>
                 <button type="button" className={button} disabled={pending || week.phase === 'upcoming'} onClick={() => run(() => setWeekFinal(selected, !week.manualFinal))}>{week.manualFinal ? 'Clear manual final' : 'Mark week final'}</button>

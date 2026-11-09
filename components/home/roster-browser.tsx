@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useEffect, useState, type CSSProperties } from 'react';
 import TeamBadge from '@/components/team-badge';
 import TeamBranding from '@/components/team-branding/team-branding';
-import { periodLabel, rosterGroup, sortRosterPlayers, type Period, type RosterStats, type SnapshotPlayer } from '@/lib/fantrax/model';
+import { weekLabel, rosterGroup, sortRosterPlayers, type Period, type RosterStats, type SnapshotPlayer } from '@/lib/fantrax/model';
 import type { LiveTeam } from '@/lib/fantrax/live-season';
 import { formatFpts } from '@/lib/league';
 import styles from './home.module.css';
@@ -132,7 +132,7 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId,
                 </section>)}
             </div> : <p className={styles.emptyState}>No roster available.</p>}
             <div className={styles.rosterFooter}>
-                <span>{rosterPeriod ? `Lineup period ${rosterPeriod.number} · ${periodLabel(rosterPeriod)}` : 'Fantrax roster'}</span>
+                <span>{rosterPeriod ? `Lineup period ${rosterPeriod.number} · ${weekLabel(rosterPeriod)}` : 'Fantrax roster'}</span>
             </div>
         </TeamBranding>
     </section>;
