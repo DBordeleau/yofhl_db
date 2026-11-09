@@ -229,7 +229,7 @@ test('a cached reader serves its second read from the cache', async t => {
 });
 ```
 
-Leave out `nextCache` for the app's reads without a cache, or both options for a bare database (`league.client` and `league.db`). `fetch` throws unless the test passes its own as `fetch`.
+Leave out `nextCache` for the app's reads without a cache, or both options for a bare database (`league.client` and `league.db`). `fetch` throws unless the test passes its own as `fetch`. To test what a migration does to existing rows, pass `migrateThrough: '0008'`, seed, then call `league.migrateRest()`.
 
 ## Commands
 

@@ -61,9 +61,7 @@ test('no test outside the disposable league builds its own database, cache stand
     const files = ['lib', 'scripts']
         .flatMap(dir => readdirSync(dir, { recursive: true, encoding: 'utf8' }).map(file => `${dir}/${file.replaceAll('\\', '/')}`))
         .filter(file => /\.test\.(ts|mjs)$/.test(file))
-        .filter(file => !file.startsWith('lib/testing/'))
-        // Its migration-backfill test replays the migrations only up to 0009, which a league can't do yet (#77).
-        .filter(file => file !== 'scripts/db/lib/draft-development.test.ts');
+        .filter(file => !file.startsWith('lib/testing/'));
     assert.ok(files.length > 50, "the scan finds the repo's test files");
     assert.deepEqual(files.flatMap(file => strays(readFileSync(file, 'utf8')).map(pattern => `${file}: ${pattern}`)), []);
 

@@ -7,16 +7,23 @@
 // AsyncLocalStorage installed first), and revalidateTag needs Next's work store. A Next upgrade that moves
 // any of them is fixed here.
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { readFileSync } from 'node:fs';
 import type { TestContext } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
+import { readMigrationFiles } from 'drizzle-orm/migrator';
 
 export type LeagueOptions = {
     /** SQL run after the migrations; the materialized views are refreshed after it. */
     seed?: string;
+    /**
+     * Apply the migrations only up to and including this one (its number, such as '0008'), to test what a
+     * later migration does to existing rows. `migrateRest()` applies the others.
+     */
+    migrateThrough?: string;
     /** Point the app's reads (`rows()` and `getDb().execute` in lib/data/db.ts) at this league. */
     app?: boolean;
     /** Run Next's real unstable_cache on an in-memory backend. Needs `app`. */
@@ -34,6 +41,8 @@ export type DisposableLeague = {
     /** The league's own connection, for seeding and checking rows. Its queries are not the app's. */
     client: PGlite;
     db: PgliteDatabase;
+    /** Apply the migrations after `migrateThrough`. */
+    migrateRest(): Promise<void>;
     /** How many queries the app has run against the league. */
     queries(): number;
     /** Make the next app query whose SQL contains `sqlContaining` throw `error`. */
@@ -68,7 +77,18 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
     const db = drizzle(client);
     undo.push(() => client.close());
     replace(undo, globalThis, 'fetch', options.fetch ?? offline);
-    await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
+    let rest: string[][] = [];
+    if (options.migrateThrough === undefined) {
+        await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
+    } else {
+        // Run by hand, not through migrate(), so the ones left over can be run later without its journal.
+        const { entries } = JSON.parse(readFileSync('db/migrations/meta/_journal.json', 'utf8')) as { entries: { tag: string }[] };
+        const through = entries.findIndex(entry => entry.tag.startsWith(`${options.migrateThrough}_`));
+        if (through < 0) throw new Error(`No migration ${options.migrateThrough} in db/migrations`);
+        const migrations = readMigrationFiles({ migrationsFolder: 'db/migrations' }).map(migration => migration.sql);
+        for (const statements of migrations.slice(0, through + 1)) for (const statement of statements) await client.exec(statement);
+        rest = migrations.slice(through + 1);
+    }
     if (options.seed !== undefined) {
         await client.exec(options.seed);
         for (const view of VIEWS) await client.exec(`refresh materialized view league.${view};`);
@@ -120,6 +140,10 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
     return {
         client,
         db,
+        async migrateRest() {
+            needs('migrateThrough', 'Applying the rest of the migrations');
+            for (const statements of rest.splice(0)) for (const statement of statements) await client.exec(statement);
+        },
         queries: () => { needs('app', 'Counting queries'); return queries; },
         failNextQuery(sqlContaining, error) { needs('app', 'Failing a query'); failures.push({ sqlContaining, error }); },
         expire(tag) {

@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
-import { readMigrationFiles } from 'drizzle-orm/migrator';
 import * as schema from '../../../db/schema';
 import type { NhlProfile, NhlSeasonStats } from '../../../lib/keepers/player-details';
 import type { Db } from './connect';
@@ -25,32 +23,27 @@ test('experience combines traded teams once and excludes playoffs, other leagues
     assert.throws(() => priorNhlGames(profile([row(20232024, NaN)]), 2025, '2024-09-21', { gameLog: [] }), /Incomplete/);
 });
 
-test('migration backfills existing picks by season, identity and draft date', async () => {
-    const client = new PGlite();
-    try {
-        const migrations = readMigrationFiles({ migrationsFolder: 'db/migrations' });
-        for (const migration of migrations.slice(0, 9)) for (const sql of migration.sql) await client.exec(sql);
-        await client.exec(`
-            INSERT INTO league.seasons (year, label, playoff_status) VALUES (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete');
-            INSERT INTO league.players (id, name) VALUES ('*04yu6*', 'Jamie Drysdale'), ('unknown', 'Unknown');
-            INSERT INTO league.draft_picks (season_year, overall, round, pick, player_id, player_name, positions, drafted_on, source_time, source_file) VALUES
-                (2025, 59, 5, 11, '*04yu6*', 'Jamie Drysdale', 'D', '2024-09-21', 'draft', 'draft.csv'),
-                (2026, 70, 6, 10, '*04yu6*', 'Jamie Drysdale', 'D', '2025-10-04', 'draft', 'draft.csv'),
-                (2025, 60, 5, 12, '*04yu6*', 'Jamie Drysdale', 'D', '2024-09-22', 'draft', 'draft.csv'),
-                (2025, 61, 5, 13, 'unknown', 'Unknown', 'D', '2024-09-21', 'draft', 'draft.csv');
-        `);
-        for (const sql of migrations[9].sql) await client.exec(sql);
-        const db = drizzle(client, { schema });
-        const picks = await db.select().from(schema.draftPicks);
-        const young = picks.find(p => p.overall === 59)!;
-        const next = picks.find(p => p.overall === 70)!;
-        assert.equal(young.developmentFacts?.birthDate, '2002-04-08');
-        assert.equal(draftRegretEligible({ ...young, year: 2025 }, young.developmentFacts), false);
-        assert.equal(next.developmentFacts?.priorNhlGames, 217);
-        assert.equal(draftRegretEligible({ ...next, year: 2026 }, next.developmentFacts), true);
-        assert.ok(picks.filter(p => p.overall === 60 || p.overall === 61).every(p => p.developmentFacts === null));
-        await enrichDraftDevelopment(db as unknown as Db, [young, next], async () => { throw new Error('Backfilled picks must reimport offline'); });
-    } finally { await client.close(); }
+test('migration backfills existing picks by season, identity and draft date', async t => {
+    const league = await disposableLeague(t, { migrateThrough: '0008', seed: `
+        INSERT INTO league.seasons (year, label, playoff_status) VALUES (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete');
+        INSERT INTO league.players (id, name) VALUES ('*04yu6*', 'Jamie Drysdale'), ('unknown', 'Unknown');
+        INSERT INTO league.draft_picks (season_year, overall, round, pick, player_id, player_name, positions, drafted_on, source_time, source_file) VALUES
+            (2025, 59, 5, 11, '*04yu6*', 'Jamie Drysdale', 'D', '2024-09-21', 'draft', 'draft.csv'),
+            (2026, 70, 6, 10, '*04yu6*', 'Jamie Drysdale', 'D', '2025-10-04', 'draft', 'draft.csv'),
+            (2025, 60, 5, 12, '*04yu6*', 'Jamie Drysdale', 'D', '2024-09-22', 'draft', 'draft.csv'),
+            (2025, 61, 5, 13, 'unknown', 'Unknown', 'D', '2024-09-21', 'draft', 'draft.csv');
+    ` });
+    await league.migrateRest();
+    const db = drizzle(league.client, { schema });
+    const picks = await db.select().from(schema.draftPicks);
+    const young = picks.find(p => p.overall === 59)!;
+    const next = picks.find(p => p.overall === 70)!;
+    assert.equal(young.developmentFacts?.birthDate, '2002-04-08');
+    assert.equal(draftRegretEligible({ ...young, year: 2025 }, young.developmentFacts), false);
+    assert.equal(next.developmentFacts?.priorNhlGames, 217);
+    assert.equal(draftRegretEligible({ ...next, year: 2026 }, next.developmentFacts), true);
+    assert.ok(picks.filter(p => p.overall === 60 || p.overall === 61).every(p => p.developmentFacts === null));
+    await enrichDraftDevelopment(db as unknown as Db, [young, next], async () => { throw new Error('Backfilled picks must reimport offline'); });
 });
 
 test('imports persist facts, reuse them offline, enrich new seasons, and stop safely on failed lookups', async t => {
