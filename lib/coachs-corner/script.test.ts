@@ -175,3 +175,26 @@ test('stat and numbers graphics can feature a player headshot', () => {
     assert.deepEqual(graphics[2], { type: 'numbers', team: 'HH', items: [{ value: '2', label: 'goals' }], caption: 'Week 1' });
     assert.deepEqual(playerRefs(script), [{ name: 'Brady Tkachuk' }, { name: 'Tom Wilson' }]);
 });
+
+test('wire cards name the move, the team and the players, and their players get headshots', () => {
+    const script = parseScript(`${head}>> wire claim JAGR "Ryan O'Reilly" "Mon. Nov. 9 / C · Nashville"
+>> wire drop HUNG "Stuart Skinner"
+>> wire swap HH "Mackenzie Blackwood" "John Gibson" "Sun. Nov. 8"
+>> wire free "Kent Johnson" #06abc "5th overall, 2021"
+RON: Hi.`);
+    assert.deepEqual(script.diagnostics, []);
+    const graphics = script.events.flatMap(e => e.kind === 'stage' ? e.cues : []).map(c => c.type === 'monitor' && c.graphic);
+    assert.deepEqual(graphics[0], { type: 'wire', action: 'claim', team: 'JAGR', player: { name: "Ryan O'Reilly" }, detail: 'Mon. Nov. 9 / C · Nashville' });
+    assert.deepEqual(graphics[1], { type: 'wire', action: 'drop', team: 'HUNG', player: { name: 'Stuart Skinner' } });
+    assert.deepEqual(graphics[2], { type: 'wire', action: 'swap', team: 'HH', player: { name: 'Mackenzie Blackwood' }, out: { name: 'John Gibson' }, detail: 'Sun. Nov. 8' });
+    assert.deepEqual(graphics[3], { type: 'wire', action: 'free', team: undefined, player: { name: 'Kent Johnson', id: '06abc' }, detail: '5th overall, 2021' });
+    assert.deepEqual(playerRefs(script), [{ name: "Ryan O'Reilly" }, { name: 'Stuart Skinner' }, { name: 'Mackenzie Blackwood' }, { name: 'John Gibson' }, { name: 'Kent Johnson', id: '06abc' }]);
+});
+
+test('a wire card without a move, team or second swap player says how to write it', () => {
+    const script = parseScript(`${head}>> wire JAGR "Ryan O'Reilly"\n>> wire claim "Ryan O'Reilly"\n>> wire swap HH "Mackenzie Blackwood"\nRON: Hi.`);
+    const at = (n: number) => script.diagnostics.filter(d => d.line === n).map(d => d.message).join(' ');
+    assert.match(at(4), /needs a move/);
+    assert.match(at(5), /names the team/);
+    assert.match(at(6), /player in, then the player out/);
+});

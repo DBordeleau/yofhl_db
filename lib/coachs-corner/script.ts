@@ -42,7 +42,12 @@ export type Graphic =
     | { type: 'compare'; home: string; away: string; homeScore?: string; awayScore?: string; rows: { label: string; home: string; away: string; highlight?: boolean }[] }
     | { type: 'numbers'; team?: string; player?: PlayerRef; caption?: string; items: { value: string; label: string }[] }
     | { type: 'player'; player: PlayerRef; team?: string; caption?: string; mood?: 'hearts' }
-    | { type: 'gap'; base: PlayerRef; others: PlayerRef[] };
+    | { type: 'gap'; base: PlayerRef; others: PlayerRef[] }
+    /** a free-agent move: claimed by, dropped by, a team's swap (player in, player out), or still unclaimed */
+    | { type: 'wire'; action: WireAction; team?: string; player: PlayerRef; out?: PlayerRef; detail?: string };
+
+export type WireAction = 'claim' | 'drop' | 'swap' | 'free';
+const WIRE_ACTIONS: Record<string, WireAction> = { claim: 'claim', claimed: 'claim', add: 'claim', drop: 'drop', dropped: 'drop', swap: 'swap', free: 'free', available: 'free' };
 
 export type Cue =
     | { type: 'pause'; ms: number }
@@ -136,7 +141,7 @@ const ID_ERROR = 'Write the Fantrax id without its asterisks, like "Elias Petter
 const fantraxId = (token: string) => /^#([0-9a-z]+)$/i.exec(token)?.[1].toLowerCase();
 const playerRef = (name: string, id: string | undefined): PlayerRef => (id ? { name, id } : { name });
 
-const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'list', 'standings'] as const;
+const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'list', 'standings', 'wire'] as const;
 
 export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; teams: string[] } => {
     const trimmed = raw.trim();
@@ -152,12 +157,13 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
         rest = (rest.slice(0, featured.index) + ' ' + rest.slice(featured.index! + featured[0].length)).trim();
     }
     const tokens = tokenize(rest);
-    // player and gap name players in quotes, each optionally followed by its Fantrax id
+    // player, gap and wire name players in quotes, each optionally followed by its Fantrax id
     const named: PlayerRef[] = [];
     const unnamed: string[] = [];
     let badId = false;
-    if (type === 'player' || type === 'gap') tokens.forEach((t, i) => {
-        if (t.quoted) named.push({ name: smarten(t.value) });
+    if (type === 'player' || type === 'gap' || type === 'wire') tokens.forEach((t, i) => {
+        // wire names stay as typed: the archive and NHL lookups compare apostrophes literally (O'Reilly)
+        if (t.quoted) named.push({ name: type === 'wire' ? t.value.trim() : smarten(t.value) });
         else if (t.value.startsWith('#') && tokens[i - 1]?.quoted) {
             const id = fantraxId(t.value);
             if (id) named[named.length - 1] = playerRef(named[named.length - 1].name, id); else badId = true;
@@ -280,6 +286,20 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
             });
             if (!rows.length) return { error: 'A list needs rows, like >> list "Standings" HUNG 3-0, JAGR 2-1.', teams };
             return { graphic: { type, title, rows }, teams };
+        }
+        case 'wire': {
+            // >> wire claim JAGR "Ryan O'Reilly" "Mon. Nov. 9" · >> wire swap HH "In" "Out" "Sun." · >> wire free "Kent Johnson" "…"
+            const usage = 'A wire card needs a move, a team and a player, like >> wire claim JAGR "Ryan O’Reilly" "Mon. Nov. 9" (or drop, swap "In" "Out", or free "Player" with no team).';
+            const actionToken = unnamed.find(t => WIRE_ACTIONS[t.toLowerCase()]);
+            const action = actionToken ? WIRE_ACTIONS[actionToken.toLowerCase()] : undefined;
+            const ref = unnamed.find(t => t !== actionToken);
+            if (!action || !named[0]) return { error: usage, teams };
+            if (action !== 'free' && !ref) return { error: `A ${action} card names the team, like >> wire ${action} JAGR "Ryan O’Reilly".`, teams };
+            if (action === 'swap' && !named[1]) return { error: 'A swap names the player in, then the player out, like >> wire swap HH "Mackenzie Blackwood" "John Gibson".', teams };
+            const out = action === 'swap' ? named[1] : undefined;
+            const raw = named[action === 'swap' ? 2 : 1]?.name;
+            const detail = raw ? smarten(raw) : undefined;
+            return { graphic: { type, action, team: ref ? team(ref) : undefined, player: named[0], ...(out ? { out } : {}), ...(detail ? { detail } : {}) }, teams };
         }
         default:
             return { error: `“${type}” isn’t a monitor graphic. Use one of: ${GRAPHIC_TYPES.join(', ')}.`, teams };
@@ -604,10 +624,11 @@ export const hasErrors = (script: Script) => script.diagnostics.some(d => d.seve
 /** the season an episode's player cards quote: the one before the episode's, unless `stats:` names an earlier one */
 export const statsSeason = (meta: Meta): number | null => meta.stats ?? (meta.season === undefined ? null : meta.season - 1);
 
-/** the players one graphic cites (player, gap, or stat/numbers with "…") */
+/** the players one graphic cites (player, gap, wire, or stat/numbers with "…") */
 export const graphicPlayers = (graphic: Graphic): PlayerRef[] => {
     if (graphic.type === 'player') return [graphic.player];
     if (graphic.type === 'gap') return [graphic.base, ...graphic.others];
+    if (graphic.type === 'wire') return graphic.out ? [graphic.player, graphic.out] : [graphic.player];
     if ((graphic.type === 'stat' || graphic.type === 'numbers') && graphic.player) return [graphic.player];
     return [];
 };

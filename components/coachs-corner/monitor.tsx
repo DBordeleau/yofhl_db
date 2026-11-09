@@ -52,6 +52,18 @@ const Heart = ({ style }: { style?: React.CSSProperties }) => (
     </svg>
 );
 
+const WIRE_STAMP = { claim: 'Claimed', drop: 'Dropped', swap: 'Swap', free: 'Available' } as const;
+
+/** a round headshot, or the player's initials when the snapshot has no picture */
+const WireShot = ({ player, name }: { player: StudioPlayer | null; name: string }) => (
+    <div className={styles.gWireShot}>
+        {player?.headshot
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={player.headshot} alt="" referrerPolicy="no-referrer" />
+            : <span>{name.split(/\s+/).map(w => w[0]).join('')}</span>}
+    </div>
+);
+
 // floating hearts at fixed, uneven offsets so none of them rise in step
 const HEARTS = [[8, 0, 1.1], [22, 1.3, .7], [36, .5, .9], [61, 1.9, 1.2], [74, .8, .75], [88, 1.6, 1], [50, 2.6, .8], [14, 3.1, .95], [82, 3.4, .7]];
 
@@ -293,6 +305,55 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                     </table>
                 </div>
             );
+        case 'wire': {
+            const team = findTeam(teams, graphic.team);
+            const player = findPlayer(players, graphic.player);
+            const lines = graphic.detail ? graphic.detail.split(/\s+\/\s+/) : [];
+            const head = (
+                <header className={styles.gWireHead}>
+                    <span className={styles.gSlab}>Waiver wire</span>
+                    <i className={styles.gWireStamp}>{WIRE_STAMP[graphic.action]}</i>
+                </header>
+            );
+            if (graphic.action === 'swap') {
+                const out = graphic.out ? findPlayer(players, graphic.out) : null;
+                const side = (who: StudioPlayer | null, ref: { name: string }, dir: 'in' | 'out') => (
+                    <figure className={styles.gWireSide} data-dir={dir}>
+                        <WireShot player={who} name={ref.name} />
+                        <figcaption><em>{dir === 'in' ? 'In' : 'Out'}</em><b>{who?.name ?? ref.name}</b></figcaption>
+                    </figure>
+                );
+                return (
+                    <div className={styles.gWire} data-action="swap" style={teamVars(team)}>
+                        {head}
+                        <div className={styles.gWireSwap}>
+                            {side(player, graphic.player, 'in')}
+                            <span className={styles.gWireArrow} aria-hidden="true">⇄</span>
+                            {graphic.out && side(out, graphic.out, 'out')}
+                        </div>
+                        <footer className={styles.gWireFoot}>
+                            {team && <span className={styles.gWireTeam}><Logo team={team} />{team.name}</span>}
+                            {lines.map((line, i) => <span key={i}>{line}</span>)}
+                        </footer>
+                    </div>
+                );
+            }
+            return (
+                <div className={styles.gWire} data-action={graphic.action} style={teamVars(team)}>
+                    {head}
+                    <div className={styles.gWireBody}>
+                        <WireShot player={player} name={graphic.player.name} />
+                        <div className={styles.gWireText}>
+                            <b>{player?.name ?? graphic.player.name}</b>
+                            {team
+                                ? <span className={styles.gWireTeam}><Logo team={team} />{graphic.action === 'drop' ? 'From ' : 'To '}{team.name}</span>
+                                : <span className={styles.gWireTeam}>Unclaimed</span>}
+                            {lines.map((line, i) => <span key={i}>{line}</span>)}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
         case 'list':
             return (
                 <div className={styles.gList}>
@@ -327,6 +388,7 @@ export const spillColour = (graphic: Graphic, teams: StudioTeam[]) => {
         case 'compare': return findTeam(teams, graphic.home)?.primary ?? '#2a4d9c';
         case 'numbers': return findTeam(teams, graphic.team)?.primary ?? '#2a4d9c';
         case 'player': return graphic.mood === 'hearts' ? '#ff4f7b' : findTeam(teams, graphic.team)?.primary ?? '#2a4d9c';
+        case 'wire': return findTeam(teams, graphic.team)?.primary ?? '#d9a12b';
         default: return '#2a4d9c';
     }
 };
