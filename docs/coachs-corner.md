@@ -255,6 +255,7 @@ Episodes using existing gestures inherit the AVIF artwork and the fixed-body mou
 - The rafters behind the hosts hang the league's eight most recent championship banners, in each champion's colours.
 - Each pose has 640 px and 1254 px AVIF files. Only the poses an episode uses are loaded; those poses are still loaded eagerly to keep pose changes immediate.
 - Reduced motion turns off the camera moves, shakes, word animations and crossfades and keeps the timing and type.
+- A seek, scrub, line skip or replay is a jump: the studio cuts straight to the frame it lands on. Both hosts' poses swap with no crossfade, and the monitor graphic is already up, with no fade-in, static or build. Playing on from there crossfades as usual. (A crossfade hides the old pose on a timer, so crossfading after a jump could leave no pose on screen whenever the new pose's fade started late.)
 
 Tests: `node --import tsx --test lib/coachs-corner/*.test.ts`.
 

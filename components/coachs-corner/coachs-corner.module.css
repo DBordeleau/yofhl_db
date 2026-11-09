@@ -411,6 +411,11 @@
 /* follows the lapel between poses at the same pace as the artwork fade */
 .body svg[data-lapel] > g { transition: transform var(--fade, 120ms) ease-out, opacity var(--fade, 120ms) ease-out; }
 
+/* A jump (a seek) cuts straight to the poses it lands on. The outgoing pose's timer doesn't wait for
+   the incoming fade, so crossfading after a jump can leave no pose on screen until it catches up. */
+.body[data-jumped] img,
+.body[data-jumped] svg[data-lapel] > g { transition: none; }
+
 .body[data-motion='bob'] { animation: bob .34s ease-in-out infinite alternate; }
 .body[data-motion='shake'] { animation: shake .085s linear infinite alternate; }
 .body[data-motion='nod'] { animation: nod .44s ease-in-out infinite alternate; }

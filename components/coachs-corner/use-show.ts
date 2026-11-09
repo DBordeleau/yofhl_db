@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Episode } from '@/lib/coachs-corner/episode';
-import { frameAt, frameSignature, type Frame } from '@/lib/coachs-corner/timeline';
+import { frameAt, nextShownFrame, shownFrame, type Frame, type ShownFrame } from '@/lib/coachs-corner/timeline';
 import { createTransport, type BumperState, type TransportOutput } from '@/lib/coachs-corner/transport';
 import type { ShowAudio } from './audio';
 
@@ -17,6 +17,8 @@ const THEME_VOLUME = 0.8;
 
 export interface Show {
     frame: Frame;
+    /** show time jumped to this frame (a seek), so the studio shows it at once instead of crossfading */
+    jumped: boolean;
     /** coarse time for labels, about ten times a second */
     time: number;
     playing: boolean;
@@ -45,27 +47,26 @@ export function useShow(episode: Episode, { sound: soundOn, startAt, audio, them
     const timeRef = useRef(startAt ?? 0);
     const [firstTransport] = useState(() => createTransport(tl, audioCues, { time: startAt }));
     const transport = useRef(firstTransport);
-    const [frame, setFrame] = useState(() => startAt === undefined ? openingPicture : frameAt(tl, startAt));
+    const [shown, setShown] = useState<ShownFrame>(() => shownFrame(startAt === undefined ? openingPicture : frameAt(tl, startAt)));
     const [time, setTime] = useState(startAt ?? 0);
     const [playing, setPlaying] = useState(false);
     const [started, setStarted] = useState(startAt !== undefined);
     const [rate, setRateState] = useState(1);
     const [bumper, setBumper] = useState<BumperState | null>(null);
-    const sigRef = useRef(frameSignature(frame));
+    const shownRef = useRef(shown);
     const listeners = useRef(new Set<(t: number) => void>());
     const soundRef = useRef(soundOn);
     soundRef.current = soundOn;
     const playingRef = useRef(false);
     const lastLabel = useRef(0);
 
-    const publish = useCallback((t: number, force = false) => {
-        const f = frameAt(tl, t);
-        const sig = frameSignature(f);
-        if (force || sig !== sigRef.current) {
-            sigRef.current = sig;
-            setFrame(f);
+    const publish = useCallback((out: TransportOutput, force = false) => {
+        const next = nextShownFrame(shownRef.current, tl, out, { force });
+        if (next !== shownRef.current) {
+            shownRef.current = next;
+            setShown(next);
         }
-        listeners.current.forEach(fn => fn(t));
+        listeners.current.forEach(fn => fn(out.time));
     }, [tl]);
 
     const applyTheme = useCallback((out: TransportOutput) => {
@@ -91,7 +92,7 @@ export function useShow(episode: Episode, { sound: soundOn, startAt, audio, them
         setBumper(prev => prev?.mount === out.bumper?.mount && prev?.paused === out.bumper?.paused ? prev : out.bumper);
         playingRef.current = out.playing;
         setPlaying(out.playing);
-        publish(out.time, force);
+        publish(out, force);
         if (label || !out.playing) setTime(out.time);
     }, [applyTheme, audio, tl, publish]);
 
@@ -102,9 +103,13 @@ export function useShow(episode: Episode, { sound: soundOn, startAt, audio, them
         audio.stop();
         const wasPlaying = playingRef.current;
         transport.current = createTransport(tl, audioCues, { time: timeRef.current, speed: rate });
-        if (wasPlaying) apply(transport.current.play(performance.now()), { force: true });
+        // the edited script may draw a different picture at the playhead: cut to it like a seek
+        if (wasPlaying) apply({ ...transport.current.play(performance.now()), jumped: true }, { force: true });
         else if (started) apply(transport.current.seek(timeRef.current), { force: true });
-        else setFrame(openingPicture);
+        else {
+            shownRef.current = shownFrame(openingPicture);
+            setShown(shownRef.current);
+        }
     }, [episode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
@@ -157,8 +162,9 @@ export function useShow(episode: Episode, { sound: soundOn, startAt, audio, them
         return () => { listeners.current.delete(fn); };
     }, []);
 
+    const { frame, jumped } = shown;
     return useMemo(() => ({
-        frame, time, playing, started, rate, bumper,
+        frame, jumped, time, playing, started, rate, bumper,
         play, pause, toggle: () => (playing ? pause() : play()), seek, setRate, subscribe, timeRef,
-    }), [frame, time, playing, started, rate, bumper, play, pause, seek, setRate, subscribe]);
+    }), [frame, jumped, time, playing, started, rate, bumper, play, pause, seek, setRate, subscribe]);
 }

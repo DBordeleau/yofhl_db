@@ -156,6 +156,19 @@ test('play at the end restarts from the top', () => {
     assert.equal(out.bumper?.offset, 0);
 });
 
+test('a seek or a replay is a jump; playing on from it is not', () => {
+    const { tl, transport } = setup();
+    assert.equal(transport.seek(tl.lines[1].t0).jumped, true, 'a seek while paused');
+    assert.equal(transport.play(0).jumped, false, 'play picks up where the seek landed');
+    assert.equal(transport.tick(200).jumped, false);
+    assert.equal(transport.seek(tl.lines[0].t0).jumped, true, 'a seek while playing');
+    assert.equal(transport.seek(2500).jumped, true, 'a seek into the intro');
+    assert.equal(transport.setSpeed(1.5).jumped, false);
+    assert.equal(transport.pause().jumped, false);
+    transport.seek(tl.duration);
+    assert.equal(transport.play(0).jumped, true, 'play at the end jumps back to the top');
+});
+
 test('seeks clamp to the episode', () => {
     const { tl, transport } = setup();
     assert.equal(transport.seek(-500).time, 0);

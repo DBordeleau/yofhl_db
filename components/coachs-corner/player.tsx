@@ -271,7 +271,7 @@ export default function Player({ episode, episodeKey, teams, players = [], banne
             <div className={styles.presentation}>
                 <div className={styles.frame}>
                     <audio ref={theme} src={THEME_URL} preload="auto" />
-                    <Studio episode={episode} frame={frame} teams={teams} players={players} banners={banners} started={started} playing={playing} bumper={show.bumper} fullscreen={isFullscreen} />
+                    <Studio episode={episode} frame={frame} jumped={show.jumped} teams={teams} players={players} banners={banners} started={started} playing={playing} bumper={show.bumper} fullscreen={isFullscreen} />
 
                     {!started && <TitleCard episode={episode} />}
                     {!started && (
