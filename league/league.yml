@@ -99,13 +99,32 @@ awards:
   - { name: Teemu Trophy, label: Teemu Selanne Trophy, description: Top Rookie }
   - { name: Danny Briere Award, description: Playoff MVP }
 
-# Season-specific facts about the playoffs
+# Season-specific facts
+#   playoffs      "cancelled" for a season with no playoffs
+#   consolation   abbreviations of the teams that played the consolation bracket
+#   fantrax       the season's Fantrax league ID and each Fantrax team ID's franchise id. Add a
+#                 block when a new season starts on Fantrax; it's loaded on every import, before
+#                 the season has any CSV exports
 seasons:
   2020:
     playoffs: cancelled # COVID-19
   2021:
     # the 2020–21 export holds two 4-team brackets; these teams played the consolation one
     consolation: [JTPJ, NFLD, MAC, MEAT]
+  2027:
+    fantrax:
+      league: rf5o9cu2mutybszr
+      teams:
+        6pfjiq07mutybt24: 1
+        4num7i90mutybt24: 2
+        a9lp9hbcmutybt24: 3
+        7jmn4yymmutybt24: 4
+        p4zire2bmutybt24: 5
+        1cbgg930mutybt24: 6
+        ru2wvs6mmutybt24: 7
+        ewlj8cwqmutybt24: 8
+        e3alkww9mutybt24: 9
+        kr34cpssmutybt24: 13
 
 # The longer final's goalie-start limit retroactively changed earlier playoff scores.
 # Verified reconstructions use the original four-start cap, including every start on the day

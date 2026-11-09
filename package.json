@@ -20,7 +20,7 @@
     "db:seed:branding": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/seed-team-branding.ts",
     "test:lottery": "node --import tsx --test lib/lottery/*.test.ts",
     "test:draft": "node --import tsx --test lib/draft.test.ts lib/draft/*.test.ts",
-    "test:history": "node --import tsx --test scripts/db/lib/history.test.ts scripts/db/lib/draft-development.test.ts",
+    "test:history": "node --import tsx --test scripts/db/lib/history.test.ts scripts/db/lib/draft-development.test.ts scripts/db/lib/fantrax-teams.test.ts",
     "test:owners": "node --import tsx --test lib/owner/*.test.ts",
     "test:data": "node --import tsx --test lib/data/*.test.ts lib/seasons.test.ts",
     "test:performance": "node --import tsx --test lib/result-cache.test.ts",

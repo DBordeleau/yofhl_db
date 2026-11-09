@@ -28,10 +28,16 @@ export interface ScoreOverride {
     verified?: boolean; // Reconstructed from game-level evidence, rather than a placeholder winning score.
 }
 
+// the season's Fantrax league ID and each Fantrax team ID's franchise
+export interface FantraxSeason {
+    league: string;
+    teams: Record<string, number>;
+}
+
 export interface LeagueConfig {
     franchises: Franchise[];
     awards: { name: string; label?: string; description: string }[];
-    seasons: Record<number, { playoffs?: 'cancelled'; consolation?: string[] }>;
+    seasons: Record<number, { playoffs?: 'cancelled'; consolation?: string[]; fantrax?: FantraxSeason }>;
     scoreOverrides: ScoreOverride[];
 }
 

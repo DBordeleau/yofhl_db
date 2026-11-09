@@ -46,6 +46,19 @@ export const fantraxFinalWeeks = league.table('fantrax_final_weeks', {
     markedAt: timestamp('marked_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.leagueId, t.seasonYear, t.period] })]);
 
+// Each season's Fantrax league and team IDs, loaded from league.yml by the importer. A season is
+// listed here before it reaches the archive, so there is no reference to league.seasons. Names
+// and logos come only from league.current_teams (ADR 0001).
+export const fantraxTeams = league.table('fantrax_teams', {
+    seasonYear: integer('season_year').notNull(),
+    fantraxLeagueId: text('fantrax_league_id').notNull(),
+    fantraxTeamId: text('fantrax_team_id').notNull(),
+    franchiseId: integer('franchise_id').notNull().references(() => franchises.id),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.fantraxTeamId] }),
+    unique('fantrax_teams_one_team_per_franchise').on(t.seasonYear, t.franchiseId),
+]);
+
 // Event snapshots survive team renames and imports. Only one event is current at a time.
 export const draftLotteries = league.table('draft_lotteries', {
     id: uuid('id').primaryKey().defaultRandom(),
