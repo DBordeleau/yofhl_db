@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { useEffect, useState, type CSSProperties } from 'react';
 import TeamBadge from '@/components/team-badge';
 import TeamBranding from '@/components/team-branding/team-branding';
-import { periodLabel, rosterGroup, sortRosterPlayers, type Period, type RosterStats, type SnapshotPlayer, type SnapshotTeam } from '@/lib/fantrax/model';
+import { periodLabel, rosterGroup, sortRosterPlayers, type Period, type RosterStats, type SnapshotPlayer } from '@/lib/fantrax/model';
+import type { LiveTeam } from '@/lib/fantrax/live-season';
 import { formatFpts } from '@/lib/league';
 import styles from './home.module.css';
 import Arrow from '@/components/arrow';
@@ -51,7 +52,7 @@ function GroupHeading({ code, label, columns = 1, filled = columns }: { code?: s
     </div>;
 }
 
-export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId, stats }: { teams: SnapshotTeam[]; rosterPeriod: Period | null; initialFranchiseId?: number; stats: RosterStats | null }) {
+export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId, stats }: { teams: LiveTeam[]; rosterPeriod: Period | null; initialFranchiseId?: number; stats: RosterStats | null }) {
     const [selectedId, setSelectedId] = useState(() => teams.find(team => team.franchiseId === initialFranchiseId)?.id ?? teams[0]?.id);
     // phones keep the sheet folded until someone picks a team from the logo rail; wider screens always show it
     const [picked, setPicked] = useState(Boolean(initialFranchiseId));

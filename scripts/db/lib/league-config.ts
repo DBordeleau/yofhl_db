@@ -41,6 +41,15 @@ export interface LeagueConfig {
     scoreOverrides: ScoreOverride[];
 }
 
+/** the live season's Fantrax league: the latest season with a `fantrax` block */
+export const liveFantraxLeague = (config: LeagueConfig): string => {
+    const latest = Object.entries(config.seasons)
+        .filter(([, settings]) => settings.fantrax?.league)
+        .sort(([a], [b]) => Number(b) - Number(a))[0];
+    if (!latest) throw new Error("league/league.yml has no season with a fantrax block; add the live season's Fantrax league ID.");
+    return latest[1].fantrax!.league;
+};
+
 export interface TeamMatch {
     franchise: Franchise;
     era: Era;

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildChases, buildRecords, longestRun, matchupFormat, matchupFormats, rankEntries, type RecordSource, type Entry } from './model';
 import type { FranchiseCard } from '../data/league';
-import type { LeagueSnapshot, RosterStats } from '../fantrax/model';
+import type { RosterStats } from '../fantrax/model';
 import type { RivalryGame } from '../rivalries/model';
 import history from '../rivalries/regular-season-history.json';
 import periods from './periods.json';
@@ -108,13 +108,18 @@ test('live milestones replace the current season, preserve cents, and never turn
         { id: '*abc*', name: 'Player', year: 2026, points: 3950.75, positions: ['RW'] },
         { id: '*abc*', name: 'Player', year: 2027, points: 10, positions: ['RW'] },
     ];
-    const live: LeagueSnapshot = { fetchedAt: '2026-10-16T12:00:00Z', seasonYear: 2027, teams: [{ id: 't1', franchiseId: 1, name: 'Team 1', abbreviation: 'T1', logo: null, owner: null, rank: 1, record: '2-0-0', points: 100,
-        players: [{ id: 'abc', name: 'Player', position: 'RW', lineupPosition: 'RW', nhlTeam: 'BOS', status: 'ACTIVE', archiveId: '*abc*' }] }], scoringPeriods: [], rosterPeriod: null, schedule: [], finalPeriods: [] };
-    const stats: RosterStats = { fetchedAt: live.fetchedAt, players: { abc: { points: 42.75, perGame: 6.11 } } };
+    const team = { id: 't1', franchiseId: 1, name: 'Team 1', abbreviation: 'T1', logo: null, owner: null, href: '/teams/1',
+        players: [{ id: 'abc', name: 'Player', position: 'RW', lineupPosition: 'RW', nhlTeam: 'BOS', status: 'ACTIVE', archiveId: '*abc*' }] };
+    const live = { seasonYear: 2027, standings: { playoffTeams: 6, byeTeams: 2,
+        rows: [{ team, rank: 1, record: '2-0-0', points: 100, bye: true, playoffLineBelow: false }] } };
+    const stats: RosterStats = { fetchedAt: '2026-10-16T12:00:00Z', players: { abc: { points: 42.75, perGame: 6.11 } } };
     const chase = buildChases(data, live, stats).find(c => c.id === 'player-abc')!;
     assert.deepEqual([chase.total, chase.target, chase.gap], [3993.5, 4000, 6.5]);
     assert.equal(buildChases(data, live, null).some(c => c.id === 'player-abc'), false);
     assert.deepEqual(buildChases(data, null, stats), []);
     assert.deepEqual(buildChases(data, live, stats, 2), []);
     assert.equal(buildChases(data, live, { ...stats, players: { abc: { points: 49.25, perGame: 7 } } }).find(c => c.id === 'player-abc')!.target, 5000);
+    // franchise chases add the live standings to the archive
+    assert.deepEqual(buildChases(data, live, stats).find(c => c.id === 'team-points-1')!.total, 4100);
+    assert.deepEqual(buildChases(data, live, stats).find(c => c.id === 'team-wins-1')!.total, 42);
 });

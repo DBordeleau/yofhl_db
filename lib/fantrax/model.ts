@@ -74,18 +74,6 @@ export interface MatchupScores {
     }[];
 }
 
-// Fantrax has separate lineup and matchup calendars. Never derive either from week numbers.
-export function selectPeriod(periods: Period[], requested: string | undefined, now: number): Period | null {
-    const explicit = requested && /^\d+$/.test(requested) ? periods.find(p => p.number === Number(requested)) : null;
-    return explicit || periods.find(p => now <= Date.parse(p.endDate)) || periods.at(-1) || null;
-}
-
-export function periodPhase(period: Period, now: number, finalPeriods: readonly number[] = []): 'upcoming' | 'active' | 'complete' {
-    if (now < Date.parse(period.startDate)) return 'upcoming';
-    if (finalPeriods.includes(period.number)) return 'complete';
-    return now <= Date.parse(period.endDate) ? 'active' : 'complete';
-}
-
 // Fantrax can post regular-season results before its next matchup period starts.
 export function automaticFinalPeriods(snapshot: {
     scoringPeriods: Period[]; schedule: LeagueSnapshot['schedule']; lastRegularSeasonPeriod: number;
@@ -121,16 +109,6 @@ export function shortDate(date: string): string {
 
 export function periodLabel(period: Period): string {
     return `${shortDate(period.startDate)} – ${shortDate(period.endDate)}`;
-}
-
-const PLAYOFF_ROUNDS = ['Grand Finals', 'Semifinals', 'Quarterfinals'];
-
-// The last three weeks of the season are the Jagr Cup playoffs (Fantrax leaves their matchups unscheduled until
-// seeding is known); every earlier week is a regular-season week.
-export function weekName(period: number, seasonPeriods: number[]): { short: string; full: string; playoff: boolean } {
-    const fromEnd = [...new Set(seasonPeriods)].sort((a, b) => b - a).indexOf(period);
-    const round = fromEnd >= 0 ? PLAYOFF_ROUNDS[fromEnd] : undefined;
-    return round ? { short: round, full: `Jagr Cup Playoff ${round}`, playoff: true } : { short: `Week ${period}`, full: `Week ${period}`, playoff: false };
 }
 
 export function playerName(name: string): string {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { automaticFinalPeriods, periodLabel, periodPhase, publishedMatchups, rosterGroup, selectPeriod, sortRosterPlayers, weekName, type Period, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
+import { automaticFinalPeriods, periodLabel, publishedMatchups, rosterGroup, sortRosterPlayers, type Period, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
 
 const periods: Period[] = [
     { number: 1, startDate: '2026-10-12T17:00:00.000Z', endDate: '2026-10-17T00:59:59.000Z' },
@@ -13,16 +13,8 @@ const finalFixture = () => ({
     schedule: periods.map(period => ({ period: period.number, matchupList: [{ away: { id: 'a' }, home: { id: 'b' } }] as ScheduledMatchup[] })),
 });
 
-test('posted results make cards and ticker Final while keeping the completed week current', () => {
-    const fixture = finalFixture();
-    const now = Date.parse('2026-10-16T20:00:00Z');
-    const final = automaticFinalPeriods(fixture, now);
-    assert.deepEqual(final, [1]);
-    assert.equal(periodPhase(periods[0], now, final), 'complete');
-    assert.equal(periodPhase(selectPeriod(periods, undefined, now)!, now, final), 'complete');
-    assert.equal(selectPeriod(periods, undefined, now)?.number, 1);
-    assert.equal(periodPhase(periods[1], now, [2]), 'upcoming', 'a final flag cannot start a future week');
-    assert.equal(selectPeriod(periods, undefined, Date.parse(periods[1].startDate))?.number, 2);
+test('posted results finalize a week before its end date', () => {
+    assert.deepEqual(automaticFinalPeriods(finalFixture(), Date.parse('2026-10-16T20:00:00Z')), [1]);
 });
 
 test('requires every scheduled result, handles ties, and counts actual matches rather than the week number', () => {
@@ -51,31 +43,6 @@ test('does not infer early Finals from incomplete standings, missing history, du
     const playoffs = finalFixture(); playoffs.lastRegularSeasonPeriod = 1;
     playoffs.teams.forEach(team => { team.record = '2-0-0'; });
     assert.deepEqual(automaticFinalPeriods(playoffs, Date.parse('2026-10-18T00:00:00Z')), [1]);
-    assert.equal(periodPhase(periods[1], Date.parse('2026-10-18T00:00:00Z'), [2]), 'complete', 'manual Finals cover playoffs');
-});
-
-test('chooses the opening matchup before the season and the last matchup after the season', () => {
-    assert.equal(selectPeriod(periods, undefined, Date.parse('2026-10-04'))?.number, 1);
-    assert.equal(selectPeriod(periods, undefined, Date.parse('2027-05-01'))?.number, 2);
-    assert.equal(selectPeriod([], undefined, Date.now()), null);
-});
-
-test('switches rounds at the supplied Fantrax time, not at midnight or the start of a week', () => {
-    const boundary = Date.parse('2026-10-17T01:00:00.000Z');
-    assert.equal(selectPeriod(periods, undefined, boundary - 1000)?.number, 1);
-    assert.equal(selectPeriod(periods, undefined, boundary)?.number, 2);
-    assert.equal(periodPhase(periods[0], boundary - 1000), 'active');
-    assert.equal(periodPhase(periods[0], boundary), 'complete');
-    assert.equal(periodPhase(periods[1], boundary - 1000), 'upcoming');
-    assert.equal(periodPhase(periods[1], boundary), 'active');
-});
-
-test('allows schedule browsing and rejects arbitrary or nonexistent period query values', () => {
-    const now = Date.parse('2026-10-04');
-    assert.equal(selectPeriod(periods, '2', now)?.number, 2);
-    for (const request of ['9999', '-1', '2.5', '2abc', '0', '']) {
-        assert.equal(selectPeriod(periods, request, now)?.number, 1);
-    }
 });
 
 test('displays the league calendar in Eastern Time even when the UTC day differs', () => {
@@ -98,15 +65,6 @@ test('groups active, bench, and IR players by assigned position without duplicat
     assert.equal(rosterGroup({ ...player, status: 'MINORS' }), 'MINORS');
     assert.equal(rosterGroup({ ...player, lineupPosition: 'FLEX' }), 'OTHER');
     assert.equal(rosterGroup({ ...player, status: 'UNKNOWN' }), 'OTHER');
-});
-
-test('names regular-season weeks and the last three weeks of the season as the Jagr Cup playoffs', () => {
-    const season = Array.from({ length: 26 }, (_, index) => index + 1);
-    assert.deepEqual(weekName(1, season), { short: 'Week 1', full: 'Week 1', playoff: false });
-    assert.equal(weekName(23, season).full, 'Week 23');
-    assert.equal(weekName(24, season).full, 'Jagr Cup Playoff Quarterfinals');
-    assert.equal(weekName(25, season).full, 'Jagr Cup Playoff Semifinals');
-    assert.deepEqual(weekName(26, season), { short: 'Grand Finals', full: 'Jagr Cup Playoff Grand Finals', playoff: true });
 });
 
 test('orders each roster group by descending points, with alphabetical ties and missing stats last', () => {

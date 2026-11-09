@@ -3,7 +3,8 @@ import { playerHref } from '../player-url';
 import { getAwardDefinition } from '../awards';
 import { PLAYER_STATS, type PlayerStat, type PlayerCategories } from './player-stats';
 import type { FranchiseCard } from '../data/league';
-import type { LeagueSnapshot, RosterStats } from '../fantrax/model';
+import type { RosterStats } from '../fantrax/model';
+import type { LiveSeason } from '../fantrax/live-season';
 import type { RivalryGame } from '../rivalries/model';
 
 export type Category = 'teams' | 'players' | 'matchups' | 'honours';
@@ -155,7 +156,7 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
     return records;
 }
 
-export function buildChases(source: RecordSource, live: LeagueSnapshot | null, stats: RosterStats | null, team?: number): Chase[] {
+export function buildChases(source: RecordSource, live: Pick<LiveSeason, 'seasonYear' | 'standings'> | null, stats: RosterStats | null, team?: number): Chase[] {
     if (!live) return [];
     const currentYear = live.seasonYear;
     const chases: Chase[] = [];
@@ -164,7 +165,7 @@ export function buildChases(source: RecordSource, live: LeagueSnapshot | null, s
         const target = (Math.floor(total / candidate.step) + 1) * candidate.step;
         chases.push({ ...candidate, total, target, gap: round(target - total) });
     };
-    for (const t of live.teams.filter(t => !team || t.franchiseId === team)) {
+    for (const { team: t, record, points } of live.standings.rows.filter(row => !team || row.team.franchiseId === team)) {
         for (const p of t.players) {
             const current = stats?.players[p.id]?.points;
             if (current == null || !Number.isFinite(current)) continue;
@@ -175,9 +176,9 @@ export function buildChases(source: RecordSource, live: LeagueSnapshot | null, s
         }
         const seasons = source.seasons.filter(s => s.team === t.franchiseId && s.year < currentYear);
         if (!seasons.length) continue;
-        if (t.points !== null && Number.isFinite(t.points)) add({ id: `team-points-${t.franchiseId}`, name: t.name, team: t.franchiseId, kind: 'Franchise scoring', unit: 'FPts', step: 5000,
-            archived: round(seasons.reduce((sum, s) => sum + s.points, 0)), current: t.points, href: `/teams/${t.franchiseId}` });
-        const wins = t.record?.match(/^(\d+)\s*-\s*\d+\s*-\s*\d+$/);
+        if (points !== null && Number.isFinite(points)) add({ id: `team-points-${t.franchiseId}`, name: t.name, team: t.franchiseId, kind: 'Franchise scoring', unit: 'FPts', step: 5000,
+            archived: round(seasons.reduce((sum, s) => sum + s.points, 0)), current: points, href: `/teams/${t.franchiseId}` });
+        const wins = record?.match(/^(\d+)\s*-\s*\d+\s*-\s*\d+$/);
         if (wins) add({ id: `team-wins-${t.franchiseId}`, name: t.name, team: t.franchiseId, kind: 'Career wins', unit: 'wins', step: 50,
             archived: seasons.reduce((sum, s) => sum + s.wins, 0), current: Number(wins[1]), href: `/teams/${t.franchiseId}` });
     }

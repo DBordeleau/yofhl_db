@@ -1,11 +1,14 @@
-export const FANTRAX_LEAGUE_ID = 'rf5o9cu2mutybszr';
-export const FANTRAX_LEAGUE_URL = `https://www.fantrax.com/fantasy/league/${FANTRAX_LEAGUE_ID}/home`;
+// The live season's Fantrax league ID comes from league.yml (through league.fantrax_teams); links take it as given.
+/** the league's Fantrax home, or Fantrax itself when the live season's league isn't known */
+export function fantraxLeagueUrl(leagueId: string | null): string {
+    return leagueId ? `https://www.fantrax.com/fantasy/league/${leagueId}/home` : 'https://www.fantrax.com/';
+}
 
-export function fantraxMatchupUrl(period: number, awayId?: string, homeId?: string): string | null {
+export function fantraxMatchupUrl(leagueId: string, week: number, awayId?: string, homeId?: string): string | null {
     if (!awayId || !homeId) return null;
-    // Fantrax uses matrix params for the period, and its general schedule's away_home IDs for the matchup.
+    // Fantrax uses matrix params for the week, and its general schedule's away_home IDs for the matchup.
     const query = new URLSearchParams({ matchupId: `${awayId}_${homeId}`, mainView: 'MATCHUP', mobileView: 'MATCHUPS', mobileMatchupView: 'true' });
-    return `https://www.fantrax.com/fantasy/league/${FANTRAX_LEAGUE_ID}/livescoring;period=${period};viewType=2?${query}`;
+    return `https://www.fantrax.com/fantasy/league/${leagueId}/livescoring;period=${week};viewType=2?${query}`;
 }
 
 // The league's playoff format: the top 6 make it, the top 2 seeds get first-round byes, and the playoff rounds
@@ -16,4 +19,3 @@ export const PLAYOFF_FORMAT = {
     byes: 2,
     rounds: ['Quarterfinals', 'Semifinals', 'Final'],
 } as const;
-export const PLAYOFF_TEAMS = PLAYOFF_FORMAT.teams;
