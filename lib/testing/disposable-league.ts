@@ -41,8 +41,8 @@ export type DisposableLeague = {
     /** The league's own connection, for seeding and checking rows. Its queries are not the app's. */
     client: PGlite;
     db: PgliteDatabase;
-    /** Apply the migrations after `migrateThrough`. */
-    migrateRest(): Promise<void>;
+    /** Apply the migrations after `migrateThrough`, or only up to and including `through` (its number, such as '0009'). */
+    migrateRest(through?: string): Promise<void>;
     /** How many queries the app has run against the league. */
     queries(): number;
     /** Make the next app query whose SQL contains `sqlContaining` throw `error`. */
@@ -77,17 +77,21 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
     const db = drizzle(client);
     undo.push(() => client.close());
     replace(undo, globalThis, 'fetch', options.fetch ?? offline);
-    let rest: string[][] = [];
+    let rest: Migration[] = [];
+    const countThrough = (number: string) => {
+        const through = rest.findIndex(migration => migration.tag.startsWith(`${number}_`));
+        if (through < 0) throw new Error(`No migration ${number} left to apply in db/migrations`);
+        return through + 1;
+    };
+    const apply = async (count: number) => {
+        for (const { sql } of rest.splice(0, count)) for (const statement of sql) await client.exec(statement);
+    };
     if (options.migrateThrough === undefined) {
         await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
     } else {
         // Run by hand, not through migrate(), so the ones left over can be run later without its journal.
-        const { entries } = JSON.parse(readFileSync('db/migrations/meta/_journal.json', 'utf8')) as { entries: { tag: string }[] };
-        const through = entries.findIndex(entry => entry.tag.startsWith(`${options.migrateThrough}_`));
-        if (through < 0) throw new Error(`No migration ${options.migrateThrough} in db/migrations`);
-        const migrations = readMigrationFiles({ migrationsFolder: 'db/migrations' }).map(migration => migration.sql);
-        for (const statements of migrations.slice(0, through + 1)) for (const statement of statements) await client.exec(statement);
-        rest = migrations.slice(through + 1);
+        rest = readMigrations();
+        await apply(countThrough(options.migrateThrough));
     }
     if (options.seed !== undefined) {
         await client.exec(options.seed);
@@ -140,9 +144,9 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
     return {
         client,
         db,
-        async migrateRest() {
+        async migrateRest(through) {
             needs('migrateThrough', 'Applying the rest of the migrations');
-            for (const statements of rest.splice(0)) for (const statement of statements) await client.exec(statement);
+            await apply(through === undefined ? rest.length : countThrough(through));
         },
         queries: () => { needs('app', 'Counting queries'); return queries; },
         failNextQuery(sqlContaining, error) { needs('app', 'Failing a query'); failures.push({ sqlContaining, error }); },
@@ -178,6 +182,14 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
             return { result, revalidatedTags };
         },
     };
+}
+
+type Migration = { tag: string; sql: string[] };
+
+/** Every migration in db/migrations, oldest first, with its journal tag (such as '0009_draft_development'). */
+function readMigrations(): Migration[] {
+    const { entries } = JSON.parse(readFileSync('db/migrations/meta/_journal.json', 'utf8')) as { entries: { tag: string }[] };
+    return readMigrationFiles({ migrationsFolder: 'db/migrations' }).map((migration, i) => ({ tag: entries[i].tag, sql: migration.sql }));
 }
 
 /** Set `target[key]` until the test ends, then put back exactly what was there (including nothing). */

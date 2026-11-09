@@ -33,7 +33,9 @@ test('migration backfills existing picks by season, identity and draft date', as
             (2025, 60, 5, 12, '*04yu6*', 'Jamie Drysdale', 'D', '2024-09-22', 'draft', 'draft.csv'),
             (2025, 61, 5, 13, 'unknown', 'Unknown', 'D', '2024-09-21', 'draft', 'draft.csv');
     ` });
-    await league.migrateRest();
+    await league.migrateRest('0009');
+    const { rows: [later] } = await league.client.query<{ name: string | null }>("select to_regclass('league.coachs_corner_episodes') as name");
+    assert.equal(later.name, null, 'only the backfilling migration runs after the seed');
     const db = drizzle(league.client, { schema });
     const picks = await db.select().from(schema.draftPicks);
     const young = picks.find(p => p.overall === 59)!;
