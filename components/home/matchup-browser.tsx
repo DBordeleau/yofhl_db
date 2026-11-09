@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { createResultCache } from '@/lib/result-cache';
 import TeamBadge from '@/components/team-badge';
-import { periodLabel, periodPhase, shortDate, weekName, type MatchupScores, type Period, type ScheduledMatchup, type SnapshotTeam } from '@/lib/fantrax/model';
+import { periodLabel, shortDate, type ScheduledMatchup } from '@/lib/fantrax/model';
 import { fantraxMatchupUrl } from '@/lib/fantrax/config';
+import type { LiveTeam, Week, WeekScores } from '@/lib/fantrax/live-season';
 import styles from './home.module.css';
 import Arrow from '@/components/arrow';
 import { broadcastType as matchupType } from './broadcast-type';
@@ -32,7 +33,7 @@ function ChaseLights({ text }: { text: string }) {
         <span style={{ '--letter': index } as CSSProperties} key={index}>{letter === ' ' ? ' ' : letter}</span>)}</span></>;
 }
 
-type Team = Pick<SnapshotTeam, 'id' | 'franchiseId' | 'name' | 'abbreviation' | 'logo'>;
+type Team = Pick<LiveTeam, 'id' | 'franchiseId' | 'name' | 'abbreviation' | 'logo'>;
 type Side = 'away' | 'home';
 const SIDES = ['away', 'home'] as const;
 const other = (side: Side): Side => side === 'away' ? 'home' : 'away';
@@ -83,78 +84,77 @@ function useTickerDock(enabled: boolean) {
     return { slot, dock };
 }
 
-type Week = { period: Period; matchups: ScheduledMatchup[]; scores: MatchupScores | null };
-const phaseStatus = (phase: ReturnType<typeof periodPhase>) => phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress' : 'Final';
+type Phase = Week['phase'];
+const phaseStatus = (phase: Phase) => phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress' : 'Final';
 
 // The cards follow the week picked in the dropdown; the ticker always shows the current week.
-export default function MatchupBrowser({ periods, seasonPeriods, schedule, current, teams, now, finalPeriods }: {
-    periods: Period[]; seasonPeriods: number[]; schedule: { period: number; matchupList: ScheduledMatchup[] }[];
-    current: Week; teams: Team[]; now: number; finalPeriods: number[];
+export default function MatchupBrowser({ weeks, current, teams, fantraxLeagueId }: {
+    weeks: Week[]; current: { week: Week; scores: WeekScores | null }; teams: Team[]; fantraxLeagueId: string;
 }) {
     const palettes = useTeamBranding();
-    const [selectedNumber, setSelectedNumber] = useState(current.period.number);
-    const selected = periods.find(period => period.number === selectedNumber) ?? current.period;
-    const matchups = schedule.find(week => week.period === selected.number)?.matchupList ?? [];
-    const [loaded, setLoaded] = useState({ period: current.period.number, scores: current.scores });
-    const scores = loaded.period === selected.number ? loaded.scores : null;
+    const [selectedNumber, setSelectedNumber] = useState(current.week.number);
+    const selected = weeks.find(week => week.number === selectedNumber) ?? current.week;
+    const matchups = selected.matchups;
+    const [loaded, setLoaded] = useState({ week: current.week.number, scores: current.scores });
+    const scores = loaded.week === selected.number ? loaded.scores : null;
     const [pending, setPending] = useState(false);
     const [failed, setFailed] = useState(false);
     const [retry, setRetry] = useState(0);
     const results = useMemo(() => {
-        const cache = createResultCache<{ scores: MatchupScores | null }>();
-        if (current.scores) cache.set(`/api/matchups?period=${current.period.number}`, { scores: current.scores });
+        const cache = createResultCache<{ scores: WeekScores | null }>();
+        if (current.scores) cache.set(`/api/matchups?period=${current.week.number}`, { scores: current.scores });
         return cache;
     }, [current]);
     useEffect(() => {
         const readSelection = () => {
             const raw = new URLSearchParams(window.location.search).get('period') ?? '';
             const value = Number(raw);
-            setSelectedNumber(/^\d+$/.test(raw) && periods.some(period => period.number === value) ? value : current.period.number);
+            setSelectedNumber(/^\d+$/.test(raw) && weeks.some(week => week.number === value) ? value : current.week.number);
         };
         readSelection();
         window.addEventListener('popstate', readSelection);
         return () => window.removeEventListener('popstate', readSelection);
-    }, [periods, current.period.number]);
+    }, [weeks, current.week.number]);
     useEffect(() => {
         const controller = new AbortController();
         setFailed(false);
-        if (periodPhase(selected, now, finalPeriods) === 'upcoming') {
-            setLoaded({ period: selected.number, scores: null });
+        if (selected.phase === 'upcoming') {
+            setLoaded({ week: selected.number, scores: null });
             setPending(false);
             return;
         }
         const url = `/api/matchups?period=${selected.number}`;
         const saved = results.get(url);
-        setLoaded({ period: selected.number, scores: saved?.scores ?? null });
+        setLoaded({ week: selected.number, scores: saved?.scores ?? null });
         setPending(!saved);
         results.load(url, controller.signal).then(value => {
-            if (!controller.signal.aborted) setLoaded({ period: selected.number, scores: value.scores });
+            if (!controller.signal.aborted) setLoaded({ week: selected.number, scores: value.scores });
         }).catch(() => {
             if (!controller.signal.aborted) setFailed(true);
         }).finally(() => {
             if (!controller.signal.aborted) setPending(false);
         });
         return () => controller.abort();
-    }, [selected, now, finalPeriods, results, retry]);
+    }, [selected, results, retry]);
     const [spotlight, setSpotlight] = useState<number | null>(null);
-    const index = periods.findIndex(period => period.number === selected.number);
-    const phase = periodPhase(selected, now, finalPeriods);
+    const index = weeks.findIndex(week => week.number === selected.number);
+    const phase = selected.phase;
     const playing = new Set(matchups.flatMap(matchup => [matchup.away.id, matchup.home.id]));
     const idleTeams = matchups.every(matchup => matchup.away.id && matchup.home.id) ? teams.filter(team => !playing.has(team.id)) : [];
-    const href = (period: number) => `/?period=${period}#matchups`;
-    const navigate = (period: number, event?: MouseEvent<HTMLAnchorElement>) => {
+    const href = (week: number) => `/?period=${week}#matchups`;
+    const navigate = (week: number, event?: MouseEvent<HTMLAnchorElement>) => {
         if (event && (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return;
         event?.preventDefault();
         const url = new URL(window.location.href);
-        url.searchParams.set('period', String(period));
+        url.searchParams.set('period', String(week));
         url.hash = 'matchups';
         window.history.pushState(null, '', url);
-        setSelectedNumber(period);
+        setSelectedNumber(week);
     };
-    const currentPeriod = current.period.number;
+    const currentWeek = current.week.number;
 
     // One shape for the ticker and the cards: who is playing, the score, and who is ahead.
-    const buildGames = (list: ScheduledMatchup[], results: MatchupScores | null, gamePhase: typeof phase) => list.map((matchup, matchIndex) => {
+    const buildGames = (list: ScheduledMatchup[], results: WeekScores | null, gamePhase: Phase) => list.map((matchup, matchIndex) => {
         const result = results?.matchups.find(score => score.away.teamId === matchup.away.id && score.home.teamId === matchup.home.id);
         const scored = gamePhase !== 'upcoming' && result ? result : null;
         const sides = Object.fromEntries(SIDES.map(side => {
@@ -166,17 +166,17 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
         return { id: `matchup-${matchIndex + 1}`, matchup, sides, leader, scored };
     });
     const games = buildGames(matchups, scores, phase);
-    const showingCurrent = selected.number === currentPeriod;
-    const tickerPhase = periodPhase(current.period, now, finalPeriods);
-    const tickerGames = showingCurrent ? games : buildGames(current.matchups, current.scores, tickerPhase);
-    const tickerWeek = weekName(currentPeriod, seasonPeriods);
+    const showingCurrent = selected.number === currentWeek;
+    const tickerWeek = current.week;
+    const tickerPhase = tickerWeek.phase;
+    const tickerGames = showingCurrent ? games : buildGames(tickerWeek.matchups, current.scores, tickerPhase);
     const { slot, dock } = useTickerDock(tickerGames.length > 0);
 
     // The ticker loops by sliding two identical copies; only the first is exposed to assistive tech.
     // Items point at the current week's cards, switching the dropdown back to the current week when needed.
     const tickerItems = (copy: number) => tickerGames.map((game, gameIndex) => <div role={copy ? undefined : 'listitem'} className={styles.tickerCell} key={`${copy}-${game.id}`}><a
-        href={showingCurrent ? `#${game.id}` : href(currentPeriod)} className={styles.tickerItem} tabIndex={copy ? -1 : undefined}
-        onClick={showingCurrent ? undefined : event => navigate(currentPeriod, event)}
+        href={showingCurrent ? `#${game.id}` : href(currentWeek)} className={styles.tickerItem} tabIndex={copy ? -1 : undefined}
+        onClick={showingCurrent ? undefined : event => navigate(currentWeek, event)}
         onMouseEnter={() => showingCurrent && setSpotlight(gameIndex)} onMouseLeave={() => setSpotlight(null)}
         onFocus={() => showingCurrent && setSpotlight(gameIndex)} onBlur={() => setSpotlight(null)}
         aria-label={copy ? undefined : SIDES.map(side => `${game.sides[side].name}${game.sides[side].score == null ? '' : ` ${game.sides[side].score!.toFixed(2)}`}`).join(' vs ')}
@@ -193,7 +193,7 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
                 </span>
             </Fragment>;
         })}
-        {tickerPhase === 'upcoming' ? <span className={styles.tickerNote}>{shortDate(current.period.startDate)}</span> : tickerPhase === 'complete' && game.scored ? <span className={styles.tickerNote}>Final</span> : null}
+        {tickerPhase === 'upcoming' ? <span className={styles.tickerNote}>{shortDate(tickerWeek.startDate)}</span> : tickerPhase === 'final' && game.scored ? <span className={styles.tickerNote}>Final</span> : null}
     </a></div>);
 
     return <section id="matchups" className={styles.matchupSection} aria-labelledby="matchup-heading" aria-busy={pending} tabIndex={-1}>
@@ -201,14 +201,14 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
             <h2 id="matchup-heading">Matchups</h2>
         </div>
 
-        {tickerGames.length > 0 ? <div ref={slot} className={styles.tickerSlot}><div className={styles.ticker} data-dock={dock} data-phase={tickerPhase} data-playoff={tickerWeek.playoff ? '' : undefined} style={{ '--ticker-duration': `${Math.max(tickerGames.length, 3) * 10}s` } as CSSProperties}>
+        {tickerGames.length > 0 ? <div ref={slot} className={styles.tickerSlot}><div className={styles.ticker} data-dock={dock} data-phase={tickerPhase} data-playoff={tickerWeek.stage !== 'regular' ? '' : undefined} style={{ '--ticker-duration': `${Math.max(tickerGames.length, 3) * 10}s` } as CSSProperties}>
             <div className={styles.tickerLabel}>
                 <span className={styles.tickerBrand}>YOFHL</span>
-                <span className={styles.tickerRound}><span>{tickerWeek.short}</span><span className={styles.tickerStatus}>{tickerPhase === 'active' ? <ChaseLights text={phaseStatus(tickerPhase)} /> : phaseStatus(tickerPhase)}</span></span>
+                <span className={styles.tickerRound}><span>{tickerWeek.name}</span><span className={styles.tickerStatus}>{tickerPhase === 'active' ? <ChaseLights text={phaseStatus(tickerPhase)} /> : phaseStatus(tickerPhase)}</span></span>
             </div>
             <div className={styles.tickerViewport}>
                 <div className={styles.tickerTrack}>
-                    <div className={styles.tickerGroup} role="list" aria-label={`${tickerWeek.full} scores`}>{tickerItems(0)}</div>
+                    <div className={styles.tickerGroup} role="list" aria-label={`${tickerWeek.fullName} scores`}>{tickerItems(0)}</div>
                     <div className={styles.tickerGroup} aria-hidden="true">{tickerItems(1)}</div>
                 </div>
             </div>
@@ -216,14 +216,14 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
 
         <div className={styles.matchupMeta}>
             <div className={styles.periodControls}>
-                <button type="button" aria-label="Previous week" disabled={index <= 0 || pending} onClick={() => navigate(periods[index - 1].number)}><Arrow direction="left" animated={false} /></button>
+                <button type="button" aria-label="Previous week" disabled={index <= 0 || pending} onClick={() => navigate(weeks[index - 1].number)}><Arrow direction="left" animated={false} /></button>
                 <label className="sr-only" htmlFor="scoring-period">Week</label>
                 <select id="scoring-period" value={selected.number} disabled={pending} onChange={event => navigate(Number(event.target.value))}>
-                    {periods.map(period => <option value={period.number} key={period.number}>{weekName(period.number, seasonPeriods).full} · {periodLabel(period)}</option>)}
+                    {weeks.map(week => <option value={week.number} key={week.number}>{week.fullName} · {periodLabel(week)}</option>)}
                 </select>
-                <button type="button" aria-label="Next week" disabled={index >= periods.length - 1 || pending} onClick={() => navigate(periods[index + 1].number)}><Arrow animated={false} /></button>
+                <button type="button" aria-label="Next week" disabled={index >= weeks.length - 1 || pending} onClick={() => navigate(weeks[index + 1].number)}><Arrow animated={false} /></button>
             </div>
-            {selected.number !== currentPeriod ? <a href={href(currentPeriod)} onClick={event => navigate(currentPeriod, event)}>{selected.number > currentPeriod && <Arrow direction="left" />} Back to current week {selected.number < currentPeriod && <Arrow />}</a> : null}
+            {selected.number !== currentWeek ? <a href={href(currentWeek)} onClick={event => navigate(currentWeek, event)}>{selected.number > currentWeek && <Arrow direction="left" />} Back to current week {selected.number < currentWeek && <Arrow />}</a> : null}
         </div>
         {failed ? <p role="alert">Scores could not be loaded. <button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></p> : null}
         <div className={styles.matchupGrid} style={{ opacity: pending ? .55 : 1 }}>
@@ -232,8 +232,8 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
                 const margin = game.scored ? Math.abs(game.scored.away.score - game.scored.home.score).toFixed(2) : null;
                 const leading = (side: Side) => game.leader === side ? '' : undefined;
                 const trailing = (side: Side) => game.leader === other(side) ? '' : undefined;
-                const fantraxUrl = fantraxMatchupUrl(selected.number, game.matchup.away.id, game.matchup.home.id);
-                const badgeLabel = phase === 'active' ? 'Live' : phase === 'complete' ? 'Final' : 'Preview';
+                const fantraxUrl = fantraxMatchupUrl(fantraxLeagueId, selected.number, game.matchup.away.id, game.matchup.home.id);
+                const badgeLabel = phase === 'active' ? 'Live' : phase === 'final' ? 'Final' : 'Preview';
                 const badge = <span className={styles.scoreBadge}>{badgeLabel}</span>;
                 // the meter splits the bar by each side's share of the points; the lit stretch past the centre line is the lead
                 const total = game.scored ? game.scored.away.score + game.scored.home.score : 0;
@@ -261,10 +261,10 @@ export default function MatchupBrowser({ periods, seasonPeriods, schedule, curre
                         </div>;
                     })}</div>
                     {phase !== 'upcoming' && <div className={styles.scoreCardBottom}>
-                        <p>{game.scored ? leader ? <><strong>{leader.abbreviation}</strong>{' '}<span className={styles.scoreResultVerb}>{phase === 'complete' ? 'won' : 'leads'} by</span>{' '}<strong className={styles.scoreMargin}>{margin}</strong></> : 'Tied'
+                        <p>{game.scored ? leader ? <><strong>{leader.abbreviation}</strong>{' '}<span className={styles.scoreResultVerb}>{phase === 'final' ? 'won' : 'leads'} by</span>{' '}<strong className={styles.scoreMargin}>{margin}</strong></> : 'Tied'
                             : pending ? 'Loading scores…' : 'Scores unavailable'}</p>
                         {game.scored && <div className={styles.scoreMeter} data-leader={game.leader ?? undefined} aria-hidden="true" style={{ '--away-share': `${awayShare}%` } as CSSProperties}>
-                            <span>{leader && <LeadTip team={leader.abbreviation} margin={Math.abs(game.scored.away.score - game.scored.home.score)} final={phase === 'complete'} />}</span>
+                            <span>{leader && <LeadTip team={leader.abbreviation} margin={Math.abs(game.scored.away.score - game.scored.home.score)} final={phase === 'final'} />}</span>
                         </div>}
                     </div>}
                 </article>;

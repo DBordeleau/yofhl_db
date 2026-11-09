@@ -2,7 +2,8 @@ import { sql } from 'drizzle-orm';
 import { cached, rows } from '../data/db';
 import { leagueTags } from '../data/cache-tags';
 import { getFranchiseCards } from '../data/league';
-import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getRosterStats } from '../fantrax/data';
+import { fantraxLeagueUrl } from '../fantrax/config';
+import { getLiveSeason } from '../fantrax/live-season';
 import regularSeason from '../rivalries/regular-season-history.json';
 import periods from './periods.json';
 import playerCategories from './player-category-history.json';
@@ -35,8 +36,9 @@ export async function getRecordSource(): Promise<RecordSource> {
 }
 
 export async function getRecordBook(filter: { team?: number; position?: string; format?: string; stat?: PlayerStat } = {}) {
-    const [source, live] = await Promise.all([getRecordSource(), getLeagueSnapshot().catch(() => null)]);
-    const stats = live ? await getRosterStats(live.seasonYear).catch(() => null) : null;
+    const [source, result] = await Promise.all([getRecordSource(), getLiveSeason({ now: Date.now() })]);
+    const live = result.status === 'available' ? result.value : null;
+    const stats = live?.rosterStats.status === 'available' ? live.rosterStats.value : null;
     const formats = matchupFormats(source);
     const requestedFormat = filter.format?.startsWith('2019:') ? 'weekly' : filter.format;
     const format = formats.find(f => f.id === requestedFormat)?.id ?? formats[0]?.id;
@@ -46,5 +48,5 @@ export async function getRecordBook(filter: { team?: number; position?: string; 
     })) }));
     return { teams: source.teams, records, chases: buildChases(source, live, stats),
         formats, format, stat: filter.stat, through: Math.max(...source.seasons.map(s => s.year)), liveYear: live?.seasonYear ?? null,
-        updated: stats ? [stats.fetchedAt, live!.fetchedAt].sort()[0] : live?.fetchedAt ?? null, playerStatsAvailable: stats !== null, seasonUrl: FANTRAX_LEAGUE_URL };
+        updated: stats ? [stats.fetchedAt, live!.fetchedAt].sort()[0] : live?.fetchedAt ?? null, playerStatsAvailable: stats !== null, seasonUrl: fantraxLeagueUrl(live ? live.fantraxLeagueId : result.status === 'unavailable' ? result.fantraxLeagueId : null) };
 }

@@ -20,7 +20,7 @@ import type { LotteryEntry } from '@/lib/lottery/model';
 import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 import type { TeamColours } from '@/lib/team-branding';
 import type { DraftDevelopmentFacts } from '@/lib/draft/development';
-import type { CurrentSeasonData } from '@/lib/fantrax/data';
+import type { CurrentSeasonData } from '@/lib/fantrax/fantrax-client';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //

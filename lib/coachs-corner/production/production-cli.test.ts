@@ -15,7 +15,7 @@ const tsx = pathToFileURL(createRequire(path.resolve('package.json')).resolve('t
 const config: LeagueConfig = { franchises: [
     { id: 1, eras: [{ from: 2027, name: 'Home Team', abbreviations: ['HOME'] }] },
     { id: 2, eras: [{ from: 2027, name: 'Away Team', abbreviations: ['AWAY'] }] },
-], awards: [], seasons: {}, scoreOverrides: [] };
+], awards: [], seasons: { 2027: { fantrax: { league: 'liveleague', teams: {} } } }, scoreOverrides: [] };
 const periods = [
     { number: 1, startDate: '2026-10-12T13:00:00-04:00', endDate: '2026-10-19T18:59:59-04:00' },
     { number: 2, startDate: '2026-10-19T19:00:00-04:00', endDate: '2026-10-26T18:59:59-04:00' },

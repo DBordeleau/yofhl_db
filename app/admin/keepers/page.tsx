@@ -9,7 +9,7 @@ import { rows } from '@/lib/data/db';
 import { managedTeamsQuery } from '@/lib/owner/queries';
 import type { ManagedTeam } from '@/lib/owner/model';
 import { keeperSubmissionsQuery } from '@/lib/keepers/queries';
-import { getLeagueSnapshot } from '@/lib/fantrax/data';
+import { getLiveSeason } from '@/lib/fantrax/live-season';
 import { KEEPERS_ENABLED, KEEPER_SEASON_LABEL, KEEPER_DEADLINE_LABEL, KEEPER_SEASON, KEEPER_TOTAL_LIMIT, currentRookieReview, isMinor, keeperPosition, keepersOpen, submissionStatus, validateKeepers, type KeeperSubmission, type KeeperPlayer } from '@/lib/keepers/model';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,7 @@ export default async function KeeperAdminPage() {
     const open = keepersOpen();
     const [allTeams, submissions, snapshot] = await Promise.all([
         rows<ManagedTeam>(managedTeamsQuery), rows<KeeperSubmission>(keeperSubmissionsQuery()),
-        open ? getLeagueSnapshot().catch(() => null) : Promise.resolve(null),
+        open ? getLiveSeason({ now: Date.now(), fresh: true }).then(live => live.status === 'available' ? live.value : null) : Promise.resolve(null),
     ]);
     const teams = allTeams.filter(team => !team.defunct).map(team => {
         const submission = submissions.find(item => item.franchiseId === team.id) ?? null;
