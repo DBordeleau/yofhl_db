@@ -208,10 +208,19 @@ Pages call shared data functions directly. The JSON routes expose these public v
 
 The award gallery includes two team trophies as well as the six individual awards. The individual-award API is not the full eight-trophy gallery catalogue.
 
+## Testing
+
+`npm test` runs every `*.test.ts` under `lib/` and `scripts/`, plus the Git hook tests in `scripts/git/`. It finds them by glob, so a new test file runs without editing `package.json`. The `test:*` area scripts still run one area at a time. `npm run test:coachs:production` is a deploy checker, not part of the suite.
+
+A worktree needs its own `npm install` before the suite will run. Without one, Node resolves packages from the main checkout's `node_modules`, and the tests that import `@electric-sql/pglite` or `sharp` fail.
+
+Tests get their database from `lib/testing/disposable-league.ts`: a migrated in-memory Postgres, optionally with the app's reads and Next's cache pointed at it, cleaned up when the test ends. Each test writes its own seed SQL.
+
 ## Commands
 
 | Command | Behavior |
 | --- | --- |
+| `npm test` | Run every test in the repo |
 | `npm run db:import -- 2026` | Apply migrations, sync configuration, import the selected season and its supplied history, seed empty legacy records, refresh views and cache |
 | `npm run db:import` | Import every season found in the data directory |
 | `npm run db:import:history -- --dry-run` | Parse and validate history without opening a database connection |
