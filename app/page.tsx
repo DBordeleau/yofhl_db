@@ -75,7 +75,8 @@ export default async function HomePage() {
                             {live.standings.rows.flatMap(({ team, rank, record, points, bye, playoffLineBelow }) => {
                                 const name = <span className={styles.standingName}><span>{team.name}</span></span>;
                                 const row = <tr key={team.id} data-bye={bye ? '' : undefined}>
-                                    <td className={styles.standingsRank}>{preseason || !totalGames ? '—' : rank ?? '—'}</td>
+                                    {/* the bye belongs to the slot, not the team in it, so the rank cell carries it */}
+                                    <td className={styles.standingsRank}>{preseason || !totalGames || rank == null ? '—' : bye ? <span className={styles.byeSlot} title="First-round bye">{rank}</span> : rank}</td>
                                     <th scope="row">{team.href ? <Link href={team.href} className={styles.standingTeam}><TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={36} ring="none" />{name}</Link> : name}</th>
                                     <td className={styles.standingsRecord}>{record ?? '—'}</td><td className={styles.standingsPoints}>{points == null ? '—' : formatFpts(points)}</td>
                                 </tr>;
@@ -85,7 +86,7 @@ export default async function HomePage() {
                                     : [row];
                             })}
                         </tbody></table> : <p className={styles.emptyState}>Standings will return when the league snapshot is available.</p>}
-                        <div className={styles.standingsFooter}><span>{preseason || !totalGames ? 'No games played yet' : null}</span><a href={fantraxUrl} target="_blank" rel="noreferrer">View on fantrax <Arrow direction="out" /></a></div>
+                        <div className={styles.standingsFooter}><span>{preseason || !totalGames ? 'No games played yet' : byeTeams ? <span className={styles.byeLegend}><i aria-hidden="true" />Top {byeTeams} get a first-round bye</span> : null}</span><a href={fantraxUrl} target="_blank" rel="noreferrer">View on fantrax <Arrow direction="out" /></a></div>
                     </div>
                 </section>
 
