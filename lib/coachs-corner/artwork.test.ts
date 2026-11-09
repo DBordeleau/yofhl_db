@@ -35,7 +35,7 @@ test('single-pose expressions still show the complete original gesture', () => {
             const html = renderToStaticMarkup(createElement(HostArtwork, { who, gesture, open, art: allArt(who) }));
             const active = html.match(/<img\b[^>]*data-on="true"[^>]*>/g)!;
             assert.equal(active.length, 1);
-            assert.ok(active[0].includes(`src="${artUrl(artFor(who, gesture, open), true)}"`));
+            assert.ok(active[0].includes(`src="${artUrl(artFor(who, gesture, { mouth: open ? 'open' : 'closed' }), true)}"`));
             assert.doesNotMatch(active[0], /clip-path:|data-mouth/);
         }
     }

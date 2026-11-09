@@ -3,6 +3,7 @@ import { archivoItalic } from '@/components/coachs-corner/fonts';
 import NewEpisodeBadge from '@/components/coachs-corner/new-episode-badge';
 import type { EpisodeSummary } from '@/lib/data/coachs-corner';
 import { episodeLabel } from '@/lib/coachs-corner/episode-label';
+import { artFor } from '@/lib/coachs-corner/cast';
 import { artUrl } from '@/lib/coachs-corner/media';
 import { episodeSeenKey } from '@/lib/coachs-corner/seen';
 import styles from './hero-studio.module.css';
@@ -46,7 +47,7 @@ export default function HeroStudio({ episode }: { episode: EpisodeSummary }) {
             </span>
         </Link>
         <span className={styles.desk} aria-hidden="true" />
-        <Host pose="don-point-talk" className={`${styles.host} ${styles.don}`} />
-        <Host pose="ron-skeptical-talk" className={`${styles.host} ${styles.ron}`} />
+        <Host pose={artFor('don', 'point', { mouth: 'open' })} className={`${styles.host} ${styles.don}`} />
+        <Host pose={artFor('ron', 'skeptical', { mouth: 'open' })} className={`${styles.host} ${styles.ron}`} />
     </div></div>;
 }

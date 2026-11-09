@@ -6,6 +6,7 @@ import { episodeFrom, type Episode } from '../episode';
 import { parseScript, refKey, statsSeason, type Diagnostic, type PlayerRef } from '../script';
 import { snapshotDiagnostics } from '../player-snapshot';
 import { spokenWords } from '../timeline';
+import { CHARACTERS } from '../cast';
 import { artUrl, THEME_URL } from '../media';
 import { CURRENT_SOUND_BANK } from '../sound-bank';
 import { findPlayer, findTeam } from '../teams';
@@ -133,7 +134,8 @@ export async function checkDraft(draft: LocalDraft, { root = process.cwd(), epis
         const seasons = new Set([graphic.base, ...graphic.others].map(ref => findPlayer(draft.facts.players, ref)?.season).filter(season => season != null));
         if (seasons.size > 1) report('error', 'Gap graphics must compare fantasy points from the same archived season.', line);
     }
-    const urls = [...timeline.art.flatMap(id => [artUrl(id), artUrl(id, true)]), THEME_URL];
+    const art = CHARACTERS.flatMap(who => timeline.art[who]);
+    const urls = [...art.flatMap(id => [artUrl(id), artUrl(id, true)]), THEME_URL];
     // File-backed effects and voices must exist even when no explicit sfx cue names them.
     for (const slot of Object.values(CURRENT_SOUND_BANK)) if ('files' in slot.source) urls.push(...slot.source.files);
     for (const url of new Set(urls)) {
@@ -144,5 +146,5 @@ export async function checkDraft(draft: LocalDraft, { root = process.cwd(), epis
     const words = { don: 0, ron: 0 };
     // counted as said, so 1910-1911 counts the same as nineteen-ten, nineteen-eleven
     for (const line of timeline.lines) words[line.speaker] += spokenWords(line).length;
-    return { diagnostics, segmentSeconds: episode.summary.segment / 1000, words, art: timeline.art };
+    return { diagnostics, segmentSeconds: episode.summary.segment / 1000, words, art };
 }

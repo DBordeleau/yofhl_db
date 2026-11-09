@@ -1,3 +1,4 @@
 # Generated files: GitHub collapses these in PR diffs and leaves them out of language stats.
 db/migrations/meta/*.json linguist-generated=true
 package-lock.json linguist-generated=true
+lib/coachs-corner/goldens/*.json linguist-generated=true

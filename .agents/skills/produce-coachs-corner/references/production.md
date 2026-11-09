@@ -79,7 +79,7 @@ If database access fails, the command stops without replacing the packet. Missin
 
 ## Image work
 
-Choose the episode's wardrobe before selecting or generating poses. Follow [Don's suits](../../../../docs/coachs-corner.md#dons-suits) for the default, available variants and cue rules. Record the choice and any intentional costume changes in `brief.md`, and retain it in `handoff.md`.
+Choose the episode's wardrobe before selecting or generating poses. Follow [Don's wardrobes](../../../../docs/coachs-corner.md#dons-wardrobes) for the default, available variants and cue rules. Record the choice and any intentional costume changes in `brief.md`, and retain it in `handoff.md`.
 
 Inspect the existing catalog before making a request:
 

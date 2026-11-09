@@ -8,3 +8,5 @@
 output/
 local/
 companion/
+# Golden timelines are test fixtures; the build never reads them.
+lib/coachs-corner/goldens/

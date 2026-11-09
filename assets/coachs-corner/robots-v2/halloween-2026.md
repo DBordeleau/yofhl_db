@@ -14,7 +14,7 @@ The exact prompts, repository reference paths and PNG SHA-256 hashes are in [pro
 
 ## Episode use
 
-The owner accepted this artwork on October 18, 2026. Halloween is an optional wardrobe; the original red floral suit remains Don's normal/default suit. Follow [Don's suits](../../../docs/coachs-corner.md#dons-suits) when selecting or adding a wardrobe.
+The owner accepted this artwork on October 18, 2026. Halloween is an optional wardrobe; the original red floral suit remains Don's normal/default suit. Follow [Don's wardrobes](../../../docs/coachs-corner.md#dons-wardrobes) when selecting or adding a wardrobe.
 
 Select the Halloween gestures explicitly on every Don line and pose cue. Start with `[don: halloween-rest]`. Ordinary `DON:` and `DON (yell):` lines still select the regular wardrobe. The shared opening and closing bumper also keeps the regular wardrobe.
 

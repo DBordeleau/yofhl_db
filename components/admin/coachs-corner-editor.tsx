@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Player from '@/components/coachs-corner/player';
 import { archivoItalic } from '@/components/coachs-corner/fonts';
 import { deleteEpisode, lookupPlayers, saveEpisode, unpublishEpisode } from '@/app/admin/coachs-corner/actions';
-import { CAST, CHARACTERS, SHOTS, SOUNDS } from '@/lib/coachs-corner/cast';
+import { CAST, CHARACTERS, gestureHelp, SHOTS, SOUNDS } from '@/lib/coachs-corner/cast';
 import { citationLine, episodeFrom } from '@/lib/coachs-corner/episode';
 import type { PlayerIssue } from '@/lib/coachs-corner/player-snapshot';
 import { refKey, type PlayerRef } from '@/lib/coachs-corner/script';
@@ -238,7 +238,7 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
                         <div>
                             <p className="mb-1 font-bold">Gestures</p>
                             {CHARACTERS.map(who => (
-                                <p key={who} className="text-ink-soft"><b className="text-ink">{CAST[who].name}:</b> {Object.keys(CAST[who].gestures).join(', ')}</p>
+                                <p key={who} className="text-ink-soft"><b className="text-ink">{CAST[who].name}:</b> {gestureHelp(who)}</p>
                             ))}
                             <p className="mt-2 mb-1 font-bold">Camera and sound</p>
                             <p className="text-ink-soft">cam: {SHOTS.join(', ')}</p>

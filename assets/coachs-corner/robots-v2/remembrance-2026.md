@@ -4,7 +4,7 @@ An original Remembrance Day wardrobe requested November 9, 2026. Don wears charc
 
 Open the [pose viewer](remembrance-2026-preview.html) or [full catalog](preview.html). All 15 poses have transparent WebP and AVIF exports at 1254 × 1254 and 640 × 640. Only optimized exports are committed. The untrimmed PNG masters are preserved locally, byte-identical to built-in imagegen outputs, and excluded from Git. WebP uses quality 94; AVIF uses quality 65 and 4:4:4 colour. [Exact generation prompts and hashes](prompts-remembrance-2026.json) record provenance.
 
-The wardrobe ID is `remembrance-2026`. Artwork IDs start with `don-remembrance-`. Select the suit explicitly with `remembrance-` on every Don line, inline cue, gesture span and `then` pose. The opening cue alone does not carry the suit into subsequent dialogue. See [Don's suits](../../../docs/coachs-corner.md#dons-suits).
+The wardrobe ID is `remembrance-2026`. Artwork IDs start with `don-remembrance-`. Select the suit explicitly with `remembrance-` on every Don line, inline cue, gesture span and `then` pose. The opening cue alone does not carry the suit into subsequent dialogue. See [Don's wardrobes](../../../docs/coachs-corner.md#dons-wardrobes).
 
 ```text
 [don: remembrance-rest, ron: rest]

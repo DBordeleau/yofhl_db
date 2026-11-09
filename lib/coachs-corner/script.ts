@@ -1,5 +1,5 @@
 import {
-    CAST, CHARACTERS, LAPELS, REACTIONS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
+    CAST, CHARACTERS, gestureHelp, LAPELS, REACTIONS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
     type CharacterId, type Delivery, type Lapel, type Reaction, type Shot, type Sound,
 } from './cast';
 
@@ -384,7 +384,7 @@ const parseCues = (raw: string, ctx: CueContext): Cue[] => {
             if (who) {
                 const gesture = resolveGesture(who, value);
                 if (gesture) cues.push({ type: 'pose', who, gesture });
-                else ctx.report('error', `${CAST[who].name} has no “${value}” gesture. Try: ${Object.keys(CAST[who].gestures).join(', ')}.`);
+                else ctx.report('error', `${CAST[who].name} has no “${value}” gesture. Try: ${gestureHelp(who)}`);
                 continue;
             }
             ctx.report('error', `“${kv[1]}:” isn’t a cue. Use cam:, sfx:, don:, ron: or >> for the monitor.`);

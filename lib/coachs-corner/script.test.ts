@@ -213,3 +213,10 @@ RON: Hi.`);
     const extra = parseScript(`${head}>> wire claim JAGR "Ryan O'Reilly" fpts 96.5 fpts 1\nRON: Hi.`);
     assert.match(extra.diagnostics.map(d => d.message).join(' '), /one fpts and one fpg/);
 });
+
+test('an unknown gesture lists the host’s actions and wardrobe prefixes, not every gesture', () => {
+    const gestureError = (source: string) => parseScript(source).diagnostics.find(d => d.message.includes('gesture'))?.message;
+    assert.equal(gestureError(`${head}[don: wave]`), 'Don has no “wave” gesture. Try: rest, point, thumbs, angry, surprised, lean, stare, pause, tie, mic, pound, pound-ready. '
+        + 'For another wardrobe, start it with halloween-, alternate-1-, alternate-2-, alternate-3- or remembrance-.');
+    assert.equal(gestureError(`${head}[ron: wave]`), 'Ron has no “wave” gesture. Try: rest, skeptical, warning, surprised, down.');
+});

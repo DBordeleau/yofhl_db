@@ -2,32 +2,9 @@
 
 import React from 'react';
 import { artUrl } from '@/lib/coachs-corner/media';
-import { artFor, type CharacterId, type Lapel } from '@/lib/coachs-corner/cast';
+import { artFor, lapelFor, mouthClipFor, type CharacterId, type Lapel, type LapelSpot, type Pose } from '@/lib/coachs-corner/cast';
 
 const SIZES = '(max-width: 700px) 60vw, 42vw';
-// Mouth pairs are separate drawings. Only this face region should change on a
-// syllable; swapping their complete images makes clothing and hands shimmer.
-const MOUTH_CLIPS: Record<string, string> = {
-    'don-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-point-talk': 'ellipse(11% 10% at 49% 41%)',
-    'don-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-halloween-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-halloween-point-talk': 'ellipse(11% 10% at 49% 41%)',
-    'don-halloween-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-alternate-1-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-alternate-1-point-talk': 'ellipse(11% 10% at 49% 41%)',
-    'don-alternate-1-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-alternate-2-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-alternate-2-point-talk': 'ellipse(11% 10% at 49% 41%)',
-    'don-alternate-2-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-alternate-3-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-alternate-3-point-talk': 'ellipse(11% 10% at 49% 41%)',
-    'don-alternate-3-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-remembrance-talk': 'ellipse(11% 10% at 54% 41%)',
-    'don-remembrance-point-talk': 'ellipse(11% 10% at 49% 41%)',
-    'don-remembrance-thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
-    'ron-talk': 'ellipse(14% 8% at 45% 43%)',
-};
 
 /** Static AVIF files only, at 640 px or 1254 px. */
 export default function Artwork({ pose, smallOnly = false, active, className, mouthClip }: {
@@ -53,24 +30,12 @@ export default function Artwork({ pose, smallOnly = false, active, className, mo
     );
 }
 
-// Where a poppy sits over each host's heart (the wearer's left lapel), as [x, y, scale] in the
-// 1254 px frame. Every wardrobe shares its pose's geometry, so Don's suits use one spot per pose.
-// null: Don's hand covers that lapel while he grabs the mic.
-const DON_LAPEL: [number, number, number] = [840, 665, 0.85];
-const RON_LAPEL: [number, number, number] = [821, 708, 0.85];
-const LAPEL_SPOTS: Record<string, [number, number, number] | null> = {
-    'don-point': [777, 665, 0.85],
-    'don-lean-camera': [853, 646, 1],
-    'don-mic-remove': null,
-};
-export const lapelSpot = (who: CharacterId, body: string) => {
-    const pose = body.replace(/^don-(?:halloween|remembrance|alternate-\d)-/, 'don-');
-    return pose in LAPEL_SPOTS ? LAPEL_SPOTS[pose] : who === 'don' ? DON_LAPEL : RON_LAPEL;
-};
+// A hidden poppy rests on Don's usual lapel, so the next pose's spot slides from there.
+const HIDDEN_LAPEL = lapelFor('don', artFor('don', 'rest', { mouth: 'closed' }))!;
 
 /** Same square frame as the artwork; give it the artwork's className to sit in the same box. */
-export function Poppy({ spot, className }: { spot: [number, number, number] | null; className?: string }) {
-    const [x, y, s] = spot ?? DON_LAPEL;
+export function Poppy({ spot, className }: { spot: LapelSpot | null; className?: string }) {
+    const [x, y, s] = spot ?? HIDDEN_LAPEL;
     return (
         <svg className={className} viewBox="0 0 1254 1254" data-lapel aria-hidden="true">
             <g style={{ transform: `translate(${x}px, ${y}px) scale(${s})`, opacity: spot ? 1 : 0 }}>
@@ -97,13 +62,13 @@ export function Poppy({ spot, className }: { spot: [number, number, number] | nu
     );
 }
 
-export function HostArtwork({ who, gesture, open, art, lapel }: { who: CharacterId; gesture: string; open: boolean; art: string[]; lapel?: Lapel }) {
-    const current = artFor(who, gesture, open);
-    const body = artFor(who, gesture, false);
+export function HostArtwork({ who, gesture, open, art, lapel }: { who: CharacterId; gesture: string; open: boolean; art: Pose[]; lapel?: Lapel }) {
+    const current = artFor(who, gesture, { mouth: open ? 'open' : 'closed' });
+    const body = artFor(who, gesture, { mouth: 'closed' });
     return (
         <>
-            {art.map(id => <Artwork key={id} pose={id} active={id === body || id === current} mouthClip={MOUTH_CLIPS[id]} />)}
-            {lapel === 'poppy' && <Poppy spot={lapelSpot(who, body)} />}
+            {art.map(id => <Artwork key={id} pose={id} active={id === body || id === current} mouthClip={mouthClipFor(who, id)} />)}
+            {lapel === 'poppy' && <Poppy spot={lapelFor(who, body)} />}
         </>
     );
 }

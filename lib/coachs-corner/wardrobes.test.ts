@@ -1,19 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { HostArtwork } from '../../components/coachs-corner/artwork';
 import { compileAudioCues } from './audio-cues';
-import { allArt, artFor, CAST, gestureAfter, resolveGesture } from './cast';
+import { actionsOf, allArt, artFor, CAST, CHARACTERS, gestureAfter, resolveGesture, wardrobesOf, type CharacterId } from './cast';
 import { parseScript } from './script';
 import { compile, frameAt, frameSignature } from './timeline';
 
 const head = '---\ntitle: Wardrobe artwork check\n---\n';
-const variants = ['halloween', 'alternate-1', 'alternate-2', 'alternate-3', 'remembrance'];
+// every wardrobe besides normal, as its gesture prefix without the trailing dash
+const variants = wardrobesOf('don').filter(w => w.prefix).map(w => w.prefix.slice(0, -1));
 
 test('ordinary dialogue and default aliases keep the original normal suit', () => {
     for (const alias of ['rest', 'default', 'normal', 'idle', 'talk', 'don-default']) {
         const gesture = resolveGesture('don', alias);
         assert.equal(gesture, 'rest');
-        assert.equal(artFor('don', gesture!, false), 'don-default');
-        assert.equal(artFor('don', gesture!, true), 'don-talk');
+        assert.equal(artFor('don', gesture!, { mouth: 'closed' }), 'don-default');
+        assert.equal(artFor('don', gesture!, { mouth: 'open' }), 'don-talk');
     }
     for (const variant of variants) {
         const script = parseScript(head + `[don: ${variant}-rest]\nDON (${variant}-point): A change of suit.\nDON: Back to normal.\nDON (yell): Same suit!`);
@@ -23,20 +27,20 @@ test('ordinary dialogue and default aliases keep the original normal suit', () =
         assert.equal(frameAt(tl, tl.lines[1].t0).hosts.don.gesture, 'rest');
         assert.equal(frameAt(tl, tl.lines[2].t0).hosts.don.gesture, 'angry');
     }
-    assert.equal(artFor('don', 'angry', true), 'don-angry-talk');
+    assert.equal(artFor('don', 'angry', { mouth: 'open' }), 'don-angry-talk');
 });
 
 for (const variant of variants) {
     test(`${variant} covers every Don pose without changing standard or Ron gesture resolution`, () => {
         const standard = Object.keys(CAST.don.gestures).filter(id => !variants.some(prefix => id.startsWith(`${prefix}-`)));
-        assert.equal(standard.length, 12);
+        assert.equal(standard.length, actionsOf('don').length);
         for (const gesture of standard) {
             const alternate = `${variant}-${gesture}`;
             assert.equal(resolveGesture('don', alternate), alternate);
             assert.equal(resolveGesture('don', gesture), gesture);
             assert.equal(resolveGesture('ron', alternate), null);
-            for (const open of [false, true]) {
-                assert.equal(artFor('don', alternate, open), artFor('don', gesture, open).replace('don-', `don-${variant}-`));
+            for (const mouth of ['closed', 'open'] as const) {
+                assert.equal(artFor('don', alternate, { mouth }), artFor('don', gesture, { mouth }).replace('don-', `don-${variant}-`));
             }
         }
         assert.equal(allArt('don').filter(id => id.startsWith(`don-${variant}-`)).length, 15);
@@ -58,8 +62,9 @@ for (const variant of variants) {
         assert.equal(frameAt(tl, tl.lines[0].t0).hosts.don.gesture, `${variant}-angry`);
         assert.equal(frameAt(tl, tl.lines[1].t0).hosts.don.gesture, `${variant}-rest`);
         assert.equal(frameAt(tl, tl.lines[2].end).hosts.don.gesture, `${variant}-stare`);
-        assert.ok(tl.art.filter(id => id.startsWith('don-')).every(id => id.startsWith(`don-${variant}-`)));
-        assert.ok(tl.art.includes(`don-${variant}-thumbs-up-talk`), 'talking pairs preload both faces');
+        assert.ok(tl.art.don.every(id => id.startsWith(`don-${variant}-`)));
+        assert.ok(tl.art.don.includes(`don-${variant}-thumbs-up-talk`), 'talking pairs preload both faces');
+        assert.deepEqual(tl.art.ron, ['ron-default', 'ron-talk']);
     });
 
     test(`${variant} lean uses the automatic close-up and respects explicit camera direction`, () => {
@@ -92,3 +97,21 @@ for (const variant of variants) {
         assert.equal(compileAudioCues(openingTie).filter(cue => cue.id === 'tie').length, 0);
     });
 }
+
+const poppy = (who: CharacterId, gesture: string) => renderToStaticMarkup(createElement(HostArtwork, { who, gesture, open: false, art: allArt(who), lapel: 'poppy' }))
+    .match(/<svg[^>]*data-lapel[^>]*>\s*<g style="([^"]*)"/)![1];
+
+test('the poppy sits on each pose’s lapel and hides behind Don’s mic hand', () => {
+    assert.equal(poppy('don', 'rest'), 'transform:translate(840px, 665px) scale(0.85);opacity:1');
+    assert.equal(poppy('don', 'point'), 'transform:translate(777px, 665px) scale(0.85);opacity:1');
+    assert.equal(poppy('don', 'lean'), 'transform:translate(853px, 646px) scale(1);opacity:1');
+    assert.match(poppy('don', 'mic'), /opacity:0/);
+    assert.equal(poppy('ron', 'rest'), 'transform:translate(821px, 708px) scale(0.85);opacity:1');
+    assert.equal(poppy('ron', 'down'), poppy('ron', 'rest'));
+});
+
+test('every wardrobe places the poppy exactly where the normal wardrobe does', () => {
+    for (const who of CHARACTERS) for (const wardrobe of wardrobesOf(who)) for (const action of actionsOf(who)) {
+        assert.equal(poppy(who, wardrobe.prefix + action), poppy(who, action), `${who}/${wardrobe.id}/${action}`);
+    }
+});
