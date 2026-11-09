@@ -5,6 +5,7 @@ import { parseFactPacket, type FactPacket } from './facts';
 import { episodeFrom, type Episode } from '../episode';
 import { parseScript, refKey, statsSeason, type Diagnostic, type PlayerRef } from '../script';
 import { snapshotDiagnostics } from '../player-snapshot';
+import { spokenWords } from '../timeline';
 import { artUrl, THEME_URL } from '../media';
 import { CURRENT_SOUND_BANK } from '../sound-bank';
 import { findPlayer, findTeam } from '../teams';
@@ -87,6 +88,7 @@ export interface DraftReport {
     diagnostics: Diagnostic[];
     /** the segment's length: the runtime without the intro */
     segmentSeconds: number;
+    /** spoken words per host: a number counts as the words it's said as */
     words: { don: number; ron: number };
     art: string[];
 }
@@ -140,6 +142,7 @@ export async function checkDraft(draft: LocalDraft, { root = process.cwd(), epis
         catch { report('error', `Missing asset: ${url}`); }
     }
     const words = { don: 0, ron: 0 };
-    for (const line of timeline.lines) words[line.speaker] += line.words.length;
+    // counted as said, so 1910-1911 counts the same as nineteen-ten, nineteen-eleven
+    for (const line of timeline.lines) words[line.speaker] += spokenWords(line).length;
     return { diagnostics, segmentSeconds: episode.summary.segment / 1000, words, art: timeline.art };
 }

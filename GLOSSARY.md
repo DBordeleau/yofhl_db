@@ -82,6 +82,10 @@ _Avoid_: last season (in code), most recent season
 **Timeline**:
 A script compiled to absolute show times: when every word, mouth flap, pose, monitor cut, camera shot and sound happens.
 
+**Spoken form**:
+How the voice and timing read a word of dialogue: the word itself, or for one with digits, the number as a broadcaster says it ("1910-1911" is "nineteen-ten, nineteen-eleven"). The speech plate always shows the word as written.
+_Avoid_: pronunciation (that's Don's name flubs)
+
 **Show time**:
 The episode's own clock, in milliseconds from the start of the intro. The intro always runs at 1×; speed applies to the segment only.
 

@@ -1,5 +1,5 @@
 import { CHARACTERS, gestureAction, type CharacterId, type Delivery } from './cast';
-import type { Timeline } from './timeline';
+import { spokenWords, type Timeline } from './timeline';
 import { INTRO_MS } from './transport';
 import type { SoundId } from './sound-bank';
 
@@ -26,20 +26,22 @@ export function compileAudioCues(tl: Timeline): AudioCue[] {
     for (const who of CHARACTERS) {
         const lines = tl.lines.filter(line => line.speaker === who);
         let li = 0, wi = 0;
+        // accents and phrase endings follow the words as said, so "2-0" accents "two", "and" and "oh"
+        let said = lines.length ? spokenWords(lines[0]) : [];
         for (const [index, flap] of tl.flaps[who].entries()) {
-            while (li + 1 < lines.length && lines[li + 1].t0 <= flap[0]) { li++; wi = 0; }
+            while (li + 1 < lines.length && lines[li + 1].t0 <= flap[0]) { li++; wi = 0; said = spokenWords(lines[li]); }
             const line = lines[li];
             if (!line) continue;
-            while (wi + 1 < line.words.length && line.words[wi + 1].t <= flap[0]) wi++;
-            const word = line.words[wi];
+            while (wi + 1 < said.length && said[wi + 1].t <= flap[0]) wi++;
+            const word = said[wi];
             const nextFlap = tl.flaps[who][index + 1];
             const wordEnd = !nextFlap || nextFlap[0] >= word.t + word.dur - 0.01;
-            const lineEnd = wordEnd && wi === line.words.length - 1;
+            const lineEnd = wordEnd && wi === said.length - 1;
             const previousLine = tl.lines[line.index - 1];
             cues.push({ t: flap[0], id: who, voice: {
                 who, delivery: word.delivery, duration: flap[1] - flap[0],
                 progress: (flap[0] - line.t0) / Math.max(1, line.t1 - line.t0),
-                variation: index, question: /[?][”’"]?$/.test(word.pieces.map(piece => piece.text).join('')),
+                variation: index, question: /[?][”’"]?$/.test(word.text),
                 wordStart: Math.abs(flap[0] - word.t) < 0.01,
                 phraseEnd: wordEnd && (word.pause > 0 || lineEnd),
                 cutoff: lineEnd && line.cutoff,

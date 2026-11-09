@@ -70,6 +70,24 @@ Without a gesture, a host talks in his resting pose, except that Don yells in `a
 
 Straight quotes, `--` and `...` become curly quotes, em dashes and ellipses. A line that ends with `--` is cut off: the next line starts at once, and the cut-off speech plate is knocked aside.
 
+### Numbers
+
+Write numbers in dialogue as digits: `Won Ontario, 1910-1911.`, `30 goals`, `Three and oh` or `3-0`. The speech plate shows them exactly as written. The hosts' voice and the line's timing use the number as a broadcaster would say it, so `1910-1911` takes as long as `nineteen-ten, nineteen-eleven`. `coachs:check` counts and times it the same way. Spelled-out numbers still work and time exactly as before.
+
+| Written | Said as |
+| --- | --- |
+| `30`, `311`, `10300` | In full: thirty, three hundred and eleven, ten thousand three hundred |
+| `1910`, `1500`, `2026` | Four digits without a comma, in pairs like a year: nineteen-ten, fifteen hundred, twenty-twenty-six (2000 to 2009 in full) |
+| `10,300` | Comma thousands in full: ten thousand three hundred |
+| `311.15`, `.500` | The fraction digit by digit: three hundred and eleven point one five, point five oh oh |
+| `2-0`, `2–0`, `3-2-1` | Records and scores, with a hyphen or en dash: two and oh, three, two and one |
+| `1910-1911`, `2025–26` | Year ranges, with a short pause: nineteen-ten, nineteen-eleven; twenty-twenty-five, twenty-six |
+| `2:39`, `2:05`, `7:00`, `0:45` | Clocks: two thirty-nine, two oh-five, seven o'clock, forty-five |
+| `76th`, `21st` | Ordinals in full: seventy-sixth, twenty-first |
+| `80s`, `'72`, `30%`, `+5`, `#1` | Eighties, seventy-two, thirty percent, plus five, number one |
+
+To get a shorter broadcast reading, such as "two-thirty" for 230 or "three-eleven" for 311.15, spell it out. Round long decimals in dialogue and let the graphic carry them. Use a comma for thousands: `10 300` is two numbers, ten and three hundred.
+
 ### Deliveries
 
 | Delivery | On screen | Body |
@@ -230,7 +248,7 @@ Episodes using existing gestures inherit the AVIF artwork and the fixed-body mou
 
 - `lib/coachs-corner/script.ts` parses a script into events and diagnostics.
 - `lib/coachs-corner/episode.ts` is the only place a script is parsed and compiled. `episodeFrom(script, { slug, knownTeam })` returns the episode every surface reads (timeline, audio cues, opening picture, pull quote, label, player refs, diagnostics and summary). Pages and the editor compile once and pass it on; the player never parses. Public pages send the script and compile it in the browser with the same function, because the compiled episode is about fifty times the script's size.
-- `lib/coachs-corner/timeline.ts` compiles events into an absolute timeline (word reveal times weighted by syllables, mouth flaps, poses, monitor cuts, camera, sounds) and answers `frameAt(timeline, t)` as a pure function. Seeking, scrubbing, skipping lines and the admin preview all read the same frames.
+- `lib/coachs-corner/timeline.ts` compiles events into an absolute timeline (word reveal times weighted by syllables, mouth flaps, poses, monitor cuts, camera, sounds) and answers `frameAt(timeline, t)` as a pure function. Seeking, scrubbing, skipping lines and the admin preview all read the same frames. Syllables come from each word's spoken form (`lib/coachs-corner/spoken-numbers.ts`), which turns digits into the words they're said as ([Numbers](#numbers)); the plate still shows the word as written.
 - `components/coachs-corner/` renders the frame: `use-show.ts` runs one animation-frame clock and re-renders only when something visible changes, `studio.tsx` draws the set and speech plates, `monitor.tsx` the graphics, and `audio.ts` plays synthesized voices, effects, ambience, and recorded samples.
 - Before the first play the page shows the bumper's last frame as a title card, and the same card wipes back in when the episode ends.
 - The rafters behind the hosts hang the league's eight most recent championship banners, in each champion's colours.

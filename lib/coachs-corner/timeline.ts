@@ -1,5 +1,6 @@
 import { CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, type CharacterId, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
 import type { Cue, Graphic, Meta, Script, Span } from './script';
+import { spokenForm } from './spoken-numbers';
 import { INTRO_MS, phaseAt, type Phase } from './transport';
 
 export { INTRO_MS };
@@ -15,18 +16,33 @@ const MOUTH_OPEN_SHARE = 0.58;
 
 export interface Piece { text: string; delivery: Delivery }
 
+/** One word as the voice says it. A written word with digits is several: "1910-1911" is "nineteen-ten," then "nineteen-eleven". */
+export interface Beat {
+    text: string;
+    t: number;
+    dur: number;
+    pause: number;
+}
+
 export interface Word {
     /** whitespace before the word, kept so captions read exactly as written */
     space: string;
     pieces: Piece[];
     /** reveal time */
     t: number;
-    /** time spent speaking it, before any pause */
+    /** time spent speaking it, before any pause (a number's own inner pauses included) */
     dur: number;
     /** silence after it, from its punctuation */
     pause: number;
     delivery: Delivery;
+    /** how a word with digits is said (lib/coachs-corner/spoken-numbers.ts); absent when it's said as written */
+    spoken?: Beat[];
 }
+
+/** a line's words as the voice says them, so "Won it 2-0." is five: "Won", "it", "two", "and", "oh." */
+export const spokenWords = (line: Line): (Beat & { delivery: Delivery })[] => line.words.flatMap(word =>
+    (word.spoken ?? [{ text: word.pieces.map(piece => piece.text).join(''), t: word.t, dur: word.dur, pause: word.pause }])
+        .map(beat => ({ ...beat, delivery: word.delivery })));
 
 export interface Line {
     index: number;
@@ -71,10 +87,10 @@ export interface Timeline {
 
 const PUNCTUATION_MS: Record<string, number> = { ',': 110, ';': 170, ':': 170, '.': 245, '!': 245, '?': 280, '…': 470, '—': 135 };
 
+/** a spoken word's syllables: vowel groups, so digits must be spelled out by spokenForm first */
 const syllables = (word: string) => {
     const w = word.toLowerCase().replace(/[^a-z0-9]/g, '');
     if (!w) return 1;
-    if (/^\d+$/.test(w)) return Math.min(4, w.length);
     const groups = w.replace(/e$/, '').match(/[aeiouy]+/g);
     return Math.max(1, Math.min(6, groups?.length ?? 1));
 };
@@ -168,6 +184,8 @@ export function compile(script: Script): Timeline {
                     prev.pieces.push({ text: token, delivery });
                     const extra = PUNCTUATION_MS[trailingMark(token)] ?? 0;
                     if (extra > prev.pause) { t += extra - prev.pause; prev.pause = extra; }
+                    const lastBeat = prev.spoken?.[prev.spoken.length - 1];
+                    if (lastBeat) { lastBeat.text += token; lastBeat.pause = prev.pause; }
                     continue;
                 }
                 if (delivery === 'yell' && lastDelivery !== 'yell') {
@@ -177,22 +195,37 @@ export function compile(script: Script): Timeline {
                 if (gesture !== lastGesture || !gestures[who].length) setGesture(who, gesture, t);
                 lastGesture = gesture;
 
-                const n = syllables(token);
-                const weight = Math.min(2.4, Math.max(0.6, 0.45 + 0.55 * (n / 1.45)));
-                const dur = slot * weight;
+                // The plate shows the token as written; the voice says its spoken form, which is several
+                // words for a number ("2-0" is "two and oh"), each timed exactly as if it were written out.
+                const said = spokenForm(token);
+                const beats: Beat[] = [];
+                const start = t;
                 const pauseScale = delivery === 'sneak' ? 0.45 : delivery === 'yell' ? 0.8 : 1;
-                const pause = (PUNCTUATION_MS[trailingMark(token)] ?? 0) * pauseScale;
-                const word: Word = { space: words.length ? pendingSpace : '', pieces: [{ text: token, delivery }], t, dur, pause, delivery };
+                for (const text of said === token ? [token] : said.split(/\s+/).filter(Boolean)) {
+                    const before = beats[beats.length - 1];
+                    if (before) t += before.dur + before.pause;
+                    const n = syllables(text);
+                    const weight = Math.min(2.4, Math.max(0.6, 0.45 + 0.55 * (n / 1.45)));
+                    const dur = slot * weight;
+                    const pause = (PUNCTUATION_MS[trailingMark(text)] ?? 0) * pauseScale;
+                    beats.push({ text, t, dur, pause });
+
+                    // mouth flaps, one per syllable
+                    const flapsN = Math.max(1, Math.min(n, Math.floor(dur / MIN_SYLLABLE_MS)));
+                    const each = dur / flapsN;
+                    for (let k = 0; k < flapsN; k++) flaps[who].push([t + k * each, t + k * each + each * MOUTH_OPEN_SHARE]);
+                    voice[who].push({ t0: t, t1: t + dur, delivery });
+                }
+                const last = beats[beats.length - 1];
+                const word: Word = {
+                    space: words.length ? pendingSpace : '', pieces: [{ text: token, delivery }], t: start,
+                    dur: beats.length > 1 ? last.t + last.dur - start : last.dur, pause: last.pause, delivery,
+                };
+                if (said !== token) word.spoken = beats;
                 words.push(word);
                 pendingSpace = '';
 
-                // mouth flaps, one per syllable
-                const flapsN = Math.max(1, Math.min(n, Math.floor(dur / MIN_SYLLABLE_MS)));
-                const each = dur / flapsN;
-                for (let k = 0; k < flapsN; k++) flaps[who].push([t + k * each, t + k * each + each * MOUTH_OPEN_SHARE]);
-                voice[who].push({ t0: t, t1: t + dur, delivery });
-
-                t += dur + pause;
+                t += last.dur + last.pause;
             }
         };
 

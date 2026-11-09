@@ -119,6 +119,14 @@ test('a mixed-season gap graphic is reported on the line that cues it', async ()
     }
 });
 
+test('the check counts and times numbers as said, so digits and spelled-out numbers report the same', async () => {
+    const digits = await checkDraft(draft('RON: Won Ontario, 1910-1911.\n\nDON: 311. [beat] Three and oh.\n\nRON: 2-0.'));
+    const words = await checkDraft(draft('RON: Won Ontario, nineteen-ten, nineteen-eleven.\n\nDON: Three hundred and eleven. [beat] 3-0.\n\nRON: Two and oh.'));
+    assert.deepEqual(digits.words, { don: 7, ron: 7 });
+    assert.deepEqual(words.words, digits.words);
+    assert.equal(words.segmentSeconds, digits.segmentSeconds);
+});
+
 test('file loader reloads edits, reports missing artwork, and rejects symlink escapes', async t => {
     const prefix = path.join(os.tmpdir(), 'coachs-production-');
     const root = await mkdtemp(prefix);
