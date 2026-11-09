@@ -198,3 +198,18 @@ test('a wire card without a move, team or second swap player says how to write i
     assert.match(at(5), /names the team/);
     assert.match(at(6), /player in, then the player out/);
 });
+
+test('a wire card carries this season’s FPts and FP/G for each player, in the order they are named', () => {
+    const script = parseScript(`${head}>> wire free "Kent Johnson" fpts 83.75 fpg 5.58 "Columbus"
+>> wire swap HH "Mackenzie Blackwood" "John Gibson" fpg 6.46 fpts 90.4 fpg 3.69 fpts 40.6 "Sun. Nov. 8"
+>> wire claim JAGR "Ryan O'Reilly" fp/g 5.68
+RON: Hi.`);
+    assert.deepEqual(script.diagnostics, []);
+    const graphics = script.events.flatMap(e => e.kind === 'stage' ? e.cues : []).map(c => c.type === 'monitor' && c.graphic);
+    assert.deepEqual(graphics[0], { type: 'wire', action: 'free', team: undefined, player: { name: 'Kent Johnson' }, detail: 'Columbus', stats: [{ fpts: '83.75', fpg: '5.58' }] });
+    assert.deepEqual(graphics[1], { type: 'wire', action: 'swap', team: 'HH', player: { name: 'Mackenzie Blackwood' }, out: { name: 'John Gibson' }, detail: 'Sun. Nov. 8',
+        stats: [{ fpg: '6.46', fpts: '90.4' }, { fpg: '3.69', fpts: '40.6' }] });
+    assert.deepEqual(graphics[2], { type: 'wire', action: 'claim', team: 'JAGR', player: { name: "Ryan O'Reilly" }, stats: [{ fpg: '5.68' }] });
+    const extra = parseScript(`${head}>> wire claim JAGR "Ryan O'Reilly" fpts 96.5 fpts 1\nRON: Hi.`);
+    assert.match(extra.diagnostics.map(d => d.message).join(' '), /one fpts and one fpg/);
+});

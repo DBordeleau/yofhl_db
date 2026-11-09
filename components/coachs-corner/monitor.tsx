@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useEffect, useRef } from 'react';
-import type { Graphic } from '@/lib/coachs-corner/script';
+import type { Graphic, WireStats } from '@/lib/coachs-corner/script';
 import { findPlayer, findTeam, type StudioPlayer, type StudioTeam } from '@/lib/coachs-corner/teams';
 import { seasonLabel } from '@/lib/league';
 import styles from './coachs-corner.module.css';
@@ -53,6 +53,16 @@ const Heart = ({ style }: { style?: React.CSSProperties }) => (
 );
 
 const WIRE_STAMP = { claim: 'Claimed', drop: 'Dropped', swap: 'Swap', free: 'Available' } as const;
+
+/** this season's FPts and FP/G, big enough to read from across the desk */
+const WireStatLine = ({ stats, compact }: { stats?: WireStats; compact?: boolean }) =>
+    stats && (stats.fpts || stats.fpg) ? (
+        <dl className={styles.gWireStats} data-compact={compact || undefined}>
+            {stats.fpg && <div><dt>FP/G</dt><dd>{stats.fpg}</dd></div>}
+            {stats.fpts && <div><dt>FPts</dt><dd>{stats.fpts}</dd></div>}
+            {!compact && <small>This season</small>}
+        </dl>
+    ) : null;
 
 /** a round headshot, or the player's initials when the snapshot has no picture */
 const WireShot = ({ player, name }: { player: StudioPlayer | null; name: string }) => (
@@ -317,19 +327,20 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
             );
             if (graphic.action === 'swap') {
                 const out = graphic.out ? findPlayer(players, graphic.out) : null;
-                const side = (who: StudioPlayer | null, ref: { name: string }, dir: 'in' | 'out') => (
+                const side = (who: StudioPlayer | null, ref: { name: string }, dir: 'in' | 'out', stats?: WireStats) => (
                     <figure className={styles.gWireSide} data-dir={dir}>
                         <WireShot player={who} name={ref.name} />
                         <figcaption><em>{dir === 'in' ? 'In' : 'Out'}</em><b>{who?.name ?? ref.name}</b></figcaption>
+                        <WireStatLine stats={stats} compact />
                     </figure>
                 );
                 return (
                     <div className={styles.gWire} data-action="swap" style={teamVars(team)}>
                         {head}
                         <div className={styles.gWireSwap}>
-                            {side(player, graphic.player, 'in')}
+                            {side(player, graphic.player, 'in', graphic.stats?.[0])}
                             <span className={styles.gWireArrow} aria-hidden="true">⇄</span>
-                            {graphic.out && side(out, graphic.out, 'out')}
+                            {graphic.out && side(out, graphic.out, 'out', graphic.stats?.[1])}
                         </div>
                         <footer className={styles.gWireFoot}>
                             {team && <span className={styles.gWireTeam}><Logo team={team} />{team.name}</span>}
@@ -348,6 +359,7 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                             {team
                                 ? <span className={styles.gWireTeam}><Logo team={team} />{graphic.action === 'drop' ? 'From ' : 'To '}{team.name}</span>
                                 : <span className={styles.gWireTeam}>Unclaimed</span>}
+                            <WireStatLine stats={graphic.stats?.[0]} />
                             {lines.map((line, i) => <span key={i}>{line}</span>)}
                         </div>
                     </div>

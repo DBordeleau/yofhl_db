@@ -44,7 +44,10 @@ export type Graphic =
     | { type: 'player'; player: PlayerRef; team?: string; caption?: string; mood?: 'hearts' }
     | { type: 'gap'; base: PlayerRef; others: PlayerRef[] }
     /** a free-agent move: claimed by, dropped by, a team's swap (player in, player out), or still unclaimed */
-    | { type: 'wire'; action: WireAction; team?: string; player: PlayerRef; out?: PlayerRef; detail?: string };
+    | { type: 'wire'; action: WireAction; team?: string; player: PlayerRef; out?: PlayerRef; detail?: string; stats?: WireStats[] };
+
+/** this season's fantasy line for one wire player, as the writer sourced it (the player snapshot only quotes last season) */
+export interface WireStats { fpts?: string; fpg?: string }
 
 export type WireAction = 'claim' | 'drop' | 'swap' | 'free';
 const WIRE_ACTIONS: Record<string, WireAction> = { claim: 'claim', claimed: 'claim', add: 'claim', drop: 'drop', dropped: 'drop', swap: 'swap', free: 'free', available: 'free' };
@@ -290,16 +293,33 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
         case 'wire': {
             // >> wire claim JAGR "Ryan O'Reilly" "Mon. Nov. 9" · >> wire swap HH "In" "Out" "Sun." · >> wire free "Kent Johnson" "…"
             const usage = 'A wire card needs a move, a team and a player, like >> wire claim JAGR "Ryan O’Reilly" "Mon. Nov. 9" (or drop, swap "In" "Out", or free "Player" with no team).';
-            const actionToken = unnamed.find(t => WIRE_ACTIONS[t.toLowerCase()]);
+            // this season's line: fpts 83.75 fpg 5.58, the nth of each belonging to the nth player named
+            const stats: WireStats[] = [];
+            const statWords = new Set<number>();
+            const seen = { fpts: 0, fpg: 0 };
+            unnamed.forEach((t, i) => {
+                const key = /^fpts$/i.test(t) ? 'fpts' : /^(fpg|fp\/g)$/i.test(t) ? 'fpg' : null;
+                if (!key || statWords.has(i)) return;
+                const value = unnamed[i + 1];
+                if (value === undefined || !isNumberish(value)) return;
+                (stats[seen[key]++] ??= {})[key] = value;
+                statWords.add(i).add(i + 1);
+            });
+            const words = unnamed.filter((_, i) => !statWords.has(i));
+            const actionToken = words.find(t => WIRE_ACTIONS[t.toLowerCase()]);
             const action = actionToken ? WIRE_ACTIONS[actionToken.toLowerCase()] : undefined;
-            const ref = unnamed.find(t => t !== actionToken);
+            const ref = words.find(t => t !== actionToken);
             if (!action || !named[0]) return { error: usage, teams };
             if (action !== 'free' && !ref) return { error: `A ${action} card names the team, like >> wire ${action} JAGR "Ryan O’Reilly".`, teams };
             if (action === 'swap' && !named[1]) return { error: 'A swap names the player in, then the player out, like >> wire swap HH "Mackenzie Blackwood" "John Gibson".', teams };
             const out = action === 'swap' ? named[1] : undefined;
             const raw = named[action === 'swap' ? 2 : 1]?.name;
             const detail = raw ? smarten(raw) : undefined;
-            return { graphic: { type, action, team: ref ? team(ref) : undefined, player: named[0], ...(out ? { out } : {}), ...(detail ? { detail } : {}) }, teams };
+            if (stats.length > (out ? 2 : 1)) return { error: 'Give each player on a wire card one fpts and one fpg, like fpts 83.75 fpg 5.58 (a swap takes the player in first).', teams };
+            return {
+                graphic: { type, action, team: ref ? team(ref) : undefined, player: named[0], ...(out ? { out } : {}), ...(detail ? { detail } : {}), ...(stats.length ? { stats: [...stats].map(s => s ?? {}) } : {}) },
+                teams,
+            };
         }
         default:
             return { error: `“${type}” isn’t a monitor graphic. Use one of: ${GRAPHIC_TYPES.join(', ')}.`, teams };
