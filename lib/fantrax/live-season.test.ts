@@ -153,7 +153,18 @@ test('a Fantrax team with no franchise shows its Fantrax name and initials, with
     const unmapped = (await season()).teams.find(team => team.id === 'fx8')!;
     assert.deepEqual({ name: unmapped.name, abbreviation: unmapped.abbreviation, logo: unmapped.logo, href: unmapped.href, franchiseId: unmapped.franchiseId },
         { name: 'Expansion Hopefuls Club', abbreviation: 'EHC', logo: null, href: null, franchiseId: null });
-    assert.equal(warnings.filter(message => message.includes('fx8')).length, 1);
+    assert.deepEqual(warnings.filter(message => message.includes('fx8')).map(message => /league\.fantrax_teams/.test(message)), [true]);
+});
+
+test('a Fantrax team mapped to a franchise missing from current_teams is logged as such', async t => {
+    const state = league();
+    state.franchises = state.franchises.filter(franchise => franchise.id !== 2);
+    const { season, warnings } = setup(t, state);
+    assert.equal((await season()).teams.find(team => team.id === 'fx2')!.href, null);
+    const logged = warnings.filter(message => message.includes('fx2'));
+    assert.equal(logged.length, 1);
+    assert.match(logged[0], /franchise 2\b.*league\.current_teams/);
+    assert.doesNotMatch(logged[0], /fantrax_teams/);
 });
 
 test('rostered players and scoring leaders link to their archive player pages when they have one', async t => {

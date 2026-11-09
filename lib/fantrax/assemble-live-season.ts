@@ -151,7 +151,9 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         return core.teams.map(team => {
             const franchiseId = franchiseFor.get(team.id);
             const franchise = franchiseId === undefined ? undefined : identities.get(franchiseId);
-            if (!franchise) console.warn(`Fantrax team ${team.id} (${team.name}) has no franchise in league.fantrax_teams for ${core.seasonYear}; showing its Fantrax name.`);
+            if (!franchise) console.warn(`Fantrax team ${team.id} (${team.name}) ${franchiseId === undefined
+                ? `has no franchise in league.fantrax_teams for ${core.seasonYear}`
+                : `maps to franchise ${franchiseId}, which is missing from league.current_teams`}; showing its Fantrax name.`);
             const live: LiveTeam = {
                 id: team.id, franchiseId: franchise?.id ?? null,
                 name: franchise?.name ?? team.name,
