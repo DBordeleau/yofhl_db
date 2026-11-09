@@ -16,7 +16,7 @@ export interface Week {
     endDate: string;
     /** "Week 5", or the playoff round: "Quarterfinals", "Semifinals", "Final" */
     name: string;
-    /** "Week 5", or "Jagr Cup Quarterfinals" and so on */
+    /** "Week 5", or "Jagr Cup Playoff Quarterfinals" and so on */
     fullName: string;
     stage: 'regular' | PlayoffRound;
     /** final once the week's scores are settled (or its end date has passed); never before it starts */
@@ -97,8 +97,6 @@ export type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { st
 export const fantraxLeagueIdOf = (result: LiveSeasonResult): string | null =>
     result.status === 'available' ? result.value.fantraxLeagueId : result.fantraxLeagueId;
 
-const ROUND_NAMES: Record<PlayoffRound, string> = { Quarterfinals: 'Jagr Cup Quarterfinals', Semifinals: 'Jagr Cup Semifinals', Final: 'Jagr Cup Final' };
-
 /** the playoff rounds are the last weeks of the season, in order; every earlier week is the regular season */
 function stages(weeks: SourceWeek[]) {
     const numbers = weeks.map(week => week.number).sort((a, b) => a - b);
@@ -139,7 +137,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
             return {
                 number: week.number, startDate: week.startDate, endDate: week.endDate,
                 name: weekStage === 'regular' ? `Week ${week.number}` : weekStage,
-                fullName: weekStage === 'regular' ? `Week ${week.number}` : ROUND_NAMES[weekStage],
+                fullName: weekStage === 'regular' ? `Week ${week.number}` : `Jagr Cup Playoff ${weekStage}`,
                 stage: weekStage, phase, manualFinal: manual.includes(week.number),
                 matchups: core.schedule.find(round => round.week === week.number)?.matchups ?? [],
             };

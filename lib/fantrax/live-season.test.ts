@@ -76,9 +76,9 @@ test('week 23 is a regular-season week and the last three weeks are the playoff 
     const live = await season({ now: during(5) });
     assert.deepEqual(weekView(live, 1), { name: 'Week 1', fullName: 'Week 1', stage: 'regular', phase: 'final' });
     assert.deepEqual(weekView(live, 23), { name: 'Week 23', fullName: 'Week 23', stage: 'regular', phase: 'upcoming' });
-    assert.deepEqual(weekView(live, 24), { name: 'Quarterfinals', fullName: 'Jagr Cup Quarterfinals', stage: 'Quarterfinals', phase: 'upcoming' });
-    assert.deepEqual(weekView(live, 25), { name: 'Semifinals', fullName: 'Jagr Cup Semifinals', stage: 'Semifinals', phase: 'upcoming' });
-    assert.deepEqual(weekView(live, 26), { name: 'Final', fullName: 'Jagr Cup Final', stage: 'Final', phase: 'upcoming' });
+    assert.deepEqual(weekView(live, 24), { name: 'Quarterfinals', fullName: 'Jagr Cup Playoff Quarterfinals', stage: 'Quarterfinals', phase: 'upcoming' });
+    assert.deepEqual(weekView(live, 25), { name: 'Semifinals', fullName: 'Jagr Cup Playoff Semifinals', stage: 'Semifinals', phase: 'upcoming' });
+    assert.deepEqual(weekView(live, 26), { name: 'Final', fullName: 'Jagr Cup Playoff Final', stage: 'Final', phase: 'upcoming' });
     assert.equal(live.seasonYear, 2027);
     assert.equal(live.weeks.length, 26);
 });
