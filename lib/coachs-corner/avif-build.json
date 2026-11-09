@@ -829,6 +829,186 @@
       "height": 1254,
       "outputHash": "2bb56d233d877494a0c0a66377fafe0c10052b88e9599cf11134ed452b0aa83c"
     },
+    "robots-v2/don-remembrance-angry-talk-640.avif": {
+      "inputHash": "f42df8c08d841301a4068fa652edd4d7b890be1aa98a45367b2d2ca263ea0fa8",
+      "width": 640,
+      "height": 640,
+      "outputHash": "fbae85d0ffcfaa1b4114ac9a8ee94f17f715b9aba360c391d36f7e7920499f1d"
+    },
+    "robots-v2/don-remembrance-angry-talk.avif": {
+      "inputHash": "f42df8c08d841301a4068fa652edd4d7b890be1aa98a45367b2d2ca263ea0fa8",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "30526b932ea7e3d068afc2b4e8c3f2010dade8ae164fd934f818965e7218018b"
+    },
+    "robots-v2/don-remembrance-default-640.avif": {
+      "inputHash": "f73b76a49a443426b50f02dd45cae28ca3764066c70397ea20163e13e84b5880",
+      "width": 640,
+      "height": 640,
+      "outputHash": "6462ac9a3cbc49f98e03f38f70f13f26b7023edb5c124869479921f6efddef54"
+    },
+    "robots-v2/don-remembrance-default.avif": {
+      "inputHash": "f73b76a49a443426b50f02dd45cae28ca3764066c70397ea20163e13e84b5880",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "4588a76d104ae49a9277a5f6b2416169a66f5f98f5c683c81d34fc2551b6d31e"
+    },
+    "robots-v2/don-remembrance-desk-pound-640.avif": {
+      "inputHash": "c963a762a9b3f9dd6edf6b07a1e6f19955697ff0c04e822965191165036dbcb0",
+      "width": 640,
+      "height": 640,
+      "outputHash": "9e547792da1749c0568b9974856c9d08047f30920ea10767aa343c3794e41e99"
+    },
+    "robots-v2/don-remembrance-desk-pound-ready-640.avif": {
+      "inputHash": "c4cf0906a4bf116b0169975d913512614c0dbd8db6bb4faa8b1b21d7fc3f3909",
+      "width": 640,
+      "height": 640,
+      "outputHash": "fb7276509306a51becbf710dd35d723bf93a49bf47aa1481fd02f81af254a724"
+    },
+    "robots-v2/don-remembrance-desk-pound-ready.avif": {
+      "inputHash": "c4cf0906a4bf116b0169975d913512614c0dbd8db6bb4faa8b1b21d7fc3f3909",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "ffeec3ce580632db747af2b46593a2822ff3707aedcd537e4474b8e79df95c5a"
+    },
+    "robots-v2/don-remembrance-desk-pound.avif": {
+      "inputHash": "c963a762a9b3f9dd6edf6b07a1e6f19955697ff0c04e822965191165036dbcb0",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "9e36195d61ffc10571fb002dcdc3caaec610a05341f4a0eeedc9a9bcabef015d"
+    },
+    "robots-v2/don-remembrance-lean-camera-640.avif": {
+      "inputHash": "02049f3db2bcb69ab1018743c2af0357c1dbfe5a715ed435b98b0b61de146d31",
+      "width": 640,
+      "height": 640,
+      "outputHash": "d2b238d578b50843c4f1ad54ac562c57a6b6ab8ae7584d2229ae9d2179fe7a37"
+    },
+    "robots-v2/don-remembrance-lean-camera.avif": {
+      "inputHash": "02049f3db2bcb69ab1018743c2af0357c1dbfe5a715ed435b98b0b61de146d31",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "706fbf01984f247e9b77177e4cc7df8437d3c536b6c252b57c93bd6cad72a110"
+    },
+    "robots-v2/don-remembrance-mic-remove-640.avif": {
+      "inputHash": "5607a42d08ef6405d7eebafe490a2c12a928a14387a19f944daa779b28001239",
+      "width": 640,
+      "height": 640,
+      "outputHash": "aa457c07f1e8aa39be252775704ba3a0cfd3e2c3b39404eaf849ceef5c54714d"
+    },
+    "robots-v2/don-remembrance-mic-remove.avif": {
+      "inputHash": "5607a42d08ef6405d7eebafe490a2c12a928a14387a19f944daa779b28001239",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "de55eaedeb04bd97c0e178ce522eb8e4d6ce51696be3bbf4299a795ed89650cc"
+    },
+    "robots-v2/don-remembrance-pause-640.avif": {
+      "inputHash": "155661d033e85e3b0893ad35c0c87eb6dea2bad54f4e0af8c8299d1896a93dde",
+      "width": 640,
+      "height": 640,
+      "outputHash": "fe77dce64250d9c5c7c628e72fd268fb7f7dffeb40a78324a80970d62cb00472"
+    },
+    "robots-v2/don-remembrance-pause.avif": {
+      "inputHash": "155661d033e85e3b0893ad35c0c87eb6dea2bad54f4e0af8c8299d1896a93dde",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "92bbae602caf3fc13bbcd5834a6da614ab0b5ededa1c2d244aea5f9b80de8fd8"
+    },
+    "robots-v2/don-remembrance-point-640.avif": {
+      "inputHash": "5dbbef43df99c36557e3453de5203c59cc12d88b6ba641259455c60a306b36d5",
+      "width": 640,
+      "height": 640,
+      "outputHash": "68b65169b7ad9a3e6f02e398857595f84cb2d95e06a662482d422a1c3c502886"
+    },
+    "robots-v2/don-remembrance-point-talk-640.avif": {
+      "inputHash": "1aa0c4633a95d7f975a160793a47cf25c6af6087891af53ecd33d611947f4fe4",
+      "width": 640,
+      "height": 640,
+      "outputHash": "228c8a35bd773c92247b7cb7f670cdc56298baca88d2f720c4438f59cd12aaa5"
+    },
+    "robots-v2/don-remembrance-point-talk.avif": {
+      "inputHash": "1aa0c4633a95d7f975a160793a47cf25c6af6087891af53ecd33d611947f4fe4",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "8f329f042ec0ced8b0649d342761296905038c48ae7cbdf8bd7340bf48ec4e15"
+    },
+    "robots-v2/don-remembrance-point.avif": {
+      "inputHash": "5dbbef43df99c36557e3453de5203c59cc12d88b6ba641259455c60a306b36d5",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "05f969b522cd17cb7b52bf7fde622a8f14f3509eada4a6c9be0b9753193708b7"
+    },
+    "robots-v2/don-remembrance-stare-640.avif": {
+      "inputHash": "c3d139eb1d34dc4603d870966cd322ec5e903fa0282c186443d50c98076af58b",
+      "width": 640,
+      "height": 640,
+      "outputHash": "800c7b9577fcf5430f132fed5425ddae9b993e37db386a5a330633b753986e14"
+    },
+    "robots-v2/don-remembrance-stare.avif": {
+      "inputHash": "c3d139eb1d34dc4603d870966cd322ec5e903fa0282c186443d50c98076af58b",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "7b6e9d09e6f845082c595ec460993a2ccb00f8453c5099bb0a0cea1bb3b6ded2"
+    },
+    "robots-v2/don-remembrance-surprised-640.avif": {
+      "inputHash": "6f94cb00cc27ee2069a8ac9ad5810ddafd944a71bc4ccb5ff60dc7c71cee89c8",
+      "width": 640,
+      "height": 640,
+      "outputHash": "7b7273c45dd102231ff58132f0730ba5e0b98c51e3aa84f99615b8f51280da53"
+    },
+    "robots-v2/don-remembrance-surprised.avif": {
+      "inputHash": "6f94cb00cc27ee2069a8ac9ad5810ddafd944a71bc4ccb5ff60dc7c71cee89c8",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "98a88bb59b2732abc098a5f97f1c81b4b7e4956c3d032c5fd3d3724444195ca6"
+    },
+    "robots-v2/don-remembrance-talk-640.avif": {
+      "inputHash": "afc93ee54b13f1c32c89b18b46f1bf590415e0b8ce913dbee34ec2afbcb05dee",
+      "width": 640,
+      "height": 640,
+      "outputHash": "c4ece99efc48345747da6dec91c5437e1c8d91cd5de8ad150e663997363a0ff0"
+    },
+    "robots-v2/don-remembrance-talk.avif": {
+      "inputHash": "afc93ee54b13f1c32c89b18b46f1bf590415e0b8ce913dbee34ec2afbcb05dee",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "eaecc714632b58f4f67fe6462ae9e124c015f892c813af7b05ea1f78088427da"
+    },
+    "robots-v2/don-remembrance-thumbs-up-640.avif": {
+      "inputHash": "43328375c72fdd9376b274d49c1e446eb18d34ce35fe0e8d947092da939bb590",
+      "width": 640,
+      "height": 640,
+      "outputHash": "966eb76ffcce5712378e9967be48be0b6fb1995cbf9edcfe6dfc04756a5d02f8"
+    },
+    "robots-v2/don-remembrance-thumbs-up-talk-640.avif": {
+      "inputHash": "3491432fc73aafa1e04f8568eb3f64bcd85771be240fe0fd4a0e09b0d2d97daf",
+      "width": 640,
+      "height": 640,
+      "outputHash": "83feb7c185c02536335e2d6b533192496c74ee0ce8b427c9a64228a19b527729"
+    },
+    "robots-v2/don-remembrance-thumbs-up-talk.avif": {
+      "inputHash": "3491432fc73aafa1e04f8568eb3f64bcd85771be240fe0fd4a0e09b0d2d97daf",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "c890e45fa41c7b095915cad1f928a9a34e6d2b5cf45a2f4e9c473df57c982641"
+    },
+    "robots-v2/don-remembrance-thumbs-up.avif": {
+      "inputHash": "43328375c72fdd9376b274d49c1e446eb18d34ce35fe0e8d947092da939bb590",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "4f77996f7da92bc5cf0992d726bc994c5cfc4f556a95ab4dacbe0e44c0616bda"
+    },
+    "robots-v2/don-remembrance-tie-adjust-640.avif": {
+      "inputHash": "a022796c4ed0bc2e50ab8a610880c29dc75268334129ccd40a6f681b4c6322b7",
+      "width": 640,
+      "height": 640,
+      "outputHash": "ff250d8676c041f2dec3c4eeed52238407f82acd27104a5673641433664ee2b3"
+    },
+    "robots-v2/don-remembrance-tie-adjust.avif": {
+      "inputHash": "a022796c4ed0bc2e50ab8a610880c29dc75268334129ccd40a6f681b4c6322b7",
+      "width": 1254,
+      "height": 1254,
+      "outputHash": "2aacb9cb4847d20519693c6133fbfb0000f3514e7d5e6e02cf60503a994c14b2"
+    },
     "robots-v2/don-stare-640.avif": {
       "inputHash": "d43783ec4e3453271ccdd09be7b911cc5143ecf4607865689e7dfca85b9a0817",
       "width": 640,

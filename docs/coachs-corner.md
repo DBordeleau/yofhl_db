@@ -99,7 +99,7 @@ A line starting with `[` holds cues for the moment between lines: `[don: stare, 
 
 ### Don's suits
 
-Don has five wardrobes. The original red, gold and ivory floral suit is pinned as his **normal/default suit**. Use it whenever the episode brief does not request another wardrobe. A seasonal date alone does not change the default.
+Don has six wardrobes. The original red, gold and ivory floral suit is pinned as his **normal/default suit**. Use it whenever the episode brief does not request another wardrobe. A seasonal date alone does not change the default.
 
 | Wardrobe ID | Suit | Artwork IDs | Screenplay gestures |
 | --- | --- | --- | --- |
@@ -108,6 +108,9 @@ Don has five wardrobes. The original red, gold and ivory floral suit is pinned a
 | `alternate-suit-1` | Alternate suit 1, turquoise with pink and yellow paisley and a cobalt polka-dot tie | `don-alternate-1-*` | Explicit `alternate-1-rest`, `alternate-1-point`, `alternate-1-angry`, etc. |
 | `alternate-suit-2` | Alternate suit 2, based on Cherry's real sky-blue daisy suit with an ivory tie | `don-alternate-2-*` | Explicit `alternate-2-rest`, `alternate-2-point`, `alternate-2-angry`, etc. |
 | `alternate-suit-3` | Alternate suit 3, based on Cherry's real rainbow plaid suit with a blue dotted tie and warm-colour centre band | `don-alternate-3-*` | Explicit `alternate-3-rest`, `alternate-3-point`, `alternate-3-angry`, etc. |
+| `remembrance-2026` | Remembrance Day, charcoal with scarlet poppies and a burgundy tie | `don-remembrance-*` | Explicit `remembrance-rest`, `remembrance-point`, `remembrance-angry`, etc. |
+
+The [Remembrance Day guide](../assets/coachs-corner/robots-v2/remembrance-2026.md) records the poppy wardrobe and its optimized-only asset policy. Its PNG masters stay local. The asset builder verifies committed AVIF hashes when a master is absent; restore the local master if an export needs regeneration.
 
 The [asset manifest](../assets/coachs-corner/robots-v2/manifest.json) records `defaultWardrobes.don` as `normal` and labels every Don pose with its wardrobe. This is catalog metadata; the runtime mappings live in `cast.ts`. Preserve the existing normal asset IDs and unprefixed gesture mappings when adding suits so old scripts keep their appearance. There is no episode-wide suit setting or automatic calendar switch.
 
@@ -197,7 +200,7 @@ Shared media is served from content-hashed URLs under `/coachs-corner/media/` wi
 
 The player, homepage studio and episode share card load static AVIF artwork only, at 640 px and 1254 px. There is no WebP fallback, so browsers without AVIF support (such as Safari before 16) show no hosts. There is no image transformation on a viewer's request and no new service or subscription.
 
-The pose art lives in `assets/coachs-corner/robots-v2/`, outside `public/`, so it is not deployed. `npm run coachs:assets` generates AVIF directly from the original PNG artwork there, using quality 65 and full 4:4:4 colour resolution. It uses each WebP export's dimensions for the matching 640 px or 1254 px version, then copies only the AVIF files to `public/coachs-corner/media/` under hashed names. `lib/coachs-corner/media.json` keeps the `/coachs-corner/robots-v2/…` names as stable keys. Keep PNG and WebP art edits in sync. Commit the generated `.avif` sources, their hashed copies, and `lib/coachs-corner/avif-build.json`. The build record checks source bytes, dimensions, encoder settings and output hashes, so unchanged builds reuse the encoded files. Missing or corrupt output is regenerated.
+The pose art lives in `assets/coachs-corner/robots-v2/`, outside `public/`, so it is not deployed. `npm run coachs:assets` generates AVIF directly from the original PNG artwork there, using quality 65 and full 4:4:4 colour resolution. It uses each WebP export's dimensions for the matching 640 px or 1254 px version, then copies only the AVIF files to `public/coachs-corner/media/` under hashed names. `lib/coachs-corner/media.json` keeps the `/coachs-corner/robots-v2/…` names as stable keys. Keep PNG and WebP art edits in sync. Commit the generated `.avif` sources, their hashed copies, and `lib/coachs-corner/avif-build.json`. The build record checks source bytes, dimensions, encoder settings and output hashes, so unchanged builds reuse the encoded files. Missing or corrupt output is regenerated when its PNG master is available. For an optimized-only wardrobe such as Remembrance Day, the committed AVIF is checked against its recorded hash and dimensions; restore the local master to regenerate a missing or corrupt export.
 
 The 19-pose set at this setting is 938,725 bytes at 640 px, down from 1,579,092 bytes for WebP, and 2,160,720 bytes at 1254 px, down from 5,875,338 bytes. These are artwork totals, not the entire page transfer. The files are shared across episodes and can remain in the browser cache.
 

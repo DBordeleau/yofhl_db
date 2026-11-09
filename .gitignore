@@ -64,3 +64,6 @@ next-env.d.ts
 # Temporary browser audio diagnostic can embed an unpublished screenplay.
 /public/coachs-corner/episode-scan-temp.html
 /public/coachs-corner/episode-scan-temp.js
+
+# Remembrance wardrobe masters stay local; commit optimized WebP/AVIF exports only.
+/assets/coachs-corner/robots-v2/don-remembrance-*.png

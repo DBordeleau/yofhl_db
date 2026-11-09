@@ -6,7 +6,7 @@ import { parseScript } from './script';
 import { compile, frameAt, frameSignature } from './timeline';
 
 const head = '---\ntitle: Wardrobe artwork check\n---\n';
-const variants = ['halloween', 'alternate-1', 'alternate-2', 'alternate-3'];
+const variants = ['halloween', 'alternate-1', 'alternate-2', 'alternate-3', 'remembrance'];
 
 test('ordinary dialogue and default aliases keep the original normal suit', () => {
     for (const alias of ['rest', 'default', 'normal', 'idle', 'talk', 'don-default']) {
