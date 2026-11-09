@@ -1,6 +1,8 @@
 // What the moved tests can't show about the disposable league: that Next's real cache still finds the
-// stand-in backend (the canary for Next upgrades), and that a league leaves the process as it found it.
+// stand-in backend (the canary for Next upgrades), that a league leaves the process as it found it, and that
+// no other test builds its own database or cache stand-in.
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { disposableLeague } from './disposable-league';
 
@@ -48,4 +50,25 @@ test('a league puts back the env, the two globals and fetch once its test ends',
     assert.equal(process.env.NODE_ENV, 'before-the-league');
     globals.forEach((key, i) => assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, key), before[i], key));
     assert.equal(globalThis.fetch, fetchBefore);
+});
+
+// What only this module may do: build a PGlite, stand in for Next's cache backend, or replace the app's execute.
+// scripts/db/lib/connect.ts builds a PGlite too, but it is the production path for pglite: URLs, not a test.
+const OWN_SETUP = [/new PGlite\b/, /__incrementalCache/, /mock\.method\([^)]*getDb\(\)[^)]*,\s*['"`]execute['"`]/];
+const strays = (code: string) => OWN_SETUP.filter(pattern => pattern.test(code)).map(String);
+
+test('no test outside the disposable league builds its own database, cache stand-in or execute mock', () => {
+    const files = ['lib', 'scripts']
+        .flatMap(dir => readdirSync(dir, { recursive: true, encoding: 'utf8' }).map(file => `${dir}/${file.replaceAll('\\', '/')}`))
+        .filter(file => /\.test\.(ts|mjs)$/.test(file))
+        .filter(file => !file.startsWith('lib/testing/'))
+        // Its migration-backfill test replays the migrations only up to 0009, which a league can't do yet (#77).
+        .filter(file => file !== 'scripts/db/lib/draft-development.test.ts');
+    assert.ok(files.length > 50, "the scan finds the repo's test files");
+    assert.deepEqual(files.flatMap(file => strays(readFileSync(file, 'utf8')).map(pattern => `${file}: ${pattern}`)), []);
+
+    // Each of the three is caught when a test brings it back.
+    assert.equal(strays('const client = new PGlite();').length, 1);
+    assert.equal(strays('Object.assign(globalThis, { __incrementalCache: backend });').length, 1);
+    assert.equal(strays("t.mock.method(runtime.getDb(), 'execute', (query: SQL) => db.execute(query));").length, 1);
 });
