@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { captureFacts, lookupFeaturedPlayer, birthRegion, parseFactPacket, referencePacket, selectRecapPeriod } from './facts';
+import { captureFacts, lookupFeaturedPlayer, birthRegion, parseFactPacket, referencePacket, selectRecapPeriod, type FactPacket } from './facts';
 import type { LeagueConfig } from '../../../scripts/db/lib/league-config';
 
 const config: LeagueConfig = { franchises: [
@@ -14,6 +14,7 @@ const config: LeagueConfig = { franchises: [
 const fixtures = () => ({
     getLeagueInfo: { seasonYear: 2026, teamInfo: { h: { name: 'Home Team' }, a: { name: 'Away Team' } },
         scoringPeriods: [{ number: 7, startDate: '2026-01-01T00:00:00-0500', endDate: '2026-01-08T00:00:00-0500' }],
+        rosterPeriods: [{ number: 81, startDate: '2026-01-07T00:00:00-0500', endDate: '2026-01-08T00:00:00-0500' }],
         matchups: [{ period: 7, matchupList: [{ away: { id: 'a' }, home: { id: 'h' } }] }] },
     getStandings: [{ teamId: 'h', rank: 1, points: '1-0', totalPointsFor: 24 }, { teamId: 'a', rank: 2, points: '0-1', totalPointsFor: 20 }],
     getTeamRosters: { period: 81, rosters: { h: { rosterItems: [{ id: 'p1', status: 'ACTIVE', position: 'C' }] }, a: { rosterItems: [] } } },
@@ -29,6 +30,11 @@ const mockFetch = (data: ReturnType<typeof fixtures>, calls: string[] = []): typ
     const result = data[url.pathname.split('/').at(-1)! as keyof typeof data];
     return new Response(JSON.stringify(result), { status: result ? 200 : 404 });
 };
+
+// what the packet says about a team, leaving out the repository's default colours
+const identity = ({ id, name, abbreviation, owner, ownerFirst, logo, fantraxId, rank, record, points }: FactPacket['teams'][number]) =>
+    ({ id, name, abbreviation, owner, ownerFirst, logo, fantraxId, rank, record, points });
+const withTeams = (teams: Record<string, number>, league = 'liveleague'): LeagueConfig => ({ ...config, seasons: { ...config.seasons, 2027: { fantrax: { league, teams } } } });
 
 const weeklyPeriods = [
     { number: 1, startDate: '2026-10-12T13:00:00-04:00', endDate: '2026-10-19T18:59:59-04:00' },
@@ -132,6 +138,76 @@ test('fresh capture preserves score units, missing categories, provenance and di
     assert.deepEqual(parseFactPacket(JSON.parse(JSON.stringify(packet))), packet);
 });
 
+test('sources are exactly the requests that came back OK, in request order, timed when each response arrived', async t => {
+    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-01-09T12:00:00Z') });
+    const fantrax = mockFetch(fixtures());
+    const nhl: Record<string, unknown> = {
+        'https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=20&q=William+Nylander': [{ name: 'William Nylander', playerId: '88' }],
+        'https://api-web.nhle.com/v1/player/88/landing': { playerId: 88, firstName: { default: 'William' }, lastName: { default: 'Nylander' }, birthCountry: 'SWE' },
+    };
+    // The league requests answer in reverse, so arrival order isn't request order. Each arrival moves the clock a minute.
+    const ticks: Record<string, number> = { getLeagueInfo: 4, getTeamRosters: 3, getStandings: 2, getPlayerIds: 1 };
+    let arrivals = 0;
+    const fetcher: typeof fetch = async (input, init) => {
+        const url = String(input);
+        for (let i = 0; i < (ticks[new URL(url).pathname.split('/').at(-1)!] ?? 1); i++) await new Promise(setImmediate);
+        t.mock.timers.setTime(Date.parse('2026-01-09T12:00:00Z') + ++arrivals * 60_000);
+        if (url.includes('nhle.com')) return nhl[url] ? new Response(JSON.stringify(nhl[url])) : new Response('Unavailable', { status: 503 });
+        return fantrax(input, init);
+    };
+    const packet = await captureFacts(config, { period: 7, players: ['William Nylander', 'Unknown Prospect'], fetcher });
+    const fantraxUrl = 'https://www.fantrax.com/fxea/general/';
+    assert.deepEqual(packet.sources, [
+        { url: `${fantraxUrl}getLeagueInfo?leagueId=liveleague&excludePlayerInfo=true`, fetchedAt: '2026-01-09T12:04:00.000Z' },
+        { url: `${fantraxUrl}getTeamRosters?leagueId=liveleague`, fetchedAt: '2026-01-09T12:03:00.000Z' },
+        { url: `${fantraxUrl}getStandings?leagueId=liveleague`, fetchedAt: '2026-01-09T12:02:00.000Z' },
+        { url: `${fantraxUrl}getPlayerIds?sport=NHL`, fetchedAt: '2026-01-09T12:01:00.000Z' },
+        { url: `${fantraxUrl}getMatchupScores?leagueId=liveleague&period=7`, fetchedAt: '2026-01-09T12:05:00.000Z' },
+        { url: 'https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=20&q=William+Nylander', fetchedAt: '2026-01-09T12:06:00.000Z' },
+        { url: 'https://api-web.nhle.com/v1/player/88/landing', fetchedAt: '2026-01-09T12:07:00.000Z' },
+    ]);
+    assert.deepEqual(packet.players[0].source, { url: 'https://api-web.nhle.com/v1/player/88/landing', fetchedAt: '2026-01-09T12:07:00.000Z' });
+    assert.equal(packet.players[1].source, null);
+});
+
+test('a Fantrax team the season map does not cover stops the export, naming the team and the league.yml key', async () => {
+    await assert.rejects(captureFacts(withTeams({ a: 2 }), { period: 7, fetcher: mockFetch(fixtures()) }),
+        /Fantrax team "Home Team" \(h\) has no franchise.*seasons\.2027\.fantrax\.teams/);
+});
+
+test("the export uses the map for the season Fantrax reports, and only when it names the fetched league", async () => {
+    // 2028 holds the live league, but Fantrax reports 2027
+    const live = { league: 'liveleague', teams: { h: 1, a: 2 } };
+    await assert.rejects(captureFacts({ ...config, seasons: { 2028: { fantrax: live } } }, { period: 7, fetcher: mockFetch(fixtures()) }),
+        /no fantrax block for 2026–27.*seasons\.2027\.fantrax/);
+    await assert.rejects(captureFacts({ ...config, seasons: { 2027: { fantrax: { ...live, league: 'otherleague' } }, 2028: { fantrax: live } } },
+        { period: 7, fetcher: mockFetch(fixtures()) }), /seasons\.2027\.fantrax\.league is otherleague, but the export fetched liveleague/);
+});
+
+test('a map entry naming an unknown franchise, one with no team season, or one already mapped stops the export, naming the league.yml key', async () => {
+    const capture = (teams: Record<string, number>, franchises = config.franchises) =>
+        captureFacts({ ...withTeams(teams), franchises }, { period: 7, fetcher: mockFetch(fixtures()) });
+    await assert.rejects(capture({ h: 99, a: 2 }), /Fantrax team "Home Team" \(h\) maps to franchise 99, which isn't in league\/league\.yml's franchises.*seasons\.2027\.fantrax\.teams/);
+    const later = { id: 3, eras: [{ from: 2030, name: 'Expansion Team', abbreviations: ['EXP'] }] };
+    const folded = { id: 4, folded: 2025, eras: [{ from: 2020, name: 'Gone Team', abbreviations: ['GONE'] }] };
+    for (const franchise of [later, folded]) {
+        await assert.rejects(capture({ h: franchise.id, a: 2 }, [...config.franchises, franchise]),
+            new RegExp(`Fantrax team "Home Team" \\(h\\) maps to franchise ${franchise.id}, which has no team season in 2026–27.*seasons\\.2027\\.fantrax\\.teams`));
+    }
+    await assert.rejects(capture({ h: 2, a: 2 }), /Fantrax teams h and a are both mapped to franchise 2 for 2026–27.*seasons\.2027\.fantrax\.teams/);
+});
+
+test("map entries for Fantrax teams that Fantrax didn't return are ignored", async () => {
+    const packet = await captureFacts(withTeams({ h: 1, a: 2, departed: 99, leftover: 1 }), { period: 7, fetcher: mockFetch(fixtures()) });
+    assert.deepEqual(packet.teams.map(team => [team.fantraxId, team.id]), [['h', 1], ['a', 2]]);
+});
+
+test("the roster's lineup period is the core snapshot's, or null when Fantrax's roster periods don't include it", async () => {
+    const data = fixtures();
+    data.getTeamRosters.period = 82;
+    assert.equal((await captureFacts(config, { period: 7, fetcher: mockFetch(data) })).rosterPeriod, null);
+});
+
 test("the export reads the latest season's Fantrax league from league.yml", async () => {
     const calls: string[] = [];
     const packet = await captureFacts(config, { period: 7, fetcher: mockFetch(fixtures(), calls) });
@@ -141,23 +217,43 @@ test("the export reads the latest season's Fantrax league from league.yml", asyn
     await assert.rejects(captureFacts({ ...config, seasons: {} }, { period: 7, fetcher: mockFetch(fixtures()) }), /fantrax/);
 });
 
-test('unknown periods and unmapped franchises stop export instead of fabricating identities', async () => {
+test('unknown periods stop export instead of fabricating a week', async () => {
     await assert.rejects(captureFacts(config, { period: 99, fetcher: mockFetch(fixtures()) }), /Unknown scoring period/);
-    const data = fixtures();
-    data.getLeagueInfo.teamInfo.h.name = 'Unmapped renamed franchise';
-    await assert.rejects(captureFacts(config, { period: 7, fetcher: mockFetch(data) }), /Unmapped Fantrax team/);
 });
 
-test('wrong-period scores, duplicate teams and missing rosters reject the packet', async () => {
-    const wrongPeriod = fixtures();
-    wrongPeriod.getMatchupScores.period = 8;
-    await assert.rejects(captureFacts(config, { period: 7, fetcher: mockFetch(wrongPeriod) }), /wrong-period/);
+test("teams resolve by Fantrax team ID through the season's map, keeping their league.yml team season identity", async () => {
+    const data = fixtures();
+    data.getLeagueInfo.teamInfo.h.name = 'Renamed On Fantrax';
+    const packet = await captureFacts(config, { period: 7, fetcher: mockFetch(data) });
+    assert.deepEqual(packet.teams.map(identity), [
+        { id: 1, name: 'Home Team', abbreviation: 'HOME', owner: 'Home Owner', ownerFirst: 'Home', logo: null, fantraxId: 'h', rank: 1, record: '1-0', points: 24 },
+        { id: 2, name: 'Away Team', abbreviation: 'AWAY', owner: 'Away Owner', ownerFirst: 'Away', logo: null, fantraxId: 'a', rank: 2, record: '0-1', points: 20 },
+    ]);
+});
+
+test('duplicate teams and missing rosters reject the packet', async () => {
     const duplicate = fixtures();
     duplicate.getMatchupScores.matchups[0].home.teamId = 'a';
     await assert.rejects(captureFacts(config, { period: 7, fetcher: mockFetch(duplicate) }), /Invalid matchup/);
     const missing = fixtures();
     Reflect.deleteProperty(missing.getTeamRosters.rosters, 'h');
     await assert.rejects(captureFacts(config, { period: 7, fetcher: mockFetch(missing) }), /Missing roster/);
+});
+
+test('missing standings, unknown players, unknown matchup teams and impossible games played reject the packet', async () => {
+    const capture = (change: (data: ReturnType<typeof fixtures>) => void) => {
+        const data = fixtures();
+        change(data);
+        return captureFacts(config, { period: 7, fetcher: mockFetch(data) });
+    };
+    await assert.rejects(capture(data => { data.getStandings.pop(); }), /Missing standings for Away Team/);
+    await assert.rejects(capture(data => { data.getStandings[0].points = undefined as unknown as string; }), /Missing standings for Home Team/);
+    await assert.rejects(capture(data => { Reflect.deleteProperty(data.getPlayerIds, 'p1'); data.getPlayerIds = { ...data.getPlayerIds, p2: { name: 'Other, Player', position: 'D', team: 'MTL' } } as typeof data.getPlayerIds; }),
+        /Missing player directory entry p1/);
+    await assert.rejects(capture(data => { data.getMatchupScores.matchups[0].away.teamId = 'stranger'; }), /Invalid matchup team/);
+    for (const gamesPlayed of [2.5, -1]) {
+        await assert.rejects(capture(data => { data.getMatchupScores.matchups[0].home.gamesPlayed = gamesPlayed; }), /Invalid matchup team, score or player games/);
+    }
 });
 
 test('future periods have no invented results and source failure rejects capture', async () => {
@@ -170,7 +266,7 @@ test('future periods have no invented results and source failure rejects capture
     assert.deepEqual(packet.matchups, []);
     assert.equal(packet.scheduledMatchups.length, 1);
     assert.equal(calls.length, 4);
-    await assert.rejects(captureFacts(config, { fetcher: async () => new Response('Unavailable', { status: 503 }) }), /HTTP 503/);
+    await assert.rejects(captureFacts(config, { fetcher: async () => new Response('Unavailable', { status: 503 }) }), /^Error: Fantrax \w+ returned 503$/);
 });
 
 test('partial scores are rejected and unavailable NHL players remain visible in the inventory', async () => {
@@ -202,6 +298,19 @@ test('birthplace comes from a uniquely matched NHL landing record, independent o
     ])));
     assert.equal(ambiguous.nhlId, null);
     assert.equal(ambiguous.bornInNorthAmerica, null);
+});
+
+test('the reference packet lists every franchise with a team season in its season, with that team season identity', () => {
+    const franchises = [...config.franchises,
+        { id: 3, eras: [{ from: 2030, name: 'Expansion Team', abbreviations: ['EXP'] }] },
+        { id: 4, folded: 2025, eras: [{ from: 2020, name: 'Gone Team', abbreviations: ['GONE'] }] },
+        { id: 5, folded: 2027, eras: [{ from: 2020, to: 2026, name: 'Old Name', abbreviations: ['OLD'] }, { from: 2027, name: 'Last Name', abbreviations: ['LAST', 'LST'], owner: 'Final Owner', logo: '/last.png' }] }];
+    const packet = referencePacket({ ...config, franchises }, 2027);
+    assert.deepEqual(packet.teams.map(identity), [
+        { id: 1, name: 'Home Team', abbreviation: 'HOME', owner: 'Home Owner', ownerFirst: 'Home', logo: null, fantraxId: '', rank: null, record: null, points: null },
+        { id: 2, name: 'Away Team', abbreviation: 'AWAY', owner: 'Away Owner', ownerFirst: 'Away', logo: null, fantraxId: '', rank: null, record: null, points: null },
+        { id: 5, name: 'Last Name', abbreviation: 'LAST', owner: 'Final Owner', ownerFirst: 'Final', logo: '/last.png', fantraxId: '', rank: null, record: null, points: null },
+    ]);
 });
 
 test('offline pilot packet is explicitly reference material, and malformed imports fail', () => {

@@ -1,4 +1,4 @@
-// Fantrax's public API, shared by the site's adapter and the Coach's Corner fact export.
+// Fantrax's public API, as the Fantrax client reads it for the live season and the Coach's Corner fact export.
 // Free of Next imports so scripts can use it.
 import { seasonYearFromFantrax } from './season';
 
