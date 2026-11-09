@@ -59,7 +59,7 @@ test('monitor graphics parse their arguments', () => {
 });
 
 test('mistakes are reported on their line', () => {
-    const script = parseScript(`${head}DON (moonwalk): hi\nGARY: hello\n[cam: dutch]\n>> scoreboard\nRON: {yell no colon}`, { knownTeam: () => false });
+    const script = parseScript(`${head}DON (moonwalk): hi\nGARY: hello\n[cam: dutch]\n>> scoreboard\nRON: {yell no colon}`, );
     assert.ok(hasErrors(script));
     const at = (n: number) => script.diagnostics.filter(d => d.line === n).map(d => d.message).join(' ');
     assert.match(at(4), /moonwalk/);
@@ -84,7 +84,7 @@ test('completed matchups opt into winner labels and require both scores', () => 
 });
 
 test('standings preserve point precision and validate records and team references', () => {
-    const script = parseScript(`${head}>> standings "Week 1 standings" HH 1 0 212.35, NPD 0 1 174.20\nRON: Standings.`, { knownTeam: ref => ref === 'HH' });
+    const script = parseScript(`${head}>> standings "Week 1 standings" HH 1 0 212.35, NPD 0 1 174.20\nRON: Standings.`);
     const event = script.events[0];
     assert.equal(event.kind, 'stage');
     if (event.kind !== 'stage') return;
@@ -94,8 +94,8 @@ test('standings preserve point precision and validate records and team reference
             { team: 'NPD', wins: 0, losses: 1, points: '174.20' },
         ],
     } }]);
-    assert.equal(script.diagnostics.length, 1);
-    assert.match(script.diagnostics[0].message, /NPD/);
+    assert.deepEqual(script.diagnostics, []);
+    assert.deepEqual(script.teamRefs, [{ ref: 'HH', line: 4 }, { ref: 'NPD', line: 4 }], 'every team the graphic names, on its line');
     for (const bad of ['', 'HH 1 212.35', 'HH -1 0 212.35', 'HH 1.5 0 212.35', 'HH 1 0 unknown', Array(11).fill('HH 1 0 212.35').join(', ')]) {
         assert.ok(hasErrors(parseScript(`${head}>> standings ${bad}\nRON: Standings.`)), bad);
     }

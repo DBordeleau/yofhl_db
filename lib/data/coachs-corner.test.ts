@@ -5,7 +5,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { SQL } from 'drizzle-orm';
-import type { StudioPlayer } from '../coachs-corner/teams';
+import type { StudioPlayer, StudioTeam } from '../coachs-corner/teams';
 
 const screenplay = (title: string, player: boolean | string = false) => `---\ntitle: ${title}\nseason: 2027\nweek: 2\n---\n${player ? `>> ${player === true ? 'player "Player One"' : player}\n` : ''}DON: Welcome to the show.\n\nRON: Good evening.`;
 
@@ -52,7 +52,19 @@ test('publishing and real Next data caching against disposable Postgres', async 
     await client.exec(`insert into league.seasons values (2026, '2025–26', 'complete');
         insert into league.players values ('p1', 'Player One');
         insert into league.player_seasons (player_id, season_year, positions, nhl_team, fpts, fpg)
-        values ('p1', 2026, array['C'], 'TOR', 100, 2);`);
+        values ('p1', 2026, array['C'], 'TOR', 100, 2);
+        -- the studio team list: Carolina's latest team season used the second of its league.yml abbreviations, and two owners are Nick
+        insert into league.owners (id, name) values (1, 'Jeremy Smith'), (2, 'Brian Morris'), (3, 'Nick Brown'), (4, 'Nick Green');
+        insert into league.franchises (id, display_name, logo_url, first_season) values
+            (1, 'Paddyville Lucifers', '/pvlslogo.png', 2020), (3, 'Hooterville Honkers', '/hhlogo.png', 2020),
+            (5, 'Jagrtown Ice Fellas', '/jagrlogo.png', 2020), (9, 'Carolina Reapers', '/reaplogo.png', 2020);
+        insert into league.team_seasons (id, season_year, franchise_id, owner_id, name, fantrax_name, abbreviation, division, division_rank, wins, losses, ties, fpts_for, fpts_against) values
+            (1, 2026, 1, 4, 'Paddyville Lucifers', 'Paddyville Lucifers', 'PVLS', 1, 1, 10, 5, 0, 900, 800),
+            (3, 2026, 3, 1, 'Hooterville Honkers', 'Hooterville Honkers', 'HH', 1, 2, 9, 6, 0, 880, 800),
+            (5, 2026, 5, 3, 'Jagrtown Ice Fellas', 'Jagrtown Ice Fellas', 'JAGR', 1, 3, 8, 7, 0, 860, 800),
+            (9, 2026, 9, 2, 'Carolina Reapers', 'Carolina Reapers', 'Reapers', 1, 4, 7, 8, 0, 840, 800);
+        insert into league.team_management (franchise_id, name, logo_url, owner_uid, owner_email)
+            values (9, 'Carolina Reapers', '/team-logos/9/old.webp', 'owner-9', 'owner@example.test');`);
     const data = await import('./coachs-corner');
     const { episodeFrom } = await import('../coachs-corner/episode');
     const refsOf = (episode: { script: string }) => episodeFrom(episode.script);
@@ -244,7 +256,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
         const { findPlayer } = await import('../coachs-corner/teams');
         const script = screenplay('Agreement', 'gap "Player One" "Elias Pettersson" #048x9 "Elias Pettersson" #0ab12 "Nobody Here"');
         const episode = episodeFrom(script);
-        const draft = await captureArchivedStats(referencePacket(loadLeagueConfig(), 2027), episode.playerRefs, { season: episode.statsSeason! });
+        const draft = await captureArchivedStats(referencePacket(loadLeagueConfig(), 2027, await data.getStudioTeams()), episode.playerRefs, { season: episode.statsSeason! });
         const saved = apply(await saveEpisodeRecord({ id: null, slug: 'agreement', script, publish: true }));
         const published = (await data.getEpisodeById(saved.id))?.players ?? [];
         const card = ({ id, name, headshot, nhlTeam, positions, season, fpts, fpg, games }: StudioPlayer) => ({ id, name, headshot, nhlTeam, positions, season, fpts, fpg, games });
@@ -254,5 +266,98 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.deepEqual(published.map(p => [p.id, p.fpts, p.headshot]), [
             ['p1', 200, 'https://assets.nhle.com/test-player.png'], ['048x9', 309.75, 'https://fantraximg.com/si/headshots/NHL/hs048x9_96_9.png'], ['0ab12', 134, null], [null, null, null],
         ]);
+    });
+    const teamCue = (cue: string) => screenplay('Teams', cue);
+    const errorsAt = (diagnostics: { line: number; severity: string; message: string }[]) =>
+        diagnostics.filter(d => d.severity === 'error').map(d => `Line ${d.line}: ${d.message}`).join(' ');
+    await t.test('Publish refuses a team cue that is unknown or matches two teams, and leaves the live episode untouched; a draft saves', async () => {
+        const live = apply(await saveEpisodeRecord({ id: null, slug: 'team-check', script: teamCue('matchup HH 10 Reapers 9'), publish: true }));
+        const stored = async () => (await client.query('select script, teams, published_at from league.coachs_corner_episodes where id = $1', [live.id])).rows[0];
+        const before = await stored();
+        const unknown = await saveEpisodeRecord({ id: live.id, slug: 'team-check', script: teamCue('matchup HH 10 Reaper 9'), publish: true });
+        assert.deepEqual(unknown, { error: 'Line 6: No team matches “Reaper”. Use an abbreviation (PVLS, HH, JAGR, Reapers), an owner’s first name or a team name.' });
+        const ambiguous = await saveEpisodeRecord({ id: live.id, slug: 'team-check', script: teamCue('team Nick'), publish: true });
+        assert.deepEqual(ambiguous, { error: 'Line 6: “Nick” matches 2 teams: PVLS (Paddyville Lucifers, Nick Green), JAGR (Jagrtown Ice Fellas, Nick Brown). Use the abbreviation of the one you mean.' });
+        assert.deepEqual(await stored(), before);
+        const draft = apply(await saveEpisodeRecord({ id: null, slug: 'team-draft', script: teamCue('matchup Nick 10 Reaper 9') }));
+        assert.equal((await data.getEpisodeById(draft.id))?.teams, null, 'a draft stores no team snapshot');
+    });
+    await t.test('a published episode keeps the teams it aired with after a rename and new logo, and keeps that logo from being deleted', async () => {
+        const { saveTeamIdentity } = await import('./curated-edits');
+        const saved = apply(await saveEpisodeRecord({ id: null, slug: 'frozen-teams', script: teamCue('team Reapers "Before the rebrand"'), publish: true }));
+        await data.getPublishedEpisode('frozen-teams');
+        const expired: string[] = [];
+        const renamed = await saveTeamIdentity({ uid: 'owner-9' }, { franchiseId: 9, version: 1, name: 'Carolina Grim', logoUrl: '/team-logos/9/new.webp' },
+            { invalidate: tag => { expired.push(tag); } });
+        assert.deepEqual(renamed, { ok: true, orphanedLogoUrl: null }, 'the episode still shows the old logo');
+        for (const [key, entry] of entries) if (entry.tags.some(tag => expired.includes(tag))) entries.delete(key);
+        const episode = (await data.getPublishedEpisode('frozen-teams'))!;
+        const carolina = (await data.getEpisodeTeams(episode)).find(team => team.id === 9);
+        assert.deepEqual([carolina?.name, carolina?.abbreviation, carolina?.logo], ['Carolina Reapers', 'Reapers', '/team-logos/9/old.webp']);
+        assert.equal((await data.getStudioTeams()).find(team => team.id === 9)?.name, 'Carolina Grim', 'the live list has the rename');
+        // a logo nothing shows any more is still cleaned up
+        assert.deepEqual(await saveTeamIdentity({ uid: 'owner-9' }, { franchiseId: 9, version: 2, name: 'Carolina Grim', logoUrl: '/team-logos/9/newer.webp' }, { invalidate: () => {} }),
+            { ok: true, orphanedLogoUrl: '/team-logos/9/new.webp' });
+        // republishing freezes the list again
+        apply(await saveEpisodeRecord({ id: saved.id, slug: 'frozen-teams', script: teamCue('team Grim "After the rebrand"'), publish: true }));
+        assert.equal((await data.getEpisodeTeams((await data.getPublishedEpisode('frozen-teams'))!)).find(team => team.id === 9)?.logo, '/team-logos/9/newer.webp');
+    });
+    await t.test('an episode published before team snapshots follows the live list', async () => {
+        const saved = apply(await saveEpisodeRecord({ id: null, slug: 'legacy-teams', script: teamCue('team Grim'), publish: true }));
+        await client.query('update league.coachs_corner_episodes set teams = null where id = $1', [saved.id]);
+        entries.clear();
+        const episode = (await data.getPublishedEpisode('legacy-teams'))!;
+        assert.equal(episode.teams, null);
+        assert.deepEqual(await data.getEpisodeTeams(episode), await data.getStudioTeams());
+    });
+    await t.test('the bundled pilot shows its own frozen team list', async () => {
+        const pilot = data.pilotEpisode();
+        assert.ok(pilot.teams && pilot.teams.length >= 10);
+        const before = queries;
+        assert.deepEqual(await data.getEpisodeTeams(pilot), pilot.teams);
+        assert.equal(queries, before, 'no database read');
+        const compiled = episodeFrom(pilot.script, { slug: pilot.slug, teams: pilot.teams! });
+        assert.deepEqual(compiled.diagnostics.filter(d => d.severity === 'error'), [], 'every pilot team cue resolves against its snapshot');
+    });
+    await t.test('the draft check and Publish report the same team diagnostics, and the packet teams become the team snapshot', async () => {
+        const { loadStudioTeams } = await import('../coachs-corner/studio-teams');
+        const { referencePacket } = await import('../coachs-corner/production/facts');
+        const { checkDraft } = await import('../coachs-corner/production/local-drafts');
+        const { loadLeagueConfig } = await import('../../scripts/db/lib/league-config');
+        // Hooterville's owner renamed the team; the packet is captured after it
+        await client.exec(`insert into league.team_management (franchise_id, name) values (3, 'Hooterville Hooters')`);
+        entries.clear();
+        const facts = referencePacket(loadLeagueConfig(), 2027, await loadStudioTeams());
+        const script = (cue: string) => `${screenplay('Agreement')}\n>> matchup Hooters 10 ${cue} 9\nRON: And Carolina. [>> team Reapers]`;
+        const draftErrors = async (source: string) => errorsAt((await checkDraft({ slug: 'agreement-teams', script: source, facts, pronunciations: [], brief: '', review: '', revision: '' }))
+            .diagnostics.filter(d => !/^(Missing asset|Expected a local public asset)/.test(d.message)));
+        const broken = script('Nick');
+        const published = await saveEpisodeRecord({ id: null, slug: 'agreement-teams', script: broken, publish: true });
+        assert.match(await draftErrors(broken), /“Nick” matches 2 teams/);
+        assert.deepEqual(published, { error: await draftErrors(broken) });
+        const fixed = script('JAGR');
+        assert.equal(await draftErrors(fixed), '');
+        const saved = apply(await saveEpisodeRecord({ id: null, slug: 'agreement-teams', script: fixed, publish: true }));
+        const studio = ({ id, name, abbreviation, owner, ownerFirst, logo, primary, secondary }: StudioTeam) => ({ id, name, abbreviation, owner, ownerFirst, logo, primary, secondary });
+        assert.deepEqual((await data.getEpisodeById(saved.id))?.teams, facts.teams.map(studio));
+    });
+    await t.test("Carolina's current abbreviation passes the draft check, the editor and Publish; its league.yml first abbreviation fails all three alike", async () => {
+        const { loadStudioTeams } = await import('../coachs-corner/studio-teams');
+        const { referencePacket } = await import('../coachs-corner/production/facts');
+        const { draftEpisode } = await import('../coachs-corner/production/local-drafts');
+        const { loadLeagueConfig } = await import('../../scripts/db/lib/league-config');
+        const config = loadLeagueConfig();
+        assert.deepEqual(config.franchises.find(f => f.id === 9)?.eras.at(-1)?.abbreviations, ['Reaper', 'Reapers']);
+        const facts = referencePacket(config, 2027, await loadStudioTeams());
+        const editorTeams = await data.getStudioTeams();
+        for (const [cue, ok] of [['Reapers', true], ['Reaper', false]] as const) {
+            const source = teamCue(`team ${cue}`);
+            const draft = errorsAt(draftEpisode({ slug: 'carolina', script: source, facts, pronunciations: [], brief: '', review: '', revision: '' }).diagnostics);
+            const editor = errorsAt(episodeFrom(source, { teams: editorTeams }).diagnostics);
+            const publish = await saveEpisodeRecord({ id: null, slug: `carolina-${cue.toLowerCase()}`, script: source, publish: true });
+            assert.equal(draft, editor, cue);
+            if (ok) assert.ok(!('error' in publish) && draft === '', cue);
+            else assert.deepEqual(publish, { error: draft }, cue);
+        }
     });
 });

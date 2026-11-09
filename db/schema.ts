@@ -360,6 +360,8 @@ export const coachsCornerEpisodes = league.table('coachs_corner_episodes', {
     script: text('script').notNull(),
     durationMs: integer('duration_ms').notNull(),
     players: jsonb('players').$type<import('../lib/coachs-corner/teams').StudioPlayer[]>(),
+    // the team snapshot (GLOSSARY.md): the studio team list as it was at Publish; null for drafts and older episodes
+    teams: jsonb('teams').$type<import('../lib/coachs-corner/teams').StudioTeam[]>(),
     publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),

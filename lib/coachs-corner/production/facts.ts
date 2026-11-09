@@ -6,7 +6,6 @@ import type { SourceCore } from '../../fantrax/live-season-source';
 import { playerName, type Period } from '../../fantrax/model';
 import { seasonLabel } from '../../seasons';
 import { eraFor, liveFantraxLeague, type Franchise, type LeagueConfig } from '../../../scripts/db/lib/league-config';
-import { suggestedPalettes, fallbackColours } from '../../team-branding';
 
 export interface Source { url: string; fetchedAt: string }
 export interface FeaturedPlayer extends StudioPlayer {
@@ -71,23 +70,43 @@ async function nhlRequest(url: string, fetcher: Fetcher): Promise<{ value: unkno
 const teamSeason = (franchise: Franchise, season: number) =>
     franchise.folded == null || franchise.folded >= season ? eraFor(franchise, season) : undefined;
 
-export function studioTeam(config: LeagueConfig, season: number, franchiseId: number): StudioTeam {
-    const franchise = config.franchises.find(f => f.id === franchiseId);
-    const era = franchise && teamSeason(franchise, season);
-    if (!franchise || !era) throw new Error(`Franchise ${franchiseId} has no team season in ${seasonLabel(season)} in league/league.yml.`);
-    const colours = suggestedPalettes[franchise.id] ?? fallbackColours;
-    return { id: franchise.id, name: era.name, abbreviation: era.abbreviations[0], owner: era.owner ?? null,
-        ownerFirst: era.owner?.split(/\s+/)[0] ?? null, logo: era.logo ?? null, primary: colours.primary, secondary: colours.secondary };
+type FantraxFields = Pick<FactTeam, 'fantraxId' | 'rank' | 'record' | 'points'>;
+const NO_FANTRAX: FantraxFields = { fantraxId: '', rank: null, record: null, points: null };
+const TEAM_IDENTITY_NOTE = 'Team identity, owners and logos come from ';
+const TEAM_IDENTITY = `${TEAM_IDENTITY_NOTE}the database's current identity at capture time, with saved team colours: the same team list the admin editor checks and Publish freezes.`;
+
+/**
+ * The packet's teams: the studio team list (the site's, as the database has it now), each with the Fantrax
+ * fields of the franchise's Fantrax team. Every franchise in `fantrax` must be on the list, or the capture fails
+ * before facts.json is replaced.
+ */
+export function packetTeams(studio: StudioTeam[], fantrax: Map<number, FantraxFields & { name: string }> = new Map()): FactTeam[] {
+    for (const [franchiseId, team] of fantrax) {
+        if (!studio.some(s => s.id === franchiseId)) throw new Error(`Fantrax team "${team.name}" (${team.fantraxId}) is franchise ${franchiseId}, which isn't an active franchise in the database's current teams. Check league.current_teams, or fix the franchise in league/league.yml.`);
+    }
+    return studio.map(team => {
+        const found = fantrax.get(team.id);
+        return { ...team, ...(found ? { fantraxId: found.fantraxId, rank: found.rank, record: found.record, points: found.points } : NO_FANTRAX) };
+    });
 }
 
-export function referencePacket(config: LeagueConfig, season: number): FactPacket {
+/** Recapture the team list into an existing packet, keeping each franchise's Fantrax fields. */
+export function withStudioTeams(packet: FactPacket, studio: StudioTeam[]): FactPacket {
+    const fantrax = new Map(packet.teams.filter(team => team.fantraxId)
+        .map(({ id, name, fantraxId, rank, record, points }) => [id, { name, fantraxId, rank, record, points }]));
+    // the identity note keeps its place; a packet from before it gains one
+    const limitations = packet.limitations.some(note => note.startsWith(TEAM_IDENTITY_NOTE))
+        ? packet.limitations.map(note => note.startsWith(TEAM_IDENTITY_NOTE) ? TEAM_IDENTITY : note) : [...packet.limitations, TEAM_IDENTITY];
+    return { ...packet, teams: packetTeams(studio, fantrax), limitations };
+}
+
+export function referencePacket(config: LeagueConfig, season: number, teams: StudioTeam[]): FactPacket {
     const now = new Date().toISOString();
     return { version: 1, kind: 'reference', captureStartedAt: now, capturedAt: now, timezone: 'America/Toronto',
         leagueId: liveFantraxLeague(config), season, period: null, phase: 'reference', scheduledMatchups: [],
-        teams: config.franchises.filter(f => teamSeason(f, season))
-            .map(f => ({ ...studioTeam(config, season, f.id), fantraxId: '', rank: null, record: null, points: null })), matchups: [], rosters: [], rosterPeriod: null, players: [], sources: [],
+        teams: packetTeams(teams), matchups: [], rosters: [], rosterPeriod: null, players: [], sources: [],
         limitations: ['Pilot reference only. Scores in the script are historical example dialogue, not a current fact export.',
-            'Offline reference starts without archived player statistics. Run coachs:stats after writing player/gap graphics.'] };
+            'Offline reference starts without archived player statistics. Run coachs:stats after writing player/gap graphics.', TEAM_IDENTITY] };
 }
 
 // Unknown country codes stay unknown. Birthplace, not nationality or the spelling of a name, determines this rule.
@@ -167,8 +186,11 @@ function franchisesFor(config: LeagueConfig, core: SourceCore, leagueId: string)
 
 type ScoreCategory = { name: string; shortName: string; group: string; away: { value?: number }; home: { value?: number } };
 
-/** Read directly from sources, independent of Next's daily cache and the production database. */
-export async function captureFacts(config: LeagueConfig, options: { period?: number; recap?: boolean; airDate?: string; players?: string[]; fetcher?: Fetcher } = {}): Promise<FactPacket> {
+/**
+ * Read directly from sources, independent of Next's daily cache. `teams` is the studio team list, which the
+ * caller loads from the database just before the capture.
+ */
+export async function captureFacts(config: LeagueConfig, options: { teams: StudioTeam[]; period?: number; recap?: boolean; airDate?: string; players?: string[]; fetcher?: Fetcher }): Promise<FactPacket> {
     if (options.recap && options.period !== undefined) throw new Error('Choose --recap or --period, not both.');
     if (options.airDate !== undefined && (!options.recap || !/^\d{4}-\d{2}-\d{2}$/.test(options.airDate) ||
         !Number.isFinite(Date.parse(`${options.airDate}T12:00:00Z`)) || new Date(`${options.airDate}T12:00:00Z`).toISOString().slice(0, 10) !== options.airDate)) {
@@ -188,11 +210,11 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
     if (!period) throw new Error(`Unknown scoring period ${options.period}. Choose one from the league calendar.`);
     const season = core.seasonYear;
     const franchises = franchisesFor(config, core, leagueId);
-    const teams = core.teams.map((team): FactTeam => {
+    const teams = packetTeams(options.teams, new Map(core.teams.map(team => {
         const standing = core.standings.find(s => s.teamId === team.id);
         if (!standing || !finite(standing.rank) || !finite(standing.points) || typeof standing.record !== 'string') throw new Error(`Missing standings for ${team.name}`);
-        return { ...studioTeam(config, season, franchises.get(team.id)!), fantraxId: team.id, rank: standing.rank, record: standing.record, points: standing.points };
-    });
+        return [franchises.get(team.id)!, { name: team.name, fantraxId: team.id, rank: standing.rank, record: standing.record, points: standing.points }];
+    })));
     const phase = Date.parse(started) < Date.parse(period.startDate) ? 'upcoming' : Date.parse(started) > Date.parse(period.endDate) ? 'complete' : 'active';
     // a team with a bye has a published matchup with only one side
     const scheduledMatchups = (core.schedule.find(round => round.week === period.number)?.matchups ?? [])
@@ -214,7 +236,7 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
         if (scheduledMatchups.length && (matchups.length !== scheduledMatchups.length || scheduledMatchups.some(s =>
             !matchups.some(m => m.away.teamId === s.awayId && m.home.teamId === s.homeId)))) throw new Error('Matchup scores do not cover the published schedule');
     }
-    const rosters = teams.map(team => {
+    const rosters = teams.filter(team => team.fantraxId).map(team => {
         const entries = core.rosters[team.fantraxId];
         if (!Array.isArray(entries)) throw new Error(`Missing roster for ${team.name}`);
         return { teamId: team.fantraxId, players: entries.map(item => {
@@ -227,7 +249,7 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
     const limitations = [
         'Live observations were collected over the capture interval, not an atomic or historical cutoff. Later stat corrections are possible.',
         'Standings and rosters are current at capture time even when an earlier matchup period is selected.',
-        'Team identity, owners and logos come from league/league.yml; colours are repository defaults, not saved admin branding.',
+        TEAM_IDENTITY,
         'Transactions, injuries, news and private league chat are not exported. Add dated, sourced notes to brief.md before using them.',
         'Run coachs:stats after adding or changing player/gap graphics to capture the relevant archived fantasy statistics.',
     ];

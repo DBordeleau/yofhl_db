@@ -11,7 +11,7 @@ import { citationLine, episodeFrom } from '@/lib/coachs-corner/episode';
 import type { PlayerIssue } from '@/lib/coachs-corner/player-snapshot';
 import { refKey, type PlayerRef } from '@/lib/coachs-corner/script';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
-import { findTeam, type StudioBanner, type StudioPlayer, type StudioTeam } from '@/lib/coachs-corner/teams';
+import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 
 interface EditableEpisode { id: number | null; slug: string; script: string; publishedAt: string | null }
 
@@ -64,7 +64,7 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
     // one compile per change drives the diagnostics, the readout and the preview player. A typed slug labels it as
     // publishing will; an untouched one is still derived from this compile, so the saved slug stands in.
     const labelSlug = slugTouched ? slug : episode.slug;
-    const compiled = useMemo(() => episodeFrom(deferred, { slug: labelSlug, knownTeam: ref => !!findTeam(teams, ref) }), [deferred, labelSlug, teams]);
+    const compiled = useMemo(() => episodeFrom(deferred, { slug: labelSlug, teams }), [deferred, labelSlug, teams]);
     const { timeline: tl, meta } = compiled;
 
     // the player snapshot Publish would store, fetched when the stats season or the cited players change

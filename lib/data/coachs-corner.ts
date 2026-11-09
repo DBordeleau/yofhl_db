@@ -2,13 +2,16 @@ import { sql } from 'drizzle-orm';
 import { unstable_cache } from 'next/cache';
 import { PILOT_SCRIPT, PILOT_SLUG } from '@/lib/coachs-corner/pilot';
 import pilotPlayers from '@/lib/coachs-corner/pilot-players.json';
+import pilotTeams from '@/lib/coachs-corner/pilot-teams.json';
 import { episodeFrom, scriptAirDate, type Episode as CompiledEpisode } from '@/lib/coachs-corner/episode';
 import { forgiving, nhlLive, noNhl, playerSnapshot, type PlayerSnapshot } from '@/lib/coachs-corner/player-snapshot';
 import type { PlayerRef } from '@/lib/coachs-corner/script';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import { fallbackColours } from '@/lib/team-branding';
+import { loadStudioTeams } from '@/lib/coachs-corner/studio-teams';
+import { leagueTags } from './cache-tags';
 import { cached, rows } from './db';
-import { getFranchiseCards, getSeasonArchive } from './league';
+import { getSeasonArchive } from './league';
 import { seasonLabel } from '../seasons';
 import { getTeamBranding } from './team-branding';
 
@@ -30,13 +33,15 @@ export interface EpisodeSummary {
 export interface Episode extends EpisodeSummary {
     script: string;
     players: StudioPlayer[] | null;
+    /** the team snapshot (GLOSSARY.md); null for drafts and episodes published before it existed */
+    teams: StudioTeam[] | null;
 }
 
 const pilot = (): Episode => {
     const { summary } = episodeFrom(PILOT_SCRIPT, { slug: PILOT_SLUG });
     return {
         id: null, slug: PILOT_SLUG, title: summary.title, season: summary.season, week: summary.week,
-        durationMs: summary.runtime, publishedAt: scriptAirDate(summary.date), script: PILOT_SCRIPT, players: pilotPlayers,
+        durationMs: summary.runtime, publishedAt: scriptAirDate(summary.date), script: PILOT_SCRIPT, players: pilotPlayers, teams: pilotTeams,
     };
 };
 
@@ -54,10 +59,10 @@ export const getPublishedEpisodes = cached(async (): Promise<EpisodeSummary[]> =
 }, 'coachs-corner-episodes-v6', [COACHS_CORNER_TAG]);
 
 export const getPublishedEpisode = cached(async (slug: string): Promise<Episode | null> => {
-    const [row] = await rows<Episode>(sql`select ${summary}, script, players from league.coachs_corner_episodes where slug = ${slug} limit 1`);
+    const [row] = await rows<Episode>(sql`select ${summary}, script, players, teams from league.coachs_corner_episodes where slug = ${slug} limit 1`);
     if (row?.publishedAt) return row;
     return slug === PILOT_SLUG ? pilot() : null;
-}, 'coachs-corner-episode-v7', slug => [episodeTag(slug)]);
+}, 'coachs-corner-episode-v8', slug => [episodeTag(slug)]);
 
 // ---------- admin ----------
 
@@ -67,7 +72,7 @@ export const getAllEpisodes = () => rows<EpisodeSummary & { id: number; updatedA
     select ${summary}, updated_at::text as "updatedAt" from league.coachs_corner_episodes order by updated_at desc`);
 
 export const getEpisodeById = async (id: number): Promise<AdminEpisode | null> => {
-    const [row] = await rows<AdminEpisode>(sql`select ${summary}, script, players, updated_at::text as "updatedAt"
+    const [row] = await rows<AdminEpisode>(sql`select ${summary}, script, players, teams, updated_at::text as "updatedAt"
         from league.coachs_corner_episodes where id = ${id} limit 1`);
     return row ?? null;
 };
@@ -76,18 +81,12 @@ export const pilotEpisode = pilot;
 
 // ---------- the teams the monitor can show ----------
 
-const firstName = (owner: string | null) => owner?.split(/\s+/)[0] ?? null;
+/** The live studio team list. An owner's rename or new colours expire it through the tags they already expire. */
+export const getStudioTeams = cached(() => loadStudioTeams(), 'coachs-corner-studio-teams-v1', [leagueTags.franchiseCards, leagueTags.branding]);
 
-export const getStudioTeams = async (): Promise<StudioTeam[]> => {
-    const [cards, palettes] = await Promise.all([getFranchiseCards(), getTeamBranding()]);
-    return cards.filter(card => !card.defunct).map(card => {
-        const colours = palettes[card.ID] ?? fallbackColours;
-        return {
-            id: card.ID, name: card.Team, abbreviation: card.Abbreviation, owner: card.Owner, ownerFirst: firstName(card.Owner),
-            logo: card.LogoUrl, primary: colours.primary, secondary: colours.secondary,
-        };
-    });
-};
+/** An episode shows the teams it aired with. One published before team snapshots follows the live list until republished. */
+export const getEpisodeTeams = (episode: Pick<Episode, 'teams'>): Promise<StudioTeam[]> =>
+    episode.teams !== null ? Promise.resolve(episode.teams) : getStudioTeams();
 
 /** the most recent champions, oldest first, for the rafters behind the desk */
 export const getStudioBanners = async (): Promise<StudioBanner[]> => {

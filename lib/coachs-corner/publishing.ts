@@ -3,6 +3,8 @@ import { rows } from '../data/db';
 import { COACHS_CORNER_TAG, episodeTag, getPlayerSnapshot } from '../data/coachs-corner';
 import { episodeFrom } from './episode';
 import { snapshotMessage } from './player-snapshot';
+import { loadStudioTeams } from './studio-teams';
+import { teamDiagnostics } from './teams';
 
 export interface EpisodeInput { id: number | null; slug: string; script: string; publish?: boolean }
 export interface EpisodeWrite { id: number; slug: string; oldSlug: string | null; publicChanged: boolean }
@@ -39,13 +41,19 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
     // slugs lead with the season year (GLOSSARY.md), never Fantrax's start year; a slug with no year is fine
     const slugYear = /^(\d{4})-/.exec(slug)?.[1];
     if (publish && slugYear && Number(slugYear) !== season) return { error: `The slug starts with ${slugYear}, but the episode is about season ${season ?? '(none)'}. Start it with the season year, the year the season ends in.` };
-    // Resolve before the write. A failed stats lookup must leave the live episode
+    // Resolve before the write. A failed stats or team lookup must leave the live episode
     // intact; optional NHL headshots fall back to Fantrax portraits.
-    const players = publish ? await getPlayerSnapshot(episode.statsSeason, episode.playerRefs) : null;
+    const [players, teams] = publish
+        ? await Promise.all([getPlayerSnapshot(episode.statsSeason, episode.playerRefs), loadStudioTeams()])
+        : [null, null];
+    // a team cue is checked against the live list it freezes, so a stale editor tab can't publish an unknown team
+    const teamErrors = teams ? teamDiagnostics(teams, episode.teamRefs) : [];
+    if (teamErrors.length) return { error: teamErrors.map(d => `Line ${d.line}: ${d.message}`).join(' ') };
     // a namesake cited by bare name is never published by guess
     const ambiguous = players?.diagnostics.filter(d => d.kind === 'ambiguous') ?? [];
     if (ambiguous.length) return { error: ambiguous.map(d => snapshotMessage(d, episode.statsSeason).message).join(' ') };
     const snapshot = players === null ? null : JSON.stringify(players.players);
+    const teamSnapshot = teams === null ? null : JSON.stringify(teams);
     try {
         const [row] = input.id !== null ? await rows<EpisodeWrite>(sql`
             with previous as materialized (
@@ -53,15 +61,15 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
             ), changed as (
                 update league.coachs_corner_episodes e
                 set slug = ${slug}, title = ${title}, season = ${season}, week = ${week}, script = ${input.script},
-                    duration_ms = ${summary.runtime}, updated_at = now(), players = ${snapshot}::jsonb,
+                    duration_ms = ${summary.runtime}, updated_at = now(), players = ${snapshot}::jsonb, teams = ${teamSnapshot}::jsonb,
                     -- an edit keeps the original air date, so a fixed-up old episode never jumps ahead of the latest
                     published_at = case when ${publish} then coalesce(p.published_at, now()) else null end
                 from previous p where e.id = p.id and (${publish} or p.published_at is null)
                 returning e.id, e.slug, p.slug as "oldSlug", (${publish} or p.published_at is not null) as "publicChanged"
             ) select * from changed`)
             : await rows<EpisodeWrite>(sql`
-                insert into league.coachs_corner_episodes (slug, title, season, week, script, duration_ms, players, published_at)
-                values (${slug}, ${title}, ${season}, ${week}, ${input.script}, ${summary.runtime}, ${snapshot}::jsonb,
+                insert into league.coachs_corner_episodes (slug, title, season, week, script, duration_ms, players, teams, published_at)
+                values (${slug}, ${title}, ${season}, ${week}, ${input.script}, ${summary.runtime}, ${snapshot}::jsonb, ${teamSnapshot}::jsonb,
                     case when ${publish} then now() else null end)
                 returning id, slug, null::text as "oldSlug", ${publish}::boolean as "publicChanged"`);
         // The condition lives in the UPDATE, not a separate check: a stale editor
@@ -74,7 +82,7 @@ export async function saveEpisodeRecord(input: EpisodeInput): Promise<SaveResult
 }
 
 // There is deliberately no publish-by-ID shortcut: publishing must validate the
-// submitted script and capture its player snapshot through saveEpisodeRecord.
+// submitted script and capture its player and team snapshots through saveEpisodeRecord.
 export async function unpublishEpisodeRecord(id: number): Promise<EpisodeWrite | undefined> {
     const [row] = await rows<EpisodeWrite>(sql`
         update league.coachs_corner_episodes set published_at = null, updated_at = now()
@@ -99,7 +107,7 @@ export interface SummaryDrift {
 
 // The stored title, season, week and runtime are a cache of the episode module's summary for the
 // listing surfaces. A compiler change makes them stale; this recompiles every stored script and
-// reports (and with `fix`, rewrites) only the rows that drifted. The players snapshot and first air
+// reports (and with `fix`, rewrites) only the rows that drifted. The player and team snapshots and first air
 // date are never touched, and neither is updated_at: this repairs a cache, it isn't an edit.
 export async function verifyEpisodeSummaries({ fix = false } = {}): Promise<SummaryDrift[]> {
     const stored = await rows<{ id: number; slug: string; script: string } & Record<SummaryField, string | number | null>>(sql`
