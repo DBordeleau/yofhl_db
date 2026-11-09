@@ -5,7 +5,10 @@ import { createFantraxClient, readCore } from './fantrax-client';
 
 // Recorded Fantrax responses (lib/fantrax/fixtures), served by endpoint. `edit` changes one response for a test.
 const recorded = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8'));
-function fantrax(edit: Record<string, (body: any) => unknown> = {}) {
+// A recorded response body, as parsed JSON. Edits that reach into it name the part they change.
+type RecordedBody = Record<string, unknown>;
+type RecordedScores = { matchups: { away: { score: number | null }; home: { teamId: string } }[] };
+function fantrax(edit: Record<string, (body: RecordedBody) => unknown> = {}) {
     return createFantraxClient(async (input, init) => {
         const url = new URL(input);
         const endpoint = url.pathname.split('/').pop()!;
@@ -42,7 +45,7 @@ test('league info comes out in season years, with weeks in order and unseeded pl
 });
 
 test('an incomplete league snapshot is rejected', async () => {
-    const incomplete: Record<string, (body: any) => unknown>[] = [
+    const incomplete: Record<string, (body: RecordedBody) => unknown>[] = [
         { getLeagueInfo: body => ({ ...body, teamInfo: undefined }) },
         { getLeagueInfo: body => ({ ...body, scoringPeriods: [] }) },
         { getTeamRosters: body => ({ ...body, rosters: undefined }) },
@@ -52,24 +55,24 @@ test('an incomplete league snapshot is rejected', async () => {
 });
 
 test('invalid matchup scores are rejected', async () => {
-    const invalid: ((body: any) => unknown)[] = [
+    const invalid: ((body: RecordedBody) => unknown)[] = [
         body => ({ ...body, period: 1 }),
         body => ({ ...body, matchups: [] }),
-        body => { body.matchups[0].away.score = null; return body; },
-        body => { body.matchups[1].home.teamId = ''; return body; },
+        body => { (body as unknown as RecordedScores).matchups[0].away.score = null; return body; },
+        body => { (body as unknown as RecordedScores).matchups[1].home.teamId = ''; return body; },
     ];
     for (const edit of invalid) await assert.rejects(fantrax({ getMatchupScores: edit }).weekScores(LEAGUE, 2), /invalid matchup scores/);
     assert.equal((await fantrax().weekScores(LEAGUE, 2)).matchups[1].away.score, 120);
 });
 
 test('an invalid player directory is rejected', async () => {
-    for (const edit of [() => ({}), (body: any) => ({ ...body, '05zz1': { position: 'D' } })]) {
+    for (const edit of [() => ({}), (body: RecordedBody) => ({ ...body, '05zz1': { position: 'D' } })]) {
         await assert.rejects(fantrax({ getPlayerIds: edit }).playerDirectory(), /invalid player directory/);
     }
 });
 
 test('a capture is rejected unless its scores cover every scheduled matchup', async () => {
-    const missing = fantrax({ getMatchupScores: body => { body.matchups.pop(); return body; } });
+    const missing = fantrax({ getMatchupScores: body => { (body as unknown as RecordedScores).matchups.pop(); return body; } });
     await assert.rejects(missing.capture(LEAGUE, { now: NOW }), /incomplete scheduled matchup scores/);
     const data = await fantrax().capture(LEAGUE, { now: NOW, archivedPlayerIds: async () => ['*03kl0*'] });
     assert.equal(data.source.info.seasonYear, 2027);
