@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { refreshCurrentSeason } from '@/lib/fantrax/refresh';
+import { refreshLiveSeason } from '@/lib/fantrax/live-season';
 import { scheduledRefreshTime } from '@/lib/fantrax/schedule';
 
 export const dynamic = 'force-dynamic';
@@ -13,8 +13,8 @@ export async function GET(request: Request) {
     const scheduled = scheduledRefreshTime(new URL(request.url).searchParams.get('slot'), Date.now());
     if (!scheduled) return NextResponse.json({ skipped: true });
     try {
-        const snapshot = await refreshCurrentSeason();
-        return NextResponse.json({ refreshed: true, scheduled, fetchedAt: snapshot.fetchedAt });
+        const { fetchedAt } = await refreshLiveSeason();
+        return NextResponse.json({ refreshed: true, scheduled, fetchedAt });
     } catch (error) {
         console.error('Scheduled Fantrax refresh failed:', error);
         return NextResponse.json({ error: 'Fantrax refresh failed' }, { status: 503 });
