@@ -45,8 +45,8 @@ _Avoid_: completed season, archived season
 The newest published season.
 
 **Current season**:
-The newest season in the database that is not yet published, or none. It is not derived from Fantrax.
-_Avoid_: live season, active season
+The newest season in the database that is not yet published, or none. It is not derived from Fantrax; what Fantrax has now is the live season.
+_Avoid_: active season
 
 **Cancelled season**:
 A season whose playoffs did not happen (2019–20). It is published and has no champion.

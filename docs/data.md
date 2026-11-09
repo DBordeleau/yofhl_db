@@ -9,7 +9,7 @@ Seasons use the year they end in. `2026` means the 2025–26 season. Franchise I
 | Data | Source | How it changes |
 | --- | --- | --- |
 | Standings, player seasons, playoff games | Fantrax season CSVs | A season import replaces that season's imported data |
-| Franchises, identity eras, owners, logos, individual award definitions, playoff fixes | [league.yml](../league/league.yml) | Every season import syncs the league configuration |
+| Franchises, identity eras, owners, logos, individual award definitions, playoff fixes, each season's Fantrax league and team IDs | [league.yml](../league/league.yml) | Every season import syncs the league configuration |
 | Current team name/logo overrides, account claims and invitation codes | `/owner` and `/admin/teams` | Stored in `team_management`; preserved by imports and logo sync. See [team management](owners.md). |
 | Championship rosters and individual award winners | `/admin/seasons/<end year>` | Admin edits; legacy seeds fill historical seasons with no entries |
 | Bracket corrections | Admin bracket review | Saved corrections are reapplied during imports |
@@ -46,6 +46,8 @@ Admin sessions use an HttpOnly cookie scoped to `/admin`, with a 12-hour expiry.
 
 1. Put the Fantrax exports in `data/`, following the existing naming convention. For the season ending in 2027, use `2026-2027 Player Stats.csv`, `2026-2027 Team Stats.csv`, and `2026-2027 Playoffs.csv`. A cancelled playoff season is recorded in `league.yml` and does not need a playoff file.
 2. Update the league configuration for new franchises, renamed teams, ownership changes, abbreviations, and logos. Close the previous era with `to` and add the new era with `from`. Both values are inclusive end years.
+
+   When the season starts on Fantrax, before it has any CSV exports, add its `fantrax` block under `seasons.<end year>`: the Fantrax league ID and each Fantrax team ID's franchise ID. Then run `npm run db:import` so `league.fantrax_teams` picks it up. The live season is the latest season with a `fantrax` block. A database migrated to 0016 (`fantrax_teams`) needs this import once, production included, or the live season is unavailable until it runs.
 3. Review the database connection, then run the import:
 
    ```sh

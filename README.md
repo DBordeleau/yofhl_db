@@ -32,7 +32,7 @@ Regular-season matchup cards and the ticker show Final once Fantrax standings co
 
 Home-page rosters group active, benched, and injured players by assigned Fantrax position, with IR badges for injured players. Minors are separate. Each player shows current regular-season FPTS and FP/G from Fantrax, cached for 24 hours with the stats update date shown below the roster. Missing stats show a dash; a stats outage leaves the roster available. A team dropdown and previous/next controls switch rosters. The scoring-leaders panel shows FPts and FP/G for the top ten players by current regular-season FPts from Fantrax's website stats endpoint, using this league's scoring and including skaters, goalies, and free agents. It caches the results and fetch time for 24 hours, independently of historical CSV imports. The response must match the requested season and points sort; unavailable data is reported separately from a season with no scoring. Players link to an archive profile only when one exists. The home page does not display a playoff cutoff or infer a BYE from unassigned matchup slots.
 
-`lib/fantrax/data.ts` maps this season's Fantrax team IDs to the archive's permanent franchise IDs. Update the league ID and this mapping when moving to a new season. Names and logos follow the site's current team-management settings. Roster players link to existing archive profiles using their original IDs; players without archive records are shown without a profile link. The public reads do not use `FANTRAX_USER_SECRET`.
+The `seasons.<year>.fantrax` block in `league/league.yml` holds that season's Fantrax league ID and maps its Fantrax team IDs to the archive's permanent franchise IDs. The live season is the latest season with such a block. When moving to a new season, add its block and run `npm run db:import`. Names and logos follow the site's current team-management settings. Roster players link to existing archive profiles using their original IDs; players without archive records are shown without a profile link. The public reads do not use `FANTRAX_USER_SECRET`.
 
 Johnny Gaudreau's player profile has a memorial header and a historical rank note alongside his current career statistics.
 
@@ -107,7 +107,7 @@ The build reads league data while generating pages, so it needs a reachable Neon
 | `lib/history/` | History types and the visibility rule for excluded source records |
 | `db/schema.ts` and `db/migrations/` | Database tables and versioned SQL, including materialized views |
 | `scripts/db/` | Migrations, Fantrax imports, logo sync, and legacy verification |
-| `league/league.yml` | Stable franchise IDs, identity eras, defunct status, logos, award definitions, and playoff fixes |
+| `league/league.yml` | Stable franchise IDs, identity eras, defunct status, logos, award definitions, playoff fixes, and each season's Fantrax league and team IDs |
 | `league/seed/` | Legacy awards and championship rosters used to fill empty historical seasons |
 | `public/logos/` and `public/trophies/` | Team and award artwork; some team logos also live directly in `public/` |
 
