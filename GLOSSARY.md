@@ -89,6 +89,10 @@ _Avoid_: pronunciation (that's Don's name flubs)
 **Show time**:
 The episode's own clock, in milliseconds from the start of the intro. The intro always runs at 1×; speed applies to the segment only.
 
+**Jump**:
+A change of show time that skips the moments between: a seek, a scrub, a line skip, or a replay from the end. The studio cuts straight to the frame a jump lands on.
+_Avoid_: cut (that's the monitor changing graphic)
+
 **Intro**:
 The first six seconds of show time, when the bumper and theme play.
 

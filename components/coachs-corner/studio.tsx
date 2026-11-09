@@ -169,7 +169,7 @@ function ReactionParticles({ who, reaction }: { who: CharacterId; reaction: NonN
     );
 }
 
-const Host = memo(function Host({ who, host, art, lapel }: { who: CharacterId; host: HostFrame; art: string[]; lapel?: Lapel }) {
+const Host = memo(function Host({ who, host, jumped, art, lapel }: { who: CharacterId; host: HostFrame; jumped: boolean; art: string[]; lapel?: Lapel }) {
     const prevGesture = useRef(host.gesture);
     const action = gestureAction(host.gesture);
     const pound = who === 'don' && action === 'pound';
@@ -184,7 +184,7 @@ const Host = memo(function Host({ who, host, art, lapel }: { who: CharacterId; h
     return (
         <div className={styles.host} data-who={who} data-flinch={host.flinch || undefined} data-desk-action={deskAction || undefined}>
             <div className={styles.breath}>
-                <div className={styles.body} data-motion={host.motion ?? undefined} style={{ '--fade': `${fade}ms`, '--contact-y': `${settle}%` } as React.CSSProperties}>
+                <div className={styles.body} data-motion={host.motion ?? undefined} data-jumped={jumped || undefined} style={{ '--fade': `${fade}ms`, '--contact-y': `${settle}%` } as React.CSSProperties}>
                     <HostArtwork who={who} gesture={host.gesture} open={host.open} art={art} lapel={lapel} />
                 </div>
             </div>
@@ -318,9 +318,18 @@ export function TitleCard({ episode, closing }: { episode: Episode; closing?: bo
 /** How far into the segment a line can start and still get the chyron, which runs its own 6 s animation. */
 const CHYRON_WINDOW_MS = 6000;
 
+/** Skip every finite animation under an element to its end; looping ones keep running. */
+const finishEntrances = (el: Element | null | undefined) => {
+    for (const animation of el?.getAnimations({ subtree: true }) ?? []) {
+        if (animation.effect?.getComputedTiming().endTime !== Infinity) animation.finish();
+    }
+};
+
 export interface StudioProps {
     episode: Episode;
     frame: Frame;
+    /** show time jumped to this frame (a seek): cut straight to it instead of crossfading */
+    jumped: boolean;
     teams: StudioTeam[];
     players: StudioPlayer[];
     banners: StudioBanner[];
@@ -332,8 +341,14 @@ export interface StudioProps {
     fullscreen?: boolean;
 }
 
-function Studio({ episode, frame, teams, players, banners, started, playing, bumper, fullscreen }: StudioProps) {
+function Studio({ episode, frame, jumped, teams, players, banners, started, playing, bumper, fullscreen }: StudioProps) {
     const tl = episode.timeline;
+    const studioRef = useRef<HTMLDivElement>(null);
+    // A jump lands on the monitor's graphic already up. Its fade-in would otherwise start from
+    // nothing, and like the hosts' crossfade it can wait on a slow frame.
+    useLayoutEffect(() => {
+        if (jumped) finishEntrances(studioRef.current?.querySelector(`.${styles.monitor}`));
+    }, [jumped, frame.monitor]);
     // Mounted artwork only ever grows, so decoded images survive script edits in the
     // editor, and poses a newly pasted script adds (a new suit) still get mounted.
     const art = useRef<Record<CharacterId, string[]>>({ don: [], ron: [] });
@@ -348,7 +363,7 @@ function Studio({ episode, frame, teams, players, banners, started, playing, bum
     const chyron = fullscreen && live && frame.line >= 0 && tl.lines[frame.line].t0 - INTRO_MS < CHYRON_WINDOW_MS && frame.phase === 'segment';
 
     return (
-        <div className={styles.studio} data-shot={frame.shot} style={{ '--spill': spill } as React.CSSProperties}>
+        <div ref={studioRef} className={styles.studio} data-shot={frame.shot} style={{ '--spill': spill } as React.CSSProperties}>
             {/* alternating animation names restart the punch without remounting the set */}
             <div className={styles.jolt} data-jolt={frame.punch?.who === 'don' ? frame.punch.index % 2 : undefined}>
                 <div className={styles.world}>
@@ -360,7 +375,7 @@ function Studio({ episode, frame, teams, players, banners, started, playing, bum
                         <div className={styles.deskTop} aria-hidden="true" />
                         <div className={styles.spill} aria-hidden="true" />
                         <Monitor graphic={graphic} index={frame.monitor} previous={tl.monitor[frame.monitor - 1]?.value} teams={teams} players={players} running={playing} />
-                        {CHARACTERS.map(who => <Host key={who} who={who} host={frame.hosts[who]} art={art.current![who]} lapel={tl.meta.lapel} />)}
+                        {CHARACTERS.map(who => <Host key={who} who={who} host={frame.hosts[who]} jumped={jumped} art={art.current![who]} lapel={tl.meta.lapel} />)}
                         <div className={styles.keyLight} aria-hidden="true" />
                         <div className={styles.desk} aria-hidden="true">
                             <div className={styles.deskFront}>

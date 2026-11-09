@@ -50,6 +50,8 @@ export interface TransportOutput {
     /** null outside the intro */
     bumper: BumperState | null;
     ended: boolean;
+    /** Show time moved without playing through: a seek, or play at the end restarting from the top. */
+    jumped: boolean;
 }
 
 export interface Transport {
@@ -75,10 +77,11 @@ export function createTransport(tl: Timeline, cues: AudioCue[], { time: startAt 
 
     const remount = () => { mounted = true; mount = ++mounts; offset = time; };
     const rateAt = (t: number) => t < INTRO_MS ? 1 : speed;
-    const output = (theme: ThemeCommand = null, fired: AudioCue[] = []): TransportOutput => ({
+    const output = (theme: ThemeCommand = null, fired: AudioCue[] = [], jumped = false): TransportOutput => ({
         time, phase: phaseAt(time, tl.showEnd), playing, rate: rateAt(time), cues: fired, theme,
         bumper: time < INTRO_MS && mounted ? { offset, paused: !playing, mount } : null,
         ended: time >= tl.duration,
+        jumped,
     });
 
     // The intro always plays at 1×; speed applies to the segment only. The theme is a recording and
@@ -101,12 +104,13 @@ export function createTransport(tl: Timeline, cues: AudioCue[], { time: startAt 
             return output(null, fired);
         },
         play: now => {
-            if (time >= tl.duration) { time = 0; mounted = false; }
+            const restart = time >= tl.duration;
+            if (restart) { time = 0; mounted = false; }
             playing = true;
             last = now;
             if (time >= INTRO_MS) return output();
             if (!mounted) remount();
-            return output({ play: time });
+            return output({ play: time }, [], restart);
         },
         pause: () => {
             playing = false;
@@ -114,9 +118,9 @@ export function createTransport(tl: Timeline, cues: AudioCue[], { time: startAt 
         },
         seek: t => {
             time = Math.max(0, Math.min(tl.duration, t));
-            if (time >= INTRO_MS) { mounted = false; return output('pause'); }
+            if (time >= INTRO_MS) { mounted = false; return output('pause', [], true); }
             remount();
-            return output(playing ? { play: time } : 'pause');
+            return output(playing ? { play: time } : 'pause', [], true);
         },
         setSpeed: s => { speed = s; return output(); },
     };

@@ -390,4 +390,26 @@ export const frameSignature = (f: Frame) => {
     return s;
 };
 
+/** The frame on screen, and whether show time jumped to it (a seek) rather than playing into it. */
+export interface ShownFrame {
+    frame: Frame;
+    signature: string;
+    /** The studio shows a jumped-to frame at once: no pose crossfade, and the monitor graphic already up. */
+    jumped: boolean;
+}
+
+export const shownFrame = (frame: Frame, jumped = false): ShownFrame => ({ frame, signature: frameSignature(frame), jumped });
+
+/**
+ * The frame on screen after a transport output. It's the same object when nothing visible changed,
+ * so the studio only re-renders on a change. A jump holds until the next visible change, so pressing
+ * play on the frame a seek landed on doesn't turn it back into a crossfade.
+ */
+export function nextShownFrame(shown: ShownFrame, tl: Timeline, out: { time: number; jumped: boolean }, { force = false } = {}): ShownFrame {
+    const next = shownFrame(frameAt(tl, out.time), out.jumped);
+    const changed = next.signature !== shown.signature;
+    if (!changed && !force && !out.jumped) return shown;
+    return { ...next, jumped: out.jumped || (!changed && shown.jumped) };
+}
+
 export const lineAtTime = (tl: Timeline, t: number) => lastAt(tl.lines, t, l => l.t0);
