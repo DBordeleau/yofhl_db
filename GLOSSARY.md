@@ -96,3 +96,22 @@ _Avoid_: slot label, week label
 **Opening picture**:
 What the studio shows before the first play: the set as the segment begins, from the cues ahead of the first line or reaction.
 _Avoid_: poster frame
+
+**Host**:
+Don or Ron, a character who sits at the desk and has one or more wardrobes.
+
+**Wardrobe**:
+One outfit a host can be drawn in, such as Don's normal floral suit, Halloween or Remembrance Day. Normal is the default; a script picks another by prefixing its gestures (`remembrance-point`).
+_Avoid_: suit, outfit, costume
+
+**Action**:
+What a host physically does at the desk, such as rest, point, stare or pound, with no wardrobe attached.
+_Avoid_: move
+
+**Gesture**:
+An action in a wardrobe, as a script writes it: `halloween-point`, or plain `point` for the normal wardrobe.
+_Avoid_: pose (when you mean what the script asks for)
+
+**Pose**:
+One drawn image of a host in a wardrobe, with the mouth closed or open. A talking gesture has two poses; the rest have one.
+_Avoid_: gesture (when you mean the image), frame
