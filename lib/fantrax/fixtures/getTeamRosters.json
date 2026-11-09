@@ -1,0 +1,14 @@
+{
+  "period": 15,
+  "rosters": {
+    "aaaa1111live0001": { "teamName": "Paddyville Lucifers", "rosterItems": [
+      { "id": "03kl0", "position": "C", "status": "ACTIVE" },
+      { "id": "04ab9", "position": "G", "status": "RESERVE" }
+    ] },
+    "bbbb2222live0002": { "teamName": "New Purrsey Devils", "rosterItems": [
+      { "id": "05zz1", "position": "D", "status": "MINORS" }
+    ] },
+    "cccc3333live0003": { "teamName": "Retro Phenoms", "rosterItems": [] },
+    "dddd4444live0004": { "teamName": "Expansion Hopefuls", "rosterItems": [] }
+  }
+}

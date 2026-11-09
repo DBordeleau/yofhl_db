@@ -62,8 +62,6 @@ export interface LeagueSnapshot {
     scoringPeriods: Period[];
     rosterPeriod: Period | null;
     schedule: { period: number; matchupList: ScheduledMatchup[] }[];
-    playoffTeams: number;
-    lastRegularSeasonPeriod: number;
     finalPeriods: number[];
 }
 
