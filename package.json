@@ -6,6 +6,7 @@
     "coachs:prepare": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/coachs-corner/production.ts prepare",
     "coachs:facts": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/coachs-corner/production.ts facts",
     "coachs:stats": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/coachs-corner/production.ts stats",
+    "coachs:goldens": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/coachs-corner/export-goldens.mjs",
     "coachs:check": "node --import tsx scripts/coachs-corner/production.ts check",
     "coachs:verify-summaries": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/coachs-corner/verify-summaries.ts",
     "prepare": "git config core.hooksPath .githooks || exit 0",

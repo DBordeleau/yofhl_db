@@ -2,7 +2,7 @@
 // fixture in lib/coachs-corner/goldens/. lib/coachs-corner/goldens.test.ts recompiles each one, so a
 // change to cast or the compiler that alters a shipped show fails loudly.
 //
-//   node --env-file-if-exists=.env.local --import tsx scripts/coachs-corner/export-goldens.mjs [--update]
+//   npm run coachs:goldens [-- --update]
 //
 // Reads league.coachs_corner_episodes only. New episodes are added; an existing fixture whose script
 // or timeline would change is left alone and reported, unless --update says the change is deliberate.
@@ -10,7 +10,9 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import postgres from 'postgres';
+import { comparableTimeline } from '../../lib/coachs-corner/golden-timeline.ts';
 import { PILOT_SCRIPT, PILOT_SLUG } from '../../lib/coachs-corner/pilot.ts';
 import { parseScript } from '../../lib/coachs-corner/script.ts';
 import { compile } from '../../lib/coachs-corner/timeline.ts';
@@ -37,11 +39,11 @@ await mkdir(DIR, { recursive: true });
 const stale = [];
 for (const { slug, script } of episodes) {
     const file = path.join(DIR, `${slug}.json`);
-    const golden = `${JSON.stringify({ slug, script, timeline: compile(parseScript(script)) }, null, 1)}\n`;
-    const existing = await readFile(file, 'utf8').catch(() => null);
-    if (existing === golden) continue;
+    const timeline = compile(parseScript(script));
+    const existing = await readFile(file, 'utf8').then(JSON.parse, () => null);
+    if (existing?.script === script && isDeepStrictEqual(comparableTimeline(existing.timeline), comparableTimeline(timeline))) continue;
     if (existing !== null && !update) { stale.push(slug); continue; }
-    await writeFile(file, golden);
+    await writeFile(file, `${JSON.stringify({ slug, script, timeline }, null, 1)}\n`);
     console.log(`${existing === null ? 'added' : 'updated'} ${file}`);
 }
 if (stale.length) {

@@ -84,6 +84,8 @@ try {
         // application routes or change the real asset manifest. The source route
         // serves the undeployed WebP exports for comparison against shipped AVIF.
         const reviewDir = path.join(scratch, 'app/art-review');
+        // the catalog's [closed, open] pairs; the page asks cast which host and gesture each belongs to
+        const { mouthPairs } = JSON.parse(await readFile(path.join(root, 'assets/coachs-corner/robots-v2/manifest.json'), 'utf8'));
         await mkdir(path.join(reviewDir, 'source/[file]'), { recursive: true });
         await writeFile(path.join(reviewDir, 'source/[file]/route.ts'), `
 import { readFile } from 'node:fs/promises';
@@ -99,18 +101,19 @@ export async function GET(_: Request, { params }: { params: Promise<{ file: stri
 'use client';
 import { useEffect, useState } from 'react';
 import Artwork, { HostArtwork } from '@/components/coachs-corner/artwork';
-import { allArt, artFor, type CharacterId } from '@/lib/coachs-corner/cast';
+import { allArt, artFor, poseOf, type CharacterId } from '@/lib/coachs-corner/cast';
 import styles from '@/components/coachs-corner/coachs-corner.module.css';
 import { artUrl } from '@/lib/coachs-corner/media';
 import manifest from '@/lib/coachs-corner/media.json';
 const poses = Object.keys(manifest).filter(s => s.startsWith('/coachs-corner/robots-v2/') && s.endsWith('.avif') && !s.endsWith('-640.avif')).map(s => s.split('/').pop()!.replace('.avif', ''));
+const pairs = (${JSON.stringify(mouthPairs)} as [string, string][]).map(([closed]) => { const pose = poseOf(closed)!; return pose.host + '/' + pose.gesture; });
 const imageUrl = (pose: string, format: 'webp' | 'avif') => format === 'webp' ? '/art-review/source/' + pose + '.webp' : artUrl(pose);
 export default function ArtReview() {
-    const [pose, setPose] = useState('don-default');
+    const [pose, setPose] = useState(artFor('don', 'rest', { mouth: 'closed' }));
     const [mode, setMode] = useState('split');
     const [zoom, setZoom] = useState('fit');
     const [light, setLight] = useState(false);
-    const [pair, setPair] = useState('don/rest');
+    const [pair, setPair] = useState(pairs[0]);
     const [talking, setTalking] = useState(false);
     const [animate, setAnimate] = useState(false);
     const [who, gesture] = pair.split('/') as [CharacterId, string];
@@ -126,12 +129,12 @@ export default function ArtReview() {
             <button onClick={()=>document.exitFullscreen()}>Exit fullscreen</button>
         </div>
         {mode==='motion' ? <>
-            <label>Mouth pair <select aria-label="Mouth pair" style={{color:'black'}} value={pair} onChange={e=>setPair(e.target.value)}>{['don/rest','don/point','don/thumbs','don/halloween-rest','don/halloween-point','don/halloween-thumbs','don/alternate-1-rest','don/alternate-1-point','don/alternate-1-thumbs','don/alternate-2-rest','don/alternate-2-point','don/alternate-2-thumbs','don/alternate-3-rest','don/alternate-3-point','don/alternate-3-thumbs','don/remembrance-rest','don/remembrance-point','don/remembrance-thumbs','ron/rest'].map(p=><option key={p}>{p}</option>)}</select></label>
+            <label>Mouth pair <select aria-label="Mouth pair" style={{color:'black'}} value={pair} onChange={e=>setPair(e.target.value)}>{pairs.map(p=><option key={p}>{p}</option>)}</select></label>
             <button onClick={()=>{setAnimate(false);setTalking(!talking);}}>{talking?'Close mouth':'Open mouth'}</button>
             <button onClick={()=>setAnimate(!animate)}>{animate?'Stop mouth animation':'Animate mouths'}</button>
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:16}}>
                 <section><h2>Before: whole image swaps</h2><div data-review="before" style={{position:'relative',width:'100%',aspectRatio:'1'}}><div className={styles.body} style={{'--fade':'55ms'} as React.CSSProperties}>
-                    {allArt(who).map(id=><Artwork key={id} pose={id} active={id===artFor(who,gesture,talking)} />)}
+                    {allArt(who).map(id=><Artwork key={id} pose={id} active={id===artFor(who,gesture,{mouth:talking?'open':'closed'})} />)}
                 </div></div></section>
                 <section><h2>After: body stays fixed</h2><div data-review="after" style={{position:'relative',width:'100%',aspectRatio:'1'}}><div className={styles.body} style={{'--fade':'55ms'} as React.CSSProperties}>
                     <HostArtwork who={who} gesture={gesture} open={talking} art={allArt(who)} />

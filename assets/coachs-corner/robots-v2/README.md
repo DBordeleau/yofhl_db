@@ -12,7 +12,7 @@ The [Alternate suit 3 set](alternate-suit-3.md) adapts Cherry's rainbow plaid ou
 
 The [Remembrance Day suit](remembrance-2026.md) has a charcoal jacket printed with scarlet poppies and a burgundy tie. Open its [pose viewer](remembrance-2026-preview.html) or [generation prompts](prompts-remembrance-2026.json). Select `remembrance-*` gestures explicitly.
 
-All suits preserve the illustrated robot reference, with silver faceplates, cyan screen eyes, sculpted white hair and Don's connected wraparound moustache and goatee. His original red, gold and ivory floral suit is the normal/default wardrobe. See [Don's suits](../../../docs/coachs-corner.md#dons-suits) for selection rules. The manifest pins `defaultWardrobes.don` to `normal`; existing normal `don-*` assets and unprefixed gestures keep that suit.
+All suits preserve the illustrated robot reference, with silver faceplates, cyan screen eyes, sculpted white hair and Don's connected wraparound moustache and goatee. His original red, gold and ivory floral suit is the normal/default wardrobe. See [Don's wardrobes](../../../docs/coachs-corner.md#dons-wardrobes) for selection rules. The manifest pins `defaultWardrobes.don` to `normal`; existing normal `don-*` assets and unprefixed gestures keep that suit.
 
 ## Files
 

@@ -1,6 +1,7 @@
 import { formatFpts, positionNames, seasonLabel } from '../league';
 import { fallbackColours, suggestedPalettes, type TeamColours } from '../team-branding';
 import { artworkBounds } from '../team-logo';
+import { artFor } from '../coachs-corner/cast';
 import { artUrl } from '../coachs-corner/media';
 import { CARD_HEIGHT, CARD_WIDTH } from './dimensions';
 import { SHARE_SITE, type ComparisonShareCard, type PlayerShareCard, type SeasonShareCard, type ShareCard, type ShareTeam,
@@ -686,8 +687,8 @@ async function drawEpisode(kit: Kit, card: EpisodeShareCard) {
 
     // The speaker yells; the other host takes it in.
     const [don, ron] = await Promise.all([
-        loadImage(artUrl(speaker === 'don' ? 'don-angry-talk' : 'don-stare')),
-        loadImage(artUrl(speaker === 'ron' ? 'ron-talk' : 'ron-skeptical-talk')),
+        loadImage(artUrl(speaker === 'don' ? artFor('don', 'angry', { mouth: 'open' }) : artFor('don', 'stare', { mouth: 'closed' }))),
+        loadImage(artUrl(speaker === 'ron' ? artFor('ron', 'rest', { mouth: 'open' }) : artFor('ron', 'skeptical', { mouth: 'open' }))),
     ]);
     const hostTop = Math.max(800, y + 250);
     if (ron) shadowed(ctx, 30, 10, 'rgba(0,0,0,.5)', () => ctx.drawImage(ron, 500, hostTop + 10, 600, 600));

@@ -1,17 +1,96 @@
-// The Coach's Corner cast: who sits where, the gestures each host can perform, and how each delivery
-// sounds and moves. Scripts name gestures ("point"), never image files; the engine picks the open- or
-// closed-mouth artwork as the words land.
+// The Coach's Corner cast: who sits where, what each host can do, and how each delivery sounds and
+// moves. Scripts name gestures ("point"), never image files; the engine picks the open- or
+// closed-mouth pose as the words land. Cast is the only code that knows host art (ADR 0002): every
+// art ID, mouth clip and lapel spot comes from here, and nothing else parses an art ID.
 
 export type CharacterId = 'don' | 'ron';
 export const CHARACTERS: CharacterId[] = ['don', 'ron'];
 
-export interface Gesture {
-    /** artwork while the mouth is shut (listening, between syllables) */
+export type Mouth = 'open' | 'closed';
+/** an art ID: one drawn image of a host, such as don-remembrance-point-talk */
+export type Pose = string;
+
+export interface Wardrobe {
+    /** the art manifest's wardrobe ID */
+    id: string;
+    host: CharacterId;
+    /** how a script spells it ahead of an action (remembrance-point); empty for normal */
+    prefix: string;
+}
+
+// A new wardrobe is one entry here, plus its asset files and manifest record. Its mouth clips and
+// lapel spots come from the normal poses.
+export const WARDROBES: Wardrobe[] = [
+    { id: 'normal', host: 'don', prefix: '' },
+    { id: 'halloween-2026', host: 'don', prefix: 'halloween-' },
+    { id: 'alternate-suit-1', host: 'don', prefix: 'alternate-1-' },
+    { id: 'alternate-suit-2', host: 'don', prefix: 'alternate-2-' },
+    { id: 'alternate-suit-3', host: 'don', prefix: 'alternate-3-' },
+    { id: 'remembrance-2026', host: 'don', prefix: 'remembrance-' },
+    { id: 'normal', host: 'ron', prefix: '' },
+];
+
+interface Action {
+    /** art suffix with the mouth shut */
     closed?: string;
-    /** artwork with the mouth open; gestures with only one image hold it while talking */
+    /** art suffix with the mouth open; an action with only one image holds it while talking */
     open?: string;
-    /** gesture to hold after speaking in this one; defaults to this gesture when it has a closed face, otherwise rest */
-    after?: string;
+    /** after speaking, go back to the wardrobe's rest instead of holding this pose */
+    returnsToRest?: true;
+}
+
+// What each host physically does, and how its art is spelled in every wardrobe.
+const ACTIONS: Record<CharacterId, Record<string, Action>> = {
+    don: {
+        rest: { closed: 'default', open: 'talk' },
+        point: { closed: 'point', open: 'point-talk' },
+        thumbs: { closed: 'thumbs-up', open: 'thumbs-up-talk' },
+        angry: { open: 'angry-talk', returnsToRest: true },
+        surprised: { open: 'surprised', returnsToRest: true },
+        lean: { open: 'lean-camera', returnsToRest: true },
+        stare: { closed: 'stare' },
+        pause: { closed: 'pause' },
+        tie: { closed: 'tie-adjust' },
+        mic: { closed: 'mic-remove' },
+        pound: { closed: 'desk-pound' },
+        'pound-ready': { closed: 'desk-pound-ready' },
+    },
+    ron: {
+        rest: { closed: 'default', open: 'talk' },
+        skeptical: { open: 'skeptical-talk', returnsToRest: true },
+        warning: { open: 'warning', returnsToRest: true },
+        surprised: { open: 'surprised', returnsToRest: true },
+        down: { closed: 'look-down' },
+    },
+};
+
+// Mouth pairs are separate drawings. Only this face region should change on a syllable; swapping
+// their complete images makes clothing and hands shimmer. Keyed by the normal pose's art suffix.
+const MOUTH_CLIPS: Record<CharacterId, Record<string, string>> = {
+    don: {
+        talk: 'ellipse(11% 10% at 54% 41%)',
+        'point-talk': 'ellipse(11% 10% at 49% 41%)',
+        'thumbs-up-talk': 'ellipse(11% 10% at 54% 41%)',
+    },
+    ron: { talk: 'ellipse(14% 8% at 45% 43%)' },
+};
+
+/** where a poppy sits over a host's heart (the wearer's left lapel), as [x, y, scale] in the 1254 px frame */
+export type LapelSpot = [number, number, number];
+// Every wardrobe shares its pose's geometry. Keyed by the normal pose's art suffix; null where
+// Don's hand covers that lapel while he grabs the mic.
+const LAPEL_SPOTS: Record<CharacterId, { usual: LapelSpot; poses: Record<string, LapelSpot | null> }> = {
+    don: { usual: [840, 665, 0.85], poses: { point: [777, 665, 0.85], 'lean-camera': [853, 646, 1], 'mic-remove': null } },
+    ron: { usual: [821, 708, 0.85], poses: {} },
+};
+
+export interface Gesture {
+    /** pose while the mouth is shut (listening, between syllables) */
+    closed?: Pose;
+    /** pose with the mouth open; gestures with only one pose hold it while talking */
+    open?: Pose;
+    /** gesture to hold after speaking in this one */
+    after: string;
 }
 
 export interface Character {
@@ -20,13 +99,37 @@ export interface Character {
     seat: 'left' | 'right';
     /** suit colour, used for the speaker tag and the scrub-bar barcode */
     colour: string;
+    /** every action in every wardrobe, keyed as a script writes it */
     gestures: Record<string, Gesture>;
     /** gesture used automatically for a delivery when the script names none */
     deliveryGestures: Partial<Record<Delivery, string>>;
     voice: { base: number; spread: number; wave: OscillatorType; grit: number };
 }
 
-const art = (id: string) => id;
+interface PoseInfo { host: CharacterId; wardrobe: Wardrobe; gesture: string; mouth: Mouth; suffix: string }
+const POSES = new Map<Pose, PoseInfo>();
+
+export const wardrobesOf = (host: CharacterId) => WARDROBES.filter(w => w.host === host);
+export const actionsOf = (host: CharacterId) => Object.keys(ACTIONS[host]);
+
+/** a host's wardrobes × its actions, at <host>-<prefix><suffix> */
+const gesturesOf = (host: CharacterId) => {
+    const gestures: Record<string, Gesture> = {};
+    for (const wardrobe of wardrobesOf(host)) for (const [action, { closed, open, returnsToRest }] of Object.entries(ACTIONS[host])) {
+        const gesture = wardrobe.prefix + action;
+        const pose = (suffix: string, mouth: Mouth) => {
+            const id = `${host}-${wardrobe.prefix}${suffix}`;
+            POSES.set(id, { host, wardrobe, gesture, mouth, suffix });
+            return id;
+        };
+        gestures[gesture] = {
+            ...closed && { closed: pose(closed, 'closed') },
+            ...open && { open: pose(open, 'open') },
+            after: returnsToRest ? `${wardrobe.prefix}rest` : gesture,
+        };
+    }
+    return gestures;
+};
 
 export const CAST: Record<CharacterId, Character> = {
     don: {
@@ -34,81 +137,7 @@ export const CAST: Record<CharacterId, Character> = {
         name: 'Don',
         seat: 'left',
         colour: '#C8102E',
-        gestures: {
-            // Normal/default suit: preserve these unprefixed mappings when adding wardrobes.
-            rest: { closed: art('don-default'), open: art('don-talk') },
-            point: { closed: art('don-point'), open: art('don-point-talk') },
-            thumbs: { closed: art('don-thumbs-up'), open: art('don-thumbs-up-talk') },
-            angry: { open: art('don-angry-talk') },
-            surprised: { open: art('don-surprised') },
-            lean: { open: art('don-lean-camera') },
-            stare: { closed: art('don-stare') },
-            pause: { closed: art('don-pause') },
-            tie: { closed: art('don-tie-adjust') },
-            mic: { closed: art('don-mic-remove') },
-            pound: { closed: art('don-desk-pound') },
-            'pound-ready': { closed: art('don-desk-pound-ready') },
-            'halloween-rest': { closed: art('don-halloween-default'), open: art('don-halloween-talk') },
-            'halloween-point': { closed: art('don-halloween-point'), open: art('don-halloween-point-talk') },
-            'halloween-thumbs': { closed: art('don-halloween-thumbs-up'), open: art('don-halloween-thumbs-up-talk') },
-            'halloween-angry': { open: art('don-halloween-angry-talk'), after: 'halloween-rest' },
-            'halloween-surprised': { open: art('don-halloween-surprised'), after: 'halloween-rest' },
-            'halloween-lean': { open: art('don-halloween-lean-camera'), after: 'halloween-rest' },
-            'halloween-stare': { closed: art('don-halloween-stare') },
-            'halloween-pause': { closed: art('don-halloween-pause') },
-            'halloween-tie': { closed: art('don-halloween-tie-adjust') },
-            'halloween-mic': { closed: art('don-halloween-mic-remove') },
-            'halloween-pound': { closed: art('don-halloween-desk-pound') },
-            'halloween-pound-ready': { closed: art('don-halloween-desk-pound-ready') },
-            'alternate-1-rest': { closed: art('don-alternate-1-default'), open: art('don-alternate-1-talk') },
-            'alternate-1-point': { closed: art('don-alternate-1-point'), open: art('don-alternate-1-point-talk') },
-            'alternate-1-thumbs': { closed: art('don-alternate-1-thumbs-up'), open: art('don-alternate-1-thumbs-up-talk') },
-            'alternate-1-angry': { open: art('don-alternate-1-angry-talk'), after: 'alternate-1-rest' },
-            'alternate-1-surprised': { open: art('don-alternate-1-surprised'), after: 'alternate-1-rest' },
-            'alternate-1-lean': { open: art('don-alternate-1-lean-camera'), after: 'alternate-1-rest' },
-            'alternate-1-stare': { closed: art('don-alternate-1-stare') },
-            'alternate-1-pause': { closed: art('don-alternate-1-pause') },
-            'alternate-1-tie': { closed: art('don-alternate-1-tie-adjust') },
-            'alternate-1-mic': { closed: art('don-alternate-1-mic-remove') },
-            'alternate-1-pound': { closed: art('don-alternate-1-desk-pound') },
-            'alternate-1-pound-ready': { closed: art('don-alternate-1-desk-pound-ready') },
-            'alternate-2-rest': { closed: art('don-alternate-2-default'), open: art('don-alternate-2-talk') },
-            'alternate-2-point': { closed: art('don-alternate-2-point'), open: art('don-alternate-2-point-talk') },
-            'alternate-2-thumbs': { closed: art('don-alternate-2-thumbs-up'), open: art('don-alternate-2-thumbs-up-talk') },
-            'alternate-2-angry': { open: art('don-alternate-2-angry-talk'), after: 'alternate-2-rest' },
-            'alternate-2-surprised': { open: art('don-alternate-2-surprised'), after: 'alternate-2-rest' },
-            'alternate-2-lean': { open: art('don-alternate-2-lean-camera'), after: 'alternate-2-rest' },
-            'alternate-2-stare': { closed: art('don-alternate-2-stare') },
-            'alternate-2-pause': { closed: art('don-alternate-2-pause') },
-            'alternate-2-tie': { closed: art('don-alternate-2-tie-adjust') },
-            'alternate-2-mic': { closed: art('don-alternate-2-mic-remove') },
-            'alternate-2-pound': { closed: art('don-alternate-2-desk-pound') },
-            'alternate-2-pound-ready': { closed: art('don-alternate-2-desk-pound-ready') },
-            'alternate-3-rest': { closed: art('don-alternate-3-default'), open: art('don-alternate-3-talk') },
-            'alternate-3-point': { closed: art('don-alternate-3-point'), open: art('don-alternate-3-point-talk') },
-            'alternate-3-thumbs': { closed: art('don-alternate-3-thumbs-up'), open: art('don-alternate-3-thumbs-up-talk') },
-            'alternate-3-angry': { open: art('don-alternate-3-angry-talk'), after: 'alternate-3-rest' },
-            'alternate-3-surprised': { open: art('don-alternate-3-surprised'), after: 'alternate-3-rest' },
-            'alternate-3-lean': { open: art('don-alternate-3-lean-camera'), after: 'alternate-3-rest' },
-            'alternate-3-stare': { closed: art('don-alternate-3-stare') },
-            'alternate-3-pause': { closed: art('don-alternate-3-pause') },
-            'alternate-3-tie': { closed: art('don-alternate-3-tie-adjust') },
-            'alternate-3-mic': { closed: art('don-alternate-3-mic-remove') },
-            'alternate-3-pound': { closed: art('don-alternate-3-desk-pound') },
-            'alternate-3-pound-ready': { closed: art('don-alternate-3-desk-pound-ready') },
-            'remembrance-rest': { closed: art('don-remembrance-default'), open: art('don-remembrance-talk') },
-            'remembrance-point': { closed: art('don-remembrance-point'), open: art('don-remembrance-point-talk') },
-            'remembrance-thumbs': { closed: art('don-remembrance-thumbs-up'), open: art('don-remembrance-thumbs-up-talk') },
-            'remembrance-angry': { open: art('don-remembrance-angry-talk'), after: 'remembrance-rest' },
-            'remembrance-surprised': { open: art('don-remembrance-surprised'), after: 'remembrance-rest' },
-            'remembrance-lean': { open: art('don-remembrance-lean-camera'), after: 'remembrance-rest' },
-            'remembrance-stare': { closed: art('don-remembrance-stare') },
-            'remembrance-pause': { closed: art('don-remembrance-pause') },
-            'remembrance-tie': { closed: art('don-remembrance-tie-adjust') },
-            'remembrance-mic': { closed: art('don-remembrance-mic-remove') },
-            'remembrance-pound': { closed: art('don-remembrance-desk-pound') },
-            'remembrance-pound-ready': { closed: art('don-remembrance-desk-pound-ready') },
-        },
+        gestures: gesturesOf('don'),
         deliveryGestures: { yell: 'angry' },
         voice: { base: 118, spread: 34, wave: 'sawtooth', grit: 0.5 },
     },
@@ -117,13 +146,7 @@ export const CAST: Record<CharacterId, Character> = {
         name: 'Ron',
         seat: 'right',
         colour: '#24418F',
-        gestures: {
-            rest: { closed: art('ron-default'), open: art('ron-talk') },
-            skeptical: { open: art('ron-skeptical-talk') },
-            warning: { open: art('ron-warning') },
-            surprised: { open: art('ron-surprised') },
-            down: { closed: art('ron-look-down') },
-        },
+        gestures: gesturesOf('ron'),
         deliveryGestures: { deadpan: 'skeptical' },
         voice: { base: 196, spread: 26, wave: 'triangle', grit: 0.15 },
     },
@@ -145,32 +168,66 @@ export const GESTURE_ALIASES: Record<string, string> = {
     stop: 'warning',
 };
 
-const WARDROBE_PREFIX = /^(?:halloween|remembrance|alternate-[123])-/;
+/** the wardrobe a gesture is spelled in; the longest prefix wins, and normal's empty one always matches */
+const wardrobeIn = (wardrobes: Wardrobe[], gesture: string) =>
+    [...wardrobes].sort((a, b) => b.prefix.length - a.prefix.length).find(w => gesture.startsWith(w.prefix))!;
 
 export const resolveGesture = (who: CharacterId, name: string): string | null => {
-    const key = name.toLowerCase().replace(/^(don|ron)-/, '');
-    const prefix = key.match(WARDROBE_PREFIX)?.[0] ?? '';
+    let key = name.toLowerCase();
+    const named = CHARACTERS.find(c => key.startsWith(`${c}-`));
+    if (named) key = key.slice(named.length + 1);
+    const { prefix } = wardrobeIn(wardrobesOf(who), key);
     const base = key.slice(prefix.length);
     const id = prefix + (GESTURE_ALIASES[base] ?? base);
     return CAST[who].gestures[id] ? id : null;
 };
 
 /** Wardrobe variants share the same physical action, camera direction and Foley. */
-export const gestureAction = (gesture: string) => gesture.replace(WARDROBE_PREFIX, '');
+export const gestureAction = (gesture: string) => gesture.slice(wardrobeIn(WARDROBES, gesture).prefix.length);
 
-export const gestureAfter = (who: CharacterId, gesture: string) => {
-    const g = CAST[who].gestures[gesture];
-    if (g?.after) return g.after;
-    return g?.closed ? gesture : 'rest';
+/** what a script may name for a host, for help and errors: its actions, then the prefixes that pick another wardrobe */
+export const gestureHelp = (who: CharacterId) => {
+    const prefixes = wardrobesOf(who).map(w => w.prefix).filter(Boolean);
+    const last = prefixes.pop();
+    const wardrobes = last ? ` For another wardrobe, start it with ${prefixes.length ? `${prefixes.join(', ')} or ${last}` : last}.` : '';
+    return `${actionsOf(who).join(', ')}.${wardrobes}`;
 };
 
-/** the artwork for a gesture with the mouth open or shut */
-export const artFor = (who: CharacterId, gesture: string, open: boolean) => {
-    const g = CAST[who].gestures[gesture] ?? CAST[who].gestures.rest;
-    return (open ? g.open ?? g.closed : g.closed ?? g.open)!;
+export const gestureAfter = (who: CharacterId, gesture: string) => CAST[who].gestures[gesture]?.after ?? 'rest';
+
+/** a gesture's pose with the mouth open or shut; an unknown gesture shows the normal rest */
+export const artFor = (host: CharacterId, gesture: string, { wardrobe = 'normal', mouth }: { wardrobe?: string; mouth: Mouth }): Pose => {
+    const outfit = wardrobesOf(host).find(w => w.id === wardrobe);
+    if (!outfit) throw new Error(`${CAST[host].name} has no ${wardrobe} wardrobe`);
+    const g = CAST[host].gestures[outfit.prefix + gesture] ?? CAST[host].gestures.rest;
+    return (mouth === 'open' ? g.open ?? g.closed : g.closed ?? g.open)!;
 };
 
-export const ART_BASE = '/coachs-corner/robots-v2/';
+/** every pose a gesture can show, closed first */
+export const posesFor = (host: CharacterId, gesture: string): Pose[] => {
+    const g = CAST[host].gestures[gesture];
+    return g ? [g.closed, g.open].filter((pose): pose is Pose => !!pose) : [];
+};
+
+/** which host, wardrobe and gesture a pose belongs to */
+export const poseOf = (pose: Pose): Omit<PoseInfo, 'suffix'> | undefined => {
+    const info = POSES.get(pose);
+    return info && { host: info.host, wardrobe: info.wardrobe, gesture: info.gesture, mouth: info.mouth };
+};
+
+/** the clip-path confining an open-mouth pose to its face, when it overlays a closed body */
+export const mouthClipFor = (host: CharacterId, pose: Pose): string | undefined => {
+    const info = POSES.get(pose);
+    return info?.host === host && info.mouth === 'open' ? MOUTH_CLIPS[host][info.suffix] : undefined;
+};
+
+/** where a lapel pin sits on a pose, or null where a hand covers the lapel */
+export const lapelFor = (host: CharacterId, pose: Pose): LapelSpot | null => {
+    const { usual, poses } = LAPEL_SPOTS[host];
+    const info = POSES.get(pose);
+    return info && info.suffix in poses ? poses[info.suffix] : usual;
+};
+
 export const allArt = (who: CharacterId) =>
     Array.from(new Set(Object.values(CAST[who].gestures).flatMap(g => [g.closed, g.open]).filter((id): id is string => !!id)));
 

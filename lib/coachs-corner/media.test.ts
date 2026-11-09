@@ -7,6 +7,7 @@ import test from 'node:test';
 import { generateAssets } from '../../scripts/coachs-corner/assets.mjs';
 import manifest from './media.json';
 import { artUrl, mediaUrl, THEME_URL } from './media';
+import { CHARACTERS } from './cast';
 import { compile } from './timeline';
 import { parseScript } from './script';
 import { PILOT_SCRIPT } from './pilot';
@@ -24,7 +25,8 @@ test('every versioned asset matches its hash and source, including all pilot pos
         assert.ok(url.includes(`.${createHash('sha256').update(bytes).digest('hex').slice(0, 16)}.`));
     }
     assert.ok(Object.keys(manifest).every(source => !source.endsWith('.webp')), 'only AVIF artwork ships');
-    for (const pose of compile(parseScript(PILOT_SCRIPT)).art) {
+    const { art } = compile(parseScript(PILOT_SCRIPT));
+    for (const pose of CHARACTERS.flatMap(who => art[who])) {
         assert.match(artUrl(pose), /\/media\/.+\.avif$/);
         assert.match(artUrl(pose, true), /\/media\/.+-640\..+\.avif$/);
         for (const small of [false, true]) {

@@ -1,8 +1,8 @@
 'use client';
 
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import Artwork, { HostArtwork, Poppy, lapelSpot } from './artwork';
-import { CAST, CHARACTERS, gestureAction, type CharacterId, type Lapel } from '@/lib/coachs-corner/cast';
+import Artwork, { HostArtwork, Poppy } from './artwork';
+import { artFor, CAST, CHARACTERS, gestureAction, lapelFor, type CharacterId, type Lapel } from '@/lib/coachs-corner/cast';
 import type { Episode } from '@/lib/coachs-corner/episode';
 import type { CaptionFrame, Frame, HostFrame, Line } from '@/lib/coachs-corner/timeline';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
@@ -271,17 +271,20 @@ const clock = (ms: number) => {
     return `${over ? '+' : ''}${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
+// The title card is always drawn in the normal wardrobe.
+const LOCKUP = { don: artFor('don', 'thumbs', { mouth: 'closed' }), ron: artFor('ron', 'rest', { mouth: 'closed' }) };
+
 function Lockup({ episode }: { episode: Episode }) {
     const { meta, label: slot } = episode;
     return (
         <>
             <i className={styles.bumperRed} />
             <i className={styles.bumperNavy} />
-            <Artwork className={styles.bumperDon} pose="don-thumbs-up" smallOnly />
-            <Artwork className={styles.bumperRon} pose="ron-default" smallOnly />
+            <Artwork className={styles.bumperDon} pose={LOCKUP.don} smallOnly />
+            <Artwork className={styles.bumperRon} pose={LOCKUP.ron} smallOnly />
             {meta.lapel === 'poppy' && <>
-                <Poppy className={styles.bumperDon} spot={lapelSpot('don', 'don-thumbs-up')} />
-                <Poppy className={styles.bumperRon} spot={lapelSpot('ron', 'ron-default')} />
+                <Poppy className={styles.bumperDon} spot={lapelFor('don', LOCKUP.don)} />
+                <Poppy className={styles.bumperRon} spot={lapelFor('ron', LOCKUP.ron)} />
             </>}
             <div className={styles.bumperType}>
                 <b>Coach&rsquo;s</b>
@@ -353,7 +356,7 @@ function Studio({ episode, frame, jumped, teams, players, banners, started, play
     // editor, and poses a newly pasted script adds (a new suit) still get mounted.
     const art = useRef<Record<CharacterId, string[]>>({ don: [], ron: [] });
     for (const who of CHARACTERS) {
-        const added = tl.art.filter(id => id.startsWith(`${who}-`) && !art.current[who].includes(id));
+        const added = tl.art[who].filter(id => !art.current[who].includes(id));
         if (added.length) art.current = { ...art.current, [who]: [...art.current[who], ...added] };
     }
     const graphic = tl.monitor[frame.monitor].value;

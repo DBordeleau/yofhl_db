@@ -1,4 +1,4 @@
-import { CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, type CharacterId, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
+import { CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
 import type { Cue, Graphic, Meta, Script, Span } from './script';
 import { spokenForm } from './spoken-numbers';
 import { INTRO_MS, phaseAt, type Phase } from './transport';
@@ -81,8 +81,8 @@ export interface Timeline {
     /** yell onsets: the camera punches in and the listener flinches */
     punches: { t: number; who: CharacterId }[];
     clears: number[];
-    /** every distinct artwork the show uses, for preloading */
-    art: string[];
+    /** every distinct pose each host shows, for preloading and mounting */
+    art: Record<CharacterId, Pose[]>;
 }
 
 const PUNCTUATION_MS: Record<string, number> = { ',': 110, ';': 170, ':': 170, '.': 245, '!': 245, '?': 280, '…': 470, '—': 135 };
@@ -260,12 +260,7 @@ export function compile(script: Script): Timeline {
     }
 
     const showEnd = t;
-    const art = new Set<string>();
-    for (const c of CHARACTERS) for (const key of gestures[c]) {
-        const g = CAST[c].gestures[key.value];
-        if (g?.closed) art.add(g.closed);
-        if (g?.open) art.add(g.open);
-    }
+    const art = Object.fromEntries(CHARACTERS.map(c => [c, Array.from(new Set(gestures[c].flatMap(key => posesFor(c, key.value))))])) as Timeline['art'];
     // A new reaction replaces the same host's previous one. Neither particles nor
     // their audio may linger beyond the replacement or the end of the scene.
     for (let i = 0; i < reactions.length; i++) {
@@ -274,7 +269,7 @@ export function compile(script: Script): Timeline {
     }
     return {
         meta, duration: showEnd + OUTRO_MS, showEnd, segment: meta.segment ?? showEnd - INTRO_MS,
-        lines, gestures, flaps, voice, monitor, shots, sounds, reactions: reactions.filter(r => r.duration > 0), punches, clears, art: Array.from(art),
+        lines, gestures, flaps, voice, monitor, shots, sounds, reactions: reactions.filter(r => r.duration > 0), punches, clears, art,
     };
 }
 

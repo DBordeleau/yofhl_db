@@ -14,7 +14,7 @@ Each pose uses the full 1254 × 1254 transparent PNG canvas, with full-size and 
 
 ## Episode use
 
-The original red floral suit remains Don's normal/default. Select Alternate suit 3 explicitly in the brief and retain that choice in the handoff. Follow [Don's suits](../../../docs/coachs-corner.md#dons-suits) for the full wardrobe rules.
+The original red floral suit remains Don's normal/default. Select Alternate suit 3 explicitly in the brief and retain that choice in the handoff. Follow [Don's wardrobes](../../../docs/coachs-corner.md#dons-wardrobes) for the full wardrobe rules.
 
 Use `alternate-3-` on every Don line, inline cue, delivery span that names a gesture, and `then` pose. Starting with `[don: alternate-3-rest]` alone does not carry the outfit into later dialogue. Ordinary `DON:` and `DON (yell):` select the normal wardrobe. The shared opening and closing bumper also uses the normal suit.
 
