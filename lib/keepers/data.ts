@@ -1,5 +1,5 @@
 import { rows } from '@/lib/data/db';
-import { getLeagueSnapshot } from '@/lib/fantrax/data';
+import { getLiveSeason } from '@/lib/fantrax/live-season';
 import { ownedTeamQuery } from '@/lib/owner/queries';
 import type { ManagedTeam } from '@/lib/owner/model';
 import { keeperSubmissionQuery } from './queries';
@@ -11,10 +11,11 @@ export async function ownedKeeperTeam(uid: string) {
 export async function getKeeperSubmission(franchiseId: number) {
     return (await rows<KeeperSubmission>(keeperSubmissionQuery(franchiseId)))[0] ?? null;
 }
-export async function getKeeperRoster(franchiseId: number, fresh = false) {
-    const snapshot = await getLeagueSnapshot({ fresh });
-    if (snapshot.seasonYear !== KEEPER_SEASON) throw new Error('The Fantrax league does not match this keeper season. Contact the admin.');
-    const team = snapshot.teams.find(team => team.franchiseId === franchiseId);
+export async function getKeeperRoster(franchiseId: number, fresh: boolean) {
+    const live = await getLiveSeason({ now: Date.now(), fresh });
+    if (live.status === 'unavailable') throw new Error('Your Fantrax roster is unavailable. Try again before submitting.');
+    if (live.value.seasonYear !== KEEPER_SEASON) throw new Error('The Fantrax league does not match this keeper season. Contact the admin.');
+    const team = live.value.teams.find(team => team.franchiseId === franchiseId);
     if (!team?.players.length) throw new Error('Your Fantrax roster is unavailable. Try again before submitting.');
-    return { roster: team.players, fetchedAt: snapshot.fetchedAt };
+    return { roster: team.players, fetchedAt: live.value.fetchedAt, fantraxLeagueId: live.value.fantraxLeagueId };
 }

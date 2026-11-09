@@ -1,10 +1,9 @@
 import type { StudioPlayer, StudioTeam } from '../teams';
 import type { PlayerRef } from '../script';
 import type { SnapshotDiagnostic } from '../player-snapshot';
-import { FANTRAX_LEAGUE_ID } from '../../fantrax/config';
 import { fantraxApiUrl, readLeagueInfo } from '../../fantrax/api';
 import { playerName, type Period } from '../../fantrax/model';
-import { eraFor, findByName, type LeagueConfig } from '../../../scripts/db/lib/league-config';
+import { eraFor, findByName, liveFantraxLeague, type LeagueConfig } from '../../../scripts/db/lib/league-config';
 import { suggestedPalettes, fallbackColours } from '../../team-branding';
 
 export interface Source { url: string; fetchedAt: string }
@@ -67,7 +66,7 @@ export function studioTeam(config: LeagueConfig, season: number, name: string): 
 export function referencePacket(config: LeagueConfig, season: number): FactPacket {
     const now = new Date().toISOString();
     return { version: 1, kind: 'reference', captureStartedAt: now, capturedAt: now, timezone: 'America/Toronto',
-        leagueId: FANTRAX_LEAGUE_ID, season, period: null, phase: 'reference', scheduledMatchups: [],
+        leagueId: liveFantraxLeague(config), season, period: null, phase: 'reference', scheduledMatchups: [],
         teams: config.franchises.filter(f => f.folded == null || f.folded >= season).flatMap(f => {
             const era = eraFor(f, season);
             return era ? [{ ...studioTeam(config, season, era.name), fantraxId: '', rank: null, record: null, points: null }] : [];
@@ -133,7 +132,8 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
     }
     const fetcher = options.fetcher ?? fetch;
     const started = new Date().toISOString();
-    const url = (endpoint: string, params: Record<string, string> = {}) => fantraxApiUrl(endpoint, { leagueId: FANTRAX_LEAGUE_ID, ...params });
+    const leagueId = liveFantraxLeague(config);
+    const url = (endpoint: string, params: Record<string, string> = {}) => fantraxApiUrl(endpoint, { leagueId, ...params });
     const responses = await Promise.all([
         request(url('getLeagueInfo', { excludePlayerInfo: 'true' }), fetcher), request(url('getStandings'), fetcher),
         request(url('getTeamRosters'), fetcher), request(fantraxApiUrl('getPlayerIds', { sport: 'NHL' }), fetcher),
@@ -212,7 +212,7 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
             limitations.push(`NHL lookup failed for ${name}. Verify birthplace and add the sourced player record before using the pronunciation rule.`);
         }
     }
-    return { version: 1, kind: 'live', captureStartedAt: started, capturedAt: new Date().toISOString(), timezone: 'America/Toronto', leagueId: FANTRAX_LEAGUE_ID,
+    return { version: 1, kind: 'live', captureStartedAt: started, capturedAt: new Date().toISOString(), timezone: 'America/Toronto', leagueId,
         season, period, phase, scheduledMatchups, teams, matchups, rosters, rosterPeriod: roster.period, players, sources, limitations };
 }
 

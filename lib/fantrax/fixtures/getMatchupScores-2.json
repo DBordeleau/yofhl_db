@@ -1,0 +1,7 @@
+{
+  "period": 2,
+  "matchups": [
+    { "away": { "teamId": "aaaa1111live0001", "score": 101.5, "gamesPlayed": 22 }, "home": { "teamId": "cccc3333live0003", "score": 88.25, "gamesPlayed": 20 } },
+    { "away": { "teamId": "bbbb2222live0002", "score": 120, "gamesPlayed": 25 }, "home": { "teamId": "dddd4444live0004", "score": 95.5, "gamesPlayed": 21 } }
+  ]
+}

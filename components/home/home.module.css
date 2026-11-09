@@ -82,7 +82,7 @@
 .scoreCard ::selection { background: var(--score-ice); color: #091726; }
 /* top bar: one full-width phase bar, status on the left and the Fantrax link on the right; the whole bar is the link */
 .scoreCardTop { --score-bar: linear-gradient(180deg, #df1a3c, #b00d28); --score-bar-hover: linear-gradient(180deg, #ee2448, #c3112e); display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: clamp(34px, 10cqw, 42px); margin: -2px -2px 0; padding: 2px clamp(12px, 4cqw, 16px) 0; background: var(--score-bar); box-shadow: inset 0 1px 0 #ffffff2e, inset 0 -1px 0 #0000002e; color: #fff; text-shadow: 0 1px 1px #5a0010; }
-.scoreCard[data-phase='complete'] .scoreCardTop { --score-bar: linear-gradient(180deg, #24364f, #182841); --score-bar-hover: linear-gradient(180deg, #2c4160, #1d304d); text-shadow: none; }
+.scoreCard[data-phase='final'] .scoreCardTop { --score-bar: linear-gradient(180deg, #24364f, #182841); --score-bar-hover: linear-gradient(180deg, #2c4160, #1d304d); text-shadow: none; }
 .scoreCard[data-phase='upcoming'] .scoreCardTop { --score-bar: linear-gradient(180deg, #2b7fd2, #1a5ea6); --score-bar-hover: linear-gradient(180deg, #3a8ee0, #1f68b5); text-shadow: 0 1px 1px #0b2a4d; }
 a.scoreCardTop:hover { background: var(--score-bar-hover); }
 .home a.scoreCardTop:focus-visible { outline: 2px solid #fff; outline-offset: -5px; }
@@ -109,13 +109,13 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
 .scoreIdentity[data-leading] .scoreArtworkStage::before { opacity: 1; }
 .scoreIdentity[data-leading] .scoreArtworkStage { filter: drop-shadow(0 8px 12px #00000059); }
 /* only a finished week fades the loser, and only a little; a team that is merely behind keeps its colours */
-.scoreCard[data-phase='complete'] .scoreIdentity[data-trailing] .scoreArtworkStage { filter: saturate(.75) brightness(.88); }
+.scoreCard[data-phase='final'] .scoreIdentity[data-trailing] .scoreArtworkStage { filter: saturate(.75) brightness(.88); }
 .scoreArtwork { width: 100%; height: 100%; }
 .scoreTeamName { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; text-align: center; }
 .scorePlace { color: #d7e3ee; font-size: clamp(11px, 3cqw, 12px); line-height: 1.25; font-weight: 500; }
 .scoreNickname { max-width: 100%; font-family: var(--font-matchup-display), 'Matchup Condensed Fallback', sans-serif; font-size: clamp(18px, 5.65cqw, 36px); line-height: 1; font-weight: 600; font-style: normal; font-stretch: 100%; text-transform: uppercase; overflow-wrap: anywhere; color: #e8eef5; }
 .scoreIdentity[data-leading] .scoreNickname { color: #fff; font-weight: 800; text-shadow: 0 1px 2px #0006, 0 0 14px #ffffff40; }
-.scoreCard[data-phase='complete'] .scoreIdentity[data-trailing] .scoreNickname { color: #b3c2d3; }
+.scoreCard[data-phase='final'] .scoreIdentity[data-trailing] .scoreNickname { color: #b3c2d3; }
 /* the leader's score is set heavy on a white panel; the other side keeps a regular weight */
 .scoreDeck { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #f1f4f7; color: #101a30; }
 .scoreRow { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; padding: clamp(12px, 4.8cqw, 21px) 6px clamp(12px, 4.4cqw, 19px); }
@@ -124,7 +124,7 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
 .scoreRow:is([data-leading], [data-trailing])::before { display: none; }
 .scoreValue { font-family: var(--font-archivo), sans-serif; font-size: clamp(23px, 9.4cqw, 60px); line-height: 1; font-weight: 500; font-stretch: 100%; letter-spacing: -.035em; font-variant-numeric: tabular-nums; color: #2c3d55; }
 .scoreRow[data-leading] .scoreValue { color: #091726; font-weight: 800; }
-.scoreCard[data-phase='complete'] .scoreRow[data-trailing] .scoreValue { color: #7a8aa0; }
+.scoreCard[data-phase='final'] .scoreRow[data-trailing] .scoreValue { color: #7a8aa0; }
 .scoreGames { font-size: clamp(11px, 3cqw, 12px); line-height: 1.5; font-weight: 500; font-variant-numeric: tabular-nums; color: #4c6077; }
 .scoreCard[data-phase='upcoming'] .scoreValue { color: #4c6077; }
 .scoreCardBottom { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 3.2cqw, 13px); min-height: clamp(54px, 16cqw, 70px); padding: clamp(12px, 4cqw, 16px) clamp(12px, 4.6cqw, 18px) clamp(14px, 4.6cqw, 18px); }
@@ -519,7 +519,7 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
     .scoreRow + .scoreRow::before { display: none; }
     .scoreValue { font-size: 22px; font-weight: 600; color: #e8eef5; }
     .scoreRow[data-leading] .scoreValue { color: #fff; font-weight: 800; }
-    .scoreCard[data-phase='complete'] .scoreRow[data-trailing] .scoreValue { color: #a9b8cc; }
+    .scoreCard[data-phase='final'] .scoreRow[data-trailing] .scoreValue { color: #a9b8cc; }
     .scoreCard[data-phase='upcoming'] .scoreValue { color: #8fa3bb; }
     .scoreGames { font-size: 10px; line-height: 1.2; color: #8fa3bb; }
     .scoreCardBottom { grid-area: result; flex-direction: row; justify-content: flex-start; gap: 10px; min-height: 36px; padding: 6px 150px 6px 12px; }

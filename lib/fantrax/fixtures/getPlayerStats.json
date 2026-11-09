@@ -1,0 +1,14 @@
+{
+  "responses": [{ "data": {
+    "displayedStatusOrTeam": "ALL", "displayedPosOrGroup": "ALL", "displayedSortType": "SCORE", "displayedSortReversed": false,
+    "displayedView": "STATS", "displayedScoringCategoryType": "5",
+    "displayedSeasonOrProjection": { "code": "SEASON_919_YEAR_TO_DATE", "name": "2026-27 Reg Season - YTD", "timeframeTypeCode": "YEAR_TO_DATE" },
+    "seasonOrProjections": [{ "code": "SEASON_919_YEAR_TO_DATE", "name": "2026-27 Reg Season - YTD" }],
+    "paginatedResultSet": { "pageNumber": 1, "totalNumResults": 2 },
+    "tableHeader": { "cells": [{ "key": "status" }, { "key": "fptsPerGame" }, { "key": "fpts" }] },
+    "statsTable": [
+      { "scorer": { "scorerId": "03kl0", "name": "Connor McDavid", "posShortNames": "C" }, "cells": [{ "content": "PVLS", "teamId": "aaaa1111live0001" }, { "content": "7.25" }, { "content": "58" }] },
+      { "scorer": { "scorerId": "04ab9", "name": "Igor Shesterkin", "posShortNames": "G" }, "cells": [{ "content": "PVLS", "teamId": "aaaa1111live0001" }, { "content": "6.1" }, { "content": "30.5" }] }
+    ]
+  } }]
+}

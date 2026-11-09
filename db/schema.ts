@@ -20,7 +20,7 @@ import type { LotteryEntry } from '@/lib/lottery/model';
 import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 import type { TeamColours } from '@/lib/team-branding';
 import type { DraftDevelopmentFacts } from '@/lib/draft/development';
-import type { CurrentSeasonData } from '@/lib/fantrax/data';
+import type { SavedLiveSeason } from '@/lib/fantrax/fantrax-client';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -35,7 +35,7 @@ export const league = pgSchema('league');
 
 export const fantraxSnapshots = league.table('fantrax_snapshots', {
     leagueId: text('league_id').primaryKey(),
-    data: jsonb('data').$type<CurrentSeasonData>().notNull(),
+    data: jsonb('data').$type<SavedLiveSeason>().notNull(),
 });
 
 // Current Fantrax seasons need not have been imported into the historical archive.
@@ -45,6 +45,19 @@ export const fantraxFinalWeeks = league.table('fantrax_final_weeks', {
     period: integer('period').notNull(),
     markedAt: timestamp('marked_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.leagueId, t.seasonYear, t.period] })]);
+
+// Each season's Fantrax league and team IDs, loaded from league.yml by the importer. A season is
+// listed here before it reaches the archive, so there is no reference to league.seasons. Names
+// and logos come only from league.current_teams (ADR 0001).
+export const fantraxTeams = league.table('fantrax_teams', {
+    seasonYear: integer('season_year').notNull(),
+    fantraxLeagueId: text('fantrax_league_id').notNull(),
+    fantraxTeamId: text('fantrax_team_id').notNull(),
+    franchiseId: integer('franchise_id').notNull().references(() => franchises.id),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.fantraxTeamId] }),
+    unique('fantrax_teams_one_team_per_franchise').on(t.seasonYear, t.franchiseId),
+]);
 
 // Event snapshots survive team renames and imports. Only one event is current at a time.
 export const draftLotteries = league.table('draft_lotteries', {

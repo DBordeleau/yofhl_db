@@ -11,7 +11,7 @@ test('manual Finals persist independently of archive seasons and are scoped to t
     try {
         await migrate(drizzle(client), { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
         const run = async (year: number, period: number, final: boolean) => {
-            const compiled = new PgDialect().sqlToQuery(finalWeekQuery(year, period, final));
+            const compiled = new PgDialect().sqlToQuery(finalWeekQuery('rf5o9cu2mutybszr', year, period, final));
             await client.query(compiled.sql, compiled.params);
         };
         await run(2026, 1, true); await run(2026, 1, true); await run(2026, 2, true); await run(2027, 1, true);

@@ -45,8 +45,8 @@ _Avoid_: completed season, archived season
 The newest published season.
 
 **Current season**:
-The newest season in the database that is not yet published, or none. It is not derived from Fantrax.
-_Avoid_: live season, active season
+The newest season in the database that is not yet published, or none. It is not derived from Fantrax; what Fantrax has now is the live season.
+_Avoid_: active season
 
 **Cancelled season**:
 A season whose playoffs did not happen (2019–20). It is published and has no champion.
@@ -54,6 +54,19 @@ A season whose playoffs did not happen (2019–20). It is published and has no c
 **Draft year**:
 The calendar year a draft or lottery is held in: the season year minus one. "2026 Draft" and "2026 Draft Pick, Round 1" belong to the 2026–27 season. This matches Fantrax and the NHL and is not drift.
 _Avoid_: draft season
+
+**Live season**:
+The current season as Fantrax has it now. The archive holds finished seasons. Read it through the live season module (`lib/fantrax/live-season.ts`).
+
+**Week**:
+One Fantrax scoring period.
+_Avoid_: period, outside the Fantrax adapter
+
+**Final week**:
+A week whose scores are settled, either automatically because the standings records add up or by hand in admin.
+
+**Playoff round**:
+The Quarterfinals, Semifinals or Final, each one week.
 
 ## Editing
 

@@ -28,12 +28,27 @@ export interface ScoreOverride {
     verified?: boolean; // Reconstructed from game-level evidence, rather than a placeholder winning score.
 }
 
+// the season's Fantrax league ID and each Fantrax team ID's franchise
+export interface FantraxSeason {
+    league: string;
+    teams: Record<string, number>;
+}
+
 export interface LeagueConfig {
     franchises: Franchise[];
     awards: { name: string; label?: string; description: string }[];
-    seasons: Record<number, { playoffs?: 'cancelled'; consolation?: string[] }>;
+    seasons: Record<number, { playoffs?: 'cancelled'; consolation?: string[]; fantrax?: FantraxSeason }>;
     scoreOverrides: ScoreOverride[];
 }
+
+/** the live season's Fantrax league: the latest season with a `fantrax` block */
+export const liveFantraxLeague = (config: LeagueConfig): string => {
+    const latest = Object.entries(config.seasons)
+        .filter(([, settings]) => settings.fantrax?.league)
+        .sort(([a], [b]) => Number(b) - Number(a))[0];
+    if (!latest) throw new Error("league/league.yml has no season with a fantrax block; add the live season's Fantrax league ID.");
+    return latest[1].fantrax!.league;
+};
 
 export interface TeamMatch {
     franchise: Franchise;

@@ -2,7 +2,7 @@ import { revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { LEAGUE_TAG } from '@/lib/data/db';
 import { FANTRAX_TAG } from '@/lib/fantrax/cache-policy';
-import { refreshCurrentSeason } from '@/lib/fantrax/refresh';
+import { refreshLiveSeason } from '@/lib/fantrax/live-season';
 
 // POST /api/revalidate with "Authorization: Bearer <REVALIDATE_SECRET>" clears every cached league
 // query and page. The importer calls this after loading a season.
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
     if (new URL(request.url).searchParams.get('external') === '1') {
         try {
-            await refreshCurrentSeason();
+            await refreshLiveSeason();
             revalidateTag(FANTRAX_TAG);
         } catch (error) {
             console.error('Fantrax revalidation failed:', error);

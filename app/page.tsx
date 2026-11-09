@@ -9,9 +9,9 @@ import RosterBrowser from '@/components/home/roster-browser';
 import HeroRink from '@/components/home/hero-rink';
 import HeroStudio from '@/components/home/hero-studio';
 import SectionLink from '@/components/home/section-link';
-import { BYE_TEAMS, PLAYOFF_TEAMS } from '@/lib/fantrax/config';
-import { FANTRAX_LEAGUE_URL, getLeagueSnapshot, getMatchupScores, getRosterStats, getScoringLeaders } from '@/lib/fantrax/data';
-import { periodPhase, selectPeriod, shortDate } from '@/lib/fantrax/model';
+import { fantraxLeagueUrl } from '@/lib/fantrax/config';
+import { fantraxLeagueIdOf, getLiveSeason } from '@/lib/fantrax/live-season';
+import { shortDate } from '@/lib/fantrax/model';
 import { getPublishedEpisodes } from '@/lib/data/coachs-corner';
 import { formatFpts, seasonLabel } from '@/lib/league';
 import styles from '@/components/home/home.module.css';
@@ -25,27 +25,23 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function HomePage() {
-    const snapshot = await getLeagueSnapshot().catch(() => null);
-    const now = Date.now();
-    const period = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
-    const current = snapshot ? selectPeriod(snapshot.scoringPeriods, undefined, now) : null;
-    const loadScores = (item: typeof period) => item && periodPhase(item, now) !== 'upcoming' ? getMatchupScores(item.number).catch(() => null) : null;
-    const [scores, leaders, rosterStats, episodes] = await Promise.all([
-        loadScores(period),
-        snapshot ? getScoringLeaders(snapshot.seasonYear).catch(error => { console.error('Fantrax scoring leaders unavailable:', error); return null; }) : null,
-        snapshot ? getRosterStats(snapshot.seasonYear).catch(error => { console.error('Fantrax roster stats unavailable:', error); return null; }) : null,
+    const [result, episodes] = await Promise.all([
+        getLiveSeason({ now: Date.now() }),
         getPublishedEpisodes().catch(error => { console.error("Coach's Corner episodes unavailable:", error); return []; }),
     ]);
+    const live = result.status === 'available' ? result.value : null;
+    const fantraxUrl = fantraxLeagueUrl(fantraxLeagueIdOf(result));
+    const leaders = live?.leaders.status === 'available' ? live.leaders.value : null;
+    const rosterStats = live?.rosterStats.status === 'available' ? live.rosterStats.value : null;
     const latestEpisode = episodes[0];
-    const opening = snapshot?.scoringPeriods[0];
-    const preseason = opening ? now < Date.parse(opening.startDate) : false;
-    const season = snapshot ? seasonLabel(snapshot.seasonYear) : 'Current season';
-    const updated = snapshot ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(snapshot.fetchedAt)) : null;
-    const totalGames = snapshot?.teams.some(team => team.record && team.record !== '0-0-0');
-    const seasonPeriods = snapshot?.scoringPeriods.map(item => item.number) ?? [];
-    const playoffTeams = snapshot ? PLAYOFF_TEAMS : 0;
-    const byeTeams = snapshot ? BYE_TEAMS : 0;
-    const seasonYear = snapshot?.seasonYear ?? null;
+    const opening = live?.weeks[0];
+    const preseason = opening?.phase === 'upcoming';
+    const season = live ? seasonLabel(live.seasonYear) : 'Current season';
+    const updated = live ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(live.fetchedAt)) : null;
+    const totalGames = live?.standings.rows.some(row => row.record && row.record !== '0-0-0');
+    const playoffTeams = live?.standings.playoffTeams ?? 0;
+    const byeTeams = live?.standings.byeTeams ?? 0;
+    const seasonYear = live?.seasonYear ?? null;
 
     return <main className={styles.home}>
         <section className={styles.hero} aria-labelledby="home-heading">
@@ -69,29 +65,28 @@ export default async function HomePage() {
                 <span className={styles.updateLabel}>{updated ? <>Updated {updated} ET</> : 'Snapshot temporarily unavailable'}</span>
             </div>
 
-            {snapshot && period && current ? <MatchupBrowser periods={snapshot.scoringPeriods} seasonPeriods={seasonPeriods} schedule={snapshot.schedule} current={{ period: current, matchups: snapshot.schedule.find(item => item.period === current.number)?.matchupList ?? [], scores }} finalPeriods={snapshot.finalPeriods} teams={snapshot.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} now={now} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
+            {live ? <MatchupBrowser weeks={live.weeks} current={{ week: live.currentWeek, scores: live.scores.status === 'available' ? live.scores.value : null }} teams={live.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} fantraxLeagueId={live.fantraxLeagueId} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={fantraxUrl} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
 
             <div className={styles.leagueGrid}>
                 <section id="standings" aria-labelledby="standings-heading" tabIndex={-1}>
                     <div className={styles.sectionHeading}><h2 id="standings-heading">Standings</h2></div>
                     <div className={styles.standingsPanel}>
-                        {snapshot ? <table className={styles.standingsTable}><caption className="sr-only">{season} YOFHL standings. {preseason ? 'Season has not started; all teams are tied.' : ''} {playoffTeams ? `The top ${playoffTeams} teams make the playoffs.` : ''} {byeTeams ? `The top ${byeTeams} get a first-round bye.` : ''}</caption><thead><tr><th scope="col"><span className="sr-only">Rank</span>#</th><th scope="col">Team</th><th scope="col">W–L–T</th><th scope="col"><abbr title="Fantasy points for">FPts</abbr></th></tr></thead><tbody>
-                            {snapshot.teams.flatMap((team, index) => {
+                        {live ? <table className={styles.standingsTable}><caption className="sr-only">{season} YOFHL standings. {preseason ? 'Season has not started; all teams are tied.' : ''} {playoffTeams ? `The top ${playoffTeams} teams make the playoffs, and the top ${byeTeams} get first-round byes.` : ''}</caption><thead><tr><th scope="col"><span className="sr-only">Rank</span>#</th><th scope="col">Team</th><th scope="col">W–L–T</th><th scope="col"><abbr title="Fantasy points for">FPts</abbr></th></tr></thead><tbody>
+                            {live.standings.rows.flatMap(({ team, rank, record, points, bye, playoffLineBelow }) => {
                                 const name = <span className={styles.standingName}><span>{team.name}</span></span>;
-                                // the bye belongs to the slot, not the team in it, so the rank cell carries it
-                                const rank = preseason || !totalGames ? '—' : team.rank ?? '—';
                                 const row = <tr key={team.id}>
-                                    <td className={styles.standingsRank}>{rank !== '—' && index < byeTeams ? <span className={styles.byeSlot} title="First-round bye">{rank}</span> : rank}</td>
-                                    <th scope="row">{team.franchiseId ? <Link href={`/teams/${team.franchiseId}`} className={styles.standingTeam}><TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={36} ring="none" />{name}</Link> : name}</th>
-                                    <td className={styles.standingsRecord}>{team.record ?? '—'}</td><td className={styles.standingsPoints}>{team.points == null ? '—' : formatFpts(team.points)}</td>
+                                    {/* the bye belongs to the slot, not the team in it, so the rank cell carries it */}
+                                    <td className={styles.standingsRank}>{preseason || !totalGames || rank == null ? '—' : bye ? <span className={styles.byeSlot} title="First-round bye">{rank}</span> : rank}</td>
+                                    <th scope="row">{team.href ? <Link href={team.href} className={styles.standingTeam}><TeamBadge logo={team.logo} abbreviation={team.abbreviation} teamName={team.name} size={36} ring="none" />{name}</Link> : name}</th>
+                                    <td className={styles.standingsRecord}>{record ?? '—'}</td><td className={styles.standingsPoints}>{points == null ? '—' : formatFpts(points)}</td>
                                 </tr>;
                                 // the caption already says how many teams make it, so the line itself is decoration
-                                return index === playoffTeams - 1 && index < snapshot.teams.length - 1
+                                return playoffLineBelow
                                     ? [row, <tr key="playoff-line" className={styles.playoffLine} aria-hidden="true"><td colSpan={4}><span>Playoffs</span></td></tr>]
                                     : [row];
                             })}
                         </tbody></table> : <p className={styles.emptyState}>Standings will return when the league snapshot is available.</p>}
-                        <div className={styles.standingsFooter}><span>{preseason || !totalGames ? 'No games played yet' : byeTeams ? <span className={styles.byeLegend}><i aria-hidden="true" />Top {byeTeams} get a first-round bye</span> : null}</span><a href={FANTRAX_LEAGUE_URL} target="_blank" rel="noreferrer">View on fantrax <Arrow direction="out" /></a></div>
+                        <div className={styles.standingsFooter}><span>{preseason || !totalGames ? 'No games played yet' : byeTeams ? <span className={styles.byeLegend}><i aria-hidden="true" />Top {byeTeams} get a first-round bye</span> : null}</span><a href={fantraxUrl} target="_blank" rel="noreferrer">View on fantrax <Arrow direction="out" /></a></div>
                     </div>
                 </section>
 
@@ -99,12 +94,12 @@ export default async function HomePage() {
                     <div className={styles.sectionHeading}><h2 id="leaders-heading">Scoring leaders</h2></div>
                     <div className={styles.leadersCard}>
                         {leaders?.players.length ? <ol>{leaders.players.map((player, index) => {
-                            const team = snapshot?.teams.find(team => team.id === player.teamId);
-                            const logo = <TeamBadge logo={team?.logo ?? null} abbreviation={team?.abbreviation ?? player.team} teamName={team?.name ?? player.team} size={32} ring="none" />;
+                            const team = player.team;
+                            const logo = <TeamBadge logo={team?.logo ?? null} abbreviation={team?.abbreviation ?? player.fantraxTeam} teamName={team?.name ?? player.fantraxTeam} size={32} ring="none" />;
                             return <li key={player.id}><TeamBranding teamId={team?.franchiseId} data-brand-layout="card">
                                 <div data-brand-part="surface" className={styles.leaderPlayer}>
                                     <span className={styles.leaderRank} aria-label={`Rank ${index + 1}`}>{index + 1}</span>
-                                    {team?.franchiseId ? <Link className={styles.leaderLogo} href={`/teams/${team.franchiseId}`} aria-label={`${team.name} team page`}>{logo}</Link> : logo}
+                                    {team?.href ? <Link className={styles.leaderLogo} href={team.href} aria-label={`${team.name} team page`}>{logo}</Link> : logo}
                                     <div className={styles.leaderDetails}>
                                         {player.archiveId ? <Link className={styles.leaderName} href={playerHref(player.archiveId)}>{player.name}</Link> : <span className={styles.leaderName}>{player.name}</span>}
                                         <span className={styles.leaderPosition}>{player.position.replace(/,/g, ' · ')}</span>
@@ -120,7 +115,7 @@ export default async function HomePage() {
                 </section>
             </div>
 
-            {snapshot ? <RosterBrowser teams={snapshot.teams} rosterPeriod={snapshot.rosterPeriod} stats={rosterStats} /> : null}
+            {live ? <RosterBrowser teams={live.teams} rosterPeriod={live.lineupPeriod} stats={rosterStats} /> : null}
 
             <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading">
                 <div className={styles.archiveBackdrop} aria-hidden="true">

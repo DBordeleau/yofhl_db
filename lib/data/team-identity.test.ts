@@ -40,6 +40,7 @@ const SEED = `
 `;
 
 // Fantrax's live team 6pfjiq07mutybt24 is franchise 1; the saved snapshot keeps Fantrax off the network.
+const LEAGUE = 'rf5o9cu2mutybszr';
 const snapshot = () => ({
     source: {
         fetchedAt: new Date().toISOString(),
@@ -49,7 +50,7 @@ const snapshot = () => ({
                 '6pfjiq07mutybt24': { id: '6pfjiq07mutybt24', name: 'Fantrax spelling' },
                 '4num7i90mutybt24': { id: '4num7i90mutybt24', name: 'Fantrax spelling 2' },
             },
-            scoringPeriods: [{ number: 1, startDate: '2026-10-07T00:00:00.000Z', endDate: '2026-10-13T23:59:59.000Z' }],
+            scoringPeriods: [{ number: 1, startDate: '2099-10-07T00:00:00.000Z', endDate: '2099-10-13T23:59:59.000Z' }],
             rosterPeriods: [],
             matchups: [],
             playoffs: { numPlayoffTeams: 4, lastRegularSeasonPeriod: 20 },
@@ -94,8 +95,10 @@ async function setup(t: TestContext) {
     });
     await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
     await client.exec(SEED);
-    await client.query(`insert into league.fantrax_snapshots (league_id, data) select $1, $2::jsonb`,
-        [(await import('../fantrax/config')).FANTRAX_LEAGUE_ID, JSON.stringify(snapshot())]);
+    // league.yml maps the live season's Fantrax teams to franchises; the importer loads it into league.fantrax_teams.
+    await client.query(`insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id) values
+        (2027, $1, '6pfjiq07mutybt24', 1), (2027, $1, '4num7i90mutybt24', 2)`, [LEAGUE]);
+    await client.query(`insert into league.fantrax_snapshots (league_id, data) select $1, $2::jsonb`, [LEAGUE, JSON.stringify(snapshot())]);
     return { client, rows: runtime.rows };
 }
 
@@ -107,13 +110,15 @@ async function currentSurfaces(rows: <T>(query: SQL) => Promise<T[]>, id: number
     const { getSearchDirectory } = await import('./search');
     const { getLotteryTeams } = await import('../lottery/data');
     const { managedTeamsQuery, ownedTeamQuery } = await import('../owner/queries');
-    const { getLeagueSnapshot } = await import('../fantrax/data');
+    const { getLiveSeason } = await import('../fantrax/live-season');
     const card = (await league.getFranchiseCards()).find(card => card.ID === id)!;
     const page = (await league.getFranchise(id))!;
     const lottery = (await getLotteryTeams()).find(team => team.id === id)!;
     const managed = (await rows<Identity & { id: number }>(managedTeamsQuery)).find(team => team.id === id)!;
     const search = (await getSearchDirectory()).find(entry => entry.kind === 'teams' && entry.id === String(id))!;
-    const live = (await getLeagueSnapshot()).teams.find(team => team.franchiseId === id)!;
+    const season = await getLiveSeason({ now: Date.now() });
+    if (season.status !== 'available') assert.fail('the live season is unavailable');
+    const live = season.value.teams.find(team => team.franchiseId === id)!;
     const surfaces: Record<string, Identity> = {
         'franchise cards': { name: card.Team, abbreviation: card.Abbreviation, logo: card.LogoUrl },
         'team page': { name: page.name, abbreviation: page.abbreviation, logo: page.logo },
