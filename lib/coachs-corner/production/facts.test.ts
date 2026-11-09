@@ -175,7 +175,7 @@ test('a Fantrax team the season map does not cover stops the export, naming the 
         /Fantrax team "Home Team" \(h\) has no franchise.*seasons\.2027\.fantrax\.teams/);
 });
 
-test("the export uses the map for the season year Fantrax reports, and only when it names the fetched league", async () => {
+test("the export uses the map for the season Fantrax reports, and only when it names the fetched league", async () => {
     // 2028 holds the live league, but Fantrax reports 2027
     const live = { league: 'liveleague', teams: { h: 1, a: 2 } };
     await assert.rejects(captureFacts({ ...config, seasons: { 2028: { fantrax: live } } }, { period: 7, fetcher: mockFetch(fixtures()) }),
@@ -184,7 +184,7 @@ test("the export uses the map for the season year Fantrax reports, and only when
         { period: 7, fetcher: mockFetch(fixtures()) }), /seasons\.2027\.fantrax\.league is otherleague, but the export fetched liveleague/);
 });
 
-test('a map entry naming an unknown, inactive or already-mapped franchise stops the export, naming the league.yml key', async () => {
+test('a map entry naming an unknown franchise, one with no team season, or one already mapped stops the export, naming the league.yml key', async () => {
     const capture = (teams: Record<string, number>, franchises = config.franchises) =>
         captureFacts({ ...withTeams(teams), franchises }, { period: 7, fetcher: mockFetch(fixtures()) });
     await assert.rejects(capture({ h: 99, a: 2 }), /Fantrax team "Home Team" \(h\) maps to franchise 99, which isn't in league\/league\.yml's franchises.*seasons\.2027\.fantrax\.teams/);
@@ -194,7 +194,7 @@ test('a map entry naming an unknown, inactive or already-mapped franchise stops 
         await assert.rejects(capture({ h: franchise.id, a: 2 }, [...config.franchises, franchise]),
             new RegExp(`Fantrax team "Home Team" \\(h\\) maps to franchise ${franchise.id}, which has no team season in 2026–27.*seasons\\.2027\\.fantrax\\.teams`));
     }
-    await assert.rejects(capture({ h: 2, a: 2 }), /Fantrax teams h and a are both mapped to franchise 2.*seasons\.2027\.fantrax\.teams/);
+    await assert.rejects(capture({ h: 2, a: 2 }), /Fantrax teams h and a are both mapped to franchise 2 for 2026–27.*seasons\.2027\.fantrax\.teams/);
 });
 
 test("map entries for Fantrax teams that Fantrax didn't return are ignored", async () => {
@@ -300,7 +300,7 @@ test('birthplace comes from a uniquely matched NHL landing record, independent o
     assert.equal(ambiguous.bornInNorthAmerica, null);
 });
 
-test('the reference packet lists every franchise active in its season with that team season identity', () => {
+test('the reference packet lists every franchise with a team season in its season, with that team season identity', () => {
     const franchises = [...config.franchises,
         { id: 3, eras: [{ from: 2030, name: 'Expansion Team', abbreviations: ['EXP'] }] },
         { id: 4, folded: 2025, eras: [{ from: 2020, name: 'Gone Team', abbreviations: ['GONE'] }] },

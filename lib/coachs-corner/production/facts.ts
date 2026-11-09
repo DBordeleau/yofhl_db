@@ -139,27 +139,27 @@ export function selectRecapPeriod(periods: Period[], now: number): { period: Per
 }
 
 /**
- * Each Fantrax team's franchise, from league.yml's `fantrax.teams` map for the season year Fantrax reports.
+ * Each Fantrax team's franchise, from league.yml's `fantrax.teams` map for the season Fantrax reports.
  * Entries for Fantrax teams that Fantrax didn't return are ignored.
  */
 function franchisesFor(config: LeagueConfig, core: SourceCore, leagueId: string): Map<string, number> {
-    const season = seasonLabel(core.seasonYear), block = `seasons.${core.seasonYear}.fantrax`, key = `${block}.teams`;
+    const label = seasonLabel(core.seasonYear), block = `seasons.${core.seasonYear}.fantrax`, key = `${block}.teams`;
     const fantrax = config.seasons[core.seasonYear]?.fantrax;
-    if (!fantrax) throw new Error(`league/league.yml has no fantrax block for ${season}, the season Fantrax reports. Add ${block} with its league and teams.`);
-    if (fantrax.league !== leagueId) throw new Error(`${block}.league is ${fantrax.league}, but the export fetched ${leagueId} for ${season}. Make league/league.yml agree on the live season's league.`);
+    if (!fantrax) throw new Error(`league/league.yml has no fantrax block for ${label}, the season Fantrax reports. Add ${block} with its league and teams.`);
+    if (fantrax.league !== leagueId) throw new Error(`${block}.league is ${fantrax.league}, but the export fetched ${leagueId} for ${label}. Make league/league.yml agree on the live season's league.`);
     const teams = fantrax.teams ?? {};
     const mapped = new Map<string, number>();
-    const teamFor = new Map<number, string>();
+    const fantraxTeamOf = new Map<number, string>();
     for (const team of core.teams) {
         const franchiseId = teams[team.id];
         const fantraxTeam = `Fantrax team "${team.name}" (${team.id})`;
-        if (franchiseId === undefined) throw new Error(`${fantraxTeam} has no franchise for ${season}. Add ${team.id} to ${key} in league/league.yml.`);
+        if (franchiseId === undefined) throw new Error(`${fantraxTeam} has no franchise for ${label}. Add ${team.id} to ${key} in league/league.yml.`);
         const franchise = config.franchises.find(f => f.id === franchiseId);
         if (!franchise) throw new Error(`${fantraxTeam} maps to franchise ${franchiseId}, which isn't in league/league.yml's franchises. Fix ${key}.${team.id}.`);
-        if (!teamSeason(franchise, core.seasonYear)) throw new Error(`${fantraxTeam} maps to franchise ${franchiseId}, which has no team season in ${season}. Fix ${key}.${team.id} or the franchise's eras in league/league.yml.`);
-        const other = teamFor.get(franchiseId);
-        if (other) throw new Error(`Fantrax teams ${other} and ${team.id} are both mapped to franchise ${franchiseId}. Fix ${key} in league/league.yml.`);
-        teamFor.set(franchiseId, team.id);
+        if (!teamSeason(franchise, core.seasonYear)) throw new Error(`${fantraxTeam} maps to franchise ${franchiseId}, which has no team season in ${label}. Fix ${key}.${team.id} or the franchise's eras in league/league.yml.`);
+        const taken = fantraxTeamOf.get(franchiseId);
+        if (taken) throw new Error(`Fantrax teams ${taken} and ${team.id} are both mapped to franchise ${franchiseId} for ${label}. Fix ${key} in league/league.yml.`);
+        fantraxTeamOf.set(franchiseId, team.id);
         mapped.set(team.id, franchiseId);
     }
     return mapped;
@@ -180,12 +180,11 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
     const leagueId = liveFantraxLeague(config);
     const [league, directory] = await Promise.all([fantrax.league(leagueId), fantrax.playerDirectory()]);
     const core = readCore(league, directory);
-    const periods = core.weeks;
     // An intended air date selects the editorial week only. Source times and phase stay live.
-    const recap = options.recap ? selectRecapPeriod(periods, Date.parse(options.airDate ? `${options.airDate}T12:00:00Z` : started)) : undefined;
+    const recap = options.recap ? selectRecapPeriod(core.weeks, Date.parse(options.airDate ? `${options.airDate}T12:00:00Z` : started)) : undefined;
     const period = recap?.period ?? (options.period === undefined
-        ? periods.find(p => Date.parse(p.endDate) >= Date.parse(started)) ?? periods.at(-1)!
-        : periods.find(p => p.number === options.period));
+        ? core.weeks.find(week => Date.parse(week.endDate) >= Date.parse(started)) ?? core.weeks.at(-1)!
+        : core.weeks.find(week => week.number === options.period));
     if (!period) throw new Error(`Unknown scoring period ${options.period}. Choose one from the league calendar.`);
     const season = core.seasonYear;
     const franchises = franchisesFor(config, core, leagueId);
@@ -195,6 +194,7 @@ export async function captureFacts(config: LeagueConfig, options: { period?: num
         return { ...studioTeam(config, season, franchises.get(team.id)!), fantraxId: team.id, rank: standing.rank, record: standing.record, points: standing.points };
     });
     const phase = Date.parse(started) < Date.parse(period.startDate) ? 'upcoming' : Date.parse(started) > Date.parse(period.endDate) ? 'complete' : 'active';
+    // a team with a bye has a published matchup with only one side
     const scheduledMatchups = (core.schedule.find(round => round.week === period.number)?.matchups ?? [])
         .filter(m => m.away.id && m.home.id).map(m => ({ awayId: m.away.id!, homeId: m.home.id! }));
     let matchups: Matchup[] = [];
