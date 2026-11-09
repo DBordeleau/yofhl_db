@@ -1,16 +1,11 @@
 import assert from 'node:assert/strict';
-import { test, type TestContext } from 'node:test';
+import test from 'node:test';
 import type { PGlite } from '@electric-sql/pglite';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
 import { archiveCompletedQuery, cancelQuery, drawQuery, editQuery, lotteryLogosQuery, publicLotteryQuery } from './queries';
 import { publicLottery, type LotteryEntry, type LotteryRecord } from './model';
 import { disposableLeague } from '../testing/disposable-league';
-
-// In-memory Postgres built from the real migrations: these tests never connect to the league database.
-async function leagueDatabase(t: TestContext) {
-    return (await disposableLeague(t)).client;
-}
 
 // Franchises as [id, logo], and team seasons as [franchise, season, logo].
 async function seedTeams(db: PGlite, franchises: [number, string | null][], seasons: [number, number, string | null][] = []) {
@@ -26,7 +21,7 @@ async function seedTeams(db: PGlite, franchises: [number, string | null][], seas
 }
 
 test('database enforces one draw, edit/cancel deadlines, stale version protection and one current event', async t => {
-    const db = await leagueDatabase(t);
+    const db = (await disposableLeague(t)).client;
     const dialect = new PgDialect();
     const run = (query: SQL) => { const { sql, params } = dialect.sqlToQuery(query); return db.query(sql, params); };
     const id = '00000000-0000-4000-8000-000000000001';
@@ -64,7 +59,7 @@ test('database enforces one draw, edit/cancel deadlines, stale version protectio
 });
 
 test('lottery logos match team pages and repair saved snapshots without changing the draw', async t => {
-    const db = await leagueDatabase(t);
+    const db = (await disposableLeague(t)).client;
     await seedTeams(db, [[1, '/franchise.png'], [2, '/fallback.png'], [3, null], [4, null]],
         [[1, 2025, '/old.png'], [1, 2026, '/current.png'], [2, 2026, null]]);
     const entries: LotteryEntry[] = [1, 2, 3, 4, 5].map((id) => ({ id, name: `Saved team ${id}`, abbreviation: `T${id}`, logo: id >= 3 && id !== 4 ? '/saved.png' : null, odds: id <= 4 ? 25 : null }));
