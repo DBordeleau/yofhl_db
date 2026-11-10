@@ -59,7 +59,7 @@ _Avoid_: draft season
 The current season as Fantrax has it now. The archive holds finished seasons. Read it through the live season module (`lib/fantrax/live-season.ts`).
 
 **Week**:
-One Fantrax scoring period.
+One Fantrax scoring period. "Lineup period" in the roster browser is Fantrax's own label, shown to owners as they see it on Fantrax, so that wording is not a breach of this term.
 _Avoid_: period, outside the Fantrax adapter
 
 **Final week**:
