@@ -19,7 +19,7 @@ export default function PickemWeekSection({ week, link }: { week: Week; link?: {
         {link && <Link href={link.href} className="mt-2 inline-block text-sm font-bold text-rink-red underline">{link.label}</Link>}
         {week.whosIn && <PickemWhosIn whosIn={week.whosIn} />}
         {locked && week.breakdown
-            ? <PickemBreakdown breakdown={week.breakdown} />
+            ? <PickemBreakdown seasonYear={week.seasonYear} week={week.week} breakdown={week.breakdown} />
             : <PickemWeek key={week.week} seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} locked={locked} />}
     </section>;
 }
