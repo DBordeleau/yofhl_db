@@ -17,9 +17,10 @@ export const metadata: Metadata = {
 };
 
 // The public page reads for nobody: the Pick'em leaderboard above the next week to lock. Results arrive with the
-// evening refresh's settle; the next week to lock turns over at noon, so the page is rebuilt every minute. Other
-// weeks live at /pickem/week/[week] and past seasons at /pickem/[season], so this page reads no search params and
-// stays cached.
+// evening refresh's settle, which expires the page's cached reads; the next week to lock turns over at noon, so the
+// page is rebuilt every minute and never shows a week as locked before its lock. Other weeks live at
+// /pickem/week/[week] and past seasons at /pickem/[season], so this page reads no search params and stays cached.
+// Owners' own picks load in the browser, only with the session hint (ADR 0003).
 export const revalidate = 60;
 
 export default async function PickemPage() {

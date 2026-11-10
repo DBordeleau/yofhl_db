@@ -13,7 +13,8 @@ interface PickTarget {
 
 // Every write is one statement (ADR 0002) that rechecks, against the database clock, that the owner manages the
 // entry's franchise, that it has not folded and that the week has not locked. It returns no row when the owner no
-// longer manages the franchise, and `open: false` when the lock has passed.
+// longer manages the franchise, and `open: false` when the lock has passed. `changed` says whether the entry's picked
+// matchups changed (a new pick, or a pick cleared) rather than only the side picked, which is what who's in reads.
 const entry = (target: PickTarget) => sql`entry as (
     select f.id, clock_timestamp() < ${target.lock}::timestamptz as open
     from league.franchises f join league.team_management m on m.franchise_id = f.id
@@ -28,9 +29,9 @@ export const savePickQuery = (target: PickTarget, picked: number) => sql`
         from entry where entry.open
         on conflict (season_year, week, entry_franchise_id, low_franchise_id, high_franchise_id)
         do update set picked_franchise_id = excluded.picked_franchise_id, saved_at = clock_timestamp()
-        returning 1
+        returning xmax = 0 as inserted
     )
-    select open from entry`;
+    select open, exists (select 1 from saved where inserted) as changed from entry`;
 
 export const clearPickQuery = (target: PickTarget) => sql`
     with ${entry(target)},
@@ -41,7 +42,7 @@ export const clearPickQuery = (target: PickTarget) => sql`
           and p.low_franchise_id = ${target.matchup[0]}::int and p.high_franchise_id = ${target.matchup[1]}::int
         returning 1
     )
-    select open from entry`;
+    select open, exists (select 1 from cleared) as changed from entry`;
 
 /** One entry's Pick'em picks for a week, whatever pairings they were made against */
 export const entryPicksQuery = (seasonYear: number, week: number, entryFranchiseId: number) => sql`

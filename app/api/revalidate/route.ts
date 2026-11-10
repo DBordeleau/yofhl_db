@@ -4,7 +4,8 @@ import { LEAGUE_TAG } from '@/lib/data/db';
 import { FANTRAX_TAG, refreshLiveSeason } from '@/lib/fantrax/live-season';
 
 // POST /api/revalidate with "Authorization: Bearer <REVALIDATE_SECRET>" clears every cached league
-// query and page. The importer calls this after loading a season.
+// query and page, Pick'em's cached reads among them (every cached() read carries LEAGUE_TAG). The importer calls
+// this after loading a season.
 export async function POST(request: Request) {
     const secret = process.env.REVALIDATE_SECRET;
     if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {

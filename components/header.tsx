@@ -16,6 +16,7 @@ import TeamBadge from '@/components/team-badge';
 import { useOwnerNavigation } from '@/lib/owner/navigation';
 import KeeperReminder from '@/components/keepers/reminder';
 import { KEEPERS_ENABLED } from '@/lib/keepers/model';
+import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
 import Arrow from '@/components/arrow';
 import MobileNav, { type MobileSheet } from '@/components/navigation/mobile-nav';
 import { clubName } from '@/lib/team-identity';
@@ -220,7 +221,10 @@ const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime,
                 <p className={styles.eyebrow}>Awards &amp; records</p>
                 <div className={styles.sheetLinks}>{sideLink('/awards', 'Awards')}{sideLink('/records', 'Record book')}</div>
             </div>
-            <div className={styles.sheetLinks}>{sideLink('/coachs-corner', <span className={styles.coachsCornerLabel}>Coach&rsquo;s Corner<NewEpisodeBadge episodeKey={latestCoachsCornerEpisode} /></span>)}</div>
+            <div className={styles.sheetLinks}>
+                {sideLink('/coachs-corner', <span className={styles.coachsCornerLabel}>Coach&rsquo;s Corner<NewEpisodeBadge episodeKey={latestCoachsCornerEpisode} /></span>)}
+                {PICKEM_LAUNCH && sideLink('/pickem', 'Pick’em')}
+            </div>
             {ownerLink}
         </>,
     };
@@ -251,6 +255,7 @@ const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime,
                         </button>
                     </li>)}
                     <li><Link href="/coachs-corner" className={styles.item} data-active={pathname.startsWith('/coachs-corner') || undefined} onClick={() => setOpen(null)}><span className={styles.coachsCornerLabel}>Coach&rsquo;s Corner<NewEpisodeBadge episodeKey={latestCoachsCornerEpisode} /></span></Link></li>
+                    {PICKEM_LAUNCH && <li><Link href="/pickem" className={styles.item} data-active={pathname.startsWith('/pickem') || undefined} onClick={() => setOpen(null)}>Pick&rsquo;em</Link></li>}
                 </ul>
 
                 {!isPrivateRoute(pathname) && <HeaderSearch onOpen={close} />}
