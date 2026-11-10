@@ -14,8 +14,8 @@ export default function PickemSeasonSummary({ seasonYear, winners }: { seasonYea
             {winners.length > 1 ? 'Joint winners' : 'Winner'}: {winners.map(named).join(', ')}
         </p>}
         <p className="mt-1 text-ink-soft">
-            Pick the winner of each regular-season matchup before noon ET on the week&apos;s first day. Ranked by correct
-            picks, then fewer wrong. Playoffs don&apos;t count. {PRIZES[seasonYear]}
+            Pick the winner of each regular-season matchup before noon ET on the week&apos;s first day. Ranked by most
+            correct, then fewest wrong. Playoffs don&apos;t count. {PRIZES[seasonYear]}
         </p>
     </div>;
 }
