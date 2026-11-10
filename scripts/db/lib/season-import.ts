@@ -14,9 +14,11 @@ import { eraFor, findByAbbreviation, findByName, suggestEra, type LeagueConfig, 
 // database. `importSeasons` is the one call; scripts/db/import.ts runs it after migrations and prints
 // what it returns. The module prints nothing and never sets an exit code.
 //
-// Nothing is written unless every season validates. Each season is replaced in one transaction:
-// standings, player seasons and playoff games are rebuilt; championship rosters and awards are
-// never touched (the legacy seeds are loaded once for seasons that have none).
+// All or nothing: every season validates before anything is written, then the league configuration,
+// Fantrax teams, every season, the legacy seeds, history and the view refreshes are written in one
+// transaction (docs/adr/0003-season-import-is-one-transaction.md). Standings, player seasons and playoff
+// games are rebuilt; championship rosters and awards are never touched (the legacy seeds are loaded once
+// for seasons that have none).
 
 interface SeasonFiles {
     year: number;
@@ -404,7 +406,10 @@ const seedLegacy = async (db: Db, config: LeagueConfig, legacy: LegacySeeds, yea
 };
 
 export interface SeasonImportInput {
-    /** A database already migrated: saved bracket corrections are read from it during validation. */
+    /**
+     * A database already migrated, on a driver with interactive transactions (postgres-js or PGlite, not
+     * Neon's HTTP driver). Saved bracket corrections and curated rings and awards are read from it during validation.
+     */
     db: Db;
     config: LeagueConfig;
     /** The folder holding the season CSVs, with transactions/ and drafts/ inside it. */
@@ -428,8 +433,20 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
     if (!years.length) throw new Error(`No Fantrax CSVs found in ${dataDir}/`);
     const history = prepareHistory(dataDir, config, years);
 
-    // the admin panel's bracket corrections are validated with the CSVs
+    // the admin panel's bracket corrections are validated with the CSVs, and the curated rings and awards with the player exports
     const matchupOverrides = await db.select().from(schema.matchupOverrides);
+    const curated = [
+        ...(await db
+            .select({ year: schema.championshipRosters.seasonYear, playerId: schema.championshipRosters.playerId, player: schema.players.name })
+            .from(schema.championshipRosters)
+            .innerJoin(schema.players, eq(schema.players.id, schema.championshipRosters.playerId))
+            .where(inArray(schema.championshipRosters.seasonYear, years))),
+        ...(await db
+            .select({ year: schema.awards.seasonYear, playerId: schema.awards.playerId, player: schema.players.name })
+            .from(schema.awards)
+            .innerJoin(schema.players, eq(schema.players.id, schema.awards.playerId))
+            .where(inArray(schema.awards.seasonYear, years))),
+    ];
 
     // validate everything before writing any league data
     const errors: string[] = [];
@@ -443,38 +460,41 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
         const season = prepareSeason(config, files, errors, matchupOverrides);
         if (season) prepared.push(season);
     }
+
+    // players on a ring or award list must survive even with 0 points as a free agent, so each must be in the export
+    const keep = new Map<string, string>();
+    legacy.awards.forEach((a) => keep.set(`${a.season}:${a.playerId}`, a.player));
+    Object.entries(legacy.rosters).forEach(([y, roster]) => roster.forEach((p) => keep.set(`${y}:${p.playerId}`, p.player)));
+    curated.forEach((r) => keep.set(`${r.year}:${r.playerId}`, r.player));
+    for (const [key, player] of keep) {
+        const [y, id] = key.split(':');
+        const season = prepared.find((s) => s.year === parseInt(y, 10));
+        if (season && !season.players.some((p) => p.id === id)) {
+            errors.push(`${seasonLabel(season.year)}: ${player} (${id}) is on a championship roster or award list but isn't in "${season.year - 1}-${season.year} Player Stats.csv"`);
+        }
+    }
+
     // every season's Fantrax IDs, including a live season with no CSVs yet
     const fantraxTeams = prepareFantraxTeams(config);
     errors.push(...fantraxTeams.errors);
     if (errors.length) return { ok: false, errors: Array.from(new Set(errors)) };
 
+    // the NHL lookups run before the transaction, so it isn't held open on the network
     await enrichDraftDevelopment(db, history.picks, loadDraftFacts);
-    await writeLeague(db, config);
-    await writeFantraxTeams(db, fantraxTeams.rows);
 
-    // players on a ring or award list must survive even with 0 points as a free agent
-    const keep = new Set<string>();
-    legacy.awards.forEach((a) => keep.add(`${a.season}:${a.playerId}`));
-    Object.entries(legacy.rosters).forEach(([y, roster]) => roster.forEach((p) => keep.add(`${y}:${p.playerId}`)));
-    const curated = [
-        ...(await db.select({ y: schema.championshipRosters.seasonYear, p: schema.championshipRosters.playerId }).from(schema.championshipRosters).where(inArray(schema.championshipRosters.seasonYear, years))),
-        ...(await db.select({ y: schema.awards.seasonYear, p: schema.awards.playerId }).from(schema.awards).where(inArray(schema.awards.seasonYear, years))),
-    ];
-    curated.forEach((r) => keep.add(`${r.y}:${r.p}`));
-
-    const missing = Array.from(keep).filter((key) => {
-        const [y, id] = key.split(':');
-        const season = prepared.find((s) => s.year === parseInt(y, 10));
-        return season && !season.players.some((p) => p.id === id);
+    const keepIds = new Set(keep.keys());
+    // One transaction: a failure anywhere below leaves the database as it was. The helpers' own
+    // transactions nest inside it as savepoints. See docs/adr/0003-season-import-is-one-transaction.md.
+    const { imported, legacyNotes } = await db.transaction(async (tx) => {
+        await writeLeague(tx, config);
+        await writeFantraxTeams(tx, fantraxTeams.rows);
+        const imported: { year: number; players: number }[] = [];
+        for (const season of prepared) imported.push({ year: season.year, players: await writeSeason(tx, config, season, keepIds) });
+        const legacyNotes = await seedLegacy(tx, config, legacy, new Set(prepared.map((s) => s.year)));
+        await writeHistory(tx, history);
+        await refreshViews(tx);
+        return { imported, legacyNotes };
     });
-    if (missing.length) throw new Error(`These ring/award players aren't in their season's Player Stats CSV: ${missing.join(', ')}`);
-
-    const imported: { year: number; players: number }[] = [];
-    for (const season of prepared) imported.push({ year: season.year, players: await writeSeason(db, config, season, keep) });
-
-    const legacyNotes = await seedLegacy(db, config, legacy, new Set(prepared.map((s) => s.year)));
-    await writeHistory(db, history);
-    await refreshViews(db);
 
     return { ok: true, seasons: imported, legacyNotes };
 };
