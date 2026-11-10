@@ -1,6 +1,6 @@
 'use server';
 
-import type { SavePickemPickRejection, YourPickem } from '@/lib/pickem/create-pickem';
+import type { MatchupPair, SavePickemPickRejection, YourPickem } from '@/lib/pickem/create-pickem';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
 
@@ -25,7 +25,7 @@ export async function readYourPickem(seasonYear: number, week: number): Promise<
     return read.status === 'week' ? read.week.yours : null;
 }
 
-export async function savePickemPick(input: { seasonYear: number; week: number; matchup: [number, number]; picked: number | null }):
+export async function savePickemPick(input: { seasonYear: number; week: number; matchup: MatchupPair; picked: number | null }):
     Promise<{ ok: true } | { error: string }> {
     if (!PICKEM_LAUNCH) return { error: messages['not-open'] };
     if (!input || !isWhole(input.seasonYear) || !isWhole(input.week) || (input.picked !== null && !isWhole(input.picked))) {

@@ -45,9 +45,11 @@ export type AskedSeason =
 /**
  * Finds the season `seasonYear` (the season being played when omitted). A past season is served from Pick'em's
  * record whatever the live season says; while the live season is unavailable, only a complete season is, since it
- * can't be told apart from the season being played otherwise. `seasons` is every Pick'em season, newest first.
+ * can't be told apart from the season being played otherwise. None while Pick'em is switched off. `seasons` is
+ * every Pick'em season, newest first.
  */
 export async function askedSeason(ports: Pick<PickemPorts, 'liveSeason' | 'launch'>, now: number, seasonYear?: number): Promise<AskedSeason> {
+    if (!ports.launch) return { kind: 'none' };
     const [live, recorded] = await Promise.all([loadLivePickem(ports, now), readRecordedSeasons()]);
     const playing = live && firstPickemWeek(live.seasonYear, ports.launch) !== null ? live.seasonYear : null;
     const seasons = [...new Set([...playing === null ? [] : [playing], ...recorded.map(item => item.seasonYear)])].sort((a, b) => b - a);

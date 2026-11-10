@@ -8,7 +8,7 @@ export interface PickemPorts {
     /** the live season module: weeks, pairings, scores and final weeks */
     liveSeason: { getLiveSeason: typeof getLiveSeason; getWeekScores: typeof getWeekScores };
     /** who is signed in, and the owner preamble every save starts with */
-    ownerSession: Pick<OwnerSession, 'currentOwner' | 'ownerPreamble'>;
+    ownerSession: Pick<OwnerSession, 'currentOwnerTeam' | 'ownerPreamble'>;
     /** the launch setting; null while Pick'em is switched off */
     launch: PickemLaunch | null;
 }

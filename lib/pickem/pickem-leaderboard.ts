@@ -90,7 +90,6 @@ export function rankEntries(weeks: Pick<CountedWeek, 'week' | 'matchups' | 'winn
 
 export function createReadPickemLeaderboard(ports: PickemPorts) {
     return async function readPickemLeaderboard(input: ReadPickemLeaderboardInput): Promise<ReadPickemLeaderboardResult> {
-        if (!ports.launch) return { status: 'no-season' };
         const season = await askedSeason(ports, input.now, input.seasonYear);
         if (season.kind === 'none') return { status: 'no-season' };
         if (season.kind === 'unavailable') return { status: 'unavailable' };

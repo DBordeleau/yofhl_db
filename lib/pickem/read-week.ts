@@ -1,13 +1,12 @@
 // Read a Pick'em week for whoever is asking. Visibility is decided here, on the server: the asker's own Pick'em
 // picks are the only ones a read returns.
 import { rows } from '@/lib/data/db';
-import { getOwnedTeam } from '@/lib/owner/teams';
 import { isLocked } from './live-weeks';
 import { entriesOf, lockedWeek, readBreakdown, type CountedWeek, type PickemMatchupBreakdown, type ScoredWeek } from './locked-week';
-import { pairOfMatchup, samePair, type PickemMatchup, type PickemPick } from './model';
+import { pairOfMatchup, samePair, type MatchupPair, type PickemMatchup, type PickemPick } from './model';
 import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
-import { readSeasonEntries, recordedWeek } from './past-season';
+import { pastWeekName, readSeasonEntries, recordedWeek } from './past-season';
 import { readRecordedSeason } from './recorded-weeks';
 import { outcomeOf, type PickemPickOutcome } from './results';
 import { askedSeason } from './seasons';
@@ -73,14 +72,14 @@ export type ReadWeekResult =
 
 export function createReadWeek(ports: PickemPorts) {
     async function yours(week: CountedWeek): Promise<YourPickem> {
-        const owner = await ports.ownerSession.currentOwner();
-        if (!owner) return { status: 'signed-out' };
-        const team = await getOwnedTeam(owner.uid);
+        const signedIn = await ports.ownerSession.currentOwnerTeam();
+        if (!signedIn) return { status: 'signed-out' };
+        const { team } = signedIn;
         if (!team) return { status: 'no-team' };
         const saved = await rows<{ low: number; high: number; picked: number }>(entryPicksQuery(week.seasonYear, week.week, team.id));
         const pairs = week.matchups.map(pairOfMatchup);
         const picks = saved.flatMap((pick): YourPickemPick[] => {
-            const matchup: [number, number] = [pick.low, pick.high];
+            const matchup: MatchupPair = [pick.low, pick.high];
             const index = pairs.findIndex(pair => samePair(pair, matchup));
             if (index < 0) return [];
             return [week.winners ? { matchup, picked: pick.picked, outcome: outcomeOf(pick.picked, week.winners[index]) } : { matchup, picked: pick.picked }];
@@ -99,11 +98,10 @@ export function createReadWeek(ports: PickemPorts) {
             yours: input.asker === 'session' ? await yours(week) : null,
             whosIn: null,
             breakdown: await readBreakdown(week, entries),
-        }, weeks: recorded.map(item => ({ week: item.week, name: `Week ${item.week}`, lock: item.lock, phase: 'locked' })) };
+        }, weeks: recorded.map(item => ({ week: item.week, name: pastWeekName(item.week), lock: item.lock, phase: 'locked' })) };
     }
 
     return async function readWeek(input: ReadWeekInput): Promise<ReadWeekResult> {
-        if (!ports.launch) return { status: 'no-week' };
         const season = await askedSeason(ports, input.now, input.seasonYear);
         if (season.kind === 'none') return { status: 'no-week' };
         if (season.kind === 'unavailable') return { status: 'unavailable' };

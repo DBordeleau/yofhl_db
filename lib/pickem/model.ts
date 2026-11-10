@@ -1,5 +1,5 @@
 // What Pick'em's operations share: the launch setting, its weeks of the live season, and the shapes callers get.
-import type { LiveSeason } from '@/lib/fantrax/live-season';
+import type { LiveSeason, LiveTeam } from '@/lib/fantrax/live-season';
 import { lockOf } from './lock';
 
 /** The season year and week the first Pick'em starts at. Every later season starts at its own first week. */
@@ -23,6 +23,10 @@ export interface PickemMatchup {
 
 /** A matchup as Pick'em keys it: its two franchises, the lower id first */
 export type MatchupPair = [low: number, high: number];
+
+/** A mapped Fantrax team as the franchise it is, with the identity it shows in the live season */
+export const franchiseOf = (team: LiveTeam, id: number): PickemFranchise =>
+    ({ id, name: team.name, abbreviation: team.abbreviation, logo: team.logo });
 
 export const pairOf = (a: number, b: number): MatchupPair => a < b ? [a, b] : [b, a];
 export const samePair = (a: MatchupPair, b: MatchupPair) => a[0] === b[0] && a[1] === b[1];
@@ -62,9 +66,7 @@ export function firstPickemWeek(seasonYear: number, launch: PickemLaunch | null)
 export function livePickemWeeks(live: LiveSeason, launch: PickemLaunch | null): LivePickemWeek[] {
     const first = firstPickemWeek(live.seasonYear, launch);
     if (first === null) return [];
-    const franchises = new Map(live.teams.flatMap(team => team.franchiseId === null ? [] : [[team.id, {
-        id: team.franchiseId, name: team.name, abbreviation: team.abbreviation, logo: team.logo,
-    }] as const]));
+    const franchises = new Map(live.teams.flatMap(team => team.franchiseId === null ? [] : [[team.id, franchiseOf(team, team.franchiseId)] as const]));
     return live.weeks.filter(week => week.stage === 'regular' && week.number >= first).map(week => ({
         seasonYear: live.seasonYear, week: week.number, name: week.name, lock: lockOf(week.startDate),
         endDate: week.endDate, final: week.phase === 'final',

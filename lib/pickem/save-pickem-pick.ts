@@ -4,7 +4,7 @@ import { revalidateTag } from 'next/cache';
 import { rows } from '@/lib/data/db';
 import { TooManyAttemptsError, type OwnerPreambleRejection } from '@/lib/owner/create-owner-session';
 import { isLocked, loadLivePickem } from './live-weeks';
-import { pairOf, pairOfMatchup, samePair } from './model';
+import { pairOf, pairOfMatchup, samePair, type MatchupPair } from './model';
 import type { PickemPorts } from './ports';
 import { clearPickemPickQuery, savePickemPickQuery } from './queries';
 import { pickemWhosInTag } from './whos-in';
@@ -25,7 +25,7 @@ export interface SavePickemPickInput {
     seasonYear: number;
     week: number;
     /** the matchup's two franchises, in either order */
-    matchup: [number, number];
+    matchup: MatchupPair;
     /** the franchise picked to win, or null to clear the pick */
     picked: number | null;
 }
