@@ -217,8 +217,8 @@ export default function MatchupBrowser({ weeks, current, teams, fantraxLeagueId 
         <div className={styles.matchupMeta}>
             <div className={styles.weekControls}>
                 <button type="button" aria-label="Previous week" disabled={index <= 0 || pending} onClick={() => navigate(weeks[index - 1].number)}><Arrow direction="left" animated={false} /></button>
-                <label className="sr-only" htmlFor="scoring-period">Week</label>
-                <select id="scoring-period" value={selected.number} disabled={pending} onChange={event => navigate(Number(event.target.value))}>
+                <label className="sr-only" htmlFor="matchup-week">Week</label>
+                <select id="matchup-week" value={selected.number} disabled={pending} onChange={event => navigate(Number(event.target.value))}>
                     {weeks.map(week => <option value={week.number} key={week.number}>{week.fullName} · {weekLabel(week)}</option>)}
                 </select>
                 <button type="button" aria-label="Next week" disabled={index >= weeks.length - 1 || pending} onClick={() => navigate(weeks[index + 1].number)}><Arrow animated={false} /></button>
