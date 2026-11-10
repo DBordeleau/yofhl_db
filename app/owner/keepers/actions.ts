@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { ownerSession, requireSameOrigin, limitOwnerAction } from '@/lib/owner/auth';
-import { getKeeperRoster, getKeeperSubmission, ownedKeeperTeam } from '@/lib/keepers/data';
+import { getKeeperRoster, getKeeperSubmission } from '@/lib/keepers/data';
+import { getOwnedTeam } from '@/lib/owner/teams';
 import { KEEPERS_ENABLED, CALDER_SEASON, keepersOpen, rosterFingerprint, validateKeepers, type KeeperInput, type KeeperSaveResult, type KeeperPlayer } from '@/lib/keepers/model';
 import { enrichKeeperRoster } from '@/lib/keepers/nhl';
 import { rows } from '@/lib/data/db';
@@ -22,7 +23,7 @@ export async function saveKeeperSelection(input: KeeperInput): Promise<KeeperSav
             !Array.isArray(input.keptIds) || input.keptIds.length > 100 || input.keptIds.some(id => typeof id !== 'string' || id.length > 64) ||
             (input.rookieId !== null && (typeof input.rookieId !== 'string' || !input.rookieId || input.rookieId.length > 64)) ||
             typeof input.rookieDeclared !== 'boolean') return { error: 'Invalid submission. Reload the page and try again.' };
-        const team = await ownedKeeperTeam(user.uid);
+        const team = await getOwnedTeam(user.uid);
         if (!team) return { error: 'This account does not manage an active team.' };
         const [saved, current] = await Promise.all([getKeeperSubmission(team.id), getKeeperRoster(team.id, true)]);
         if ((saved?.version ?? 0) !== input.version) return { error: 'This list changed in another window or was reviewed by the admin. Reload before submitting.' };
@@ -50,7 +51,7 @@ export async function refreshKeeperRoster(): Promise<{ roster: KeeperPlayer[]; f
         if (!user) return { error: 'Sign in again to refresh your roster.' };
         if (!keepersOpen()) return { error: 'Keeper submissions are closed. Your submitted roster is now read-only.' };
         await limitOwnerAction('keeper-refresh', user.uid);
-        const team = await ownedKeeperTeam(user.uid);
+        const team = await getOwnedTeam(user.uid);
         if (!team) return { error: 'This account does not manage an active team.' };
         const current = await getKeeperRoster(team.id, true);
         const roster = await enrichKeeperRoster(current.roster);

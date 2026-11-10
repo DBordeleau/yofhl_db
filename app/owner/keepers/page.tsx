@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import KeeperEditor from '@/components/keepers/keeper-editor';
 import { ownerSession } from '@/lib/owner/auth';
-import { getKeeperSubmission, ownedKeeperTeam, getKeeperRoster } from '@/lib/keepers/data';
+import { getKeeperSubmission, getKeeperRoster } from '@/lib/keepers/data';
+import { getOwnedTeam } from '@/lib/owner/teams';
 import { KEEPERS_ENABLED, keepersOpen } from '@/lib/keepers/model';
 import { refreshKeeperRoster, saveKeeperSelection } from './actions';
 import { enrichKeeperRoster } from '@/lib/keepers/nhl';
@@ -16,7 +17,7 @@ export default async function KeeperPage() {
     if (!KEEPERS_ENABLED) notFound();
     const user = await ownerSession();
     if (!user) redirect('/owner');
-    const team = await ownedKeeperTeam(user.uid);
+    const team = await getOwnedTeam(user.uid);
     if (!team) redirect('/owner');
     const submission = await getKeeperSubmission(team.id);
     const closed = !keepersOpen();
