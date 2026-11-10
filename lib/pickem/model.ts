@@ -42,6 +42,10 @@ export interface LivePickemWeek {
     name: string;
     /** ISO timestamp */
     lock: string;
+    /** ISO timestamp: the week's end, from which its correction window runs */
+    endDate: string;
+    /** whether the live season has it as a final week */
+    final: boolean;
     matchups: PickemMatchup[];
 }
 
@@ -63,6 +67,7 @@ export function livePickemWeeks(live: LiveSeason, launch: PickemLaunch | null): 
     }] as const]));
     return live.weeks.filter(week => week.stage === 'regular' && week.number >= first).map(week => ({
         seasonYear: live.seasonYear, week: week.number, name: week.name, lock: lockOf(week.startDate),
+        endDate: week.endDate, final: week.phase === 'final',
         matchups: week.matchups.flatMap(({ away, home }) => {
             const awayFranchise = away.id ? franchises.get(away.id) : undefined;
             const homeFranchise = home.id ? franchises.get(home.id) : undefined;
