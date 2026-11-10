@@ -4,8 +4,12 @@
 // Its interface is four operations; each lives in its own file and is assembled here:
 //  - savePick (save-pick.ts): save or clear one Pick'em pick
 //  - readWeek (read-week.ts): one week, for nobody or the signed-in owner
-//  - readLeaderboard (leaderboard.ts): a season's Pick'em leaderboard
-//  - settle (settle.ts): record each locked week and freeze each settled one, run by the evening Fantrax refresh
+//  - readLeaderboard (leaderboard.ts): a season's Pick'em leaderboard, and its winner once the season is complete
+//  - settle (settle.ts): record each locked week, freeze each settled one and mark a season complete, run by the
+//    evening Fantrax refresh
+//
+// Every read takes a season year: the season being played is the live season's, and a past season is read from
+// Pick'em's own record alone (seasons.ts, past-season.ts).
 //
 // Pairings, week dates, scores and final weeks come from the live season module only, turned into franchises
 // with the Fantrax team mapping. Everything stored is keyed by season year, week and franchise (ADR 0005).
