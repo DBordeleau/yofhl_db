@@ -1,28 +1,40 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import TeamBadge from '@/components/team-badge';
 import type { PickemWhoIsIn } from '@/lib/pickem/create-pickem';
+import { ENTRY_EVENT, type EntryEvent } from './entry-event';
+import styles from './pickem.module.css';
 
-// Who's in for the next week to lock: the count, then the owners in and those not yet in. No picks are shown.
-export default function PickemWhosIn({ whosIn }: { whosIn: PickemWhoIsIn[] }) {
-    const ins = whosIn.filter(entry => entry.in);
-    const groups = [
-        { label: 'In', entries: ins },
-        { label: 'Not yet', entries: whosIn.filter(entry => !entry.in) },
-    ].filter(group => group.entries.length > 0);
-    return <section aria-labelledby="pickem-whos-in" className="mt-6 rounded-md border border-line bg-white p-3 md:p-4">
-        <h3 id="pickem-whos-in" className="text-sm font-extrabold uppercase text-ink-soft">
-            {ins.length} of {whosIn.length} owners in
-        </h3>
-        {groups.map(group => <div key={group.label} className="mt-3">
-            <p className="text-xs font-extrabold uppercase text-ink-faint">{group.label}</p>
-            <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-2">
-                {group.entries.map(({ franchise, owner }) => <li key={franchise.id} className="flex min-w-0 items-center gap-2">
-                    <TeamBadge logo={franchise.logo} abbreviation={franchise.abbreviation} teamName={franchise.name} size={24} />
-                    <span className="min-w-0 text-sm leading-tight">
-                        <span className="font-bold">{owner ?? franchise.name}</span>
-                        {owner && <span className="text-ink-soft"> · {franchise.name}</span>}
-                    </span>
-                </li>)}
-            </ul>
-        </div>)}
+// Who's in for the next week to lock: the count, then a slab per owner that lights up once they have picked every
+// matchup. No picks are shown. The signed-in owner's own slab follows their picks at once, before the cached list
+// catches up.
+export default function PickemWhosIn({ whosIn, seasonYear, week }: { whosIn: PickemWhoIsIn[]; seasonYear: number; week: number }) {
+    const [own, setOwn] = useState<{ franchiseId: number; in: boolean } | null>(null);
+
+    useEffect(() => {
+        const listen = (event: Event) => {
+            const { detail } = event as CustomEvent<EntryEvent>;
+            if (detail.seasonYear === seasonYear && detail.week === week) setOwn({ franchiseId: detail.franchiseId, in: detail.in });
+        };
+        window.addEventListener(ENTRY_EVENT, listen);
+        return () => window.removeEventListener(ENTRY_EVENT, listen);
+    }, [seasonYear, week]);
+
+    const entries = whosIn.map(entry => entry.franchise.id === own?.franchiseId ? { ...entry, in: own.in } : entry);
+    const ins = entries.filter(entry => entry.in).length;
+    return <section aria-labelledby="pickem-whos-in" className={styles.whos}>
+        <h2 id="pickem-whos-in" className={styles.whosCount}>
+            <b className="tabular-nums">{ins}<span>/{entries.length}</span></b>
+            <small>Owners in</small>
+        </h2>
+        <ul className={styles.whosList}>
+            {entries.map(({ franchise, owner, in: isIn }) => <li key={franchise.id} className={styles.whosItem} data-in={isIn ? '' : undefined}
+                title={`${owner ?? franchise.name}${owner ? ` · ${franchise.name}` : ''}`}>
+                <TeamBadge logo={franchise.logo} abbreviation={franchise.abbreviation} teamName={franchise.name} size={34} />
+                <span className={styles.whosName}>{owner?.split(' ')[0] ?? franchise.abbreviation}</span>
+                <span className={styles.whosState}>{isIn ? 'In' : 'Not yet'}</span>
+            </li>)}
+        </ul>
     </section>;
 }

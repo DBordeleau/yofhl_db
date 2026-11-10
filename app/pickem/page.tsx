@@ -1,22 +1,16 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import PageTitle from '@/components/page-title';
-import PickemLeaderboard from '@/components/pickem/pickem-leaderboard';
-import PickemSeasonSummary from '@/components/pickem/pickem-season-summary';
-import PickemWeekSection from '@/components/pickem/pickem-week-section';
-import SeasonSwitcher from '@/components/pickem/season-switcher';
-import WeekSwitcher from '@/components/pickem/week-switcher';
-import { seasonLabel } from '@/lib/league';
+import PickemPageView from '@/components/pickem/pickem-page';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
+import { currentOwners } from './owners';
 
 export const metadata: Metadata = {
     title: "Pick'em · YOFHL",
     description: 'Owners call the winner of every regular-season matchup.',
 };
 
-// The public page reads for nobody: the Pick'em leaderboard above the next week to lock. Results arrive with the
+// The public page reads for nobody: the next week to lock beside the Pick'em leaderboard. Results arrive with the
 // evening refresh's settle, which expires the page's cached reads; the next week to lock turns over at noon, so the
 // page is rebuilt every minute and never shows a week as locked before its lock. Other weeks live at
 // /pickem/week/[week] and past seasons at /pickem/[season], so this page reads no search params and stays cached.
@@ -26,26 +20,22 @@ export const revalidate = 60;
 export default async function PickemPage() {
     if (!PICKEM_LAUNCH) notFound();
     const now = Date.now();
-    const [read, lastLocked, standings] = await Promise.all([
+    const [read, lastLocked, standings, owners] = await Promise.all([
         pickem.readWeek({ now, asker: 'nobody' }),
         pickem.readWeek({ now, week: 'last-locked', asker: 'nobody' }),
         pickem.readPickemLeaderboard({ now }),
+        currentOwners(),
     ]);
     const week = read.status === 'week' ? read.week : null;
     const previous = lastLocked.status === 'week' ? lastLocked.week : null;
-    const link = previous ? { href: `/pickem/week/${previous.week}`, label: `${previous.name} Pick'em picks` } : undefined;
-    const weeks = read.status === 'week' ? read.weeks : lastLocked.status === 'week' ? lastLocked.weeks : null;
-    return <main className="mx-auto max-w-3xl px-4 py-10 md:px-8">
-        <PageTitle eyebrow={week ? seasonLabel(week.seasonYear) : undefined} title="Pick'em" />
-        {standings.status === 'leaderboard' && <>
-            <SeasonSwitcher seasons={standings.seasons} selected={standings.leaderboard.seasonYear} beingPlayed={standings.leaderboard.seasonYear} />
-            <PickemSeasonSummary seasonYear={standings.leaderboard.seasonYear} winners={standings.leaderboard.winners} />
-            <PickemLeaderboard entries={standings.leaderboard.entries} />
-        </>}
-        {weeks && <WeekSwitcher weeks={weeks} selected={week?.week ?? 0} />}
-        {week ? <PickemWeekSection week={week} link={link} /> : <p className="mt-8 text-center text-ink-soft">
-            {read.status === 'unavailable' ? 'Matchups are unavailable right now. Try again soon.' : "No Pick'em week is open."}
-            {link && <> <Link href={link.href} className="font-bold text-rink-red underline">{link.label}</Link></>}
-        </p>}
-    </main>;
+    const leaderboard = standings.status === 'leaderboard' ? standings.leaderboard : null;
+    return <PickemPageView
+        seasonYear={week?.seasonYear ?? previous?.seasonYear ?? leaderboard?.seasonYear ?? null}
+        seasons={leaderboard ? { list: standings.status === 'leaderboard' ? standings.seasons : [], beingPlayed: leaderboard.seasonYear } : undefined}
+        week={week}
+        weeks={read.status === 'week' ? read.weeks : lastLocked.status === 'week' ? lastLocked.weeks : null}
+        link={previous ? { href: `/pickem/week/${previous.week}`, label: `${previous.name} picks` } : undefined}
+        standings={leaderboard ?? (standings.status === 'unavailable' ? 'unavailable' : null)}
+        owners={owners}
+        message={read.status === 'unavailable' ? 'Matchups are unavailable right now. Try again soon.' : "No Pick'em week is open."} />;
 }

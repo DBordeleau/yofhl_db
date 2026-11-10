@@ -1,43 +1,50 @@
+import type { CSSProperties } from 'react';
 import TeamBadge from '@/components/team-badge';
 import type { PickemLeaderboardEntry } from '@/lib/pickem/create-pickem';
+import styles from './pickem.module.css';
 
-// The Pick'em leaderboard: rank, owner and franchise, correct, wrong and percentage. Nothing else.
+// The Pick'em leaderboard as a navy standings board: rank, owner and franchise, correct, wrong and percentage. The
+// winner or joint winners head it once the season is complete; first place takes gold.
 
 const percent = (value: number | null) => value === null ? '' : `${Math.round(value * 100)}%`;
+const named = ({ owner, franchise }: PickemLeaderboardEntry) => owner ?? franchise.name;
 
-export default function PickemLeaderboard({ entries }: { entries: PickemLeaderboardEntry[] }) {
-    if (!entries.length) return null;
-    return <section aria-labelledby="pickem-leaderboard" className="mt-8">
-        <h2 id="pickem-leaderboard" className="font-wide text-xl font-extrabold uppercase">Pick&apos;em leaderboard</h2>
-        <div className="mt-3 overflow-hidden rounded-md border border-line bg-white">
-            <table className="w-full text-sm">
-                <thead className="bg-[#EAF0F6] text-[11px] font-extrabold uppercase tracking-[.12em] text-ink-muted">
+export default function PickemLeaderboard({ entries, winners, unavailable = false }: { entries: PickemLeaderboardEntry[]; winners: PickemLeaderboardEntry[]; unavailable?: boolean }) {
+    return <section aria-labelledby="pickem-leaderboard" className={styles.board}>
+        <h2 id="pickem-leaderboard">Pick&apos;em leaderboard</h2>
+        {winners.length > 0 && <p className={styles.champion}>
+            <span className={styles.goldSlab}>{winners.length > 1 ? 'Joint winners' : 'Winner'}</span>
+            {winners.map(named).join(', ')}
+        </p>}
+        {unavailable ? <p className={styles.boardEmpty}>The leaderboard is unavailable right now. Try again soon.</p>
+            : !entries.length ? <p className={styles.boardEmpty}>No locked Pick&apos;em picks yet.</p>
+            : <table className={styles.table}>
+                <thead>
                     <tr>
-                        <th scope="col" className="w-10 px-2 py-2 text-right md:px-3"><abbr title="Rank" className="no-underline">#</abbr></th>
-                        <th scope="col" className="px-2 py-2 text-left md:px-3">Owner</th>
-                        <th scope="col" className="w-16 px-2 py-2 text-right md:px-3">Correct</th>
-                        <th scope="col" className="w-16 px-2 py-2 text-right md:px-3">Wrong</th>
-                        <th scope="col" className="w-14 px-2 py-2 text-right md:px-3"><abbr title="Percentage" className="no-underline">Pct</abbr></th>
+                        <th scope="col"><abbr title="Rank" className="no-underline">#</abbr></th>
+                        <th scope="col">Owner</th>
+                        <th scope="col">Correct</th>
+                        <th scope="col">Wrong</th>
+                        <th scope="col"><abbr title="Percentage" className="no-underline">Pct</abbr></th>
                     </tr>
                 </thead>
                 <tbody>
-                    {entries.map(({ rank, franchise, owner, correct, wrong, percentage }) => <tr key={franchise.id} className="border-t border-line">
-                        <td className="px-2 py-2 text-right font-extrabold tabular-nums md:px-3">{rank}</td>
-                        <td className="px-2 py-2 md:px-3">
-                            <span className="flex min-w-0 items-center gap-2">
-                                <TeamBadge logo={franchise.logo} abbreviation={franchise.abbreviation} teamName={franchise.name} size={24} />
-                                <span className="min-w-0 leading-tight">
-                                    <span className="font-bold">{owner ?? franchise.name}</span>
-                                    {owner && <span className="block truncate text-xs text-ink-soft">{franchise.name}</span>}
+                    {entries.map((entry, i) => <tr key={entry.franchise.id} data-first={entry.rank === 1 ? '' : undefined} style={{ '--i': i } as CSSProperties}>
+                        <td className={styles.rank}>{entry.rank}</td>
+                        <td>
+                            <span className={styles.entry}>
+                                <TeamBadge logo={entry.franchise.logo} abbreviation={entry.franchise.abbreviation} teamName={entry.franchise.name} size={28} />
+                                <span>
+                                    <b>{named(entry)}</b>
+                                    {entry.owner && <small>{entry.franchise.name}</small>}
                                 </span>
                             </span>
                         </td>
-                        <td className="px-2 py-2 text-right font-bold tabular-nums md:px-3">{correct}</td>
-                        <td className="px-2 py-2 text-right tabular-nums md:px-3">{wrong}</td>
-                        <td className="px-2 py-2 text-right tabular-nums md:px-3">{percent(percentage)}</td>
+                        <td>{entry.correct}</td>
+                        <td className={styles.muted}>{entry.wrong}</td>
+                        <td>{percent(entry.percentage)}</td>
                     </tr>)}
                 </tbody>
-            </table>
-        </div>
+            </table>}
     </section>;
 }

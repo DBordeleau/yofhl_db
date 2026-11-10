@@ -1,62 +1,83 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { readYourPickem } from '@/app/pickem/actions';
-import Slab from '@/components/pickem/slab';
-import TeamBadge from '@/components/team-badge';
-import type { PickemEntry, PickemFranchise, PickemMatchupBreakdown, PickemPickOutcome } from '@/lib/pickem/create-pickem';
+import { useTeamBranding } from '@/components/team-branding/branding-provider';
+import type { PickemEntry, PickemMatchupBreakdown, PickemPickOutcome } from '@/lib/pickem/create-pickem';
 import { pairOf, pairOfMatchup } from '@/lib/pickem/model';
 import { hasSessionHint } from '@/lib/owner/navigation';
+import { clubColours, clubTone } from './club-tone';
+import { Check } from './icons';
+import SideBody from './side-body';
+import styles from './pickem.module.css';
 
-// A locked week's breakdown: each matchup's two franchises, how many entries took each side, and their owners.
-// Once the week is scored it marks the side that won, or the tie, and a signed-in owner's picks show whether they
-// were correct. Those load only when the session hint says an owner may be signed in (ADR 0003). Nothing here can
-// be picked.
+// A locked week's breakdown: each matchup as the same club strip, each side widened by its share of the Pick'em
+// picks, with the count at the seam and the owners who took it underneath. Once the week is scored it marks the side
+// that won (the finished loser fades slightly) or the tie, and a signed-in owner's own pick is stamped with how it
+// went. Those load only when the session hint says an owner may be signed in (ADR 0003). Nothing here can be picked.
 
 const keyOf = (pair: [number, number]) => pairOf(...pair).join('-');
-const outcomeLabel: Record<PickemPickOutcome, string> = { correct: "Your Pick'em pick: correct", wrong: "Your Pick'em pick: wrong", neither: "Your Pick'em pick: tied" };
+const stamps: Record<PickemPickOutcome | 'pending', { label: string; tone?: 'red' | 'navy' }> = {
+    correct: { label: 'Called it', tone: 'red' },
+    wrong: { label: 'Your pick · missed', tone: 'navy' },
+    neither: { label: 'Your pick · tied', tone: 'navy' },
+    pending: { label: 'Your pick' },
+};
 
-function Side({ franchise, entries, end, won }: { franchise: PickemFranchise; entries: PickemEntry[]; end: boolean; won: boolean }) {
-    return <div className={`flex min-w-0 flex-col gap-2 ${end ? 'items-end text-right' : ''}`}>
-        <div className={`flex min-w-0 items-center gap-2 ${end ? 'flex-row-reverse' : ''}`}>
-            <TeamBadge logo={franchise.logo} abbreviation={franchise.abbreviation} teamName={franchise.name} size={36} />
-            <span className="min-w-0 truncate text-sm font-bold md:text-base">{franchise.name}</span>
-            {won && <Slab>Won</Slab>}
-        </div>
-        <p className="font-wide text-2xl font-extrabold tabular-nums">{entries.length}</p>
-        {entries.length > 0 && <ul className="text-xs text-ink-soft">
-            {entries.map(entry => <li key={entry.franchise.id}>{entry.owner ?? entry.franchise.name}</li>)}
-        </ul>}
-    </div>;
+const named = (entry: PickemEntry) => entry.owner ?? entry.franchise.name;
+
+interface Props {
+    seasonYear: number;
+    week: number;
+    breakdown: PickemMatchupBreakdown[];
+    /** each franchise's owner, by franchise id, when the page knows them */
+    owners?: Record<number, string>;
+    link?: ReactNode;
 }
 
-export default function PickemBreakdown({ seasonYear, week, breakdown }: { seasonYear: number; week: number; breakdown: PickemMatchupBreakdown[] }) {
-    const scored = breakdown.some(item => item.result !== null);
-    const [outcomes, setOutcomes] = useState<Map<string, PickemPickOutcome>>(new Map());
+export default function PickemBreakdown({ seasonYear, week, breakdown, owners, link }: Props) {
+    const palettes = useTeamBranding();
+    const [yours, setYours] = useState<Map<string, { picked: number; outcome?: PickemPickOutcome }>>(new Map());
+    const [shared, setShared] = useState(false);
 
     useEffect(() => {
-        if (!scored || !hasSessionHint()) return;
+        // the sides start level and then lean to their share, once
+        const frame = requestAnimationFrame(() => setShared(true));
+        if (!hasSessionHint()) return () => cancelAnimationFrame(frame);
         let cancelled = false;
         readYourPickem(seasonYear, week).then(answer => {
             if (cancelled || answer?.status !== 'entry') return;
-            setOutcomes(new Map(answer.picks.flatMap(pick => pick.outcome ? [[keyOf(pick.matchup), pick.outcome] as const] : [])));
+            setYours(new Map(answer.picks.map(pick => [keyOf(pick.matchup), { picked: pick.picked, outcome: pick.outcome }] as const)));
         }).catch(() => {});
-        return () => { cancelled = true; };
-    }, [seasonYear, week, scored]);
+        return () => { cancelled = true; cancelAnimationFrame(frame); };
+    }, [seasonYear, week]);
 
-    return <ul className="mt-6 flex flex-col gap-3">
-        {breakdown.map(({ matchup, away, home, result }) => {
-            const outcome = outcomes.get(keyOf(pairOfMatchup(matchup)));
-            return <li key={`${matchup.away.id}-${matchup.home.id}`} className="rounded-md border border-line bg-white p-3 md:p-4">
-                <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 md:gap-4">
-                    <Side franchise={matchup.away} entries={away} end={false} won={result === 'away'} />
-                    <span className="self-center">{result === 'tie' ? <Slab tone="navy">Tie</Slab> : <Slab>vs</Slab>}</span>
-                    <Side franchise={matchup.home} entries={home} end won={result === 'home'} />
-                </div>
-                {outcome && <p className={`mt-2 text-center text-xs font-extrabold uppercase ${outcome === 'correct' ? 'text-rink-red' : 'text-ink-soft'}`}>
-                    {outcomeLabel[outcome]}
-                </p>}
-            </li>;
-        })}
-    </ul>;
+    return <div className={styles.slate}>
+        {link && <div className={styles.slateHead}>{link}</div>}
+        <ol className={styles.strips}>
+            {breakdown.map(({ matchup, away, home, result }, i) => {
+                const mine = yours.get(keyOf(pairOfMatchup(matchup)));
+                const total = away.length + home.length;
+                return <li key={`${matchup.away.id}-${matchup.home.id}`} className={styles.strip} data-locked="" style={{ '--i': i } as CSSProperties}>
+                    {([['away', matchup.away, away], ['home', matchup.home, home]] as const).flatMap(([side, franchise, entries]) => {
+                        const stamp = mine?.picked === franchise.id ? stamps[mine.outcome ?? 'pending'] : null;
+                        const lean = shared && total > 0 ? 1 + entries.length / total * .8 : 1;
+                        const element = <div key={franchise.id} className={styles.side} data-lost={result && result !== 'tie' && result !== side ? '' : undefined}
+                            style={{ ...clubTone(clubColours(palettes, franchise.id)), flexGrow: lean }}>
+                            <span className={styles.sideTop}>
+                                <SideBody franchise={franchise} owner={owners?.[franchise.id]} />
+                                <span className={styles.count}>{entries.length}<span className="sr-only"> Pick&apos;em {entries.length === 1 ? 'pick' : 'picks'}</span></span>
+                            </span>
+                            {result === side && <span className={styles.won}>Won</span>}
+                            {entries.length > 0 && <span className={styles.pickers}>{entries.map(entry => <span key={entry.franchise.id}>{named(entry)}</span>)}</span>}
+                            {stamp && <span className={styles.stamp} data-tone={stamp.tone}>{stamp.tone === 'red' && <Check />}{stamp.label}</span>}
+                        </div>;
+                        return side === 'away'
+                            ? [element, <span key="vs" className={styles.vs} data-tie={result === 'tie' ? '' : undefined}><span>{result === 'tie' ? 'Tie' : 'vs'}</span></span>]
+                            : element;
+                    })}
+                </li>;
+            })}
+        </ol>
+    </div>;
 }

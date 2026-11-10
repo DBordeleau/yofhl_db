@@ -1,21 +1,20 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import PageTitle from '@/components/page-title';
-import PickemWeekSection from '@/components/pickem/pickem-week-section';
-import WeekSwitcher from '@/components/pickem/week-switcher';
-import { seasonLabel } from '@/lib/league';
+import PickemPageView from '@/components/pickem/pickem-page';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
+import { currentOwners } from '../../owners';
 
 export const metadata: Metadata = {
     title: "Pick'em · YOFHL",
     description: "One Pick'em week: pick every matchup until the lock, then see how the Pick'em picks split.",
 };
 
-// Any Pick'em week, read for nobody like /pickem: pick controls until the lock, the breakdown from then on. Each
-// week is rendered on its first visit and cached (ISR). A render decides locked or open from its own clock, so a
-// copy cached before the lock never shows a breakdown; it is rebuilt every minute, so the breakdown appears within
-// about a minute of the lock without waiting for settle, which expires it on recording or freezing the week.
+// Any Pick'em week, read for nobody like /pickem: pick controls until the lock, the breakdown from then on, beside
+// the season's Pick'em leaderboard. Each week is rendered on its first visit and cached (ISR). A render decides
+// locked or open from its own clock, so a copy cached before the lock never shows a breakdown; it is rebuilt every
+// minute, so the breakdown appears within about a minute of the lock without waiting for settle, which expires it on
+// recording or freezing the week.
 export const revalidate = 60;
 export function generateStaticParams() { return []; }
 
@@ -23,13 +22,22 @@ export default async function PickemWeekPage({ params }: { params: Promise<{ wee
     if (!PICKEM_LAUNCH) notFound();
     const { week: asked } = await params;
     if (!/^\d{1,3}$/.test(asked)) notFound();
-    const read = await pickem.readWeek({ now: Date.now(), week: Number(asked), asker: 'nobody' });
+    const now = Date.now();
+    const [read, standings, owners] = await Promise.all([
+        pickem.readWeek({ now, week: Number(asked), asker: 'nobody' }),
+        pickem.readPickemLeaderboard({ now }),
+        currentOwners(),
+    ]);
     if (read.status === 'no-week') notFound();
-    return <main className="mx-auto max-w-3xl px-4 py-10 md:px-8">
-        <PageTitle eyebrow={read.status === 'week' ? seasonLabel(read.week.seasonYear) : undefined} title="Pick'em" />
-        {read.status === 'week' && <WeekSwitcher weeks={read.weeks} selected={read.week.week} />}
-        {read.status === 'week'
-            ? <PickemWeekSection week={read.week} link={{ href: '/pickem', label: 'Next week to lock' }} />
-            : <p className="mt-8 text-center text-ink-soft">Matchups are unavailable right now. Try again soon.</p>}
-    </main>;
+    const week = read.status === 'week' ? read.week : null;
+    const leaderboard = standings.status === 'leaderboard' ? standings.leaderboard : null;
+    return <PickemPageView
+        seasonYear={week?.seasonYear ?? leaderboard?.seasonYear ?? null}
+        seasons={leaderboard && standings.status === 'leaderboard' ? { list: standings.seasons, beingPlayed: leaderboard.seasonYear } : undefined}
+        week={week}
+        weeks={read.status === 'week' ? read.weeks : null}
+        link={{ href: '/pickem', label: 'Next week to lock' }}
+        standings={leaderboard ?? (standings.status === 'unavailable' ? 'unavailable' : null)}
+        owners={owners}
+        message="Matchups are unavailable right now. Try again soon." />;
 }
