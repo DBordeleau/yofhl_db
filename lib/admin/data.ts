@@ -1,21 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
+import { PLAYOFF_AWARD, SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
 
 // Admin reads. Never cached: the panel must show exactly what's in the database.
-
-export interface SeasonStatus {
-    year: number;
-    label: string;
-    playoffStatus: 'complete' | 'cancelled';
-    teams: number;
-    players: number;
-    games: number;
-    champion: string | null;
-    roster: number;
-    awards: number;
-    awardsExpected: number;
-    overrides: number;
-}
 
 export interface AdminPlayer {
     id: string;
@@ -59,24 +46,7 @@ const playerColumns = sql`
     p.id, p.name, coalesce(array_to_string(ps.positions, ', '), '') as positions,
     coalesce(ps.fpts, 0)::float8 as fpts, coalesce(t.abbreviation, 'FA') as team`;
 
-// the Danny Briere Award (playoff MVP) can't be won in a season without playoffs
-const playoffAward = 'Danny Briere Award';
-
-export const getSeasonStatuses = () =>
-    rows<SeasonStatus>(sql`
-        select s.year, s.label, s.playoff_status as "playoffStatus",
-               (select count(*)::int from league.team_seasons t where t.season_year = s.year) as teams,
-               (select count(*)::int from league.player_seasons ps where ps.season_year = s.year) as players,
-               (select count(*)::int from league.matchups m where m.season_year = s.year) as games,
-               (select t.name from league.team_seasons t where t.id = r.champion_team_season_id) as champion,
-               (select count(*)::int from league.championship_rosters c where c.season_year = s.year) as roster,
-               (select count(distinct a.award_type_id)::int from league.awards a where a.season_year = s.year) as awards,
-               (select count(*)::int from league.award_types at
-                 where s.playoff_status = 'complete' or at.name <> ${playoffAward}) as "awardsExpected",
-               (select count(*)::int from league.matchup_overrides o where o.season_year = s.year) as overrides
-        from league.seasons s
-        left join league.season_results r on r.season_year = s.year
-        order by s.year desc`);
+export const getSeasonStatuses = () => rows<SeasonStatus>(SEASON_STATUS_QUERY);
 
 export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> => {
     const [season] = await rows<{ year: number; label: string; playoffStatus: 'complete' | 'cancelled'; champion_id: number | null; champion_name: string | null; champion_abbr: string | null }>(sql`
@@ -116,7 +86,7 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
             left join league.players p on p.id = a.player_id
             left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = ${year}
             left join league.team_seasons t on t.id = ps.team_season_id
-            where ${season.playoffStatus} = 'complete' or at.name <> ${playoffAward}
+            where ${season.playoffStatus} = 'complete' or at.name <> ${PLAYOFF_AWARD}
             order by at.sort_order`),
         rows<{
             id: number; round: number; bracket: 'championship' | 'consolation'; slot: number; note: string | null; winner: number | null;

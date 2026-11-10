@@ -1,4 +1,3 @@
-import { sql } from 'drizzle-orm';
 import { seasonLabel } from '@/lib/seasons';
 import { connect } from './lib/connect';
 import { loadLeagueConfig } from './lib/league-config';
@@ -38,32 +37,18 @@ const main = async () => {
             return;
         }
         const notes = result.legacyNotes;
-        const rows = Object.fromEntries(result.seasons.map((s) => [s.year, s.players])) as Record<number, number>;
         console.log(`Importing ${result.seasons.map((s) => seasonLabel(s.year)).join(', ')} into ${label}`);
 
-        const summary = await db.execute<{
-            season_year: number; label: string; playoff_status: string; teams: number; games: number; champion: string | null; ring: number; awards: number;
-        }>(sql`
-            select s.year as season_year, s.label, s.playoff_status,
-                   (select count(*)::int from league.team_seasons t where t.season_year = s.year) as teams,
-                   (select count(*)::int from league.matchups m where m.season_year = s.year) as games,
-                   (select t.name from league.team_seasons t where t.id = r.champion_team_season_id) as champion,
-                   (select count(*)::int from league.championship_rosters c where c.season_year = s.year) as ring,
-                   (select count(*)::int from league.awards a where a.season_year = s.year) as awards
-            from league.seasons s left join league.season_results r on r.season_year = s.year
-            order by s.year`);
-        const summaryRows = (Array.isArray(summary) ? summary : (summary as unknown as { rows: typeof summary }).rows) as unknown as {
-            season_year: number; label: string; playoff_status: string; teams: number; games: number; champion: string | null; ring: number; awards: number;
-        }[];
-
+        // oldest first, as the summary has always printed
+        const statuses = [...result.statuses].sort((a, b) => a.year - b.year);
         console.log('\nseason   teams  players  playoff games  champion                  ring  awards');
-        for (const r of summaryRows) {
-            const champion = r.playoff_status === 'cancelled' ? '(playoffs cancelled)' : r.champion ?? '—';
+        for (const s of statuses) {
+            const champion = s.playoffStatus === 'cancelled' ? '(playoffs cancelled)' : s.champion ?? '—';
             console.log(
-                `${r.label.padEnd(8)} ${String(r.teams).padStart(5)}  ${String(rows[r.season_year] ?? '').padStart(7)}  ${String(r.games).padStart(13)}  ${champion.padEnd(24)}  ${String(r.ring).padStart(4)}  ${String(r.awards).padStart(6)}`,
+                `${s.label.padEnd(8)} ${String(s.teams).padStart(5)}  ${String(s.players).padStart(7)}  ${String(s.games).padStart(13)}  ${champion.padEnd(24)}  ${String(s.roster).padStart(4)}  ${String(s.awards).padStart(6)}`,
             );
         }
-        const needsRing = summaryRows.filter((r) => r.playoff_status === 'complete' && r.ring === 0).map((r) => r.label);
+        const needsRing = statuses.filter((s) => s.playoffStatus === 'complete' && s.roster === 0).map((s) => s.label);
         if (needsRing.length) console.log(`\nNo championship roster yet for ${needsRing.join(', ')}: set it in the admin panel.`);
         if (notes.length) console.log(`\nLegacy award notes:\n${notes.map((n) => `  • ${n}`).join('\n')}`);
 
