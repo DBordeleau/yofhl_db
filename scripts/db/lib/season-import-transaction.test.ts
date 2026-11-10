@@ -116,6 +116,17 @@ test('validation: an unknown team, a missing file or an unmatched score override
     assert.deepEqual(await everyRow(), before);
 });
 
+test('validation: a data folder with no season CSVs is reported and nothing is written', async (t) => {
+    const { run, everyRow } = await emptyLeague(t);
+    const before = await everyRow();
+    const empty = dataCopy(t, (dir) => {
+        for (const file of ['Player Stats', 'Team Stats', 'Playoffs']) rmSync(path.join(dir, `2025-2026 ${file}.csv`));
+    });
+
+    assert.deepEqual(await run({ dataDir: empty }), { ok: false, errors: [`No Fantrax CSVs found in ${empty}/`] });
+    assert.deepEqual(await everyRow(), before);
+});
+
 test('keep set: a zero-point free agent on a ring or award list is kept and one on neither is dropped', async (t) => {
     const { db, run } = await emptyLeague(t);
     // Leo Lark is on the legacy ring list; Max Moss is added to the legacy awards here; Kyle Knox scored
