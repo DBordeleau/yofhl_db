@@ -10,6 +10,7 @@
 // with the Fantrax team mapping. Everything stored is keyed by season year, week and franchise (ADR 0005).
 import type { PickemPorts } from './ports';
 import { createReadWeek } from './read-week';
+export type { PickemWeekOption } from './week-switcher';
 import { createSavePick } from './save-pick';
 
 export type { PickemPorts } from './ports';
