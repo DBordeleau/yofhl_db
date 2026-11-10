@@ -16,6 +16,7 @@ export type { PickemPorts } from './ports';
 export type { MatchupPair, PickemFranchise, PickemLaunch, PickemMatchup, PickemPick } from './model';
 export type { SavePickInput, SavePickRejection, SavePickResult } from './save-pick';
 export type { Asker, PickemWeek, ReadWeekInput, ReadWeekResult, YourPickem } from './read-week';
+export type { PickemWhoIsIn } from './whos-in';
 
 export function createPickem(ports: PickemPorts) {
     return {

@@ -6,6 +6,7 @@ import { isLocked, loadLivePickem } from './live-weeks';
 import { pairOfMatchup, samePair, type LivePickemWeek, type PickemMatchup, type PickemPick } from './model';
 import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
+import { readWhosIn, type PickemWhoIsIn } from './whos-in';
 
 /**
  * Who a read is for: nobody (a public, cacheable read) or whoever the owner session says is signed in (never
@@ -31,6 +32,8 @@ export interface PickemWeek {
     matchups: PickemMatchup[];
     /** null when asked for nobody */
     yours: YourPickem | null;
+    /** every active franchise and whether it is in, for the next week to lock only; null for any other week */
+    whosIn: PickemWhoIsIn[] | null;
 }
 
 export interface ReadWeekInput {
@@ -70,9 +73,11 @@ export function createReadWeek(ports: PickemPorts) {
             ? live.weeks.find(item => !isLocked(item, input.now))
             : live.weeks.find(item => item.week === input.week);
         if (!week) return { status: 'no-week' };
+        const nextToLock = live.weeks.find(item => !isLocked(item, input.now));
         return { status: 'week', week: {
             ...week, phase: isLocked(week, input.now) ? 'locked' : 'open',
             yours: input.asker === 'session' ? await yours(week) : null,
+            whosIn: week === nextToLock ? await readWhosIn(week) : null,
         } };
     };
 }
