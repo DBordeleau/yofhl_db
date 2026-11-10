@@ -7,6 +7,7 @@ import { entriesOf, lockedWeek, readBreakdown, type PickemMatchupBreakdown } fro
 import { pairOfMatchup, samePair, type LivePickemWeek, type PickemMatchup, type PickemPick } from './model';
 import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
+import { readWhosIn, type PickemWhoIsIn } from './whos-in';
 
 /**
  * Who a read is for: nobody (a public, cacheable read) or whoever the owner session says is signed in (never
@@ -32,6 +33,8 @@ export interface PickemWeek {
     matchups: PickemMatchup[];
     /** null when asked for nobody */
     yours: YourPickem | null;
+    /** every active franchise and whether it is in, for the next week to lock only; null for any other week */
+    whosIn: PickemWhoIsIn[] | null;
     /** every matchup's entries on each side, from the lock on, to any caller; null before the lock */
     breakdown: PickemMatchupBreakdown[] | null;
 }
@@ -73,12 +76,14 @@ export function createReadWeek(ports: PickemPorts) {
             : input.week === 'last-locked' ? live.weeks.findLast(item => isLocked(item, input.now))
             : live.weeks.find(item => item.week === input.week);
         if (!found) return { status: 'no-week' };
+        const nextToLock = live.weeks.find(item => !isLocked(item, input.now));
         const locked = isLocked(found, input.now);
         const entries = entriesOf(live.teams);
         const week = locked ? await lockedWeek(found, entries) : found;
         return { status: 'week', week: {
             ...week, phase: locked ? 'locked' : 'open',
             yours: input.asker === 'session' ? await yours(week) : null,
+            whosIn: found === nextToLock ? await readWhosIn(week) : null,
             breakdown: locked ? await readBreakdown(week, entries) : null,
         } };
     };

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import PickemBreakdown from '@/components/pickem/pickem-breakdown';
 import PickemWeek from '@/components/pickem/pickem-week';
+import PickemWhosIn from '@/components/pickem/pickem-whos-in';
 import type { PickemWeek as Week } from '@/lib/pickem/create-pickem';
 
 const lockTime = new Intl.DateTimeFormat('en-CA', {
@@ -16,6 +17,7 @@ export default function PickemWeekSection({ week, link }: { week: Week; link?: {
             <p className="text-sm font-bold text-ink-soft">{locked ? 'Locked' : 'Locks'} {lockTime.format(new Date(week.lock))} ET</p>
         </div>
         {link && <Link href={link.href} className="mt-2 inline-block text-sm font-bold text-rink-red underline">{link.label}</Link>}
+        {week.whosIn && <PickemWhosIn whosIn={week.whosIn} />}
         {locked && week.breakdown
             ? <PickemBreakdown breakdown={week.breakdown} />
             : <PickemWeek seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} />}
