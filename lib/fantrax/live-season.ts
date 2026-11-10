@@ -4,8 +4,7 @@ import { createLiveSeason } from './assemble-live-season';
 export { fantraxLeagueIdOf } from './assemble-live-season';
 import { fantraxSource } from './fantrax-source';
 
-export type {
-    Availability, LivePlayer, LiveSeason, LiveSeasonResult, LiveTeam, PlayoffRound, RosterStats, ScheduledMatchup, ScoringLeader, Standings, StandingsRow, Week, WeekScores,
-} from './assemble-live-season';
+export { FANTRAX_TAG } from './cache-policy';
+export type { LivePlayer, LiveSeason, LiveTeam, RosterStats, ScheduledMatchup, Week, WeekScores } from './assemble-live-season';
 
 export const { getLiveSeason, getWeekScores, refreshLiveSeason, setWeekFinal } = createLiveSeason(fantraxSource);
