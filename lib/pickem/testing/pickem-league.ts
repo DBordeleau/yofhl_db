@@ -12,12 +12,16 @@ export const SEASON = 2027;
 const iso = (time: number) => new Date(time).toISOString();
 
 // Ten active franchises, 1–10, each managed by owner-N; franchise 11 folded and is still managed by owner-11.
-// owner-none signs in but manages nothing. Fantrax team fxN is franchise N.
+// owner-none signs in but manages nothing. Fantrax team fxN is franchise N. Each active franchise's latest team
+// season (2026) names it "Franchise N" (F N), run by "Owner N".
 export const FRANCHISES = Array.from({ length: 10 }, (_, index) => index + 1);
 const SEED = `
     insert into league.seasons values (2026, '2025–26', 'complete');
     insert into league.franchises (id, display_name, first_season, folded_after_season) values
         ${FRANCHISES.map(id => `(${id}, 'Franchise ${id}', 2020, null)`).join(', ')}, (11, 'Folded Club', 2020, 2025);
+    insert into league.owners (id, name) values ${FRANCHISES.map(id => `(${id}, 'Owner ${id}')`).join(', ')};
+    insert into league.team_seasons (id, season_year, franchise_id, owner_id, name, fantrax_name, abbreviation, division, division_rank, wins, losses, ties, fpts_for, fpts_against, logo_url)
+        values ${FRANCHISES.map(id => `(${id}, 2026, ${id}, ${id}, 'Franchise ${id}', 'Franchise ${id}', 'F${id}', 1, ${id}, 0, 0, 0, 0, 0, '/logos/f${id}.png')`).join(', ')};
     insert into league.team_management (franchise_id, owner_uid, owner_email, version) values
         ${[...FRANCHISES, 11].map(id => `(${id}, 'owner-${id}', 'owner${id}@example.test', 1)`).join(', ')};
 `;

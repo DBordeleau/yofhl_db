@@ -60,8 +60,9 @@ test('reading a future week returns nothing about any other entry', async t => {
     await signOut();
     const anonymous = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week: 12, asker: 'nobody' }));
     for (const read of [mine, anonymous]) {
-        const text = JSON.stringify({ ...read, week: { ...read.status === 'week' ? read.week : {}, yours: null } });
-        assert.doesNotMatch(text, /picked|owner-|"in"/, 'no Pick\'em picks and no who\'s-in list');
+        assert.ok(read.status === 'week');
+        assert.equal(read.week.whosIn, null, "no who's-in list beyond the next week to lock");
+        assert.doesNotMatch(JSON.stringify({ ...read, week: { ...read.week, yours: null } }), /picked|owner-/, "no other entry's Pick'em picks");
     }
 });
 

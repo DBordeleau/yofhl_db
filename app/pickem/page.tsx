@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import PageTitle from '@/components/page-title';
 import PickemWeek from '@/components/pickem/pickem-week';
+import PickemWhosIn from '@/components/pickem/pickem-whos-in';
 import WeekSwitcher from '@/components/pickem/week-switcher';
 import { seasonLabel } from '@/lib/league';
 import { pickem } from '@/lib/pickem/pickem';
@@ -40,6 +41,7 @@ export default async function PickemPage({ searchParams }: { searchParams: Promi
                 <h2 className="font-wide text-xl font-extrabold uppercase">{week.name}</h2>
                 <p className="text-sm font-bold text-ink-soft">{week.phase === 'locked' ? 'Locked' : 'Locks'} {lockTime.format(new Date(week.lock))} ET</p>
             </div>
+            {week.whosIn && <PickemWhosIn whosIn={week.whosIn} />}
             <PickemWeek key={week.week} seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} locked={week.phase === 'locked'} />
         </section> : <p className="mt-8 text-center text-ink-soft">
             {read.status === 'unavailable' ? 'Matchups are unavailable right now. Try again soon.' : 'No week is open for picks.'}
