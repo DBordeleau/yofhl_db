@@ -11,19 +11,22 @@ interface Props {
     seasonYear: number;
     week: number;
     matchups: PickemMatchup[];
+    /** a locked week shows its matchups only */
+    locked?: boolean;
 }
 
 const pairKey = (a: number, b: number) => a < b ? `${a}-${b}` : `${b}-${a}`;
 
 // The public page renders the matchups; the owner's own Pick'em picks load only when the session hint says an
 // owner may be signed in (ADR 0003), so an anonymous visit makes no extra request.
-export default function PickemWeek({ seasonYear, week, matchups }: Props) {
+export default function PickemWeek({ seasonYear, week, matchups, locked = false }: Props) {
     const [yours, setYours] = useState<YourPickem | null>(null);
     const [picks, setPicks] = useState<Map<string, number>>(new Map());
     const [saving, setSaving] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (locked) return;
         if (!hasSessionHint()) { setYours({ status: 'signed-out' }); return; }
         let cancelled = false;
         readYourPickem(seasonYear, week).then(answer => {
@@ -32,7 +35,7 @@ export default function PickemWeek({ seasonYear, week, matchups }: Props) {
             if (answer?.status === 'entry') setPicks(new Map(answer.picks.map(pick => [pairKey(...pick.matchup), pick.picked])));
         }).catch(() => { if (!cancelled) setYours({ status: 'signed-out' }); });
         return () => { cancelled = true; };
-    }, [seasonYear, week]);
+    }, [seasonYear, week, locked]);
 
     async function choose(matchup: PickemMatchup, franchise: PickemFranchise) {
         const key = pairKey(matchup.away.id, matchup.home.id);
@@ -51,8 +54,9 @@ export default function PickemWeek({ seasonYear, week, matchups }: Props) {
         });
     }
 
-    const canPick = yours?.status === 'entry';
+    const canPick = !locked && yours?.status === 'entry';
     return <div className="mt-6">
+        {canPick && <p className="mb-4 text-sm font-bold text-ink-soft">{picks.size} of {matchups.length} picked</p>}
         {yours?.status === 'signed-out' && <p className="mb-4 text-center text-sm text-ink-soft"><Link href="/owner" className="font-bold text-rink-red underline">Sign in</Link> to make your picks.</p>}
         {yours?.status === 'no-team' && <p className="mb-4 text-center text-sm text-ink-soft"><Link href="/owner" className="font-bold text-rink-red underline">Claim your team</Link> to make picks.</p>}
         {error && <p role="alert" className="mb-4 rounded-lg bg-rink-red/10 px-4 py-2 text-center text-sm font-bold text-rink-red">{error}</p>}
