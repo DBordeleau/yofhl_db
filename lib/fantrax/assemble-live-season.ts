@@ -1,6 +1,6 @@
 // The live season module: the current season as Fantrax has it now, already assembled. It only assembles; what
-// it reads comes through the live season source port, so this file is free of Next and Fantrax specifics.
-// Callers use the production binding in live-season.ts.
+// it reads comes through the live season source port, so this file is free of Next and of Fantrax's responses
+// (it borrows only the client's player name helper). Callers use the production binding in live-season.ts.
 import { PLAYOFF_FORMAT } from './config';
 import { playerName } from './fantrax-client';
 import {
