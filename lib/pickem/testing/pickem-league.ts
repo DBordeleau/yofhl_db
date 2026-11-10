@@ -54,12 +54,12 @@ export const scoresOf = (week: number, fetchedAt: string, scores: [number, numbe
  * The live season's in-memory state: ten mapped teams, every regular week on the default pairings, each scored
  * nil-nil until a test gives it scores.
  */
-export function liveSeasonState(weeks: SourceWeek[] = weeksAroundNow()): MemoryState {
+export function liveSeasonState(weeks: SourceWeek[] = weeksAroundNow(), seasonYear = SEASON): MemoryState {
     const teams = FRANCHISES.map(id => ({ id: `fx${id}`, name: `Fantrax ${id}` }));
     const regularWeeks = weeks.slice(0, Math.max(weeks.length - 3, 0));
     const core: SourceCore = {
         fetchedAt: weeks[0]?.startDate ?? iso(Date.now()),
-        seasonYear: SEASON,
+        seasonYear,
         teams,
         weeks,
         lineupPeriod: null,
@@ -70,7 +70,7 @@ export function liveSeasonState(weeks: SourceWeek[] = weeksAroundNow()): MemoryS
         playoffs: {},
     };
     return {
-        fantraxTeams: FRANCHISES.map(id => ({ seasonYear: SEASON, fantraxLeagueId: 'league27', fantraxTeamId: `fx${id}`, franchiseId: id })),
+        fantraxTeams: FRANCHISES.map(id => ({ seasonYear, fantraxLeagueId: `league${seasonYear % 100}`, fantraxTeamId: `fx${id}`, franchiseId: id })),
         franchises: FRANCHISES.map(id => ({ id, name: `Franchise ${id}`, abbreviation: `F${id}`, logo: `/logos/f${id}.png`, owner: `Owner ${id}` })),
         archivedPlayerIds: [],
         fantrax: {
@@ -116,5 +116,7 @@ export async function pickemLeague(t: TestContext, options: { launch?: PickemLau
     const setScores = (number: number, scores: [number, number, number, number][]) => {
         live.fantrax.scores[number] = scoresOf(number, iso(Date.now()), scores);
     };
-    return { league, live, pickem, act, asOwner, signInAs, signOut, startOf, weekOf, playWeek, setScores };
+    /** Fantrax moves on to season `seasonYear`, its weeks placed as `weeks`; the season before is no longer there */
+    const moveToSeason = (seasonYear: number, weeks: SourceWeek[]) => { Object.assign(live, liveSeasonState(weeks, seasonYear)); };
+    return { league, live, pickem, act, asOwner, signInAs, signOut, startOf, weekOf, playWeek, setScores, moveToSeason };
 }

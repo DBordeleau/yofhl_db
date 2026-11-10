@@ -54,6 +54,9 @@ export interface ScoredWeek extends LivePickemWeek {
     winners: Winner[] | null;
 }
 
+/** What scoring and the breakdown need of a locked week, whether from the live season or from the record alone */
+export type CountedWeek = Pick<ScoredWeek, 'seasonYear' | 'week' | 'name' | 'lock' | 'matchups' | 'winners'>;
+
 /** `live`, a locked week, as it is scored: frozen results once settle has frozen it, else the live season's */
 export async function lockedWeek(ports: Pick<PickemPorts, 'liveSeason'>, live: LivePickemWeek, recorded: RecordedWeek | undefined,
     teams: LiveTeam[]): Promise<ScoredWeek> {
@@ -72,7 +75,7 @@ const resultOf = (matchup: PickemMatchup, winner: Winner): PickemMatchupResult =
     winner === matchup.away.id ? 'away' : winner === matchup.home.id ? 'home' : 'tie';
 
 /** The breakdown of a locked week on `week`'s pairings, with each matchup's result once the week is scored */
-export async function readBreakdown(week: ScoredWeek, entries: Map<number, PickemEntry>): Promise<PickemMatchupBreakdown[]> {
+export async function readBreakdown(week: CountedWeek, entries: Map<number, PickemEntry>): Promise<PickemMatchupBreakdown[]> {
     const picks = await readWeekPicks(week.seasonYear, week.week);
     const byName = (a: PickemEntry, b: PickemEntry) => a.franchise.name.localeCompare(b.franchise.name) || a.franchise.id - b.franchise.id;
     return week.matchups.map((matchup, index) => {

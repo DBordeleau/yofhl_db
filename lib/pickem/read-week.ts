@@ -2,13 +2,15 @@
 // picks are the only ones a read returns.
 import { rows } from '@/lib/data/db';
 import { getOwnedTeam } from '@/lib/owner/teams';
-import { isLocked, loadLivePickem } from './live-weeks';
-import { entriesOf, lockedWeek, readBreakdown, type PickemMatchupBreakdown, type ScoredWeek } from './locked-week';
+import { isLocked } from './live-weeks';
+import { entriesOf, lockedWeek, readBreakdown, type CountedWeek, type PickemMatchupBreakdown, type ScoredWeek } from './locked-week';
 import { pairOfMatchup, samePair, type PickemMatchup, type PickemPick } from './model';
 import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
+import { readSeasonEntries, recordedWeek } from './past-season';
 import { readRecordedSeason } from './recorded-weeks';
 import { outcomeOf, type PickOutcome } from './results';
+import { askedSeason } from './seasons';
 import { weekOptions, type PickemWeekOption } from './week-switcher';
 import { readWhosIn, type PickemWhoIsIn } from './whos-in';
 
@@ -51,20 +53,26 @@ export interface ReadWeekInput {
     now: number;
     /** the season being played when omitted */
     seasonYear?: number;
-    /** the next week to lock when omitted; 'last-locked' for the most recently locked week */
+    /**
+     * the next week to lock when omitted (a past season's last week, since none is left to lock); 'last-locked' for
+     * the most recently locked week
+     */
     week?: number | 'last-locked';
     asker: Asker;
 }
 
 export type ReadWeekResult =
-    /** `weeks` is the season's switcher: every Pick'em week of the season, from its first week on */
-    | { status: 'week'; week: PickemWeek; weeks: PickemWeekOption[] }
+    /**
+     * `weeks` is the season's switcher: every Pick'em week of the season, from its first week on. `beingPlayed`:
+     * whether the season is the one being played, the live season's.
+     */
+    | { status: 'week'; week: PickemWeek; weeks: PickemWeekOption[]; beingPlayed: boolean }
     /** Pick'em is off, the season or week has no Pick'em, or no week is left to lock */
     | { status: 'no-week' }
     | { status: 'unavailable' };
 
 export function createReadWeek(ports: PickemPorts) {
-    async function yours(week: ScoredWeek): Promise<YourPickem> {
+    async function yours(week: CountedWeek): Promise<YourPickem> {
         const owner = await ports.ownerSession.currentOwner();
         if (!owner) return { status: 'signed-out' };
         const team = await getOwnedTeam(owner.uid);
@@ -80,11 +88,27 @@ export function createReadWeek(ports: PickemPorts) {
         return { status: 'entry', franchiseId: team.id, picks };
     }
 
+    // A past season's week from Pick'em's own record alone: every week of it is locked.
+    async function readPastWeek(input: ReadWeekInput, seasonYear: number): Promise<ReadWeekResult> {
+        const [recorded, entries] = await Promise.all([readRecordedSeason(seasonYear), readSeasonEntries(seasonYear)]);
+        const found = typeof input.week === 'number' ? recorded.find(item => item.week === input.week) : recorded.at(-1);
+        if (!found) return { status: 'no-week' };
+        const week = recordedWeek(seasonYear, found, entries);
+        return { status: 'week', beingPlayed: false, week: {
+            seasonYear, week: week.week, name: week.name, lock: week.lock, matchups: week.matchups, phase: 'locked',
+            yours: input.asker === 'session' ? await yours(week) : null,
+            whosIn: null,
+            breakdown: await readBreakdown(week, entries),
+        }, weeks: recorded.map(item => ({ week: item.week, name: `Week ${item.week}`, lock: item.lock, phase: 'locked' })) };
+    }
+
     return async function readWeek(input: ReadWeekInput): Promise<ReadWeekResult> {
         if (!ports.launch) return { status: 'no-week' };
-        const live = await loadLivePickem(ports, input.now);
-        if (!live) return { status: 'unavailable' };
-        if (input.seasonYear !== undefined && input.seasonYear !== live.seasonYear) return { status: 'no-week' };
+        const season = await askedSeason(ports, input.now, input.seasonYear);
+        if (season.kind === 'none') return { status: 'no-week' };
+        if (season.kind === 'unavailable') return { status: 'unavailable' };
+        if (season.kind === 'past') return readPastWeek(input, season.seasonYear);
+        const { live } = season;
         const found = input.week === undefined ? live.weeks.find(item => !isLocked(item, input.now))
             : input.week === 'last-locked' ? live.weeks.findLast(item => isLocked(item, input.now))
             : live.weeks.find(item => item.week === input.week);
@@ -94,7 +118,7 @@ export function createReadWeek(ports: PickemPorts) {
         const entries = entriesOf(live.teams);
         const recorded = locked ? (await readRecordedSeason(live.seasonYear)).find(item => item.week === found.week) : undefined;
         const week: ScoredWeek = locked ? await lockedWeek(ports, found, recorded, live.teams) : { ...found, winners: null };
-        return { status: 'week', week: {
+        return { status: 'week', beingPlayed: true, week: {
             seasonYear: week.seasonYear, week: week.week, name: week.name, lock: week.lock, matchups: week.matchups,
             phase: locked ? 'locked' : 'open',
             yours: input.asker === 'session' ? await yours(week) : null,

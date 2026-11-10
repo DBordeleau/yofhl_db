@@ -173,6 +173,13 @@ export const pickemPairings = league.table('pickem_pairings', {
         or (${t.frozenAt} is not null and ${t.winnerFranchiseId} in (${t.awayFranchiseId}, ${t.homeFranchiseId}))`),
 ]);
 
+// A season whose Pick'em is complete: settle writes it once the season's last regular-season week is frozen. It is
+// stored because the live season stops describing the season once Fantrax moves on.
+export const pickemCompletedSeasons = league.table('pickem_completed_seasons', {
+    seasonYear: integer('season_year').primaryKey(),
+    completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+});
+
 // a franchise's identity and regular-season standings for one season
 export const teamSeasons = league.table(
     'team_seasons',
