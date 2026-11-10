@@ -1,9 +1,7 @@
 import type { StudioPlayer, StudioTeam } from '../teams';
 import type { PlayerRef } from '../script';
 import type { SnapshotDiagnostic } from '../player-snapshot';
-import { createFantraxClient, readCore, toWeekScores, type Fetcher } from '../../fantrax/fantrax-client';
-import type { SourceCore } from '../../fantrax/live-season-source';
-import { playerName, type Period } from '../../fantrax/model';
+import { createFantraxClient, playerName, readCore, toWeekScores, type Fetcher, type SourceCore, type SourceWeek as Period } from '../../fantrax/fantrax-client';
 import { seasonLabel } from '../../seasons';
 import { eraFor, liveFantraxLeague, type Franchise, type LeagueConfig } from '../../../scripts/db/lib/league-config';
 

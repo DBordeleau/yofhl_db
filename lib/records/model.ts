@@ -3,8 +3,7 @@ import { playerHref } from '../player-url';
 import { getAwardDefinition } from '../awards';
 import { PLAYER_STATS, type PlayerStat, type PlayerCategories } from './player-stats';
 import type { FranchiseCard } from '../data/league';
-import type { RosterStats } from '../fantrax/model';
-import type { LiveSeason } from '../fantrax/live-season';
+import type { LiveSeason, RosterStats } from '../fantrax/live-season';
 import type { RivalryGame } from '../rivalries/model';
 
 export type Category = 'teams' | 'players' | 'matchups' | 'honours';

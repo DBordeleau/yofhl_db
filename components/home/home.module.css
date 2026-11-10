@@ -30,16 +30,16 @@
 .sectionHeading { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 22px; }
 .sectionHeading h2 { font-size: 27px; font-weight: 850; line-height: 1.15; letter-spacing: -.055em; }
 .matchupSection { padding-top: 34px; }
-.periodControls { display: flex; gap: 4px; align-items: center; color: var(--navy); }
-.periodControls button { flex-shrink: 0; width: 36px; height: 40px; border: 1px solid #d4dee9; background: #fff; border-radius: 4px; font-size: 16px; }
-.periodControls button:disabled { opacity: .35; cursor: not-allowed; }
-.periodControls button:not(:disabled):hover { background: #e6eef7; }
-.periodControls select { min-width: 0; max-width: 340px; min-height: 40px; padding: 8px 26px 8px 12px; background-color: #fff; border: 1px solid #d4dee9; border-radius: 4px; font-size: 13px; font-weight: 700; }
+.weekControls { display: flex; gap: 4px; align-items: center; color: var(--navy); }
+.weekControls button { flex-shrink: 0; width: 36px; height: 40px; border: 1px solid #d4dee9; background: #fff; border-radius: 4px; font-size: 16px; }
+.weekControls button:disabled { opacity: .35; cursor: not-allowed; }
+.weekControls button:not(:disabled):hover { background: #e6eef7; }
+.weekControls select { min-width: 0; max-width: 340px; min-height: 40px; padding: 8px 26px 8px 12px; background-color: #fff; border: 1px solid #d4dee9; border-radius: 4px; font-size: 13px; font-weight: 700; }
 .matchupMeta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: -6px; margin-bottom: 14px; font-size: 12px; color: #66758b; }
 .matchupMeta a { color: #1f6fc2; font-weight: 700; }
 @media (min-width: 1024px) {
     .matchupMeta { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
-    .matchupMeta .periodControls { grid-column: 2; }
+    .matchupMeta .weekControls { grid-column: 2; }
     .matchupMeta > a { grid-column: 3; justify-self: end; }
 }
 .matchupGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; transition: opacity .15s; }
@@ -415,7 +415,7 @@ a.scoreCardTop:hover .scoreSource { color: #fff; }
     .sectionNavRow { display: block; padding-block: 4px 12px; } .sectionNav { justify-content: space-between; gap: 12px; }
     .sectionNav a { font-size: 13px; min-height: 43px; } .updateLabel { display: block; max-width: none; text-align: left; font-size: 11px; }
     .matchupSection { padding-top: 27px; } .sectionHeading { align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 18px; }
-    .sectionHeading h2 { font-size: 25px; } .periodControls { width: 100%; } .periodControls select { max-width: none; flex: 1; } .periodControls button { width: 42px; }
+    .sectionHeading h2 { font-size: 25px; } .weekControls { width: 100%; } .weekControls select { max-width: none; flex: 1; } .weekControls button { width: 42px; }
     .matchupGrid { gap: 12px; } .matchupMeta { margin-top: 0; font-size: 11px; }
     .idleTeams { font-size: 11px; } .idleTeams span { display: block; margin-left: 0; }
     .leagueGrid { margin-top: 32px; } .leagueGrid > section > .sectionHeading { flex-wrap: nowrap; align-items: center; }

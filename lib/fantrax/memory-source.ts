@@ -1,7 +1,6 @@
 // The in-memory live season source, for tests. `fantrax` is what Fantrax would return right now and `saved` is
 // the saved snapshot; `down` lists the Fantrax requests that are failing.
-import type { RosterStats } from './model';
-import type { FantraxTeamRow, FranchiseIdentity, LiveSeasonSource, SourceCore, SourceLeaders, WeekScores } from './live-season-source';
+import type { FantraxTeamRow, FranchiseIdentity, LiveSeasonSource, RosterStats, SourceCore, SourceLeaders, WeekScores } from './live-season-source';
 
 export interface MemoryCapture {
     core: SourceCore;

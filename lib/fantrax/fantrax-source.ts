@@ -7,9 +7,8 @@ import { cache } from 'react';
 import { cached, rows } from '@/lib/data/db';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
 import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, finalWeeksTag, scoresAreArchived } from './cache-policy';
-import { createFantraxClient, readCore, toWeekScores, type SavedLiveSeason, type FantraxLeague } from './fantrax-client';
+import { createFantraxClient, readCore, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
 import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek } from './live-season-source';
-import type { MatchupScores } from './model';
 
 export const fantraxClient = createFantraxClient();
 

@@ -44,6 +44,17 @@ test('league info comes out in season years, with weeks in order and unseeded pl
     assert.equal(core.players['03kl0'].name, 'McDavid, Connor');
 });
 
+test('does not present unassigned Fantrax playoff slots as games or team byes', async () => {
+    const placeholders = Array.from({ length: 6 }, () => ({ away: { TBD: true }, home: { TBD: true } }));
+    const partial = { away: { id: 'team-a', name: 'Team A' }, home: { TBD: true } };
+    const schedule = async (matchupList: unknown[]) => {
+        const client = fantrax({ getLeagueInfo: body => ({ ...body, matchups: [{ period: 3, matchupList }] }) });
+        return readCore(await client.league(LEAGUE), {}).schedule[0].matchups;
+    };
+    assert.deepEqual(await schedule(placeholders), []);
+    assert.deepEqual(await schedule([...placeholders, partial]), [partial]);
+});
+
 test('an incomplete league snapshot is rejected', async () => {
     const incomplete: Record<string, (body: RecordedBody) => unknown>[] = [
         { getLeagueInfo: body => ({ ...body, teamInfo: undefined }) },

@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Keeper submissions | Admin' };
 
 function PlayerList({ players, rookieId }: { players: KeeperPlayer[]; rookieId?: string | null }) {
-    return players.length ? <ul className="divide-y divide-line-soft">{players.map(player => <li key={player.id} className="flex items-baseline justify-between gap-3 py-2 text-sm"><span className="font-semibold">{player.name}<small className="ml-2 font-normal text-ink-muted">{keeperPosition(player)} · {player.nhlTeam === '(N/A)' ? 'FA' : player.nhlTeam}</small></span>{isMinor(player) ? <span className="shrink-0 text-[10px] font-bold text-green-800">MINORS · FREE</span> : player.id === rookieId ? <span className="shrink-0 text-[10px] font-bold text-gold-deep">FREE ROOKIE</span> : null}</li>)}</ul> : <p className="py-3 text-sm text-ink-muted">None</p>;
+    return players.length ? <ul className="divide-y divide-line-soft">{players.map(player => <li key={player.id} className="flex items-baseline justify-between gap-3 py-2 text-sm"><span className="font-semibold">{player.name}<small className="ml-2 font-normal text-ink-muted">{keeperPosition(player)} · {player.nhlTeam}</small></span>{isMinor(player) ? <span className="shrink-0 text-[10px] font-bold text-green-800">MINORS · FREE</span> : player.id === rookieId ? <span className="shrink-0 text-[10px] font-bold text-gold-deep">FREE ROOKIE</span> : null}</li>)}</ul> : <p className="py-3 text-sm text-ink-muted">None</p>;
 }
 
 export default async function KeeperAdminPage() {
