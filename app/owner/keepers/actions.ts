@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import type { OwnerPreambleRejection } from '@/lib/owner/create-owner-session';
 import { ownerSession } from '@/lib/owner/owner-session';
 import { getKeeperRoster, getKeeperSubmission } from '@/lib/keepers/data';
 import { KEEPERS_ENABLED, CALDER_SEASON, keepersOpen, rosterFingerprint, validateKeepers, type KeeperInput, type KeeperSaveResult, type KeeperPlayer } from '@/lib/keepers/model';
@@ -9,13 +10,29 @@ import { rows } from '@/lib/data/db';
 import { saveKeepersQuery } from '@/lib/keepers/queries';
 import type { KeeperSubmission } from '@/lib/keepers/model';
 
+type KeeperRefusal = OwnerPreambleRejection | 'closed';
+
+// After the deadline the preamble refuses before the rate limit and the team lookup.
+const closedAfterDeadline = () => (keepersOpen() ? null : 'closed' as const);
+
+const submitMessages: Record<KeeperRefusal, string> = {
+    'session-expired': 'Sign in again to submit your keepers.',
+    closed: 'Keeper submissions closed on October 9 at 7:00 p.m. Eastern.',
+    'no-team': 'This account does not manage an active team.',
+};
+
+const refreshMessages: Record<KeeperRefusal, string> = {
+    'session-expired': 'Sign in again to refresh your roster.',
+    closed: 'Keeper submissions are closed. Your submitted roster is now read-only.',
+    'no-team': 'This account does not manage an active team.',
+};
+
 export async function saveKeeperSelection(input: KeeperInput): Promise<KeeperSaveResult> {
     if (!KEEPERS_ENABLED) return { error: 'Keeper submissions are currently unavailable.' };
     try {
-        const session = await ownerSession.preamble('keepers', { team: true });
-        if (!session.ok) return { error: session.reason === 'session-expired' ? 'Sign in again to submit your keepers.' : 'This account does not manage an active team.' };
-        const { actor: user, team } = session;
-        if (!keepersOpen()) return { error: 'Keeper submissions closed on October 9 at 7:00 p.m. Eastern.' };
+        const start = await ownerSession.ownerPreamble('keepers', closedAfterDeadline);
+        if (!start.ok) return { error: submitMessages[start.reason] };
+        const { actor, team } = start;
         if (!input || !Number.isSafeInteger(input.version) || input.version < 0 ||
             typeof input.rosterFingerprint !== 'string' || input.rosterFingerprint.length > 20000 ||
             !Array.isArray(input.keptIds) || input.keptIds.length > 100 || input.keptIds.some(id => typeof id !== 'string' || id.length > 64) ||
@@ -28,7 +45,7 @@ export async function saveKeeperSelection(input: KeeperInput): Promise<KeeperSav
         const result = validateKeepers(roster, input, saved?.rookieReviews);
         if (!result.valid) return { error: result.errors.join(' ') };
         const [submission] = await rows<KeeperSubmission>(saveKeepersQuery({
-            franchiseId: team.id, uid: user.uid, version: input.version, roster,
+            franchiseId: team.id, uid: actor.uid, version: input.version, roster,
             selection: { keptIds: result.keptIds, rookieId: input.rookieId, rookieDeclared: Boolean(input.rookieId && input.rookieDeclared), rookieSeason: input.rookieId ? CALDER_SEASON : null },
         }));
         if (!submission) return { error: 'The deadline passed or this list changed. Reload to see its current status.' };
@@ -42,10 +59,9 @@ export async function saveKeeperSelection(input: KeeperInput): Promise<KeeperSav
 export async function refreshKeeperRoster(): Promise<{ roster: KeeperPlayer[]; fetchedAt: string; serverNow: string; error?: never } | { error: string; roster?: never }> {
     if (!KEEPERS_ENABLED) return { error: 'Keeper submissions are currently unavailable.' };
     try {
-        const session = await ownerSession.preamble('keeper-refresh', { team: true });
-        if (!session.ok) return { error: session.reason === 'session-expired' ? 'Sign in again to refresh your roster.' : 'This account does not manage an active team.' };
-        const { team } = session;
-        if (!keepersOpen()) return { error: 'Keeper submissions are closed. Your submitted roster is now read-only.' };
+        const start = await ownerSession.ownerPreamble('keeper-refresh', closedAfterDeadline);
+        if (!start.ok) return { error: refreshMessages[start.reason] };
+        const { team } = start;
         const current = await getKeeperRoster(team.id, true);
         const roster = await enrichKeeperRoster(current.roster);
         if (!keepersOpen()) return { error: 'The deadline passed while refreshing. Your submitted roster is now read-only.' };

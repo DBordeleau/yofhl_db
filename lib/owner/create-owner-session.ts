@@ -1,22 +1,22 @@
-import { sql } from 'drizzle-orm';
 import sharp from 'sharp';
 import { getDb, rows } from '@/lib/data/db';
 import { saveTeamBranding, saveTeamIdentity, type Actor } from '@/lib/data/curated-edits';
 import { parseTeamColours } from '@/lib/team-branding';
 import type { KeeperReminderState } from '@/components/keepers/reminder';
-import { getKeeperRoster, getKeeperSubmission } from '@/lib/keepers/data';
-import { KEEPERS_ENABLED, keepersOpen, submissionStatus } from '@/lib/keepers/model';
+import { getKeeperReminder } from '@/lib/keepers/data';
 import { hashCode, teamName, type ManagedTeam } from './model';
 import type { OwnerSessionPorts, OwnerUser } from './ports';
-import { claimTeamQuery, rateLimitQuery } from './queries';
+import { claimTeamQuery, rateLimitCleanupQuery, rateLimitQuery } from './queries';
+import { assertSameOrigin } from './same-origin';
 import { getOwnedTeam } from './teams';
 
 // The owner session: who is acting (the admin or one owner), which franchise an owner manages, and what
 // signing in, claiming and saving do. Server actions are thin wrappers that map the reasons returned here to
 // the sentences an owner reads. Permission to edit a franchise stays in the curated edit module.
 //
-// Every owner-reachable action starts with the preamble, in this order: same-origin check, resolve the
-// actor, rate limit. Its own input is validated after it.
+// Every owner-reachable action starts with a preamble, in this order: same-origin check, resolve the
+// actor, rate limit. Its own input is validated after it. The owner preamble can also be closed (the keeper
+// deadline passed), which refuses the action after the session check and before the rate limit.
 
 const SESSION_COOKIE = 'yofhl_owner';
 const HINT_COOKIE = 'yofhl_owner_hint';
@@ -28,6 +28,7 @@ const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 type Failed<Reason> = { ok: false; reason: Reason };
 type TeamRejection = Extract<Awaited<ReturnType<typeof saveTeamIdentity>>, { ok: false }>['reason'];
 
+export type OwnerPreambleRejection = 'session-expired' | 'no-team';
 export type ClaimRejection = 'invalid-code' | 'code-unavailable' | 'already-owns-team';
 export type SaveTeamRejection = 'session-expired' | 'invalid-team' | 'invalid-name' | 'image-too-large'
     | 'image-unreadable' | 'upload-failed' | 'save-failed' | TeamRejection;
@@ -36,7 +37,7 @@ export type SaveBrandingRejection = 'session-expired' | 'invalid-team' | 'invali
 /** What the header route returns. */
 export interface HeaderAnswer {
     signedIn: boolean;
-    team: { name: string; logo: string | null; abbreviation: string } | null;
+    team: Pick<ManagedTeam, 'name' | 'logo' | 'abbreviation'> | null;
     keepers: KeeperReminderState | null;
 }
 
@@ -48,10 +49,18 @@ export interface SaveTeamInput {
     logo?: Blob | null;
 }
 
+export interface SaveBrandingInput {
+    franchiseId: number;
+    version: number;
+    /** Colours and background style, parsed here. */
+    branding: unknown;
+}
+
 const isUniqueViolation = (error: unknown): boolean => typeof error === 'object' && error !== null &&
     (('code' in error && error.code === '23505') || ('cause' in error && isUniqueViolation(error.cause)));
 
-const validTeam = (id: number, version: number) => Number.isSafeInteger(id) && id > 0 && Number.isSafeInteger(version) && version >= 0;
+// An id of 0 or below passes: saving a team refuses it as an unknown team, saving branding as invalid.
+const validTeam = (id: number, version: number) => Number.isSafeInteger(id) && Number.isSafeInteger(version) && version >= 0;
 
 /** Whether a logo URL is an upload in this team's own folder, never checked-in or historical artwork. */
 const isTeamUpload = (url: string, franchiseId: number) => {
@@ -70,18 +79,12 @@ async function processLogo(file: Blob): Promise<Buffer | null> {
 }
 
 export function createOwnerSession({ identity, storage, request }: OwnerSessionPorts) {
-    // Server Actions also check Origin. This explicit check rejects a missing Origin too, closing sign-in CSRF.
-    async function requireSameOrigin() {
-        const [origin, host] = [await request.origin(), await request.host()];
-        let sent: string | null = null;
-        try { sent = origin ? new URL(origin).host : null; } catch { /* a malformed Origin is foreign */ }
-        if (!sent || !host || sent !== host) throw new Error('Please reload the page and try again.');
-    }
+    const requireSameOrigin = async () => assertSameOrigin(await request.origin(), await request.host());
 
     /** Count an attempt at `action` by `key` (a uid, 'admin', or the client IP when empty); throws past the limit. */
     async function rateLimit(action: string, key = '') {
         const by = key || await request.clientIp();
-        await getDb().execute(sql`delete from league.owner_rate_limits where resets_at < now() - interval '1 day'`);
+        await getDb().execute(rateLimitCleanupQuery);
         const [limit] = await rows<{ attempts: number }>(rateLimitQuery(hashCode(`${action}:${by}`)));
         if (limit.attempts > ATTEMPTS) throw new Error('Too many attempts. Please try again in 15 minutes.');
     }
@@ -100,24 +103,33 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
     }
 
     /**
-     * Start an owner-reachable action: same-origin check, resolve the actor, rate limit. With `team`, only an
-     * owner counts and their active team comes back too. Throws for a foreign origin or too many attempts.
+     * Start an action the admin or an owner may take: same-origin check, resolve the actor, rate limit.
+     * Throws for a foreign origin or too many attempts.
      */
-    async function preamble(action: string): Promise<{ ok: true; actor: Actor } | Failed<'session-expired'>>;
-    async function preamble(action: string, options: { team: true }):
-        Promise<{ ok: true; actor: { uid: string }; team: ManagedTeam } | Failed<'session-expired' | 'no-team'>>;
-    async function preamble(action: string, options: { team?: boolean } = {}) {
+    async function preamble(action: string): Promise<{ ok: true; actor: Actor } | Failed<'session-expired'>> {
         await requireSameOrigin();
-        let actor: Actor | null;
-        if (options.team) {
-            const user = await currentOwner();
-            actor = user && { uid: user.uid };
-        } else actor = await currentActor();
+        const actor = await currentActor();
         if (!actor) return { ok: false, reason: 'session-expired' };
         await rateLimit(action, 'uid' in actor ? actor.uid : 'admin');
-        if (!options.team) return { ok: true, actor };
-        const team = await getOwnedTeam((actor as { uid: string }).uid);
-        return team ? { ok: true, actor, team } : { ok: false, reason: 'no-team' };
+        return { ok: true, actor };
+    }
+
+    /**
+     * Start an action only an owner takes for the active team they manage: same-origin check, resolve the
+     * owner, `closed`, rate limit, then the team. `closed` returns a reason when the action is shut (as after
+     * the keeper deadline), so a closed attempt neither counts toward the limit nor looks the team up.
+     * Throws for a foreign origin or too many attempts.
+     */
+    async function ownerPreamble<Closed extends string = never>(action: string, closed?: () => Closed | null):
+        Promise<{ ok: true; actor: { uid: string }; team: ManagedTeam } | Failed<OwnerPreambleRejection | Closed>> {
+        await requireSameOrigin();
+        const user = await currentOwner();
+        if (!user) return { ok: false, reason: 'session-expired' };
+        const shut = closed?.();
+        if (shut) return { ok: false, reason: shut };
+        await rateLimit(action, user.uid);
+        const team = await getOwnedTeam(user.uid);
+        return team ? { ok: true, actor: { uid: user.uid }, team } : { ok: false, reason: 'no-team' };
     }
 
     // An anonymous action (sign-in, claim) has no actor yet, so it is limited by client IP.
@@ -157,19 +169,10 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         if (user && !hinted) await setHint();
         if (!user && hinted) await clearHint();
         const team = user ? await getOwnedTeam(user.uid) : null;
-        let keepers: HeaderAnswer['keepers'] = null;
-        if (KEEPERS_ENABLED && team && keepersOpen()) {
-            const submission = await getKeeperSubmission(team.id);
-            // An API outage must not make an existing submission look missing. Only the submission status is
-            // reported, so the cached live season is enough.
-            const current = submission ? await getKeeperRoster(team.id, false).catch(() => null) : null;
-            const newerRoster = current && submission && Date.parse(current.fetchedAt) > Date.parse(submission.submittedAt) ? current.roster : undefined;
-            keepers = { status: submissionStatus(submission, newerRoster), serverNow: new Date().toISOString() };
-        }
         return {
             signedIn: Boolean(user),
             team: team ? { name: team.name, logo: team.logo, abbreviation: team.abbreviation } : null,
-            keepers,
+            keepers: team ? await getKeeperReminder(team.id) : null,
         };
     }
 
@@ -187,21 +190,21 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
     }
 
     /** Claim the team an invitation code was issued for, signing the owner in first. */
-    async function claimTeam(idToken: string, code: unknown): Promise<{ ok: true; franchiseId: number } | Failed<ClaimRejection>> {
+    async function claimTeam(idToken: string, code: unknown): Promise<{ ok: true } | Failed<ClaimRejection>> {
         await anonymousPreamble('claim');
         const user = await freshUser(idToken);
         if (typeof code !== 'string' || code.trim().length !== 32) return { ok: false, reason: 'invalid-code' };
         // Create the session before claiming, so a Firebase failure cannot consume a code.
         await startSession(idToken);
         let claimed;
-        try { claimed = await rows<{ franchise_id: number }>(claimTeamQuery(hashCode(code), user.uid, user.email)); }
+        try { claimed = await rows(claimTeamQuery(hashCode(code), user.uid, user.email)); }
         catch (error) {
             // A concurrent claim by the same account got there first.
             if (isUniqueViolation(error)) return { ok: false, reason: 'already-owns-team' };
             throw error;
         }
         // The statement refuses an expired or used code, and an account that already owns a team.
-        return claimed.length ? { ok: true, franchiseId: claimed[0].franchise_id } : { ok: false, reason: 'code-unavailable' };
+        return claimed.length ? { ok: true } : { ok: false, reason: 'code-unavailable' };
     }
 
     /**
@@ -240,16 +243,17 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
     }
 
     /** Save a team's colours and background style. */
-    async function saveBranding(franchiseId: number, version: number, value: unknown): Promise<{ ok: true } | Failed<SaveBrandingRejection>> {
+    async function saveBranding(input: SaveBrandingInput): Promise<{ ok: true } | Failed<SaveBrandingRejection>> {
         const start = await preamble('save-branding');
         if (!start.ok) return start;
-        if (!validTeam(franchiseId, version)) return { ok: false, reason: 'invalid-team' };
-        const branding = parseTeamColours(value, franchiseId);
+        const { franchiseId: id, version } = input;
+        if (!validTeam(id, version) || id <= 0) return { ok: false, reason: 'invalid-team' };
+        const branding = parseTeamColours(input.branding, id);
         if (!branding) return { ok: false, reason: 'invalid-branding' };
-        return saveTeamBranding(start.actor, franchiseId, version, branding);
+        return saveTeamBranding(start.actor, id, version, branding);
     }
 
-    return { requireSameOrigin, currentOwner, preamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
+    return { currentOwner, preamble, ownerPreamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
 }
 
 export type OwnerSession = ReturnType<typeof createOwnerSession>;

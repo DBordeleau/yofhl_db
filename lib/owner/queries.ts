@@ -46,3 +46,6 @@ export const rateLimitQuery = (key: string) => sql`
       attempts = case when league.owner_rate_limits.resets_at <= now() then 1 else league.owner_rate_limits.attempts + 1 end,
       resets_at = case when league.owner_rate_limits.resets_at <= now() then now() + interval '15 minutes' else league.owner_rate_limits.resets_at end
     returning attempts`;
+
+// Forget limits that reset more than a day ago, so the table holds only recent attempts.
+export const rateLimitCleanupQuery = sql`delete from league.owner_rate_limits where resets_at < now() - interval '1 day'`;

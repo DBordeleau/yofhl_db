@@ -75,19 +75,31 @@ test('a revoked owner session is expired', async t => {
     assert.deepEqual(await act(s => s.preamble('save-team')), { ok: false, reason: 'session-expired' });
 });
 
-test('asked for the team, the preamble returns the owner and the active team they manage', async t => {
+test('the owner preamble returns the owner and the active team they manage', async t => {
     const { request, act, signInAs } = await owners(t);
-    assert.deepEqual(await act(s => s.preamble('keepers', { team: true })), { ok: false, reason: 'session-expired' });
+    assert.deepEqual(await act(s => s.ownerPreamble('keepers')), { ok: false, reason: 'session-expired' });
     request.state.admin = true;
-    assert.deepEqual(await act(s => s.preamble('keepers', { team: true })), { ok: false, reason: 'session-expired' }, 'the admin manages no team');
+    assert.deepEqual(await act(s => s.ownerPreamble('keepers')), { ok: false, reason: 'session-expired' }, 'the admin manages no team');
     request.state.admin = false;
     await signInAs('owner-1');
-    const result = await act(s => s.preamble('keepers', { team: true }));
+    const result = await act(s => s.ownerPreamble('keepers'));
     assert.ok(result.ok);
     assert.deepEqual(result.actor, { uid: 'owner-1' });
     assert.equal(result.team.id, 1);
     await signInAs('owner-3');
-    assert.deepEqual(await act(s => s.preamble('keepers', { team: true })), { ok: false, reason: 'no-team' }, 'a folded team is not managed');
+    assert.deepEqual(await act(s => s.ownerPreamble('keepers')), { ok: false, reason: 'no-team' }, 'a folded team is not managed');
+});
+
+test('a closed owner action is refused after the session check, before the rate limit and the team lookup', async t => {
+    const { act, query, signInAs } = await owners(t);
+    const closed = () => 'closed' as const;
+    assert.deepEqual(await act(s => s.ownerPreamble('keepers', closed)), { ok: false, reason: 'session-expired' }, 'no session comes first');
+    await signInAs('owner-3');
+    const [{ count: limitsBefore }] = await query<{ count: number }>('select count(*)::int as count from league.owner_rate_limits');
+    for (let i = 0; i < 31; i++) assert.deepEqual(await act(s => s.ownerPreamble('keepers', closed)), { ok: false, reason: 'closed' }, 'an owner with no team');
+    const [{ count: limitsAfter }] = await query<{ count: number }>('select count(*)::int as count from league.owner_rate_limits');
+    assert.equal(limitsAfter, limitsBefore, 'closed attempts do not count toward the rate limit');
+    assert.deepEqual(await act(s => s.ownerPreamble('keepers', () => null)), { ok: false, reason: 'no-team' }, 'an open action still looks up the team');
 });
 
 test('signing in needs a sign-in from the last five minutes and starts a five-day session', async t => {
@@ -162,9 +174,9 @@ const claimedBy = async (query: Awaited<ReturnType<typeof owners>>['query'], fra
 
 test('claiming a team with an open invitation signs the owner in and binds the team', async t => {
     const { identity, act, query } = await owners(t);
-    assert.deepEqual(await act(s => s.claimTeam(identity.signIn('new-owner'), OPEN_CODE)), { ok: true, franchiseId: 2 });
+    assert.deepEqual(await act(s => s.claimTeam(identity.signIn('new-owner'), OPEN_CODE)), { ok: true });
     assert.equal(await claimedBy(query, 2), 'new-owner');
-    const start = await act(s => s.preamble('keepers', { team: true }));
+    const start = await act(s => s.ownerPreamble('keepers'));
     assert.equal(start.ok && start.team.id, 2, 'the new owner is signed in and manages the team');
 });
 
@@ -175,7 +187,7 @@ test('an identity failure while starting the session leaves the invitation unuse
     await assert.rejects(act(s => s.claimTeam(token, OPEN_CODE)), { message: 'Firebase is down' });
     assert.equal(await claimedBy(query, 2), null);
     identity.state.failing.clear();
-    assert.deepEqual(await act(s => s.claimTeam(token, OPEN_CODE)), { ok: true, franchiseId: 2 }, 'the same code still works');
+    assert.deepEqual(await act(s => s.claimTeam(token, OPEN_CODE)), { ok: true }, 'the same code still works');
 });
 
 test('a malformed, used or expired invitation code is refused', async t => {
@@ -304,11 +316,15 @@ test('saving without a new logo keeps the current one', async t => {
 test('a save with no session or a malformed team is refused', async t => {
     const { act, signInAs } = await owners(t);
     assert.deepEqual(await act(async s => s.saveTeam({ franchiseId: 1, version: 3, name: 'New Name' })), { ok: false, reason: 'session-expired' });
-    assert.deepEqual(await act(s => s.saveBranding(1, 3, BRANDING)), { ok: false, reason: 'session-expired' });
+    assert.deepEqual(await act(s => s.saveBranding({ franchiseId: 1, version: 3, branding: BRANDING })), { ok: false, reason: 'session-expired' });
     await signInAs('owner-1');
-    for (const [franchiseId, version] of [[NaN, 3], [1, -1], [1.5, 3], [0, 3]]) {
+    for (const [franchiseId, version] of [[NaN, 3], [1, -1], [1.5, 3]]) {
         assert.deepEqual(await act(async s => s.saveTeam({ franchiseId, version, name: 'New Name' })), { ok: false, reason: 'invalid-team' });
-        assert.deepEqual(await act(s => s.saveBranding(franchiseId, version, BRANDING)), { ok: false, reason: 'invalid-team' });
+        assert.deepEqual(await act(s => s.saveBranding({ franchiseId, version, branding: BRANDING })), { ok: false, reason: 'invalid-team' });
+    }
+    for (const franchiseId of [0, -1]) {
+        assert.deepEqual(await act(async s => s.saveTeam({ franchiseId, version: 3, name: 'New Name' })), { ok: false, reason: 'unknown-team' }, 'no franchise has that id');
+        assert.deepEqual(await act(s => s.saveBranding({ franchiseId, version: 3, branding: BRANDING })), { ok: false, reason: 'invalid-team' });
     }
 });
 
@@ -319,18 +335,18 @@ const brandingOf = async (query: Awaited<ReturnType<typeof owners>>['query'], id
 test('an owner saves their team’s branding, and only theirs', async t => {
     const { act, query, signInAs } = await owners(t);
     await signInAs('owner-1');
-    assert.deepEqual(await act(s => s.saveBranding(1, 3, { ...BRANDING, primary: '#123abc' })), { ok: true });
+    assert.deepEqual(await act(s => s.saveBranding({ franchiseId: 1, version: 3, branding: { ...BRANDING, primary: '#123abc' } })), { ok: true });
     assert.deepEqual(await brandingOf(query, 1), BRANDING);
-    assert.deepEqual(await act(s => s.saveBranding(1, 3, BRANDING)), { ok: false, reason: 'stale-version' });
-    assert.deepEqual(await act(s => s.saveBranding(2, 1, BRANDING)), { ok: false, reason: 'not-owner' });
-    assert.deepEqual(await act(s => s.saveBranding(1, 4, { ...BRANDING, primary: 'red' })), { ok: false, reason: 'invalid-branding' });
+    assert.deepEqual(await act(s => s.saveBranding({ franchiseId: 1, version: 3, branding: BRANDING })), { ok: false, reason: 'stale-version' });
+    assert.deepEqual(await act(s => s.saveBranding({ franchiseId: 2, version: 1, branding: BRANDING })), { ok: false, reason: 'not-owner' });
+    assert.deepEqual(await act(s => s.saveBranding({ franchiseId: 1, version: 4, branding: { ...BRANDING, primary: 'red' } })), { ok: false, reason: 'invalid-branding' });
 });
 
 test('malformed branding requests count toward the rate limit', async t => {
     const { act, signInAs } = await owners(t);
     await signInAs('owner-1');
-    for (let i = 0; i < 30; i++) assert.deepEqual(await act(s => s.saveBranding(1, 3, null)), { ok: false, reason: 'invalid-branding' });
-    await assert.rejects(act(s => s.saveBranding(1, 3, BRANDING)), { message: 'Too many attempts. Please try again in 15 minutes.' });
+    for (let i = 0; i < 30; i++) assert.deepEqual(await act(s => s.saveBranding({ franchiseId: 1, version: 3, branding: null })), { ok: false, reason: 'invalid-branding' });
+    await assert.rejects(act(s => s.saveBranding({ franchiseId: 1, version: 3, branding: BRANDING })), { message: 'Too many attempts. Please try again in 15 minutes.' });
 });
 
 test('the admin saves any team’s identity and branding through the same use cases', async t => {
@@ -338,7 +354,7 @@ test('the admin saves any team’s identity and branding through the same use ca
     request.state.admin = true;
     assert.deepEqual(await act(async s => s.saveTeam({ franchiseId: 3, version: 1, name: 'Refounded', logo: await image() })), { ok: true }, 'a folded team');
     assert.deepEqual(await act(async s => s.saveTeam({ franchiseId: 4, version: 1, name: 'Late Bloomers' })), { ok: true }, 'an unclaimed team');
-    assert.deepEqual(await act(s => s.saveBranding(1, 3, BRANDING)), { ok: true }, 'an owned team');
+    assert.deepEqual(await act(s => s.saveBranding({ franchiseId: 1, version: 3, branding: BRANDING })), { ok: true }, 'an owned team');
     const [folded] = await query<{ name: string; logo_url: string }>('select name, logo_url from league.team_management where franchise_id = 3');
     assert.equal(folded.name, 'Refounded');
     assert.ok(storage.state.files.has(folded.logo_url));
