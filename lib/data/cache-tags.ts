@@ -1,3 +1,5 @@
+import type { MaterializedView } from './materialized-views';
+
 // Full imports still invalidate every query. Interactive edits invalidate only their readers.
 export const LEAGUE_TAG = 'league';
 export const leagueTags = {
@@ -20,7 +22,7 @@ export const leagueTags = {
 export const teamIdentityTags = (id: number) => [leagueTags.franchise(id), leagueTags.franchiseCards, leagueTags.rivalries, leagueTags.records, leagueTags.discovery];
 
 export type CuratedEdit = 'roster' | 'awards' | 'matchup';
-export function curatedEditEffects(kind: CuratedEdit, year: number) {
+export function curatedEditEffects(kind: CuratedEdit, year: number): { views: MaterializedView[]; tags: string[] } {
     switch (kind) {
         case 'roster': return {
             views: ['player_careers'],
@@ -31,8 +33,7 @@ export function curatedEditEffects(kind: CuratedEdit, year: number) {
             tags: [leagueTags.season(year), leagueTags.seasonLeaderboard, leagueTags.players, leagueTags.awards, leagueTags.records],
         };
         case 'matchup': return {
-            // franchise_records reads season_results, so keep this order.
-            views: ['season_results', 'franchise_records'],
+            views: ['franchise_records', 'season_results'],
             tags: [leagueTags.season(year), leagueTags.banners, leagueTags.players, leagueTags.franchiseDetails,
                 leagueTags.franchiseCards, leagueTags.cups, leagueTags.rivalries, leagueTags.records, leagueTags.discovery],
         };
