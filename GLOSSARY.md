@@ -68,6 +68,12 @@ A week whose scores are settled, either automatically because the standings reco
 **Playoff round**:
 The Quarterfinals, Semifinals or Final, each one week.
 
+## Importing
+
+**Season import**:
+Replacing whole seasons' imported data (standings, player seasons, playoff games and their history files) from a folder of Fantrax CSVs, after syncing the league configuration. It never overwrites championship rosters or awards, and reapplies saved bracket corrections. It is one call in the season import module (`scripts/db/lib/season-import.ts`); `npm run db:import` only parses arguments, migrates, runs it and prints the result.
+_Avoid_: sync, load, the importer (when you mean the rules rather than the command)
+
 ## Editing
 
 **Curated edit**:
