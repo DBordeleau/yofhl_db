@@ -47,6 +47,12 @@ interface PreparedGame {
     note: string | null;
 }
 
+/** A season the import wrote, and how many player seasons it kept. */
+export interface ImportedSeason {
+    year: number;
+    players: number;
+}
+
 interface PreparedSeason {
     year: number;
     playoffStatus: 'complete' | 'cancelled';
@@ -267,8 +273,11 @@ const writeLeague = async (db: Db, config: LeagueConfig) => {
     }
 };
 
-const writeSeason = async (db: Db, config: LeagueConfig, season: PreparedSeason, keep: Set<string>) => {
+const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<string, string> | undefined): Promise<ImportedSeason> => {
     const ownerIds = new Map((await db.select().from(schema.owners)).map((o) => [o.name, o.id]));
+
+    // only seasons where the player scored, was rostered, or is on a ring/award list are kept
+    const kept = season.players.filter((p) => p.fpts !== 0 || p.franchiseId !== null || keep?.has(p.id));
 
     await db.transaction(async (tx) => {
         const seasonValues = { year: season.year, label: seasonLabel(season.year), playoffStatus: season.playoffStatus };
@@ -301,8 +310,6 @@ const writeSeason = async (db: Db, config: LeagueConfig, season: PreparedSeason,
             teamSeasonIds.set(team.match.franchise.id, row.id);
         }
 
-        // only seasons where the player scored, was rostered, or is on a ring/award list are kept
-        const kept = season.players.filter((p) => p.fpts !== 0 || p.franchiseId !== null || keep.has(`${season.year}:${p.id}`));
         for (const batch of chunk(kept, 1000)) {
             await tx
                 .insert(schema.players)
@@ -345,7 +352,7 @@ const writeSeason = async (db: Db, config: LeagueConfig, season: PreparedSeason,
         }
     });
 
-    return season.players.filter((p) => p.fpts !== 0 || p.franchiseId !== null || keep.has(`${season.year}:${p.id}`)).length;
+    return { year: season.year, players: kept.length };
 };
 
 export interface LegacyAward { season: number; award: string; playerId: string; player: string; team: string }
@@ -438,7 +445,7 @@ export type SeasonImportResult =
      * Each imported season and how many player seasons it kept, in import order; every season's status
      * (the admin season checklist's numbers, newest first), read after the import's writes; and the legacy award notes.
      */
-    | { ok: true; seasons: { year: number; players: number }[]; statuses: SeasonStatus[]; legacyNotes: string[] };
+    | { ok: true; seasons: ImportedSeason[]; statuses: SeasonStatus[]; legacyNotes: string[] };
 
 export const importSeasons = async ({ db, config, dataDir, seasons, legacy, loadDraftFacts }: SeasonImportInput): Promise<SeasonImportResult> => {
     const available = findSeasonFiles(dataDir);
@@ -475,15 +482,21 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
     }
 
     // players on a ring or award list must survive even with 0 points as a free agent, so each must be in the export
-    const keep = new Map<string, string>();
-    legacy.awards.forEach((a) => keep.set(`${a.season}:${a.playerId}`, a.player));
-    Object.entries(legacy.rosters).forEach(([y, roster]) => roster.forEach((p) => keep.set(`${y}:${p.playerId}`, p.player)));
-    curated.forEach((r) => keep.set(`${r.year}:${r.playerId}`, r.player));
-    for (const [key, player] of keep) {
-        const [y, id] = key.split(':');
-        const season = prepared.find((s) => s.year === parseInt(y, 10));
-        if (season && !season.players.some((p) => p.id === id)) {
-            errors.push(`${seasonLabel(season.year)}: ${player} (${id}) is on a championship roster or award list but isn't in "${season.year - 1}-${season.year} Player Stats.csv"`);
+    // by season year, then player id, with the name the list gives the player
+    const keep = new Map<number, Map<string, string>>();
+    const addKeep = (year: number, playerId: string, player: string) => {
+        const players = keep.get(year) ?? new Map<string, string>();
+        players.set(playerId, player);
+        keep.set(year, players);
+    };
+    legacy.awards.forEach((a) => addKeep(a.season, a.playerId, a.player));
+    Object.entries(legacy.rosters).forEach(([y, roster]) => roster.forEach((p) => addKeep(Number(y), p.playerId, p.player)));
+    curated.forEach((r) => addKeep(r.year, r.playerId, r.player));
+    for (const season of prepared) {
+        for (const [id, player] of keep.get(season.year) ?? []) {
+            if (!season.players.some((p) => p.id === id)) {
+                errors.push(`${seasonLabel(season.year)}: ${player} (${id}) is on a championship roster or award list but isn't in "${season.year - 1}-${season.year} Player Stats.csv"`);
+            }
         }
     }
 
@@ -495,14 +508,13 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
     // the NHL lookups run before the transaction, so it isn't held open on the network
     await enrichDraftDevelopment(db, history.picks, loadDraftFacts);
 
-    const keepIds = new Set(keep.keys());
     // One transaction: a failure anywhere below leaves the database as it was. The helpers' own
     // transactions nest inside it as savepoints. See docs/adr/0003-season-import-is-one-transaction.md.
     const { imported, legacyNotes } = await db.transaction(async (tx) => {
         await writeLeague(tx, config);
         await writeFantraxTeams(tx, fantraxTeams.rows);
-        const imported: { year: number; players: number }[] = [];
-        for (const season of prepared) imported.push({ year: season.year, players: await writeSeason(tx, config, season, keepIds) });
+        const imported: ImportedSeason[] = [];
+        for (const season of prepared) imported.push(await writeSeason(tx, season, keep.get(season.year)));
         const legacyNotes = await seedLegacy(tx, config, legacy, new Set(prepared.map((s) => s.year)));
         await writeHistory(tx, history);
         await refreshViews(tx);
