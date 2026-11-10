@@ -1,4 +1,4 @@
-import type { SnapshotPlayer } from '../fantrax/model';
+import type { LivePlayer } from '../fantrax/live-season';
 import type { PlayerDetails } from './player-details';
 
 // Re-enable after updating the season, deadline and Fantrax mapping for the next submission window.
@@ -15,7 +15,7 @@ export const CALDER_SEASON = 2026;
 export const CALDER_SEASON_LABEL = '2025–2026';
 export const POSITION_LABELS = { F: 'Forwards', D: 'Defence', G: 'Goalies', OTHER: 'Other positions' };
 export type KeeperPosition = keyof typeof KEEPER_LIMITS | 'OTHER';
-export type KeeperPlayer = Pick<SnapshotPlayer, 'id' | 'name' | 'position' | 'lineupPosition' | 'nhlTeam' | 'status'> & { details?: PlayerDetails };
+export type KeeperPlayer = Pick<LivePlayer, 'id' | 'name' | 'position' | 'lineupPosition' | 'nhlTeam' | 'status'> & { details?: PlayerDetails };
 export interface RookieReview { status: 'approved' | 'rejected'; note: string; reviewedAt: string; calderSeason?: number }
 export interface KeeperSubmission {
     franchiseId: number; seasonYear: number; roster: KeeperPlayer[]; keptIds: string[];

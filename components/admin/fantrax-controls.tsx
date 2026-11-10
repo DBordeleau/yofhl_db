@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { refreshFantrax, setWeekFinal } from '@/app/admin/fantrax-actions';
-import { weekLabel } from '@/lib/fantrax/model';
+import { weekLabel } from '@/lib/live-season-display';
 import type { Week } from '@/lib/fantrax/live-season';
 
 type Season = { fetchedAt: string; weeks: Pick<Week, 'number' | 'startDate' | 'endDate' | 'fullName' | 'phase' | 'manualFinal'>[]; currentWeek: number };

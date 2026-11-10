@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useEffect, useState, type CSSProperties } from 'react';
 import TeamBadge from '@/components/team-badge';
 import TeamBranding from '@/components/team-branding/team-branding';
-import { weekLabel, rosterGroup, sortRosterPlayers, type Period, type RosterStats, type SnapshotPlayer } from '@/lib/fantrax/model';
-import type { LiveTeam } from '@/lib/fantrax/live-season';
+import { weekLabel, rosterGroup, sortRosterPlayers } from '@/lib/live-season-display';
+import type { LivePlayer, LiveSeason, LiveTeam, RosterStats } from '@/lib/fantrax/live-season';
 import { formatFpts } from '@/lib/league';
 import styles from './home.module.css';
 import Arrow from '@/components/arrow';
@@ -21,7 +21,7 @@ const additionalGroups = [
     { key: 'MINORS', label: 'Prospects' }, { key: 'OTHER', label: 'Other roster slots' },
 ];
 
-function Player({ player, stats, share, order }: { player: SnapshotPlayer; stats: RosterStats['players'][string] | undefined; share: number; order: number }) {
+function Player({ player, stats, share, order }: { player: LivePlayer; stats: RosterStats['players'][string] | undefined; share: number; order: number }) {
     const showPosition = ['MINORS', 'OTHER'].includes(rosterGroup(player));
     const content = <>
         <div className={styles.playerDetails}>
@@ -52,7 +52,7 @@ function GroupHeading({ code, label, columns = 1, filled = columns }: { code?: s
     </div>;
 }
 
-export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId, stats }: { teams: LiveTeam[]; rosterPeriod: Period | null; initialFranchiseId?: number; stats: RosterStats | null }) {
+export default function RosterBrowser({ teams, lineupWeek, initialFranchiseId, stats }: { teams: LiveTeam[]; lineupWeek: LiveSeason['lineupWeek']; initialFranchiseId?: number; stats: RosterStats | null }) {
     const [selectedId, setSelectedId] = useState(() => teams.find(team => team.franchiseId === initialFranchiseId)?.id ?? teams[0]?.id);
     // phones keep the sheet folded until someone picks a team from the logo rail; wider screens always show it
     const [picked, setPicked] = useState(Boolean(initialFranchiseId));
@@ -79,7 +79,7 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId,
     };
     // each row's bar is its share of the roster's top scorer, so lines compare across positions at a glance
     const topPoints = Math.max(0, ...selected.players.map(player => stats?.players[player.id]?.points ?? 0));
-    const player = (item: SnapshotPlayer, order: number) => {
+    const player = (item: LivePlayer, order: number) => {
         const line = stats?.players[item.id];
         return <Player key={item.id} player={item} stats={line} order={order} share={topPoints > 0 ? Math.max(0, line?.points ?? 0) / topPoints : 0} />;
     };
@@ -132,7 +132,7 @@ export default function RosterBrowser({ teams, rosterPeriod, initialFranchiseId,
                 </section>)}
             </div> : <p className={styles.emptyState}>No roster available.</p>}
             <div className={styles.rosterFooter}>
-                <span>{rosterPeriod ? `Lineup period ${rosterPeriod.number} · ${weekLabel(rosterPeriod)}` : 'Fantrax roster'}</span>
+                <span>{lineupWeek ? `Lineup period ${lineupWeek.number} · ${weekLabel(lineupWeek)}` : 'Fantrax roster'}</span>
             </div>
         </TeamBranding>
     </section>;

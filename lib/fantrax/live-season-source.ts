@@ -2,7 +2,24 @@
 // (fantrax-source.ts) is Fantrax plus the saved snapshot, manual final weeks and Next's caches; tests use the
 // in-memory adapter (memory-source.ts). Shapes here are already checked and in season years; Fantrax's own
 // response formats stay in the HTTP client (fantrax-client.ts).
-import type { RosterStats, ScheduledMatchup } from './model';
+
+/** one matchup on the schedule; an unseeded playoff slot is `{ TBD: true }` on both sides, and a bye has one side */
+export interface ScheduledMatchup {
+    away: { id?: string; name?: string; TBD?: boolean };
+    home: { id?: string; name?: string; TBD?: boolean };
+}
+
+/** each rostered player's season fantasy points, by Fantrax player ID */
+export interface RosterStats {
+    fetchedAt: string;
+    players: Record<string, { points: number | null; perGame: number | null }>;
+}
+
+/** Looks up a Fantrax player ID among archive player IDs, some of which are stored wrapped in asterisks. */
+export function archiveIdLookup(archiveIds: string[]): (fantraxId: string) => string | null {
+    const archive = new Map(archiveIds.map(id => [id.replace(/\*/g, ''), id]));
+    return fantraxId => archive.get(fantraxId) ?? null;
+}
 
 export interface SourceWeek {
     number: number;

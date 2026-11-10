@@ -216,6 +216,11 @@ test('rostered players and scoring leaders link to their archive player pages wh
         [['Connor McDavid', '*p1*', 'Franchise 1'], ['Free Agent', null, 'FA']]);
 });
 
+test('rosters carry the Fantrax lineup week they belong to', async t => {
+    const { season } = setup(t);
+    assert.deepEqual((await season()).lineupWeek, { number: 3, startDate: WEEKS[0].startDate, endDate: WEEKS[0].endDate });
+});
+
 test('a rostered free agent\'s NHL team reads FA, and a player with no NHL team shows a dash', async t => {
     const state = league();
     state.fantrax.core.players.p1.team = '(N/A)';

@@ -1,11 +1,14 @@
 // The live season module: the current season as Fantrax has it now, already assembled. It only assembles; what
 // it reads comes through the live season source port, so this file is free of Next and Fantrax specifics.
 // Callers use the production binding in live-season.ts.
-import { archiveIdLookup, playerName, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
 import { PLAYOFF_FORMAT } from './config';
-import { liveFantraxLeagueId, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
+import { playerName } from './fantrax-client';
+import {
+    archiveIdLookup, liveFantraxLeagueId, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
+    type SourceCore, type SourceWeek, type WeekScores,
+} from './live-season-source';
 
-export type { WeekScores } from './live-season-source';
+export type { RosterStats, ScheduledMatchup, WeekScores } from './live-season-source';
 
 export type PlayoffRound = (typeof PLAYOFF_FORMAT.rounds)[number];
 
@@ -27,6 +30,20 @@ export interface Week {
     matchups: ScheduledMatchup[];
 }
 
+export interface LivePlayer {
+    /** the Fantrax player ID */
+    id: string;
+    name: string;
+    /** every position the player is eligible at, comma-separated ("C,LW") */
+    position: string;
+    /** the roster slot the player is in this lineup week */
+    lineupPosition: string;
+    /** "FA" for a free agent, "—" when Fantrax has no team for the player */
+    nhlTeam: string;
+    status: string;
+    archiveId: string | null;
+}
+
 export interface LiveTeam {
     /** the Fantrax team ID */
     id: string;
@@ -38,7 +55,7 @@ export interface LiveTeam {
     owner: string | null;
     /** the team page, or null for an unmapped team */
     href: string | null;
-    players: SnapshotPlayer[];
+    players: LivePlayer[];
 }
 
 export interface StandingsRow {
@@ -79,8 +96,8 @@ export interface LiveSeason {
     fetchedAt: string;
     weeks: Week[];
     currentWeek: Week;
-    /** the Fantrax lineup period the rosters belong to */
-    lineupPeriod: SourceWeek | null;
+    /** the week the rosters belong to: Fantrax's lineup period, on a separate calendar from the matchup weeks */
+    lineupWeek: SourceWeek | null;
     /** in standings order */
     teams: LiveTeam[];
     standings: Standings;
@@ -247,7 +264,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         ]);
         return { status: 'available', value: {
             seasonYear: core.seasonYear, fantraxLeagueId, fetchedAt: core.fetchedAt, weeks, currentWeek,
-            lineupPeriod: core.lineupPeriod, teams, standings: { rows, playoffTeams: PLAYOFF_FORMAT.teams, byeTeams: PLAYOFF_FORMAT.byes },
+            lineupWeek: core.lineupPeriod, teams, standings: { rows, playoffTeams: PLAYOFF_FORMAT.teams, byeTeams: PLAYOFF_FORMAT.byes },
             scores, leaders, rosterStats,
         } };
     }

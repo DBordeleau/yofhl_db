@@ -7,10 +7,9 @@ import { cache } from 'react';
 import { cached, rows } from '@/lib/data/db';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
 import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, finalWeeksTag, scoresAreArchived } from './cache-policy';
-import { createFantraxClient, readCore, toWeekScores, type SavedLiveSeason, type FantraxLeague } from './fantrax-client';
+import { createFantraxClient, readCore, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
 import { finalWeekQuery, getManualFinalPeriods } from './final-weeks';
-import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource } from './live-season-source';
-import type { MatchupScores, Period } from './model';
+import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type SourceWeek } from './live-season-source';
 import { getSavedLiveSeason, saveSnapshotQuery } from './snapshot-store';
 
 export const fantraxClient = createFantraxClient();
@@ -37,7 +36,7 @@ const getDailyScores = (leagueId: string, week: number, snapshotFetchedAt: strin
 const getArchivedScores = (leagueId: string, week: number) => unstable_cache(() => fantraxClient.weekScores(leagueId, week),
     ['fantrax-final-scores', leagueId, String(week)], { revalidate: false, tags: [FANTRAX_TAG] })();
 /** `week` has normalized dates */
-export async function getCachedWeekScores(leagueId: string, week: Period, snapshotFetchedAt: string): Promise<MatchupScores> {
+export async function getCachedWeekScores(leagueId: string, week: SourceWeek, snapshotFetchedAt: string): Promise<MatchupScores> {
     const saved = await getSavedLiveSeason(leagueId);
     if (saved?.scores[week.number]) return saved.scores[week.number];
     // Fetch once more after the correction window before retaining a final result.
