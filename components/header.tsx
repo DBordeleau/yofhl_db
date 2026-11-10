@@ -223,7 +223,7 @@ const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime,
             </div>
             <div className={styles.sheetLinks}>
                 {sideLink('/coachs-corner', <span className={styles.coachsCornerLabel}>Coach&rsquo;s Corner<NewEpisodeBadge episodeKey={latestCoachsCornerEpisode} /></span>)}
-                {PICKEM_LAUNCH && sideLink('/pickem', 'Pick’em')}
+                {PICKEM_LAUNCH && sideLink('/pickem', <>Pick&rsquo;em</>)}
             </div>
             {ownerLink}
         </>,
