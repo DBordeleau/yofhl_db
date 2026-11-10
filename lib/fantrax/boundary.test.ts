@@ -41,6 +41,16 @@ test("the Fantrax client may be imported only from the Coach's Corner production
     assert.equal((await boundaryErrors('lib/coachs-corner/production/sample.ts', "export { fantraxSource } from '@/lib/fantrax/fantrax-source';\n")).length, 1);
 });
 
+test('only tests and test harnesses may import the in-memory live season', async () => {
+    const standIn = "export { createMemoryLiveSeason } from '@/lib/fantrax/memory-live-season';\n";
+    assert.deepEqual(await boundaryErrors('lib/pickem/sample.test.ts', standIn), []);
+    assert.deepEqual(await boundaryErrors('lib/pickem/testing/sample.ts', standIn), []);
+    assert.equal((await boundaryErrors('lib/pickem/sample.ts', standIn)).length, 1);
+    assert.equal((await boundaryErrors('app/sample.ts', standIn)).length, 1);
+    assert.equal((await boundaryErrors('lib/pickem/sample.test.ts', "export { createMemorySource } from '@/lib/fantrax/memory-source';\n")).length, 1,
+        'a test still uses the stand-in, not the source behind it');
+});
+
 test('inside the live season module, its files import each other freely', async () => {
     assert.deepEqual(await boundaryErrors('lib/fantrax/sample.test.ts', "export { fantraxSource } from './fantrax-source';\n"), []);
 });
