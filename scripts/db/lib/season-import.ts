@@ -443,7 +443,7 @@ export type SeasonImportResult =
 export const importSeasons = async ({ db, config, dataDir, seasons, legacy, loadDraftFacts }: SeasonImportInput): Promise<SeasonImportResult> => {
     const available = findSeasonFiles(dataDir);
     const years = seasons.length ? seasons : Array.from(available.keys()).sort();
-    if (!years.length) throw new Error(`No Fantrax CSVs found in ${dataDir}/`);
+    if (!years.length) return { ok: false, errors: [`No Fantrax CSVs found in ${dataDir}/`] };
     const history = prepareHistory(dataDir, config, years);
 
     // the admin panel's bracket corrections are validated with the CSVs, and the curated rings and awards with the player exports
