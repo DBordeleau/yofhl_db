@@ -1,20 +1,19 @@
-import { after, before, test } from 'node:test';
+import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { createServer, type Server } from 'node:http';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { createRequire } from 'node:module';
 import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { migrate } from 'drizzle-orm/pglite/migrator';
 import { draftDirectory } from './local-drafts';
 import { referencePacket } from './facts';
 import type { StudioTeam } from '../teams';
 import type { LeagueConfig } from '../../../scripts/db/lib/league-config';
+import { disposableLeague } from '../../testing/disposable-league';
 
 const cli = path.resolve('scripts/coachs-corner/production.ts');
 const tsx = pathToFileURL(createRequire(path.resolve('package.json')).resolve('tsx')).href;
@@ -32,42 +31,39 @@ const periods = [
     { number: 2, startDate: '2026-10-19T19:00:00-04:00', endDate: '2026-10-26T18:59:59-04:00' },
 ];
 
-// The CLI reads the studio team list through the site's Neon driver. Its requests reach this in-memory
-// Postgres through a local bridge, the same way the publishing verification does.
-const pg = new PGlite();
-let bridge: Server;
-let parsers: Record<number, (value: string) => string>;
-before(async () => {
-    await migrate(drizzle(pg), { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
-    await pg.exec(`insert into league.seasons values (2026, '2025–26', 'complete');
-        insert into league.owners (id, name) values (1, 'Hank Holder'), (2, 'Alice Away');
-        insert into league.franchises (id, display_name, first_season) values (1, 'Home Team', 2026), (2, 'Away Team', 2026);
-        insert into league.team_seasons (id, season_year, franchise_id, owner_id, name, fantrax_name, abbreviation, division, division_rank, wins, losses, ties, fpts_for, fpts_against)
-        values (1, 2026, 1, 1, 'Home Team', 'Home Team', 'HOME', 1, 1, 1, 0, 0, 24, 20), (2, 2026, 2, 2, 'Away Team', 'Away Team', 'AWAY', 1, 2, 0, 1, 0, 20, 24);
-        insert into league.team_management (franchise_id, name, logo_url) values (1, 'Home Renamed', '/team-logos/1/new.webp');`);
+// The CLI reads the studio team list through the site's Neon driver. Its requests reach a disposable league
+// through a local bridge, the same way the publishing verification does.
+const SEED = `insert into league.seasons values (2026, '2025–26', 'complete');
+    insert into league.owners (id, name) values (1, 'Hank Holder'), (2, 'Alice Away');
+    insert into league.franchises (id, display_name, first_season) values (1, 'Home Team', 2026), (2, 'Away Team', 2026);
+    insert into league.team_seasons (id, season_year, franchise_id, owner_id, name, fantrax_name, abbreviation, division, division_rank, wins, losses, ties, fpts_for, fpts_against)
+    values (1, 2026, 1, 1, 'Home Team', 'Home Team', 'HOME', 1, 1, 1, 0, 0, 24, 20), (2, 2026, 2, 2, 'Away Team', 'Away Team', 'AWAY', 1, 2, 0, 1, 0, 20, 24);
+    insert into league.team_management (franchise_id, name, logo_url) values (1, 'Home Renamed', '/team-logos/1/new.webp');`;
+
+async function databaseBridge(t: TestContext) {
+    const { client } = await disposableLeague(t, { seed: SEED });
     // Neon expects raw text results and applies its own parsers
-    parsers = Object.fromEntries((await pg.query<{ oid: number }>('select oid from pg_type')).rows.map(({ oid }) => [oid, (value: string) => value]));
-    bridge = createServer(async (req, res) => {
+    const parsers = Object.fromEntries((await client.query<{ oid: number }>('select oid from pg_type')).rows.map(({ oid }) => [oid, (value: string) => value]));
+    const bridge = createServer(async (req, res) => {
         const chunks: Buffer[] = [];
         for await (const chunk of req) chunks.push(chunk as Buffer);
         try {
             const { query, params = [] } = JSON.parse(Buffer.concat(chunks).toString());
-            res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(await pg.query(query, params, { rowMode: 'array', parsers })));
+            res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(await client.query(query, params, { rowMode: 'array', parsers })));
         } catch (error) {
             res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ message: (error as Error).message, code: 'XX000' }));
         }
     });
     bridge.listen(0, '127.0.0.1');
     await once(bridge, 'listening');
-});
-after(async () => {
-    bridge.close();
-    await pg.close();
-});
+    t.after(() => { bridge.close(); });
+    return { client, port: (bridge.address() as AddressInfo).port };
+}
 const studioNames = (facts: { teams: StudioTeam[] }) => facts.teams.map(team => [team.id, team.name, team.abbreviation, team.owner, team.logo]);
 const databaseTeams = [[1, 'Home Renamed', 'HOME', 'Hank Holder', '/team-logos/1/new.webp'], [2, 'Away Team', 'AWAY', 'Alice Away', null]];
 
-async function workspace(t: { after: (fn: () => Promise<void>) => void }) {
+async function workspace(t: TestContext) {
+    const { client: pg, port } = await databaseBridge(t);
     const prefix = path.join(os.tmpdir(), 'coachs-recap-cli-');
     const root = await mkdtemp(prefix);
     t.after(async () => {
@@ -98,7 +94,7 @@ async function workspace(t: { after: (fn: () => Promise<void>) => void }) {
             const realFetch = globalThis.fetch;
             globalThis.fetch = async (input, init) => {
                 const url = new URL(String(input));
-                if (url.href === 'https://localhost/sql') return realFetch('http://127.0.0.1:${(bridge.address() as { port: number }).port}/sql', { method: 'POST', headers: init.headers, body: init.body });
+                if (url.href === 'https://localhost/sql') return realFetch('http://127.0.0.1:${port}/sql', { method: 'POST', headers: init.headers, body: init.body });
                 const endpoint = url.pathname.split('/').at(-1);
                 const result = data[endpoint];
                 if (!result) throw new Error('Unexpected source request: ' + url.href);
@@ -115,7 +111,7 @@ async function workspace(t: { after: (fn: () => Promise<void>) => void }) {
         clearTimeout(timer);
         return { status, stdout, stderr };
     };
-    return { root, dir, files, run };
+    return { root, dir, files, run, pg };
 }
 
 test('live prepare creates a recap draft for the previous week before the Monday API rollover', async t => {
@@ -136,7 +132,7 @@ test('live prepare creates a recap draft for the previous week before the Monday
 });
 
 test('facts --refresh, stats and --pilot write the database team list; --from keeps the reused packet\'s', async t => {
-    const { root, dir, run } = await workspace(t);
+    const { root, dir, run, pg } = await workspace(t);
     const editorial = path.join(root, 'assets/coachs-corner/editorial');
     await mkdir(editorial, { recursive: true });
     await writeFile(path.join(editorial, 'continuity.json'), '{"pronunciations":[]}');
@@ -149,7 +145,6 @@ test('facts --refresh, stats and --pilot write the database team list; --from ke
 
     // the owner renames again before handoff; stats picks it up and keeps the live observations
     await pg.exec(`update league.team_management set name = 'Home Again' where franchise_id = 1`);
-    t.after(() => pg.exec(`update league.team_management set name = 'Home Renamed' where franchise_id = 1`));
     const before = await facts();
     const stats = await run(['stats', '--slug', 'sample']);
     assert.equal(stats.status, 0, stats.stdout + stats.stderr);
@@ -169,9 +164,8 @@ test('facts --refresh, stats and --pilot write the database team list; --from ke
 });
 
 test('a franchise Fantrax maps that the database no longer lists fails the capture and leaves facts.json alone', async t => {
-    const { dir, files, run } = await workspace(t);
+    const { dir, files, run, pg } = await workspace(t);
     await pg.exec('update league.franchises set folded_after_season = 2026 where id = 1');
-    t.after(() => pg.exec('update league.franchises set folded_after_season = null where id = 1'));
     const result = await run(['facts', '--slug', 'sample', '--refresh']);
     assert.equal(result.status, 1, result.stdout + result.stderr);
     assert.match(result.stderr, /Fantrax team "Home Team" \(h\) is franchise 1, which isn't an active franchise in the database's current teams/);

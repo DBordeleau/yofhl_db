@@ -1,45 +1,12 @@
 import assert from 'node:assert/strict';
-import { AsyncLocalStorage } from 'node:async_hooks';
 import test from 'node:test';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { migrate } from 'drizzle-orm/pglite/migrator';
-import type { SQL } from 'drizzle-orm';
 import type { StudioPlayer, StudioTeam } from '../coachs-corner/teams';
+import { disposableLeague } from '../testing/disposable-league';
+import { LEAGUE_TAG } from './cache-tags';
 
 const screenplay = (title: string, player: boolean | string = false) => `---\ntitle: ${title}\nseason: 2027\nweek: 2\n---\n${player ? `>> ${player === true ? 'player "Player One"' : player}\n` : ''}DON: Welcome to the show.\n\nRON: Good evening.`;
 
 test('publishing and real Next data caching against disposable Postgres', async t => {
-    const client = new PGlite();
-    const db = drizzle(client);
-    const originalUrl = process.env.DATABASE_URL_V2;
-    const originalMode = process.env.NODE_ENV;
-    const globals = ['AsyncLocalStorage', '__incrementalCache'] as const;
-    const descriptors = globals.map(key => Object.getOwnPropertyDescriptor(globalThis, key));
-    t.after(async () => {
-        t.mock.restoreAll();
-        await client.close();
-        if (originalUrl === undefined) delete process.env.DATABASE_URL_V2; else process.env.DATABASE_URL_V2 = originalUrl;
-        if (originalMode === undefined) Reflect.deleteProperty(process.env, 'NODE_ENV'); else Object.assign(process.env, { NODE_ENV: originalMode });
-        globals.forEach((key, i) => { if (descriptors[i]) Object.defineProperty(globalThis, key, descriptors[i]!); else Reflect.deleteProperty(globalThis, key); });
-    });
-    process.env.DATABASE_URL_V2 = 'postgresql://test:test@localhost/test';
-    Object.assign(process.env, { NODE_ENV: 'test' });
-    Object.defineProperty(globalThis, 'AsyncLocalStorage', { value: AsyncLocalStorage, configurable: true });
-    const entries = new Map<string, { value: unknown; tags: string[] }>();
-    Object.defineProperty(globalThis, '__incrementalCache', { configurable: true, value: {
-        generateSimpleCacheKey: async (key: string) => key,
-        get: async (key: string) => entries.get(key) ?? null,
-        set: async (key: string, value: unknown, options: { tags: string[] }) => { entries.set(key, { value, tags: options.tags }); },
-    } });
-    const runtime = await import('./db');
-    let queries = 0;
-    let failNext = false;
-    t.mock.method(runtime.getDb(), 'execute', (query: SQL) => {
-        queries++;
-        if (failNext) { failNext = false; throw new Error('simulated database outage'); }
-        return db.execute(query);
-    });
     let network = 0;
     const nhl = async (url: string | URL | Request) => {
         network++;
@@ -47,9 +14,8 @@ test('publishing and real Next data caching against disposable Postgres', async 
         if (String(url).includes('/123/landing')) return Response.json({ headshot: 'https://assets.nhle.com/test-player.png' });
         throw new Error(`Unexpected network request: ${url}`);
     };
-    const fetchMock = t.mock.method(globalThis, 'fetch', nhl);
-    await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
-    await client.exec(`insert into league.seasons values (2026, '2025–26', 'complete');
+    let nhlFetch: typeof fetch = nhl;
+    const league = await disposableLeague(t, { app: true, nextCache: true, fetch: (input, init) => nhlFetch(input, init), seed: `insert into league.seasons values (2026, '2025–26', 'complete');
         insert into league.players values ('p1', 'Player One');
         insert into league.player_seasons (player_id, season_year, positions, nhl_team, fpts, fpg)
         values ('p1', 2026, array['C'], 'TOR', 100, 2);
@@ -64,7 +30,9 @@ test('publishing and real Next data caching against disposable Postgres', async 
             (5, 2026, 5, 3, 'Jagrtown Ice Fellas', 'Jagrtown Ice Fellas', 'JAGR', 1, 3, 8, 7, 0, 860, 800),
             (9, 2026, 9, 2, 'Carolina Reapers', 'Carolina Reapers', 'Reapers', 1, 4, 7, 8, 0, 840, 800);
         insert into league.team_management (franchise_id, name, logo_url, owner_uid, owner_email)
-            values (9, 'Carolina Reapers', '/team-logos/9/old.webp', 'owner-9', 'owner@example.test');`);
+            values (9, 'Carolina Reapers', '/team-logos/9/old.webp', 'owner-9', 'owner@example.test');` });
+    const { client } = league;
+    const outage = () => league.failNextQuery('', new Error('simulated database outage'));
     const data = await import('./coachs-corner');
     const { episodeFrom } = await import('../coachs-corner/episode');
     const refsOf = (episode: { script: string }) => episodeFrom(episode.script);
@@ -72,7 +40,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
     const apply = (change: Awaited<ReturnType<typeof saveEpisodeRecord>> | undefined) => {
         assert.ok(change && !('error' in change), JSON.stringify(change));
         const effects = publicationEffects(change);
-        for (const [key, entry] of entries) if (entry.tags.some(tag => effects.tags.includes(tag))) entries.delete(key);
+        for (const tag of effects.tags) league.expire(tag);
         return { ...change, effects };
     };
     const record = () => client.query<{ script: string; players: unknown; slug: string }>('select script, players, slug from league.coachs_corner_episodes where id=$1', [id]);
@@ -80,25 +48,25 @@ test('publishing and real Next data caching against disposable Postgres', async 
 
     await t.test('outages and missing migrations reject without poisoning empty or not-found caches', async () => {
         for (const read of [data.getPublishedEpisodes, () => data.getPublishedEpisode('week-two')]) {
-            entries.clear();
-            failNext = true;
+            league.expire(LEAGUE_TAG);
+            outage();
             await assert.rejects(read, /simulated database outage/);
-            assert.equal(entries.size, 0);
+            assert.equal(league.cacheEntries().size, 0);
             await read();
-            assert.equal(entries.size, 1);
+            assert.equal(league.cacheEntries().size, 1);
         }
-        entries.clear();
+        league.expire(LEAGUE_TAG);
         await client.exec('alter table league.coachs_corner_episodes rename to episodes_temporarily_missing');
         await assert.rejects(data.getPublishedEpisodes);
-        assert.equal(entries.size, 0);
+        assert.equal(league.cacheEntries().size, 0);
         await client.exec('alter table league.episodes_temporarily_missing rename to coachs_corner_episodes');
         assert.equal((await data.getPublishedEpisodes()).length, 1, 'successful empty archive falls back to pilot');
     });
     await t.test('invalid publication and reserved URLs never write; invalid drafts can be saved', async () => {
-        const before = queries;
+        const before = league.queries();
         assert.ok('error' in await saveEpisodeRecord({ id: null, slug: 'bad', script: 'unfinished', publish: true }));
         assert.ok('error' in await saveEpisodeRecord({ id: null, slug: 'local', script: screenplay('Reserved') }));
-        assert.equal(queries, before);
+        assert.equal(league.queries(), before);
         const draft = apply(await saveEpisodeRecord({ id: null, slug: 'week-two', script: 'unfinished' }));
         id = draft.id;
         assert.deepEqual(draft.effects.tags, []);
@@ -112,11 +80,11 @@ test('publishing and real Next data caching against disposable Postgres', async 
         const extra = apply(await saveEpisodeRecord({ id: null, slug: 'other-draft', script: '' }));
         const deleted = apply(await deleteEpisodeRecord(extra.id));
         assert.deepEqual(deleted.effects.tags, []);
-        const before = queries;
+        const before = league.queries();
         await data.getPublishedEpisodes();
         await data.getPublishedEpisode('week-two');
         await data.getPublishedEpisode(data.pilotEpisode().slug);
-        assert.equal(queries, before);
+        assert.equal(league.queries(), before);
         assert.equal(network, 0);
     });
     await t.test('publishing clears cached 404/archive and freezes statistics and headshot URLs', async () => {
@@ -129,14 +97,14 @@ test('publishing and real Next data caching against disposable Postgres', async 
             nhlTeam: 'TOR', positions: ['C'], season: 2026, fpts: 100, fpg: 2, games: null }], 'no games played is derived from FPts / FP/G');
         assert.equal(network, 2);
         await client.exec('update league.player_seasons set fpts=200');
-        const before = queries;
-        fetchMock.mock.mockImplementation(async () => { throw new Error('Public pages must not fetch NHL data'); });
+        const before = league.queries();
+        nhlFetch = async () => { throw new Error('Public pages must not fetch NHL data'); };
         for (let i = 0; i < 10; i++) {
             const cached = await data.getPublishedEpisode('week-two');
             assert.equal((await data.getEpisodePlayers(cached!, refsOf(cached!)))[0].fpts, 100);
             await data.getPublishedEpisodes();
         }
-        assert.equal(queries, before, 'ten views cause zero database queries');
+        assert.equal(league.queries(), before, 'ten views cause zero database queries');
     });
     await t.test('stale draft saves and invalid updates cannot alter published content', async () => {
         const before = (await record()).rows[0];
@@ -145,7 +113,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
             assert.ok('error' in result);
             assert.deepEqual((await record()).rows[0], before);
         }
-        failNext = true;
+        outage();
         await assert.rejects(() => saveEpisodeRecord({ id, slug: 'week-two', script: screenplay('Failed refresh', true), publish: true }));
         assert.deepEqual((await record()).rows[0], before, 'failed snapshot leaves the live episode untouched');
     });
@@ -158,9 +126,9 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.equal(await data.getPublishedEpisode('week-two'), null);
         assert.equal((await data.getPublishedEpisode('renamed'))?.players?.[0].fpts, 200);
         assert.equal((await data.getPublishedEpisodes())[0].title, 'Updated');
-        const before = queries;
+        const before = league.queries();
         await data.getPublishedEpisode(data.pilotEpisode().slug);
-        assert.equal(queries, before, 'unrelated episode data remains cached');
+        assert.equal(league.queries(), before, 'unrelated episode data remains cached');
         assert.ok('error' in await saveEpisodeRecord({ id: null, slug: 'renamed', script: screenplay('Duplicate') }));
     });
     await t.test('unpublish, draft editing, republish and deletion all clear the appropriate public data', async () => {
@@ -178,24 +146,24 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.equal(await deleteEpisodeRecord(id), undefined);
     });
     await t.test('the bundled pilot keeps its 2025-26 player snapshot without live stats or NHL lookups', async () => {
-        const before = queries;
+        const before = league.queries();
         const players = await data.getEpisodePlayers(data.pilotEpisode(), refsOf(data.pilotEpisode()));
         assert.deepEqual(players.map(p => [p.name, p.season, p.fpts]), [
             ['Tom Wilson', 2026, 372], ['William Nylander', 2026, 378.25], ['Nico Hischier', 2026, 382.25],
         ]);
-        assert.equal(queries, before, 'the episode must not drift to the latest database season');
+        assert.equal(league.queries(), before, 'the episode must not drift to the latest database season');
         assert.equal(network, 2, 'the archived portraits need no NHL lookup');
     });
     await t.test('legacy player fallback quotes the episode’s own stats season, caches one stats query and makes no NHL lookups', async () => {
-        entries.clear();
+        league.expire(LEAGUE_TAG);
         await client.exec(`insert into league.seasons values (2027, '2026–27', 'complete');
             insert into league.player_seasons (player_id, season_year, positions, nhl_team, fpts, fpg) values ('p1', 2027, array['C'], 'TOR', 999, 9);`);
         const episode = { ...data.pilotEpisode(), script: screenplay('Legacy', true), players: null };
-        const before = queries;
+        const before = league.queries();
         const [player] = await data.getEpisodePlayers(episode, refsOf(episode));
         assert.deepEqual([player.season, player.fpts, player.games], [2026, 200, null], 'never the newer 2026–27 line');
         await data.getEpisodePlayers(episode, refsOf(episode));
-        assert.equal(queries, before + 1);
+        assert.equal(league.queries(), before + 1);
         assert.equal(network, 2);
         const retro = { ...episode, script: screenplay('Legacy', true).replace('season: 2027', 'season: 2028\nstats: 2027') };
         assert.equal((await data.getEpisodePlayers(retro, refsOf(retro)))[0].fpts, 999);
@@ -214,10 +182,10 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.deepEqual(stored?.players?.map(p => [p.id, p.fpts, p.games]), [['048x9', 309.75, null], ['0ab12', 134, null]]);
     });
     await t.test('publishing needs a slug that leads with the episode season year, or no year at all', async () => {
-        const before = queries;
+        const before = league.queries();
         const rejected = await saveEpisodeRecord({ id: null, slug: '2026-week-4-recap', script: screenplay('Start year'), publish: true });
         assert.ok('error' in rejected && /2027/.test(rejected.error), JSON.stringify(rejected));
-        assert.equal(queries, before, 'a rejected slug never writes');
+        assert.equal(league.queries(), before, 'a rejected slug never writes');
         apply(await saveEpisodeRecord({ id: null, slug: '2027-week-4-recap', script: screenplay('Season year'), publish: true }));
         apply(await saveEpisodeRecord({ id: null, slug: 'opening-week', script: screenplay('No year'), publish: true }));
         apply(await saveEpisodeRecord({ id: null, slug: '2026-week-5-draft', script: screenplay('Draft') }));
@@ -249,7 +217,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.deepEqual(await verifyEpisodeSummaries({ fix: true }), [], 'running fix twice changes nothing');
     });
     await t.test('the local draft and the published episode show identical player rows for one script and archive', async () => {
-        fetchMock.mock.mockImplementation(nhl);
+        nhlFetch = nhl;
         const { captureArchivedStats } = await import('../coachs-corner/production/archived-stats');
         const { referencePacket } = await import('../coachs-corner/production/facts');
         const { loadLeagueConfig } = await import('../../scripts/db/lib/league-config');
@@ -290,7 +258,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
         const renamed = await saveTeamIdentity({ uid: 'owner-9' }, { franchiseId: 9, version: 1, name: 'Carolina Grim', logoUrl: '/team-logos/9/new.webp' },
             { invalidate: tag => { expired.push(tag); } });
         assert.deepEqual(renamed, { ok: true, orphanedLogoUrl: null }, 'the episode still shows the old logo');
-        for (const [key, entry] of entries) if (entry.tags.some(tag => expired.includes(tag))) entries.delete(key);
+        for (const tag of expired) league.expire(tag);
         const episode = (await data.getPublishedEpisode('frozen-teams'))!;
         const carolina = (await data.getEpisodeTeams(episode)).find(team => team.id === 9);
         assert.deepEqual([carolina?.name, carolina?.abbreviation, carolina?.logo], ['Carolina Reapers', 'Reapers', '/team-logos/9/old.webp']);
@@ -305,7 +273,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
     await t.test('an episode published before team snapshots follows the live list', async () => {
         const saved = apply(await saveEpisodeRecord({ id: null, slug: 'legacy-teams', script: teamCue('team Grim'), publish: true }));
         await client.query('update league.coachs_corner_episodes set teams = null where id = $1', [saved.id]);
-        entries.clear();
+        league.expire(LEAGUE_TAG);
         const episode = (await data.getPublishedEpisode('legacy-teams'))!;
         assert.equal(episode.teams, null);
         assert.deepEqual(await data.getEpisodeTeams(episode), await data.getStudioTeams());
@@ -313,9 +281,9 @@ test('publishing and real Next data caching against disposable Postgres', async 
     await t.test('the bundled pilot shows its own frozen team list', async () => {
         const pilot = data.pilotEpisode();
         assert.ok(pilot.teams && pilot.teams.length >= 10);
-        const before = queries;
+        const before = league.queries();
         assert.deepEqual(await data.getEpisodeTeams(pilot), pilot.teams);
-        assert.equal(queries, before, 'no database read');
+        assert.equal(league.queries(), before, 'no database read');
         const compiled = episodeFrom(pilot.script, { slug: pilot.slug, teams: pilot.teams! });
         assert.deepEqual(compiled.diagnostics.filter(d => d.severity === 'error'), [], 'every pilot team cue resolves against its snapshot');
     });
@@ -326,7 +294,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
         const { loadLeagueConfig } = await import('../../scripts/db/lib/league-config');
         // Hooterville's owner renamed the team; the packet is captured after it
         await client.exec(`insert into league.team_management (franchise_id, name) values (3, 'Hooterville Hooters')`);
-        entries.clear();
+        league.expire(LEAGUE_TAG);
         const facts = referencePacket(loadLeagueConfig(), 2027, await loadStudioTeams());
         const script = (cue: string) => `${screenplay('Agreement')}\n>> matchup Hooters 10 ${cue} 9\nRON: And Carolina. [>> team Reapers]`;
         const draftErrors = async (source: string) => errorsAt((await checkDraft({ slug: 'agreement-teams', script: source, facts, pronunciations: [], brief: '', review: '', revision: '' }))

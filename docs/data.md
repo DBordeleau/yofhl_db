@@ -208,10 +208,34 @@ Pages call shared data functions directly. The JSON routes expose these public v
 
 The award gallery includes two team trophies as well as the six individual awards. The individual-award API is not the full eight-trophy gallery catalogue.
 
+## Testing
+
+`npm test` runs every `*.test.ts` under `lib/` and `scripts/`, plus the Git hook tests in `scripts/git/`. It finds them by glob, so a new test file runs without editing `package.json`. The `test:*` area scripts still run one area at a time. `npm run test:coachs:production` is a deploy checker, not part of the suite.
+
+A worktree needs its own `npm install` before the suite will run. Without one, Node resolves packages from the main checkout's `node_modules`, and the tests that import `@electric-sql/pglite` or `sharp` fail.
+
+Tests get their database from `lib/testing/disposable-league.ts`: a migrated in-memory Postgres, optionally with the app's reads and Next's cache pointed at it, cleaned up when the test ends. Each test writes its own seed SQL. Don't build a PGlite, a cache stand-in or a mock of `getDb().execute` in a test: the module's own test fails the suite if one appears.
+
+```ts
+// lib/data/example.test.ts
+test('a cached reader serves its second read from the cache', async t => {
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: `
+        insert into league.seasons values (2026, '2025–26', 'complete');
+    ` });
+    const { getBannerSeasons } = await import('./league'); // import app code after the league is set up
+    await getBannerSeasons();
+    await getBannerSeasons();
+    assert.equal(league.queries(), 1);
+});
+```
+
+Leave out `nextCache` for the app's reads without a cache, or both options for a bare database (`league.client` and `league.db`). `fetch` throws unless the test passes its own as `fetch`. To test what a migration does to existing rows, pass `migrateThrough: '0008'`, seed, then call `league.migrateRest()`.
+
 ## Commands
 
 | Command | Behavior |
 | --- | --- |
+| `npm test` | Run every test in the repo |
 | `npm run db:import -- 2026` | Apply migrations, sync configuration, import the selected season and its supplied history, seed empty legacy records, refresh views and cache |
 | `npm run db:import` | Import every season found in the data directory |
 | `npm run db:import:history -- --dry-run` | Parse and validate history without opening a database connection |

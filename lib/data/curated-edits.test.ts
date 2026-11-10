@@ -1,26 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { migrate } from 'drizzle-orm/pglite/migrator';
-import type { SQL } from 'drizzle-orm';
+import { disposableLeague } from '../testing/disposable-league';
 
 test('curated edits against disposable Postgres', async t => {
-    const client = new PGlite();
-    const db = drizzle(client);
-    const originalUrl = process.env.DATABASE_URL_V2;
-    t.after(async () => {
-        t.mock.restoreAll();
-        await client.close();
-        if (originalUrl === undefined) delete process.env.DATABASE_URL_V2; else process.env.DATABASE_URL_V2 = originalUrl;
-    });
-    // Send the shared execute to an in-memory Postgres, exactly as the cached readers' tests do.
-    process.env.DATABASE_URL_V2 = 'postgresql://test:test@localhost/test';
-    const runtime = await import('./db');
-    t.mock.method(runtime.getDb(), 'execute', (query: SQL) => db.execute(query));
-    t.mock.method(globalThis, 'fetch', async () => { throw new Error('Tests must not access the network'); });
-    await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
-    await client.exec(`
+    const { client } = await disposableLeague(t, { app: true, seed: `
         insert into league.seasons values (2020, '2019–20', 'cancelled'), (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete');
         insert into league.franchises (id, display_name, first_season, folded_after_season) values (1, 'One', 2025, null), (2, 'Two', 2025, null), (3, 'Three', 2025, 2025);
         insert into league.team_seasons (id, season_year, franchise_id, name, fantrax_name, abbreviation, division, division_rank, wins, losses, ties, fpts_for, fpts_against, logo_url)
@@ -38,10 +21,7 @@ test('curated edits against disposable Postgres', async t => {
         insert into league.awards values (2026, 1, 'p1', 3);
         insert into league.matchups (id, season_year, stage, round, bracket, slot, away_team_season_id, home_team_season_id, away_score, home_score, winner_team_season_id)
         values (1, 2025, 'playoff', 1, 'championship', 1, 1, 2, 100, 90, 1), (2, 2026, 'playoff', 1, 'championship', 1, 3, 4, 100, 90, 3);
-        refresh materialized view league.season_results;
-        refresh materialized view league.player_careers;
-        refresh materialized view league.franchise_records;
-    `);
+    ` });
     const edits = await import('./curated-edits');
     const recorder = () => {
         const tags: string[] = [];
