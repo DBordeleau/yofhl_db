@@ -1,8 +1,13 @@
 // Who's in for the next week to lock (GLOSSARY.md, "Pick'em"): every active franchise, and whether its entry has a
 // Pick'em pick on every matchup of the week. It says nothing about which side anyone picked.
 import { sql } from 'drizzle-orm';
-import { rows } from '@/lib/data/db';
+import { leagueTags } from '@/lib/data/cache-tags';
+import { cached, rows } from '@/lib/data/db';
 import { pairOfMatchup, samePair, type LivePickemWeek, type MatchupPair, type PickemFranchise } from './model';
+import { pickemSeasonTag } from './recorded-weeks';
+
+/** Expires a week's cached who's-in list: a save or clear that changes which matchups an entry has picked expires it */
+export const pickemWhosInTag = (seasonYear: number, week: number) => `pickem-whos-in-${seasonYear}-${week}`;
 
 /** One active franchise on the who's-in list */
 export interface PickemWhoIsIn {
@@ -27,9 +32,15 @@ const whosInQuery = (seasonYear: number, week: number) => sql`
     where not c.defunct
     order by c.name, c.id`;
 
+// Cached until a save or clear changes the pairs some entry has picked that week. It reads current identities and
+// owners too, so a team's branding edit expires it with the franchise cards.
+const readPickedPairs = cached(async (seasonYear: number, week: number) =>
+    rows<PickemFranchise & { owner: string | null; pairs: MatchupPair[] }>(whosInQuery(seasonYear, week)),
+'pickem-whos-in', (seasonYear, week) => [pickemSeasonTag(seasonYear), pickemWhosInTag(seasonYear, week), leagueTags.franchiseCards]);
+
 /** The who's-in list for `week`; a pick on a pair that no longer meets that week does not count */
 export async function readWhosIn(week: LivePickemWeek): Promise<PickemWhoIsIn[]> {
-    const found = await rows<PickemFranchise & { owner: string | null; pairs: MatchupPair[] }>(whosInQuery(week.seasonYear, week.week));
+    const found = await readPickedPairs(week.seasonYear, week.week);
     const pairs = week.matchups.map(pairOfMatchup);
     return found.map(({ owner, pairs: picked, ...franchise }) => ({
         franchise, owner,
