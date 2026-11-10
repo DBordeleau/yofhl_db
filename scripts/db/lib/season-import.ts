@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { eq, inArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
+import { matchupWinner } from '@/lib/data/matchup-winner';
 import { SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
 import { seasonLabel } from '@/lib/seasons';
 import { refreshViews, type Db } from './connect';
@@ -195,8 +196,14 @@ const prepareSeason = (config: LeagueConfig, files: SeasonFiles, errors: string[
                 }
                 applied.add(i);
             });
-            game.winnerFranchise =
-                game.awayScore > game.homeScore ? game.awayFranchise : game.homeScore > game.awayScore ? game.homeFranchise : null;
+            // corrections made in the admin panel's bracket review
+            const [low, high] = [game.awayFranchise, game.homeFranchise].sort((x, y) => x - y);
+            const fix = matchupOverrides.find((o) => o.seasonYear === year && o.round === row.round && o.franchiseA === low && o.franchiseB === high);
+            game.winnerFranchise = matchupWinner(
+                { id: game.awayFranchise, score: game.awayScore },
+                { id: game.homeFranchise, score: game.homeScore },
+                fix?.winnerFranchiseId,
+            );
 
             const inConsolation = [consolation.has(game.awayFranchise), consolation.has(game.homeFranchise)];
             if (inConsolation[0] !== inConsolation[1]) {
@@ -204,11 +211,7 @@ const prepareSeason = (config: LeagueConfig, files: SeasonFiles, errors: string[
             }
             if (inConsolation[0]) game.bracket = 'consolation';
 
-            // corrections made in the admin panel's bracket review
-            const [low, high] = [game.awayFranchise, game.homeFranchise].sort((x, y) => x - y);
-            const fix = matchupOverrides.find((o) => o.seasonYear === year && o.round === row.round && o.franchiseA === low && o.franchiseB === high);
             if (fix?.bracket) game.bracket = fix.bracket;
-            if (fix?.winnerFranchiseId) game.winnerFranchise = fix.winnerFranchiseId;
             // the admin note itself stays in matchup_overrides and is shown alongside the game's note
             games.push(game);
         }
