@@ -117,9 +117,8 @@ function assertHintBesideSession(request: ReturnType<typeof createMemoryRequest>
     assert.ok(session && hint, 'both cookies are set');
     assert.equal(hint.value, '1');
     assert.equal(hint.options?.httpOnly, false, 'the page can read the hint');
-    const { httpOnly: _session, ...sessionOptions } = session.options!;
-    const { httpOnly: _hint, ...hintOptions } = hint.options!;
-    assert.deepEqual(hintOptions, sessionOptions, 'same path, lifetime, SameSite and secure setting');
+    assert.equal(session.options?.httpOnly, true);
+    assert.deepEqual({ ...hint.options, httpOnly: true }, session.options, 'same path, lifetime, SameSite and secure setting');
 }
 
 test('signing in and claiming set the session hint, and signing out clears it', async t => {
