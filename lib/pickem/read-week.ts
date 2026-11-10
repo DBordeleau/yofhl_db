@@ -6,6 +6,7 @@ import { isLocked, loadLivePickem } from './live-weeks';
 import { pairOfMatchup, samePair, type LivePickemWeek, type PickemMatchup, type PickemPick } from './model';
 import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
+import { weekOptions, type PickemWeekOption } from './week-switcher';
 
 /**
  * Who a read is for: nobody (a public, cacheable read) or whoever the owner session says is signed in (never
@@ -43,7 +44,8 @@ export interface ReadWeekInput {
 }
 
 export type ReadWeekResult =
-    | { status: 'week'; week: PickemWeek }
+    /** `weeks` is the season's switcher: every Pick'em week of the season, from its first week on */
+    | { status: 'week'; week: PickemWeek; weeks: PickemWeekOption[] }
     /** Pick'em is off, the season or week has no Pick'em, or no week is left to lock */
     | { status: 'no-week' }
     | { status: 'unavailable' };
@@ -73,6 +75,6 @@ export function createReadWeek(ports: PickemPorts) {
         return { status: 'week', week: {
             ...week, phase: isLocked(week, input.now) ? 'locked' : 'open',
             yours: input.asker === 'session' ? await yours(week) : null,
-        } };
+        }, weeks: weekOptions(live.weeks, input.now) };
     };
 }
