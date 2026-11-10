@@ -4,11 +4,20 @@ import { refreshOwnerNavigation, watchOwnerNavigation, type OwnerNavigation } fr
 
 const settle = () => new Promise<void>(resolve => setImmediate(resolve));
 
-test('owner navigation reuses state, throttles focus and always refreshes account changes', async t => {
+/** A browser window and document, with the session hint present or not. */
+function browser(t: { after: (fn: () => void) => void }, cookie = 'yofhl_owner_hint=1') {
     const events = new EventTarget();
+    const document = { cookie };
     Object.defineProperty(globalThis, 'window', { value: events, configurable: true });
+    Object.defineProperty(globalThis, 'document', { value: document, configurable: true });
+    t.after(() => { Reflect.deleteProperty(globalThis, 'window'); Reflect.deleteProperty(globalThis, 'document'); });
+    return { events, document };
+}
+
+test('owner navigation reuses state, throttles focus and always refreshes account changes', async t => {
     let stop = () => {};
-    t.after(() => { stop(); Reflect.deleteProperty(globalThis, 'window'); });
+    t.after(() => stop());
+    const { events } = browser(t);
     t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 0 });
     let state: OwnerNavigation = { signedIn: true, team: { name: 'Team', abbreviation: 'T', logo: null } };
     const request = t.mock.method(globalThis, 'fetch', async () => Response.json(state));
@@ -38,9 +47,9 @@ test('owner navigation reuses state, throttles focus and always refreshes accoun
 });
 
 test('an account change cancels stale requests and unmount prevents late updates', async t => {
-    Object.defineProperty(globalThis, 'window', { value: new EventTarget(), configurable: true });
     let stop = () => {};
-    t.after(() => { stop(); Reflect.deleteProperty(globalThis, 'window'); });
+    t.after(() => stop());
+    browser(t);
     const requests: { signal: AbortSignal; resolve: (response: Response) => void }[] = [];
     t.mock.method(globalThis, 'fetch', (_url: unknown, options: RequestInit) => new Promise<Response>(resolve => {
         requests.push({ signal: options.signal!, resolve });
@@ -59,4 +68,32 @@ test('an account change cancels stale requests and unmount prevents late updates
     requests[2].resolve(Response.json({ signedIn: true, team: null }));
     await settle();
     assert.equal(seen.length, 1);
+});
+
+test('without the session hint the header is signed out with no request, until a forced refresh', async t => {
+    let stop = () => {};
+    t.after(() => stop());
+    const { events, document } = browser(t, 'theme=dark');
+    t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 0 });
+    const request = t.mock.method(globalThis, 'fetch', async () => Response.json({ signedIn: true, team: null }));
+    const seen: OwnerNavigation[] = [];
+    stop = watchOwnerNavigation(value => seen.push(value));
+    await settle();
+    t.mock.timers.tick(60_000);
+    events.dispatchEvent(new Event('focus'));
+    await settle();
+    assert.equal(request.mock.callCount(), 0, 'an anonymous visitor makes no session request');
+    assert.deepEqual(seen.at(-1), { signedIn: false, team: null });
+
+    refreshOwnerNavigation();
+    await settle();
+    assert.equal(request.mock.callCount(), 1, 'a forced refresh asks even without the hint');
+    assert.deepEqual(seen.at(-1), { signedIn: true, team: null });
+
+    // Signing out in another tab clears the shared hint; this tab notices on its next focus.
+    document.cookie = '';
+    events.dispatchEvent(new Event('focus'));
+    await settle();
+    assert.equal(request.mock.callCount(), 1);
+    assert.deepEqual(seen.at(-1), { signedIn: false, team: null });
 });
