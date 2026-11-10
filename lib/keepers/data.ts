@@ -1,13 +1,8 @@
 import { rows } from '@/lib/data/db';
 import { getLiveSeason } from '@/lib/fantrax/live-season';
-import { ownedTeamQuery } from '@/lib/owner/queries';
-import type { ManagedTeam } from '@/lib/owner/model';
 import { keeperSubmissionQuery } from './queries';
 import { KEEPER_SEASON, type KeeperSubmission } from './model';
 
-export async function ownedKeeperTeam(uid: string) {
-    return (await rows<ManagedTeam>(ownedTeamQuery(uid)))[0] ?? null;
-}
 export async function getKeeperSubmission(franchiseId: number) {
     return (await rows<KeeperSubmission>(keeperSubmissionQuery(franchiseId)))[0] ?? null;
 }
