@@ -88,6 +88,14 @@ _Avoid_: show (the whole program is the show)
 The frozen stats for every player an episode cites, from the episode's stats season (the season before the episode's, unless the script names an earlier one). Players are resolved by name, or by Fantrax id when names collide. Stored on the episode when it's published.
 _Avoid_: player stats (when you mean the frozen set), studio players
 
+**Studio team list**:
+Every active franchise's current identity, owner and saved team colours: the teams Coach's Corner resolves team cues against. The admin editor and Publish use the live list, a local draft uses the list captured into its fact packet, and Publish freezes it as the team snapshot.
+_Avoid_: studio teams (ambiguous between the live list and a frozen one)
+
+**Team snapshot**:
+The frozen studio team list (current identity, owners and colours) for every active franchise, stored on the episode when it's published. The episode's team cues resolve against it, so later renames, abbreviations and logos leave the episode alone. Episodes published before team snapshots have none and follow the live list until republished.
+_Avoid_: team list (when you mean the frozen set)
+
 **Stats season**:
 The one completed season an episode's player cards quote: the season before the episode's, or the earlier one its `stats:` key names. Never a player's latest row.
 _Avoid_: last season (in code), most recent season

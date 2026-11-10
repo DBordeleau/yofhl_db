@@ -29,6 +29,8 @@ export interface Meta {
 
 /** a player a graphic cites: by name, or by name and Fantrax id (no asterisks) when two players share it */
 export interface PlayerRef { name: string; id?: string }
+/** a team a graphic names, as written, on the line that names it */
+export interface TeamRef { ref: string; line: number }
 
 export type Graphic =
     | { type: 'off' } | { type: 'bars' } | { type: 'static' } | { type: 'logo' }
@@ -85,11 +87,8 @@ export interface Script {
     meta: Meta;
     events: ScriptEvent[];
     diagnostics: Diagnostic[];
-}
-
-export interface ParseOptions {
-    /** returns false for team references the league doesn't know, which become warnings */
-    knownTeam?: (ref: string) => boolean;
+    /** every team the graphics name, in script order; the teams module checks them against a team list */
+    teamRefs: TeamRef[];
 }
 
 export const DEFAULT_PACE = 198;
@@ -515,7 +514,7 @@ const speakerFor = (name: string): CharacterId | null => {
     return CHARACTERS.find(c => c === key || CAST[c].name.toLowerCase() === key) ?? null;
 };
 
-export function parseScript(source: string, options: ParseOptions = {}): Script {
+export function parseScript(source: string): Script {
     const diagnostics: Diagnostic[] = [];
     const events: ScriptEvent[] = [];
     const meta: Meta = { title: '', pace: DEFAULT_PACE };
@@ -525,10 +524,8 @@ export function parseScript(source: string, options: ParseOptions = {}): Script 
 
     const reporter = (line: number) => (severity: Diagnostic['severity'], message: string) =>
         diagnostics.push({ line, severity, message });
-    const teamRefs = (line: number) => (refs: string[]) => {
-        if (!options.knownTeam) return;
-        for (const ref of refs) if (!options.knownTeam(ref)) diagnostics.push({ line, severity: 'warning', message: `No team matches “${ref}”. Use an abbreviation like HH, an owner’s first name or a team name.` });
-    };
+    const named: TeamRef[] = [];
+    const teamRefs = (line: number) => (refs: string[]) => { for (const ref of refs) named.push({ ref, line }); };
 
     // front matter
     if (lines[0]?.trim() === '---') {
@@ -636,7 +633,7 @@ export function parseScript(source: string, options: ParseOptions = {}): Script 
     if (!events.some(e => e.kind === 'line')) diagnostics.push({ line: 1, severity: 'error', message: 'The script has no dialogue yet.' });
 
     diagnostics.sort((a, b) => a.line - b.line);
-    return { meta, events, diagnostics };
+    return { meta, events, diagnostics, teamRefs: named };
 }
 
 export const hasErrors = (script: Script) => script.diagnostics.some(d => d.severity === 'error');

@@ -79,6 +79,7 @@ async function currentSurfaces(rows: <T>(query: SQL) => Promise<T[]>, id: number
     const { getLotteryTeams } = await import('../lottery/data');
     const { managedTeamsQuery, ownedTeamQuery } = await import('../owner/queries');
     const { getLiveSeason } = await import('../fantrax/live-season');
+    const { getStudioTeams } = await import('./coachs-corner');
     const card = (await league.getFranchiseCards()).find(card => card.ID === id)!;
     const page = (await league.getFranchise(id))!;
     const lottery = (await getLotteryTeams()).find(team => team.id === id)!;
@@ -87,6 +88,7 @@ async function currentSurfaces(rows: <T>(query: SQL) => Promise<T[]>, id: number
     const season = await getLiveSeason({ now: Date.now() });
     if (season.status !== 'available') assert.fail('the live season is unavailable');
     const live = season.value.teams.find(team => team.franchiseId === id)!;
+    const studio = (await getStudioTeams()).find(team => team.id === id)!;
     const surfaces: Record<string, Identity> = {
         'franchise cards': { name: card.Team, abbreviation: card.Abbreviation, logo: card.LogoUrl },
         'team page': { name: page.name, abbreviation: page.abbreviation, logo: page.logo },
@@ -94,6 +96,7 @@ async function currentSurfaces(rows: <T>(query: SQL) => Promise<T[]>, id: number
         'admin team list': { name: managed.name, abbreviation: managed.abbreviation, logo: managed.logo },
         search: { name: search.title, abbreviation: search.abbreviation!, logo: search.logo ?? null },
         'live season snapshot': { name: live.name, abbreviation: live.abbreviation, logo: live.logo },
+        "Coach's Corner team list": { name: studio.name, abbreviation: studio.abbreviation, logo: studio.logo },
     };
     if (ownerUid) {
         const [owned] = await rows<Identity>(ownedTeamQuery(ownerUid));
@@ -113,6 +116,21 @@ test('without owner edits, every current-team surface shows the latest team seas
     // The 2026 season has no logo of its own, so the franchise logo stands in.
     const expected: Identity = { name: 'New Purrsey Devils', abbreviation: 'NPD', logo: '/logos/new_purrsey_devils.jpg' };
     for (const [surface, identity] of Object.entries(await currentSurfaces(rows, 2, null))) assert.deepEqual(identity, expected, surface);
+});
+
+test("Coach's Corner's team list is every active franchise's current identity, owner and saved colours", async t => {
+    const { client } = await setup(t);
+    await client.exec(`update league.team_management set branding = '{"primary":"#123abc","secondary":"#d24015","tertiary":"#ffffff","treatment":"stripes"}' where franchise_id = 1`);
+    const { loadStudioTeams } = await import('../coachs-corner/studio-teams');
+    const fallback = { primary: '#26365F', secondary: '#C8102E' };
+    const teams = await loadStudioTeams();
+    assert.deepEqual(teams, [
+        { id: 1, name: 'Paddyville Inferno', abbreviation: 'PVLS', owner: 'Pat Henriksson', ownerFirst: 'Pat', logo: '/logos/uploads/inferno.webp', primary: '#123ABC', secondary: '#D24015' },
+        { id: 2, name: 'New Purrsey Devils', abbreviation: 'NPD', owner: 'Daniel Sauve', ownerFirst: 'Daniel', logo: '/logos/new_purrsey_devils.jpg', ...fallback },
+        { id: 3, name: 'Expansion Club', abbreviation: 'Exp', owner: null, ownerFirst: null, logo: null, ...fallback },
+    ], 'the defunct franchise is left out; teams without saved colours get the fallback');
+    const { getStudioTeams } = await import('./coachs-corner');
+    assert.deepEqual(await getStudioTeams(), teams, 'the site reads the same list');
 });
 
 test('history shows each season identity while the team page shows the current one', async t => {

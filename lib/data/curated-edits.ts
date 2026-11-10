@@ -3,6 +3,7 @@ import { revalidateTag } from 'next/cache';
 import type { TeamColours } from '../team-branding';
 import { curatedEditEffects, leagueTags, teamIdentityTags, type CuratedEdit } from './cache-tags';
 import { rows } from './db';
+import pilotTeams from '../coachs-corner/pilot-teams.json';
 
 // Curated edits: changes an admin or owner makes through the site. Each one checks the edit,
 // writes it in one statement, refreshes the views it affects and expires the pages that show it
@@ -10,6 +11,9 @@ import { rows } from './db';
 
 export type Invalidate = (tag: string) => void;
 export interface EditOptions { invalidate?: Invalidate }
+
+// the bundled pilot's team snapshot lives in the repository, not on an episode row
+const pilotLogos = [...new Set(pilotTeams.flatMap(team => (team.logo ? [team.logo] : [])))];
 
 type Rejected<Reason> = { ok: false; reason: Reason };
 
@@ -135,7 +139,8 @@ const teamRejection = async (actor: Actor, franchiseId: number): Promise<Rejecte
 
 // A franchise's current identity. A missing logo keeps the current one. Version 0 creates the
 // franchise's first managed identity, which only an admin may do. Season identities never change.
-// orphanedLogoUrl is the replaced logo, set only when no team season still shows it.
+// orphanedLogoUrl is the replaced logo, set only when no team season and no episode's team snapshot
+// (the bundled pilot's included) still shows it. A logo a team snapshot uses is kept for good.
 export async function saveTeamIdentity(actor: Actor, changes: { franchiseId: number; version: number; name: string; logoUrl?: string | null }, options: EditOptions = {}):
     Promise<{ ok: true; orphanedLogoUrl: string | null } | Rejected<TeamRejection>> {
     const { franchiseId: id, version, name } = changes;
@@ -155,6 +160,9 @@ export async function saveTeamIdentity(actor: Actor, changes: { franchiseId: num
                 and (${admin} or (m.owner_uid = ${uidOf(actor)} and f.folded_after_season is null))
               returning case when before.logo_url is distinct from m.logo_url
                               and not exists (select 1 from league.team_seasons s where s.logo_url = before.logo_url)
+                              and not exists (select 1 from league.coachs_corner_episodes e, jsonb_array_elements(e.teams) t
+                                              where t->>'logo' = before.logo_url)
+                              ${pilotLogos.length ? sql`and before.logo_url not in ${pilotLogos}` : sql``}
                              then before.logo_url end as orphaned`);
     if (!saved) return teamRejection(actor, id);
     expire(teamIdentityTags(id), options);

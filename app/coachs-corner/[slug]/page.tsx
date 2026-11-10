@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import ShowPage from '@/components/coachs-corner/show-page';
 import { episodeFrom } from '@/lib/coachs-corner/episode';
 import { episodeLabel } from '@/lib/coachs-corner/episode-label';
-import { getPublishedEpisode, getPublishedEpisodes, getStudioBanners, getEpisodePlayers, getStudioTeams } from '@/lib/data/coachs-corner';
+import { getPublishedEpisode, getPublishedEpisodes, getStudioBanners, getEpisodePlayers, getEpisodeTeams } from '@/lib/data/coachs-corner';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -20,10 +20,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CoachsCornerEpisode({ params }: Props) {
     const { slug } = await params;
-    const [episode, episodes, teams] = await Promise.all([getPublishedEpisode(slug), getPublishedEpisodes(), getStudioTeams()]);
+    const [episode, episodes] = await Promise.all([getPublishedEpisode(slug), getPublishedEpisodes()]);
     if (!episode) notFound();
     // the share card, pull quote and player refs read this; the player compiles the same script in the browser
     const compiled = episodeFrom(episode.script, { slug: episode.slug });
-    const [players, banners] = await Promise.all([getEpisodePlayers(episode, compiled), getStudioBanners()]);
+    // the teams it aired with: its team snapshot, or the live list for an episode published before snapshots
+    const [players, teams, banners] = await Promise.all([getEpisodePlayers(episode, compiled), getEpisodeTeams(episode), getStudioBanners()]);
     return <ShowPage episode={episode} compiled={compiled} episodes={episodes} teams={teams} players={players} banners={banners} />;
 }

@@ -9,7 +9,7 @@ import { spokenWords } from '../timeline';
 import { CHARACTERS } from '../cast';
 import { artUrl, THEME_URL } from '../media';
 import { CURRENT_SOUND_BANK } from '../sound-bank';
-import { findPlayer, findTeam } from '../teams';
+import { findPlayer } from '../teams';
 
 export const DRAFT_ROOT = 'local/coachs-corner/episodes';
 export const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) && slug.length <= 80 && !/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/.test(slug);
@@ -95,9 +95,9 @@ export interface DraftReport {
 }
 const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** The draft as the preview plays it, with warnings for teams the fact packet doesn't know. */
+/** The draft as the preview plays it, with its team cues checked against the packet's team list: the site's, as captured. */
 export const draftEpisode = (draft: LocalDraft): Episode =>
-    episodeFrom(draft.script, { slug: draft.slug, knownTeam: ref => !!findTeam(draft.facts.teams, ref) });
+    episodeFrom(draft.script, { slug: draft.slug, teams: draft.facts.teams });
 
 /** Pass the episode the preview already compiled, so the checks and the preview see the same one. */
 export async function checkDraft(draft: LocalDraft, { root = process.cwd(), episode = draftEpisode(draft) }: { root?: string; episode?: Episode } = {}): Promise<DraftReport> {

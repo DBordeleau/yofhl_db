@@ -6,8 +6,9 @@ import path from 'node:path';
 import { checkDraft, draftDirectory, listLocalDrafts, loadLocalDraft, localPreviewAllowed, readDraftFile, validSlug, withStatsSeason, type LocalDraft } from './local-drafts';
 import { referencePacket, type FeaturedPlayer } from './facts';
 import { loadLeagueConfig } from '../../../scripts/db/lib/league-config';
+import pilotTeams from '../pilot-teams.json';
 
-const reference = () => referencePacket(loadLeagueConfig(), 2027);
+const reference = () => referencePacket(loadLeagueConfig(), 2027, pilotTeams);
 const player = (name: string, bornInNorthAmerica: boolean): FeaturedPlayer => ({ name, bornInNorthAmerica,
     birthCountry: bornInNorthAmerica ? 'CAN' : 'CHE', birthCity: null, nhlId: 1,
     source: { url: 'https://api-web.nhle.com/v1/player/1/landing', fetchedAt: '2026-10-17T12:00:00Z' },
