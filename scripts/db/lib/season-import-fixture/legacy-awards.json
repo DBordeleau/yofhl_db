@@ -1,0 +1,7 @@
+{
+  "note": "Invented legacy awards for the season import fixture league.",
+  "awards": [
+    { "season": 2026, "award": "Top Gun Award", "playerId": "*0fx01*", "player": "Aaron Ashby", "team": "Ashgrove Anglers" },
+    { "season": 2026, "award": "Net Minder", "playerId": "*0fx04*", "player": "Dan Dorsey", "team": "Cobalt Comets" }
+  ]
+}

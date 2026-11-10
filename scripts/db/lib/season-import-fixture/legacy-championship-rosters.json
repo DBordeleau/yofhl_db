@@ -1,0 +1,10 @@
+{
+  "note": "Invented legacy championship roster for the season import fixture league. Leo Lark was dropped before the export and finished the season a free agent with no points.",
+  "rosters": {
+    "2026": [
+      { "playerId": "*0fx01*", "player": "Aaron Ashby" },
+      { "playerId": "*0fx02*", "player": "Ben Birch" },
+      { "playerId": "*0fx0c*", "player": "Leo Lark" }
+    ]
+  }
+}

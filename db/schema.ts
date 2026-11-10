@@ -25,7 +25,7 @@ import type { SavedLiveSeason } from '@/lib/fantrax/fantrax-client';
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
 // Two kinds of tables:
-//  - imported: rebuilt from the Fantrax CSVs by scripts/db/import.ts (team_seasons standings,
+//  - imported: rebuilt from the Fantrax CSVs by the season import, scripts/db/lib/season-import.ts (team_seasons standings,
 //    players, player_seasons, matchups, transaction_events, transaction_assets, draft_picks)
 //  - curated: hand-maintained, never overwritten by an import (franchises, owners and eras come
 //    from league/league.yml; championship_rosters and awards from the admin panel / legacy seed)
