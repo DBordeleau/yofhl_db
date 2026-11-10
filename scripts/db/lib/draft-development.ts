@@ -8,7 +8,7 @@ import type { HistoryImport } from './history';
 import nhlIdentities from '../../../league/nhl-player-ids.json';
 
 type DraftPick = HistoryImport['picks'][number];
-type FactsLoader = (pick: DraftPick, nhlId?: number) => Promise<DraftDevelopmentFacts>;
+export type DraftFactsLoader = (pick: DraftPick, nhlId?: number) => Promise<DraftDevelopmentFacts>;
 interface GameLog { gameLog: { gameDate: string }[] }
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -58,7 +58,7 @@ export function priorNhlGames(profile: NhlProfile, year: number, draftedOn: stri
     return games + log.gameLog.filter(game => game.gameDate < draftedOn).length;
 }
 
-function createLoader(newestYear: number): FactsLoader {
+function createLoader(newestYear: number): DraftFactsLoader {
     const profiles = new Map<string, NhlProfile>();
     // Refresh profiles when importing a new season; birth dates and completed draft facts remain reusable.
     const cachePath = `.cache/draft-development/${newestYear}`;
@@ -99,7 +99,7 @@ function createLoader(newestYear: number): FactsLoader {
 }
 
 // Fetch before the import writes anything. Matching historical picks reuse their persisted facts.
-export async function enrichDraftDevelopment(db: Db, picks: DraftPick[], load?: FactsLoader): Promise<void> {
+export async function enrichDraftDevelopment(db: Db, picks: DraftPick[], load?: DraftFactsLoader): Promise<void> {
     if (!picks.some(pick => pick.playerId)) return;
     const existing = await db.select({ playerId: draftPicks.playerId, facts: draftPicks.developmentFacts }).from(draftPicks);
     const known = new Map(existing.filter(row => row.facts && row.playerId).map(row => [`${row.playerId}:${row.facts!.draftedOn}`, row.facts!]));
