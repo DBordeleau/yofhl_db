@@ -148,7 +148,9 @@ test('re-import: team-season ids and curated rosters and awards survive, and leg
     await db.insert(schema.awards).values({ seasonYear: 2026, awardTypeId: netMinder.id, playerId: '*0fx02*', teamSeasonId: ashgrove.id });
     await db.delete(schema.championshipRosters);
 
-    assert.deepEqual(await run(), { ok: true, seasons: [{ year: 2026, players: 12 }], legacyNotes: [] });
+    const reimport = await run();
+    assert.ok(reimport.ok);
+    assert.deepEqual([reimport.seasons, reimport.legacyNotes], [[{ year: 2026, players: 12 }], []]);
     assert.deepEqual(await ids(), teamSeasonIds);
     assert.deepEqual(
         (await db.select().from(schema.awards)).map((a) => [a.awardTypeId, a.playerId, a.teamSeasonId]),

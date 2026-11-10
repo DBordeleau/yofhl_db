@@ -506,7 +506,7 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
         return { imported, legacyNotes };
     });
 
-    // read once every write has landed, so the statuses are what the admin season checklist will show
+    // read after the transaction commits, so the statuses are what the admin season checklist will show
     const statuses = await readSeasonStatuses(db);
     return { ok: true, seasons: imported, statuses, legacyNotes };
 };
