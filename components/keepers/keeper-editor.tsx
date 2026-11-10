@@ -132,7 +132,7 @@ export default function KeeperEditor({ team, roster: initialRoster, initialSubmi
                         <legend>{POSITION_LABELS[position]} <span>{position === 'OTHER' ? 'Position review required' : `Up to ${KEEPER_LIMITS[position]}`}</span></legend>
                         {players.map(player => <label key={player.id} className={`${styles.player} ${kept.has(player.id) ? styles.kept : ''}`}>
                             <input type="checkbox" checked={kept.has(player.id)} onChange={() => toggle(player)} aria-label={`Keep ${player.name}`} />
-                            <span className={styles.playerName}>{player.name}<small>{player.position.replaceAll(',', '/')} · {player.nhlTeam === '(N/A)' ? 'FA' : player.nhlTeam} · Age {player.details?.age ?? '—'}{player.status === 'INJURED_RESERVE' && <b className={styles.ir}>IR</b>}</small><PlayerStats player={player} /></span>
+                            <span className={styles.playerName}>{player.name}<small>{player.position.replaceAll(',', '/')} · {player.nhlTeam} · Age {player.details?.age ?? '—'}{player.status === 'INJURED_RESERVE' && <b className={styles.ir}>IR</b>}</small><PlayerStats player={player} /></span>
                             <span className={rookieId === player.id ? styles.rookieTag : styles.choice}>{rookieId === player.id ? 'Free rookie' : kept.has(player.id) ? 'Kept' : 'Not kept'}</span>
                         </label>)}
                     </fieldset>;
@@ -140,7 +140,7 @@ export default function KeeperEditor({ team, roster: initialRoster, initialSubmi
                 <section className={styles.minors} aria-labelledby="minor-keepers-heading">
                     <h3 id="minor-keepers-heading">Minor bench <span>All kept · free</span></h3>
                     <p>To make a change to your minor bench configuration, make the roster change in Fantrax and then refresh this keeper form.</p>
-                    {roster.filter(isMinor).map(player => <div className={styles.minorPlayer} key={player.id}><span aria-hidden="true">✓</span><div><strong>{player.name}</strong><small>{player.position.replaceAll(',', '/')} · {player.nhlTeam === '(N/A)' ? 'FA' : player.nhlTeam} · Age {player.details?.age ?? '—'}</small><PlayerStats player={player} /></div><span className={styles.choice}>Kept</span></div>)}
+                    {roster.filter(isMinor).map(player => <div className={styles.minorPlayer} key={player.id}><span aria-hidden="true">✓</span><div><strong>{player.name}</strong><small>{player.position.replaceAll(',', '/')} · {player.nhlTeam} · Age {player.details?.age ?? '—'}</small><PlayerStats player={player} /></div><span className={styles.choice}>Kept</span></div>)}
                     {!roster.some(isMinor) && <p>No players on the minor bench.</p>}
                     {!closed && <><div className={styles.refreshActions}><button type="button" disabled={disabled} onClick={refresh}>{refreshing ? 'Refreshing…' : 'Refresh from Fantrax'}</button><small>Roster last checked {submittedTime(fetchedAt)} Eastern</small></div>
                         {refreshError && <p className={styles.refreshError}>{refreshError}</p>}

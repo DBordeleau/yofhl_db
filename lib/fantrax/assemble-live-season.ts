@@ -1,13 +1,16 @@
 // The live season module: the current season as Fantrax has it now, already assembled. It only assembles; what
-// it reads comes through the live season source port, so this file is free of Next and Fantrax specifics.
-// Callers use the production binding in live-season.ts.
-import { archiveIdLookup, playerName, automaticFinalPeriods, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
+// it reads comes through the live season source port, so this file is free of Next and of Fantrax's responses
+// (it borrows only the client's player name helper). Callers use the production binding in live-season.ts.
 import { PLAYOFF_FORMAT } from './config';
-import { liveFantraxLeagueId, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
+import { playerName } from './fantrax-client';
+import {
+    archiveIdLookup, liveFantraxLeagueId, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
+    type SourceCore, type SourceWeek, type WeekScores,
+} from './live-season-source';
 
-export type { WeekScores } from './live-season-source';
+export type { RosterStats, ScheduledMatchup, WeekScores } from './live-season-source';
 
-export type PlayoffRound = (typeof PLAYOFF_FORMAT.rounds)[number];
+type PlayoffRound = (typeof PLAYOFF_FORMAT.rounds)[number];
 
 export interface Week {
     number: number;
@@ -27,6 +30,20 @@ export interface Week {
     matchups: ScheduledMatchup[];
 }
 
+export interface LivePlayer {
+    /** the Fantrax player ID */
+    id: string;
+    name: string;
+    /** every position the player is eligible at, comma-separated ("C,LW") */
+    position: string;
+    /** the roster slot the player is in this lineup week */
+    lineupPosition: string;
+    /** "FA" for a free agent, "—" when Fantrax has no team for the player */
+    nhlTeam: string;
+    status: string;
+    archiveId: string | null;
+}
+
 export interface LiveTeam {
     /** the Fantrax team ID */
     id: string;
@@ -38,10 +55,10 @@ export interface LiveTeam {
     owner: string | null;
     /** the team page, or null for an unmapped team */
     href: string | null;
-    players: SnapshotPlayer[];
+    players: LivePlayer[];
 }
 
-export interface StandingsRow {
+interface StandingsRow {
     team: LiveTeam;
     rank: number | null;
     record: string | null;
@@ -52,13 +69,13 @@ export interface StandingsRow {
     playoffLineBelow: boolean;
 }
 
-export interface Standings {
+interface Standings {
     rows: StandingsRow[];
     playoffTeams: number;
     byeTeams: number;
 }
 
-export interface ScoringLeader {
+interface ScoringLeader {
     id: string;
     name: string;
     position: string;
@@ -71,7 +88,7 @@ export interface ScoringLeader {
     archiveId: string | null;
 }
 
-export type Availability<T> = { status: 'available'; value: T } | { status: 'unavailable' };
+type Availability<T> = { status: 'available'; value: T } | { status: 'unavailable' };
 
 export interface LiveSeason {
     seasonYear: number;
@@ -79,8 +96,8 @@ export interface LiveSeason {
     fetchedAt: string;
     weeks: Week[];
     currentWeek: Week;
-    /** the Fantrax lineup period the rosters belong to */
-    lineupPeriod: SourceWeek | null;
+    /** the week the rosters belong to: Fantrax's lineup period, on a separate calendar from the matchup weeks */
+    lineupWeek: SourceWeek | null;
     /** in standings order */
     teams: LiveTeam[];
     standings: Standings;
@@ -91,7 +108,7 @@ export interface LiveSeason {
 }
 
 /** the whole live season is unavailable when its core snapshot (teams, schedule, weeks) can't be loaded */
-export type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { status: 'unavailable'; fantraxLeagueId: string | null };
+type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { status: 'unavailable'; fantraxLeagueId: string | null };
 
 /** the live season's Fantrax league, for links to Fantrax; known even while the season is unavailable, unless league.fantrax_teams can't be read */
 export const fantraxLeagueIdOf = (result: LiveSeasonResult): string | null =>
@@ -105,8 +122,38 @@ function stages(weeks: SourceWeek[]) {
     return { stage, lastRegularWeek: numbers[firstRound - 1] ?? 0, firstPlayoffWeek: numbers[Math.max(firstRound, 0)] ?? 0 };
 }
 
-/** the last week before the playoff rounds */
-export const lastRegularSeasonWeek = (weeks: SourceWeek[]) => stages(weeks).lastRegularWeek;
+/**
+ * The weeks whose results every team's standings record already counts. Fantrax can post regular-season results
+ * before its next matchup week starts. They stop at the league's regular season: playoff weeks are only final by
+ * date or by hand.
+ */
+function automaticFinalWeeks(core: Pick<SourceCore, 'weeks' | 'schedule' | 'teams' | 'standings'>, now: number): number[] {
+    const { lastRegularWeek } = stages(core.weeks);
+    const standings = new Map(core.standings.map(standing => [standing.teamId, standing.record]));
+    const results = new Map(core.teams.map(team => {
+        const record = standings.get(team.id);
+        return [team.id, record && /^\d+-\d+-\d+$/.test(record) ? record.split('-').reduce((sum, value) => sum + Number(value), 0) : -1];
+    }));
+    const expected = new Map<string, number>();
+    const final: number[] = [];
+    for (const week of [...core.weeks].sort((a, b) => a.number - b.number)) {
+        if (week.number > lastRegularWeek || now < Date.parse(week.startDate)) break;
+        const round = core.schedule.find(item => item.week === week.number);
+        // Missing schedule history cannot establish how many results a team should have.
+        if (!round?.matchups.length) break;
+        const playing = new Set<string>();
+        for (const matchup of round.matchups) {
+            if (!matchup.away.id || !matchup.home.id) continue; // An unpaired team has a bye.
+            for (const id of [matchup.away.id, matchup.home.id]) {
+                if (playing.has(id) || !results.has(id)) return final;
+                playing.add(id);
+                expected.set(id, (expected.get(id) ?? 0) + 1);
+            }
+        }
+        if (playing.size && [...playing].every(id => results.get(id)! >= expected.get(id)!)) final.push(week.number);
+    }
+    return final;
+}
 
 export function createLiveSeason(source: LiveSeasonSource, options: { now?: () => number } = {}) {
     const clock = options.now ?? (() => Date.now());
@@ -121,15 +168,8 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
     }
 
     function assembleWeeks(core: SourceCore, manual: number[], now: number): Week[] {
-        const { stage, lastRegularWeek } = stages(core.weeks);
-        const records = new Map(core.standings.map(standing => [standing.teamId, standing.record]));
-        // Automatic final weeks stop at the league's regular season; playoff weeks are only final by date or by hand.
-        const automatic = automaticFinalPeriods({
-            scoringPeriods: core.weeks, lastRegularSeasonPeriod: lastRegularWeek,
-            schedule: core.schedule.map(round => ({ period: round.week, matchupList: round.matchups })),
-            teams: core.teams.map(team => ({ id: team.id, record: records.get(team.id) ?? null })),
-        }, now);
-        const final = new Set([...automatic, ...manual]);
+        const { stage } = stages(core.weeks);
+        const final = new Set([...automaticFinalWeeks(core, now), ...manual]);
         return [...core.weeks].sort((a, b) => a.number - b.number).map(week => {
             const weekStage = stage.get(week.number)!;
             const phase = now < Date.parse(week.startDate) ? 'upcoming'
@@ -164,7 +204,8 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
                     const player = core.players[item.id];
                     return {
                         id: item.id, name: playerName(player?.name ?? item.id), position: player?.position ?? item.position,
-                        lineupPosition: item.position, nhlTeam: player?.team ?? '—', status: item.status, archiveId: archiveId(item.id),
+                        // Fantrax gives a free agent's NHL team as "(N/A)".
+                        lineupPosition: item.position, nhlTeam: player?.team === '(N/A)' ? 'FA' : player?.team ?? '—', status: item.status, archiveId: archiveId(item.id),
                     };
                 }).sort((a, b) => a.name.localeCompare(b.name)),
             };
@@ -210,17 +251,17 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
             section('scores', async () => currentWeek.phase === 'upcoming' ? null
                 : source.weekScores(currentWeek, core)),
             section('scoring leaders', async () => {
-                const raw = await source.scoringLeaders(core.seasonYear);
+                const raw = await source.scoringLeaders(core);
                 return { fetchedAt: raw.fetchedAt, players: raw.players.map(player => ({
                     id: player.id, name: player.name, position: player.position, points: player.points, perGame: player.perGame,
                     team: teams.find(team => team.id === player.teamId) ?? null, fantraxTeam: player.team, archiveId: archiveId(player.id),
                 })) };
             }),
-            section('roster stats', () => source.rosterStats(core.seasonYear)),
+            section('roster stats', () => source.rosterStats(core)),
         ]);
         return { status: 'available', value: {
             seasonYear: core.seasonYear, fantraxLeagueId, fetchedAt: core.fetchedAt, weeks, currentWeek,
-            lineupPeriod: core.lineupPeriod, teams, standings: { rows, playoffTeams: PLAYOFF_FORMAT.teams, byeTeams: PLAYOFF_FORMAT.byes },
+            lineupWeek: core.lineupPeriod, teams, standings: { rows, playoffTeams: PLAYOFF_FORMAT.teams, byeTeams: PLAYOFF_FORMAT.byes },
             scores, leaders, rosterStats,
         } };
     }

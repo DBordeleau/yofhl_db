@@ -1,5 +1,5 @@
-export const EVENING_REFRESH_TIMES = ['20:00', '21:00', '22:00', '23:30'] as const;
-export const UTC_REFRESH_SLOTS = ['00:00', '01:00', '02:00', '03:00', '03:30', '04:30'] as const;
+const EVENING_REFRESH_TIMES = ['20:00', '21:00', '22:00', '23:30'] as const;
+const UTC_REFRESH_SLOTS = ['00:00', '01:00', '02:00', '03:00', '03:30', '04:30'] as const;
 
 // Daily UTC jobs cover both Eastern offsets. The two unused slots do no refresh work.
 export function scheduledRefreshTime(slot: string | null, now: number): string | null {

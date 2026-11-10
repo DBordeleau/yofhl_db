@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildChases, buildRecords, longestRun, matchupFormat, matchupFormats, rankEntries, type RecordSource, type Entry } from './model';
 import type { FranchiseCard } from '../data/league';
-import type { RosterStats } from '../fantrax/model';
+import type { RosterStats } from '../fantrax/live-season';
 import type { RivalryGame } from '../rivalries/model';
 import history from '../rivalries/regular-season-history.json';
 import periods from './periods.json';

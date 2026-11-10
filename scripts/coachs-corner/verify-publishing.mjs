@@ -72,7 +72,7 @@ try {
     await once(bridge, 'listening');
     await generateAssets(root);
     for (const dir of ['app', 'components', 'db', 'league', 'lib', 'scripts']) await cp(path.join(root, dir), path.join(scratch, dir), { recursive: true });
-    for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'next-env.d.ts', 'next.config.ts', 'postcss.config.mjs', 'tailwind.config.ts', '.eslintrc.json']) {
+    for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'next-env.d.ts', 'next.config.ts', 'postcss.config.mjs', 'tailwind.config.ts', '.eslintrc.js']) {
         await cp(path.join(root, file), path.join(scratch, file));
     }
     for (const dir of ['node_modules', 'public']) await symlink(path.join(root, dir), path.join(scratch, dir), process.platform === 'win32' ? 'junction' : 'dir');

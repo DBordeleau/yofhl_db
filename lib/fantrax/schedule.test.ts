@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { EVENING_REFRESH_TIMES, scheduledRefreshTime, UTC_REFRESH_SLOTS } from './schedule';
+import { scheduledRefreshTime } from './schedule';
 
 test('six daily UTC jobs produce exactly four Eastern refreshes in summer, winter and after DST changes', () => {
     const config = JSON.parse(readFileSync('vercel.json', 'utf8'));
-    assert.equal(config.crons.length, UTC_REFRESH_SLOTS.length);
+    assert.equal(config.crons.length, 6);
     for (const day of ['2026-10-19', '2026-11-02', '2027-01-20', '2027-03-15']) {
         for (const delay of [0, 59 * 60 * 1000]) {
             const times = config.crons.flatMap((cron: { path: string; schedule: string }) => {
@@ -15,7 +15,7 @@ test('six daily UTC jobs produce exactly four Eastern refreshes in summer, winte
                 const result = scheduledRefreshTime(slot, Date.parse(`${day}T${slot}:00Z`) + delay);
                 return result ? [result] : [];
             });
-            assert.deepEqual(times, EVENING_REFRESH_TIMES, `${day}, ${delay}ms late`);
+            assert.deepEqual(times, ['20:00', '21:00', '22:00', '23:30'], `${day}, ${delay}ms late`);
         }
     }
 });

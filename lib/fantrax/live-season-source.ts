@@ -2,7 +2,24 @@
 // (fantrax-source.ts) is Fantrax plus the saved snapshot, manual final weeks and Next's caches; tests use the
 // in-memory adapter (memory-source.ts). Shapes here are already checked and in season years; Fantrax's own
 // response formats stay in the HTTP client (fantrax-client.ts).
-import type { RosterStats, ScheduledMatchup } from './model';
+
+/** one matchup on the schedule; an unseeded playoff slot is `{ TBD: true }` on both sides, and a bye has one side */
+export interface ScheduledMatchup {
+    away: { id?: string; name?: string; TBD?: boolean };
+    home: { id?: string; name?: string; TBD?: boolean };
+}
+
+/** each rostered player's season fantasy points, by Fantrax player ID */
+export interface RosterStats {
+    fetchedAt: string;
+    players: Record<string, { points: number | null; perGame: number | null }>;
+}
+
+/** Looks up a Fantrax player ID among archive player IDs, some of which are stored wrapped in asterisks. */
+export function archiveIdLookup(archiveIds: string[]): (fantraxId: string) => string | null {
+    const archive = new Map(archiveIds.map(id => [id.replace(/\*/g, ''), id]));
+    return fantraxId => archive.get(fantraxId) ?? null;
+}
 
 export interface SourceWeek {
     number: number;
@@ -82,11 +99,12 @@ export interface LiveSeasonSource {
     franchises(): Promise<FranchiseIdentity[]>;
     /** archive player IDs, as stored (some are wrapped in asterisks) */
     archivedPlayerIds(): Promise<string[]>;
-    /** `fresh` skips the saved snapshot and the caches */
+    /** `fresh` reads the league and player directory from Fantrax, not the saved snapshot or the caches; the saved snapshot still serves its scores, leaders and roster stats */
     core(options: { fresh: boolean }): Promise<SourceCore>;
-    weekScores(week: SourceWeek, core: Pick<SourceCore, 'fetchedAt'>): Promise<WeekScores>;
-    scoringLeaders(seasonYear: number): Promise<SourceLeaders>;
-    rosterStats(seasonYear: number): Promise<RosterStats>;
+    // `core` is the one this source returned for the same read, so a source can serve these from what it read then.
+    weekScores(week: SourceWeek, core: SourceCore): Promise<WeekScores>;
+    scoringLeaders(core: SourceCore): Promise<SourceLeaders>;
+    rosterStats(core: SourceCore): Promise<RosterStats>;
     manualFinalWeeks(seasonYear: number): Promise<number[]>;
     setManualFinalWeek(seasonYear: number, week: number, final: boolean): Promise<void>;
     /** Capture every Fantrax request, save the snapshot and publish it. Publishes only if every request succeeds. */

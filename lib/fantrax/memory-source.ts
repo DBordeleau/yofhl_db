@@ -1,9 +1,8 @@
 // The in-memory live season source, for tests. `fantrax` is what Fantrax would return right now and `saved` is
 // the saved snapshot; `down` lists the Fantrax requests that are failing.
-import type { RosterStats } from './model';
-import type { FantraxTeamRow, FranchiseIdentity, LiveSeasonSource, SourceCore, SourceLeaders, WeekScores } from './live-season-source';
+import type { FantraxTeamRow, FranchiseIdentity, LiveSeasonSource, RosterStats, SourceCore, SourceLeaders, WeekScores } from './live-season-source';
 
-export interface MemoryCapture {
+interface MemoryCapture {
     core: SourceCore;
     scores: Record<number, WeekScores>;
     leaders: SourceLeaders;
@@ -37,8 +36,8 @@ export function createMemorySource(state: MemoryState): LiveSeasonSource {
             if (!scores) throw new Error(`Fantrax has no scores for week ${week.number}`);
             return structuredClone(scores);
         },
-        scoringLeaders: async seasonYear => structuredClone(savedFor(seasonYear)?.leaders ?? fantrax('leaders').leaders),
-        rosterStats: async seasonYear => structuredClone(savedFor(seasonYear)?.rosterStats ?? fantrax('rosterStats').rosterStats),
+        scoringLeaders: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.leaders ?? fantrax('leaders').leaders),
+        rosterStats: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.rosterStats ?? fantrax('rosterStats').rosterStats),
         manualFinalWeeks: async seasonYear => [...state.manualFinalWeeks[seasonYear] ?? []],
         setManualFinalWeek: async (seasonYear, week, final) => {
             const weeks = new Set(state.manualFinalWeeks[seasonYear] ?? []);

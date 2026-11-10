@@ -11,7 +11,7 @@ import HeroStudio from '@/components/home/hero-studio';
 import SectionLink from '@/components/home/section-link';
 import { fantraxLeagueUrl } from '@/lib/fantrax/config';
 import { fantraxLeagueIdOf, getLiveSeason } from '@/lib/fantrax/live-season';
-import { shortDate } from '@/lib/fantrax/model';
+import { shortDate } from '@/lib/live-season-display';
 import { getPublishedEpisodes } from '@/lib/data/coachs-corner';
 import { formatFpts, seasonLabel } from '@/lib/league';
 import styles from '@/components/home/home.module.css';
@@ -115,7 +115,7 @@ export default async function HomePage() {
                 </section>
             </div>
 
-            {live ? <RosterBrowser teams={live.teams} rosterPeriod={live.lineupPeriod} stats={rosterStats} /> : null}
+            {live ? <RosterBrowser teams={live.teams} lineupWeek={live.lineupWeek} stats={rosterStats} /> : null}
 
             <section id="history" className={styles.archiveBand} aria-labelledby="archive-heading">
                 <div className={styles.archiveBackdrop} aria-hidden="true">

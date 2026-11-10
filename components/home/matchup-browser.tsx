@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { createResultCache } from '@/lib/result-cache';
 import TeamBadge from '@/components/team-badge';
-import { weekLabel, shortDate, type ScheduledMatchup } from '@/lib/fantrax/model';
+import { weekLabel, shortDate } from '@/lib/live-season-display';
 import { fantraxMatchupUrl } from '@/lib/fantrax/config';
-import type { LiveTeam, Week, WeekScores } from '@/lib/fantrax/live-season';
+import type { LiveTeam, ScheduledMatchup, Week, WeekScores } from '@/lib/fantrax/live-season';
 import styles from './home.module.css';
 import Arrow from '@/components/arrow';
 import { broadcastType as matchupType } from './broadcast-type';
@@ -215,10 +215,10 @@ export default function MatchupBrowser({ weeks, current, teams, fantraxLeagueId 
         </div></div> : null}
 
         <div className={styles.matchupMeta}>
-            <div className={styles.periodControls}>
+            <div className={styles.weekControls}>
                 <button type="button" aria-label="Previous week" disabled={index <= 0 || pending} onClick={() => navigate(weeks[index - 1].number)}><Arrow direction="left" animated={false} /></button>
-                <label className="sr-only" htmlFor="scoring-period">Week</label>
-                <select id="scoring-period" value={selected.number} disabled={pending} onChange={event => navigate(Number(event.target.value))}>
+                <label className="sr-only" htmlFor="matchup-week">Week</label>
+                <select id="matchup-week" value={selected.number} disabled={pending} onChange={event => navigate(Number(event.target.value))}>
                     {weeks.map(week => <option value={week.number} key={week.number}>{week.fullName} · {weekLabel(week)}</option>)}
                 </select>
                 <button type="button" aria-label="Next week" disabled={index >= weeks.length - 1 || pending} onClick={() => navigate(weeks[index + 1].number)}><Arrow animated={false} /></button>

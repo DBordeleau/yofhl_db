@@ -3,32 +3,33 @@
 import { fantraxApiUrl, readLeagueInfo } from './api';
 import { CORRECTION_WINDOW_MS } from './cache-policy';
 import { discoverScoringSeason, globalFetch, loadRosterStats, loadScoringLeaders, type Fetcher } from './leaders';
-import { archiveIdLookup, publishedMatchups, type MatchupScores, type Period, type RosterStats, type ScheduledMatchup } from './model';
-import type { FantraxPlayoffs, SourceCore, WeekScores } from './live-season-source';
+import { archiveIdLookup, type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
 
 export type { Fetcher } from './leaders';
+export type { SourceCore, SourceWeek } from './live-season-source';
 
-export interface LeagueInfo {
+interface LeagueInfo {
     /** the season year; Fantrax's own start year is converted as the response is read */
     seasonYear: number;
     teamInfo: Record<string, { name: string; id: string }>;
-    scoringPeriods: Period[];
-    rosterPeriods: Period[];
+    /** Fantrax's scoring periods are the weeks */
+    scoringPeriods: SourceWeek[];
+    rosterPeriods: SourceWeek[];
     matchups: { period: number; matchupList: ScheduledMatchup[] }[];
     playoffs: FantraxPlayoffs;
 }
-export interface RosterResponse {
+interface RosterResponse {
     period: number;
     rosters: Record<string, { rosterItems: { id: string; position: string; status: string }[] }>;
 }
-export interface Standing {
+interface Standing {
     teamId: string;
     rank: number;
     points: string;
     totalPointsFor: number;
 }
-export interface PlayerInfo { name: string; position: string; team?: string }
-export type PlayerDirectory = Record<string, PlayerInfo>;
+interface PlayerInfo { name: string; position: string; team?: string }
+type PlayerDirectory = Record<string, PlayerInfo>;
 
 /** the raw core responses, as the saved snapshot stores them */
 export interface FantraxLeague {
@@ -37,7 +38,17 @@ export interface FantraxLeague {
     standings: Standing[];
     fetchedAt: string;
 }
-export type ScoringLeaders = { fetchedAt: string; players: (Awaited<ReturnType<typeof loadScoringLeaders>>[number] & { archiveId: string | null })[] };
+type ScoringLeaders = { fetchedAt: string; players: (Awaited<ReturnType<typeof loadScoringLeaders>>[number] & { archiveId: string | null })[] };
+
+/** getMatchupScores as the saved snapshot stores it: keyed and labelled by Fantrax's period */
+export interface MatchupScores {
+    fetchedAt: string;
+    period: number;
+    matchups: {
+        away: { teamId: string; score: number; gamesPlayed: number };
+        home: { teamId: string; score: number; gamesPlayed: number };
+    }[];
+}
 
 /** the saved snapshot (league.fantrax_snapshots): raw Fantrax responses from one capture */
 export interface SavedLiveSeason {
@@ -48,7 +59,16 @@ export interface SavedLiveSeason {
 }
 
 const toIso = (date: string) => new Date(date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).toISOString();
-export const normalizePeriod = (period: Period): Period => ({ ...period, startDate: toIso(period.startDate), endDate: toIso(period.endDate) });
+const normalizePeriod = (period: SourceWeek): SourceWeek => ({ ...period, startDate: toIso(period.startDate), endDate: toIso(period.endDate) });
+
+/** Fantrax's "Last, First" player name as "First Last" */
+export function playerName(name: string): string {
+    const [last, first] = name.split(', ');
+    return first ? `${first} ${last}` : last;
+}
+
+// Future playoff slots contain { TBD: true } on both sides, not real teams or byes.
+const publishedMatchups = (matchups: ScheduledMatchup[]) => matchups.filter(matchup => matchup.away.id || matchup.home.id);
 
 export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     async function request<T>(endpoint: string, parameters: Record<string, string> = {}): Promise<T> {
@@ -126,8 +146,6 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
 
     return { league, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
 }
-
-export type FantraxClient = ReturnType<typeof createFantraxClient>;
 
 /** The port's core snapshot from raw responses, fresh or saved: Fantrax's periods become weeks. */
 export function readCore(league: FantraxLeague, players: PlayerDirectory): SourceCore {
