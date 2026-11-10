@@ -70,16 +70,19 @@ test('audio cues follow the timeline: one voice cue per mouth flap, plus the scr
     assert.deepEqual(audioCues.map(cue => cue.t), [...audioCues.map(cue => cue.t)].sort((a, b) => a - b));
 });
 
-test('unknown-team warnings appear only when a team check is passed, and never change the episode', () => {
-    const source = `${head}>> matchup HH 41.5 NOPE 38\nRON: Hi.`;
+test('team cues are errors only when a team list is passed, and never change the episode', () => {
+    const source = `${head}>> matchup HH 41.5 NOPE 38
+RON: Hi.`;
+    const teams = [{ id: 3, name: 'Hooterville Honkers', abbreviation: 'HH', owner: 'Jeremy Smith', ownerFirst: 'Jeremy', logo: null, primary: '#000000', secondary: '#FFFFFF' }];
     const unchecked = episodeFrom(source);
-    const checked = episodeFrom(source, { knownTeam: ref => ref === 'HH' });
+    const checked = episodeFrom(source, { teams });
     assert.deepEqual(unchecked.diagnostics, []);
-    assert.equal(checked.diagnostics.length, 1);
-    assert.equal(checked.diagnostics[0].severity, 'warning');
-    assert.match(checked.diagnostics[0].message, /NOPE/);
-    assert.equal(checked.hasErrors, false);
-    assert.deepEqual({ ...checked, diagnostics: [] }, { ...unchecked, diagnostics: [] });
+    assert.equal(unchecked.hasErrors, false);
+    assert.deepEqual(unchecked.teamRefs.map(r => r.ref), ['HH', 'NOPE']);
+    assert.deepEqual(checked.diagnostics.map(d => [d.line, d.severity]), [[unchecked.teamRefs[1].line, 'error']]);
+    assert.match(checked.diagnostics[0].message, /No team matches “NOPE”/);
+    assert.equal(checked.hasErrors, true);
+    assert.deepEqual({ ...checked, diagnostics: [], hasErrors: false }, { ...unchecked, diagnostics: [], hasErrors: false });
 });
 
 test('errors come through the diagnostics', () => {

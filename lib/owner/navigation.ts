@@ -12,12 +12,21 @@ export interface OwnerNavigation {
     keepers?: KeeperReminderState | null;
 }
 
-// The root header survives route changes. Focus can refresh stale state, while explicit
-// sign-in, sign-out, claim and save events always bypass the one-minute freshness window.
+// The owner session sets this readable cookie beside the HttpOnly session cookie. See ADR 0003.
+const hasSessionHint = () => document.cookie.split(';').some(cookie => cookie.trim() === 'yofhl_owner_hint=1');
+
+// The root header survives route changes. Without the session hint the visitor is signed out and nothing is
+// asked. With it, focus can refresh stale state, while explicit sign-in, sign-out, claim and save events
+// always ask, bypassing the hint and the one-minute freshness window.
 export function watchOwnerNavigation(onChange: (owner: OwnerNavigation) => void) {
     let controller: AbortController | null = null;
     let lastAttempt = -Infinity;
     const refresh = async (force = false) => {
+        if (!force && !hasSessionHint()) {
+            // A request in flight was forced, and its answer is what sets the hint.
+            if (!controller) onChange({ signedIn: false, team: null });
+            return;
+        }
         if (!force && (controller || Date.now() - lastAttempt < 60_000)) return;
         controller?.abort();
         const request = new AbortController();

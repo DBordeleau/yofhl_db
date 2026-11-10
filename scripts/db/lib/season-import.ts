@@ -18,7 +18,7 @@ import { eraFor, findByAbbreviation, findByName, suggestEra, type LeagueConfig, 
 //
 // All or nothing: every season validates before anything is written, then the league configuration,
 // Fantrax teams, every season, the legacy seeds, history and the view refreshes are written in one
-// transaction (docs/adr/0003-season-import-is-one-transaction.md). Standings, player seasons and playoff
+// transaction (docs/adr/0004-season-import-is-one-transaction.md). Standings, player seasons and playoff
 // games are rebuilt; championship rosters and awards are never touched (the legacy seeds are loaded once
 // for seasons that have none).
 
@@ -503,7 +503,7 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
     await enrichDraftDevelopment(db, history.picks, loadDraftFacts);
 
     // One transaction: a failure anywhere below leaves the database as it was. The helpers' own
-    // transactions nest inside it as savepoints. See docs/adr/0003-season-import-is-one-transaction.md.
+    // transactions nest inside it as savepoints. See docs/adr/0004-season-import-is-one-transaction.md.
     const { imported, legacyNotes } = await db.transaction(async (tx) => {
         await writeLeague(tx, config);
         await writeFantraxTeams(tx, fantraxTeams.rows);

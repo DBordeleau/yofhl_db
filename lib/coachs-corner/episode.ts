@@ -1,7 +1,8 @@
 import { compileAudioCues, type AudioCue } from './audio-cues';
 import { episodeLabel } from './episode-label';
 import { pullQuote, type PullQuote } from './pull-quote';
-import { graphicPlayers, hasErrors, parseScript, playerRefs, refKey, statsSeason, type Diagnostic, type Meta, type PlayerRef } from './script';
+import { graphicPlayers, parseScript, playerRefs, refKey, statsSeason, type Diagnostic, type Meta, type PlayerRef, type TeamRef } from './script';
+import { teamDiagnostics, type StudioTeam } from './teams';
 import { compile, frameAt, type Frame, type Timeline } from './timeline';
 import { INTRO_MS } from './transport';
 
@@ -36,6 +37,8 @@ export interface Episode {
     /** the episode's schedule slot: "Pilot" or "Week N" */
     label: string | null;
     playerRefs: PlayerRef[];
+    /** every team the graphics name, with its line */
+    teamRefs: TeamRef[];
     /** the season the player cards quote (GLOSSARY.md: player snapshot) */
     statsSeason: number | null;
     summary: ScriptSummary;
@@ -44,23 +47,25 @@ export interface Episode {
 export interface EpisodeOptions {
     /** how the label tells the pilot apart */
     slug?: string;
-    /** only adds unknown-team warnings to the diagnostics; never changes the compiled episode */
-    knownTeam?: (ref: string) => boolean;
+    /** the team list to check team cues against; its errors join the diagnostics but never change the compiled episode */
+    teams?: StudioTeam[];
 }
 
-export function episodeFrom(source: string, { slug, knownTeam }: EpisodeOptions = {}): Episode {
-    const script = parseScript(source, { knownTeam });
+export function episodeFrom(source: string, { slug, teams }: EpisodeOptions = {}): Episode {
+    const script = parseScript(source);
     const timeline = compile(script);
     const { meta } = script;
     const players = playerRefs(script);
     const runtime = Math.round(timeline.showEnd);
+    const diagnostics = teams ? [...script.diagnostics, ...teamDiagnostics(teams, script.teamRefs)].sort((a, b) => a.line - b.line) : script.diagnostics;
     return {
-        meta, diagnostics: script.diagnostics, hasErrors: hasErrors(script), timeline,
+        meta, diagnostics, hasErrors: diagnostics.some(d => d.severity === 'error'), timeline,
         audioCues: compileAudioCues(timeline),
         openingPicture: frameAt(timeline, OPENING_PICTURE_MS),
         pullQuote: pullQuote(script),
         label: episodeLabel({ slug: slug ?? '', week: meta.week ?? null }),
         playerRefs: players,
+        teamRefs: script.teamRefs,
         statsSeason: statsSeason(meta),
         summary: {
             title: meta.title || 'Untitled episode', season: meta.season ?? null, week: meta.week ?? null, date: meta.date ?? null,

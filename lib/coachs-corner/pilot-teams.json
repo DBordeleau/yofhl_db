@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "name": "Paddyville Lucifers",
+    "abbreviation": "PVLS",
+    "owner": "Pat Henriksson",
+    "ownerFirst": "Pat",
+    "logo": "/pvlslogo.png",
+    "primary": "#A71930",
+    "secondary": "#FF8000"
+  },
+  {
+    "id": 2,
+    "name": "New Purrsey Devils",
+    "abbreviation": "NPD",
+    "owner": "Daniel Sauve",
+    "ownerFirst": "Daniel",
+    "logo": "/logos/new_purrsey_devils.jpg",
+    "primary": "#BE2038",
+    "secondary": "#181A20"
+  },
+  {
+    "id": 3,
+    "name": "Hooterville Honkers",
+    "abbreviation": "HH",
+    "owner": "Jeremy Weaver",
+    "ownerFirst": "Jeremy",
+    "logo": "/logos/hooterville_honkers.webp",
+    "primary": "#182C4B",
+    "secondary": "#AA2A3A"
+  },
+  {
+    "id": 4,
+    "name": "Varrock Dark Wizards",
+    "abbreviation": "VWIZ",
+    "owner": "Dillon Bordeleau",
+    "ownerFirst": "Dillon",
+    "logo": "/vwizlogo.png",
+    "primary": "#55328A",
+    "secondary": "#FFFF00"
+  },
+  {
+    "id": 5,
+    "name": "Jagrtown Ice Fellas",
+    "abbreviation": "JAGR",
+    "owner": "Nick Kavanagh",
+    "ownerFirst": "Nick",
+    "logo": "/jagrlogo.png",
+    "primary": "#1E5986",
+    "secondary": "#CE6873"
+  },
+  {
+    "id": 6,
+    "name": "West Texas Torteehaws",
+    "abbreviation": "TEEHAW",
+    "owner": "Kaley Etheridge",
+    "ownerFirst": "Kaley",
+    "logo": "/teehawlogo.png",
+    "primary": "#285B48",
+    "secondary": "#EDB34C"
+  },
+  {
+    "id": 7,
+    "name": "The Lalibirdies",
+    "abbreviation": "Lali",
+    "owner": "Eric Laliberte",
+    "ownerFirst": "Eric",
+    "logo": "/lalilogo.png",
+    "primary": "#1556A0",
+    "secondary": "#37C9E8"
+  },
+  {
+    "id": 8,
+    "name": "Skellige Sirens",
+    "abbreviation": "SKGS",
+    "owner": "Monike Porter",
+    "ownerFirst": "Monike",
+    "logo": "/logos/skellige_sirens.jpg",
+    "primary": "#7D007D",
+    "secondary": "#62E8E4"
+  },
+  {
+    "id": 9,
+    "name": "Carolina Reapers",
+    "abbreviation": "Reapers",
+    "owner": "Brian Morris",
+    "ownerFirst": "Brian",
+    "logo": "/reaplogo.png",
+    "primary": "#158D32",
+    "secondary": "#D24015"
+  },
+  {
+    "id": 13,
+    "name": "Hamhung Hall Monitors",
+    "abbreviation": "HUNG",
+    "owner": "Andrew Halstad",
+    "ownerFirst": "Andrew",
+    "logo": "/logos/hamhung_hall_monitors.jpg",
+    "primary": "#1E466B",
+    "secondary": "#EB6957"
+  }
+]

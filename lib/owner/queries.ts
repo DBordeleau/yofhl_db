@@ -1,16 +1,21 @@
 import { sql } from 'drizzle-orm';
 
-const teamsQuery = (ownerUid?: string) => sql`
+type TeamFilter = { ownerUid: string } | { franchiseId: number };
+
+const teamsQuery = (filter?: TeamFilter) => sql`
     select c.id, c.name, c.logo, c.abbreviation, c.defunct,
            m.owner_uid as "ownerUid", m.owner_email as "ownerEmail",
            m.invite_expires_at as "inviteExpiresAt", coalesce(m.version, 0) as version, m.branding
     from league.current_teams c
     left join league.team_management m on m.franchise_id = c.id
-    ${ownerUid === undefined ? sql`` : sql`where m.owner_uid = ${ownerUid} and not c.defunct`}
+    ${filter === undefined ? sql``
+        : 'ownerUid' in filter ? sql`where m.owner_uid = ${filter.ownerUid} and not c.defunct`
+        : sql`where c.id = ${filter.franchiseId}`}
     order by c.defunct, c.id`;
 
 export const managedTeamsQuery = teamsQuery();
-export const ownedTeamQuery = (uid: string) => teamsQuery(uid);
+export const ownedTeamQuery = (uid: string) => teamsQuery({ ownerUid: uid });
+export const managedTeamQuery = (franchiseId: number) => teamsQuery({ franchiseId });
 
 // One atomic update consumes the invitation and binds the team. The unique owner UID
 // also prevents two concurrent claims by the same account from claiming two teams.
@@ -41,3 +46,6 @@ export const rateLimitQuery = (key: string) => sql`
       attempts = case when league.owner_rate_limits.resets_at <= now() then 1 else league.owner_rate_limits.attempts + 1 end,
       resets_at = case when league.owner_rate_limits.resets_at <= now() then now() + interval '15 minutes' else league.owner_rate_limits.resets_at end
     returning attempts`;
+
+// Forget limits that reset more than a day ago, so the table holds only recent attempts.
+export const rateLimitCleanupQuery = sql`delete from league.owner_rate_limits where resets_at < now() - interval '1 day'`;

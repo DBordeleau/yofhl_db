@@ -6,8 +6,7 @@ import CopyDropList from '@/components/keepers/copy-drop-list';
 import TeamBadge from '@/components/team-badge';
 import { adminConfigured, isAdmin } from '@/lib/admin/auth';
 import { rows } from '@/lib/data/db';
-import { managedTeamsQuery } from '@/lib/owner/queries';
-import type { ManagedTeam } from '@/lib/owner/model';
+import { getManagedTeams } from '@/lib/owner/teams';
 import { keeperSubmissionsQuery } from '@/lib/keepers/queries';
 import { getLiveSeason } from '@/lib/fantrax/live-season';
 import { KEEPERS_ENABLED, KEEPER_SEASON_LABEL, KEEPER_DEADLINE_LABEL, KEEPER_SEASON, KEEPER_TOTAL_LIMIT, currentRookieReview, isMinor, keeperPosition, keepersOpen, submissionStatus, validateKeepers, type KeeperSubmission, type KeeperPlayer } from '@/lib/keepers/model';
@@ -24,7 +23,7 @@ export default async function KeeperAdminPage() {
     if (!(await isAdmin())) return <LoginForm next="/admin/keepers" configured={adminConfigured()} />;
     const open = keepersOpen();
     const [allTeams, submissions, snapshot] = await Promise.all([
-        rows<ManagedTeam>(managedTeamsQuery), rows<KeeperSubmission>(keeperSubmissionsQuery()),
+        getManagedTeams(), rows<KeeperSubmission>(keeperSubmissionsQuery()),
         open ? getLiveSeason({ now: Date.now(), fresh: true }).then(live => live.status === 'available' ? live.value : null) : Promise.resolve(null),
     ]);
     const teams = allTeams.filter(team => !team.defunct).map(team => {

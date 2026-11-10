@@ -7,6 +7,7 @@ import { episodeFrom } from '../episode';
 import { noNhl } from '../player-snapshot';
 import { loadLeagueConfig } from '../../../scripts/db/lib/league-config';
 import { disposableLeague } from '../../testing/disposable-league';
+import pilotTeams from '../pilot-teams.json';
 
 test('graphic stats freeze the episode stats season through the player snapshot, preserve live evidence, and never guess identities or years', async t => {
     const { db } = await disposableLeague(t, { seed: `
@@ -21,7 +22,7 @@ test('graphic stats freeze the episode stats season through the player snapshot,
             ('future', 2027, 'TOR', '{C}', 50, 1), ('older', 2025, 'TOR', '{C}', 75, 1),
             ('*048x9*', 2026, 'VAN', '{C}', 309.75, 4.2), ('*0ab12*', 2026, 'VAN', '{D}', 134, 1.9);
     ` });
-    const packet = referencePacket(loadLeagueConfig(), 2027);
+    const packet = referencePacket(loadLeagueConfig(), 2027, pilotTeams);
     const birthSource = { url: 'https://example.test/birthplace', fetchedAt: '2026-10-15T12:00:00Z' };
     packet.players = [{ ...unknownPlayer('Tom Wilson'), nhlId: 123, birthCountry: 'CAN', birthCity: 'Toronto',
         bornInNorthAmerica: true, source: birthSource, headshot: 'https://example.test/wilson.png', nhlTeam: 'WSH' }];
@@ -66,7 +67,7 @@ test('graphic stats freeze the episode stats season through the player snapshot,
 });
 
 test('database failure rejects without altering saved evidence, and graphics-free drafts need no DB access', async () => {
-    const packet = referencePacket(loadLeagueConfig(), 2027);
+    const packet = referencePacket(loadLeagueConfig(), 2027, pilotTeams);
     const before = structuredClone(packet);
     const query = async () => { throw new Error('database unavailable'); };
     assert.equal(await captureArchivedStats(packet, [], { query, season: 2026, portraits: noNhl }), packet);

@@ -1,7 +1,9 @@
-import type { PlayerRef } from './script';
+import type { Diagnostic, PlayerRef, TeamRef } from './script';
 
-// Scripts refer to teams loosely: an abbreviation (HH), an owner's first name (Jeremy) or a word from
-// the team name (Hooterville). The monitor resolves them against the league's current franchises.
+// Scripts refer to teams loosely: an abbreviation (HH), an owner's first name (Jeremy), the full team name
+// or a word from it (Hooterville). Every surface resolves them here, against a studio team list (GLOSSARY.md):
+// the draft check against the fact packet's, the editor and Publish against the live one, and an episode
+// page against its team snapshot.
 
 export interface StudioTeam {
     id: number;
@@ -14,18 +16,52 @@ export interface StudioTeam {
     secondary: string;
 }
 
+export type TeamResolution =
+    | { kind: 'team'; team: StudioTeam }
+    | { kind: 'unknown' }
+    | { kind: 'ambiguous'; candidates: StudioTeam[] };
+
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '');
 
+// in order: the first tier with any match decides. Only the current abbreviation counts.
+const TIERS: ((team: StudioTeam, key: string) => boolean)[] = [
+    (t, key) => norm(t.abbreviation) === key,
+    (t, key) => !!t.ownerFirst && norm(t.ownerFirst) === key,
+    (t, key) => norm(t.name) === key,
+    (t, key) => key.length > 2 && t.name.split(/\s+/).some(word => norm(word) === key),
+];
+
+const matchTeam = (teams: StudioTeam[], ref: string): TeamResolution => {
+    const key = norm(ref);
+    if (!key) return { kind: 'unknown' };
+    for (const tier of TIERS) {
+        const found = [...new Map(teams.filter(t => tier(t, key)).map(t => [t.id, t])).values()];
+        if (found.length === 1) return { kind: 'team', team: found[0] };
+        if (found.length > 1) return { kind: 'ambiguous', candidates: found };
+    }
+    return { kind: 'unknown' };
+};
+
+export const resolveTeams = (teams: StudioTeam[], refs: TeamRef[]): (TeamRef & TeamResolution)[] =>
+    refs.map(ref => ({ ...ref, ...matchTeam(teams, ref.ref) }));
+
+/** the monitor's lookup: the team a cue was checked against, or none when it's unknown or ambiguous */
 export const findTeam = (teams: StudioTeam[], ref: string | undefined): StudioTeam | null => {
     if (!ref) return null;
-    const key = norm(ref);
-    if (!key) return null;
-    return teams.find(t => norm(t.abbreviation) === key)
-        ?? teams.find(t => t.ownerFirst && norm(t.ownerFirst) === key)
-        ?? teams.find(t => norm(t.name) === key)
-        ?? teams.find(t => t.name.split(/\s+/).some(word => norm(word) === key && key.length > 2))
-        ?? null;
+    const match = matchTeam(teams, ref);
+    return match.kind === 'team' ? match.team : null;
 };
+
+/** The wording the draft check, the editor and Publish share. A cue that isn't exactly one team is an error. */
+export const teamDiagnostics = (teams: StudioTeam[], refs: TeamRef[]): Diagnostic[] =>
+    resolveTeams(teams, refs).flatMap((result): Diagnostic[] => {
+        if (result.kind === 'team') return [];
+        const message = result.kind === 'unknown'
+            ? `No team matches “${result.ref}”. Use an abbreviation (${teams.map(t => t.abbreviation).join(', ')}), an owner’s first name or a team name.`
+            : `“${result.ref}” matches ${result.candidates.length} teams: ${result.candidates
+                .map(t => `${t.abbreviation} (${t.name}, ${t.owner ?? 'no owner'})`).join(', ')}. Use the abbreviation of the one you mean.`;
+        return [{ line: result.line, severity: 'error', message }];
+    });
 
 // A row of an episode's player snapshot (GLOSSARY.md): a cited player's stats-season fantasy line and headshot.
 export interface StudioPlayer {
