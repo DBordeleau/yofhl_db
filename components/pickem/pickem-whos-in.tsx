@@ -8,7 +8,7 @@ export default function PickemWhosIn({ whosIn }: { whosIn: PickemWhoIsIn[] }) {
         { label: 'In', entries: ins },
         { label: 'Not yet', entries: whosIn.filter(entry => !entry.in) },
     ].filter(group => group.entries.length > 0);
-    return <section aria-labelledby="pickem-whos-in" className="mt-6 rounded-xl bg-white p-3 shadow-sm md:p-4">
+    return <section aria-labelledby="pickem-whos-in" className="mt-6 rounded-md border border-line bg-white p-3 md:p-4">
         <h3 id="pickem-whos-in" className="text-sm font-extrabold uppercase text-ink-soft">
             {ins.length} of {whosIn.length} owners in
         </h3>

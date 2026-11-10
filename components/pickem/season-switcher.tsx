@@ -18,8 +18,8 @@ export default function SeasonSwitcher({ seasons, selected, beingPlayed }: Props
                 const current = seasonYear === selected;
                 return <li key={seasonYear}>
                     <Link href={seasonYear === beingPlayed ? '/pickem' : `/pickem/${seasonYear}`} aria-current={current ? 'page' : undefined}
-                        className={`block rounded-lg px-2.5 py-1.5 text-sm font-extrabold tabular-nums transition-colors ${current
-                            ? 'bg-ink text-white' : 'bg-white text-ink shadow-sm hover:bg-ice'}`}>
+                        className={`block rounded border px-2.5 py-1.5 text-sm font-extrabold tabular-nums transition-colors ${current
+                            ? 'border-ink bg-ink text-white' : 'border-[#D4DEE9] bg-white text-ink hover:bg-[#E6EEF7]'}`}>
                         {seasonLabel(seasonYear)}
                     </Link>
                 </li>;
