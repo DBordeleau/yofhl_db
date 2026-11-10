@@ -139,7 +139,8 @@ test('does not infer early Finals from incomplete standings, missing history, du
     }
     const missing = league({ played: 1 }); missing.fantrax.core.teams.pop();
     assert.equal(await weekOne(missing), 'active');
-    const duplicate = league({ played: 1 }); duplicate.fantrax.core.schedule[0].matchups.push(duplicate.fantrax.core.schedule[0].matchups[0]);
+    // Records that would count the repeated matchup twice still don't finalize the week.
+    const duplicate = league({ played: 2 }); duplicate.fantrax.core.schedule[0].matchups.push(duplicate.fantrax.core.schedule[0].matchups[0]);
     assert.equal(await weekOne(duplicate), 'active');
     const history = league({ played: 2 }); history.fantrax.core.schedule.shift();
     assert.equal(weekView(await setup(t, history).season({ now: during(2, 2) }), 2).phase, 'active');
