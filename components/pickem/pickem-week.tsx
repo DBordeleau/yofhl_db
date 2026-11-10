@@ -126,15 +126,15 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
                     {[matchup.away, matchup.home].flatMap((franchise, side) => {
                         const style = clubTone(clubColours(palettes, franchise.id));
                         const chosen = current === franchise.id;
-                        const element = !canPick
-                            ? <div key={franchise.id} className={styles.side} style={style}><SideBody franchise={franchise} owner={owners?.[franchise.id]} /></div>
-                            : <button key={franchise.id} type="button" className={styles.side} style={style}
-                                aria-pressed={chosen} data-fresh={fresh === key && chosen ? '' : undefined}
-                                onClick={() => choose(matchup, franchise)}>
-                                <SideBody franchise={franchise} owner={owners?.[franchise.id]}>
-                                    {chosen && <span className={styles.stamp}><Check />Your pick</span>}
-                                </SideBody>
-                            </button>;
+                        // Always a button, disabled until the owner can pick: swapping element types when their picks
+                        // load would remount the side and reload its logo.
+                        const element = <button key={franchise.id} type="button" className={styles.side} style={style}
+                            disabled={!canPick} aria-pressed={canPick ? chosen : undefined}
+                            data-fresh={fresh === key && chosen ? '' : undefined} onClick={() => choose(matchup, franchise)}>
+                            <SideBody franchise={franchise} owner={owners?.[franchise.id]}>
+                                {canPick && chosen && <span className={styles.stamp}><Check />Your pick</span>}
+                            </SideBody>
+                        </button>;
                         return side === 0 ? [element, <span key="vs" className={styles.vs}><span>vs</span></span>] : element;
                     })}
                 </li>;
