@@ -169,10 +169,14 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .sideTop .who { flex: 1; }
 .strip[data-locked] .name { font-size: clamp(14px, 5.6cqi, 22px); }
 .side + .vs + .side .sideTop { flex-direction: row-reverse; }
-.count { flex: none; margin-left: auto; font-size: 54px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: .85; font-variant-numeric: tabular-nums; }
-.side + .vs + .side .count { margin-left: 0; margin-right: auto; }
-.pickers { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; font-weight: 650; color: #ffffffe0; }
+.share { flex: none; margin-left: auto; font-size: 54px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: .85; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.share small { margin-left: 2px; font-size: .48em; letter-spacing: 0; color: #ffffffcc; }
+.side + .vs + .side .share { margin-left: 0; margin-right: auto; }
+/* who took the side: a slab per entry carrying its logo, the owner's name on hover */
+.pickers { display: flex; flex-wrap: wrap; gap: 4px; }
 .side + .vs + .side .pickers { justify-content: flex-end; }
+.picker { display: grid; place-items: center; width: 36px; height: 32px; background: #050c1859; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); animation: pickerIn .4s calc(var(--i) * 70ms + 250ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+@keyframes pickerIn { from { opacity: 0; transform: translateY(6px); } }
 .won { display: inline-flex; align-self: flex-start; align-items: center; height: 22px; padding: 0 11px; background: #fff; font-size: 11px; font-weight: 900; font-style: italic; font-stretch: 115%; text-transform: uppercase; color: #b00d28; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
 .side + .vs + .side .won { align-self: flex-end; }
 .strip[data-locked] .stamp { transform: none; }
@@ -261,8 +265,14 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .stamp { height: 22px; padding: 0 10px; font-size: 11px; }
     .strip[data-pick='away'] > .side:first-child, .strip[data-pick='home'] > .side:last-child { flex-grow: 1.2; }
     .vs span { height: 24px; padding: 0 10px; font-size: 12px; }
-    .count { position: absolute; top: 12px; right: calc(var(--cut) + 12px); font-size: 40px; }
-    .side + .vs + .side .count { right: auto; left: calc(var(--cut) + 12px); }
+    .sideTop { display: grid; grid-template-columns: auto 1fr; grid-template-areas: 'logo share' 'who who'; align-items: center; gap: 8px 10px; }
+    .side + .vs + .side .sideTop { grid-template-columns: 1fr auto; grid-template-areas: 'share logo' 'who who'; }
+    .sideTop .logo { grid-area: logo; }
+    .sideTop .who { grid-area: who; }
+    .sideTop .share { grid-area: share; margin: 0; font-size: 34px; justify-self: end; }
+    .side + .vs + .side .sideTop .share { justify-self: start; }
+    .picker { width: 28px; height: 26px; }
+    .picker [data-team-mark] { width: 20px !important; height: 20px !important; }
     .board h2 { font-size: 19px; }
     .bumperWords { padding: 0 16px; font-size: 24px; }
     .bumperWords span:last-child { font-size: 13px; }
@@ -280,7 +290,7 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .strip, .table tbody tr, .tick, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh]::after { animation: none; }
+    .strip, .picker, .table tbody tr, .tick, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh]::after { animation: none; }
     .bumper { display: none; }
     .side, .logo, .indicator, .whosItem::before, .step svg { transition: none; }
     .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: none; }

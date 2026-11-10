@@ -8,11 +8,12 @@ import { pairOf, pairOfMatchup } from '@/lib/pickem/model';
 import { hasSessionHint } from '@/lib/owner/navigation';
 import { clubColours, clubTone } from './club-tone';
 import { Check } from './icons';
+import TeamBadge from '@/components/team-badge';
 import SideBody from './side-body';
 import styles from './pickem.module.css';
 
 // A locked week's breakdown: each matchup as the same club strip, each side widened by its share of the Pick'em
-// picks, with the count at the seam and the owners who took it underneath. Once the week is scored it marks the side
+// picks, with that share as a percentage at the seam and the logos of the entries who took it underneath. Once the week is scored it marks the side
 // that won (the finished loser fades slightly) or the tie, and a signed-in owner's own pick is stamped with how it
 // went. Those load only when the session hint says an owner may be signed in (ADR 0003). Nothing here can be picked.
 
@@ -56,6 +57,9 @@ export default function PickemBreakdown({ seasonYear, week, breakdown, owners }:
             {breakdown.map(({ matchup, away, home, result }, i) => {
                 const mine = yours.get(keyOf(pairOfMatchup(matchup)));
                 const total = away.length + home.length;
+                // whole percentages that add up to 100
+                const awayShare = total ? Math.round(away.length / total * 100) : null;
+                const shares = { away: awayShare, home: awayShare === null ? null : 100 - awayShare };
                 return <li key={`${matchup.away.id}-${matchup.home.id}`} className={styles.strip} data-locked="" style={{ '--i': i } as CSSProperties}>
                     {([['away', matchup.away, away], ['home', matchup.home, home]] as const).flatMap(([side, franchise, entries]) => {
                         const stamp = mine?.picked === franchise.id ? stamps[mine.outcome ?? 'pending'] : null;
@@ -64,10 +68,18 @@ export default function PickemBreakdown({ seasonYear, week, breakdown, owners }:
                             style={{ ...clubTone(clubColours(palettes, franchise.id)), flexGrow: lean }}>
                             <span className={styles.sideTop}>
                                 <SideBody franchise={franchise} owner={owners?.[franchise.id]} />
-                                <span className={styles.count}>{entries.length}<span className="sr-only"> Pick&apos;em {entries.length === 1 ? 'pick' : 'picks'}</span></span>
+                                <span className={styles.share}>
+                                    {shares[side] === null ? '–' : <>{shares[side]}<small>%</small></>}
+                                    <span className="sr-only"> of Pick&apos;em picks, {entries.length} of {total}</span>
+                                </span>
                             </span>
                             {result === side && <span className={styles.won}>Won</span>}
-                            {entries.length > 0 && <span className={styles.pickers}>{entries.map(entry => <span key={entry.franchise.id}>{named(entry)}</span>)}</span>}
+                            {entries.length > 0 && <ul className={styles.pickers} aria-label={`Picked ${franchise.name}`}>
+                                {entries.map(entry => <li key={entry.franchise.id} className={styles.picker} title={named(entry)}>
+                                    <TeamBadge logo={entry.franchise.logo} abbreviation={entry.franchise.abbreviation} teamName={entry.franchise.name} size={26} />
+                                    <span className="sr-only">{named(entry)}</span>
+                                </li>)}
+                            </ul>}
                             {stamp && <span className={styles.stamp} data-tone={stamp.tone}>{stamp.tone === 'red' && <Check />}{stamp.label}</span>}
                         </div>;
                         return side === 'away'
