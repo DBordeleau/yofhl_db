@@ -88,7 +88,7 @@ test('a refresh publishes the live season without touching archive caches, and a
 test('an overlapping older refresh cannot overwrite a newer snapshot', async t => {
     const { db, client } = await disposableLeague(t);
     // Imported late: Next's cache modules need the AsyncLocalStorage stand-in installed first.
-    const { saveSnapshotQuery } = await import('./snapshot-store');
+    const { saveSnapshotQuery } = await import('./fantrax-source');
     const snapshot = (fetchedAt: string) => ({ source: { fetchedAt } }) as SavedLiveSeason;
     await db.execute(saveSnapshotQuery(LEAGUE, snapshot('2026-10-18T22:00:00.000Z')));
     await db.execute(saveSnapshotQuery(LEAGUE, snapshot('2026-01-01T00:00:00.000Z')));
