@@ -17,9 +17,9 @@ export default function WeekSwitcher({ weeks, selected, base = '/pickem/week' }:
                 return <li key={option.week}>
                     <Link href={`${base}/${option.week}`} scroll={false} aria-current={current ? 'page' : undefined}
                         title={option.phase === 'locked' ? `${option.name}, locked` : option.name}
-                        className={`block min-w-10 rounded-lg px-2.5 py-1.5 text-center text-sm font-extrabold tabular-nums transition-colors ${current
-                            ? 'bg-ink text-white'
-                            : option.phase === 'locked' ? 'text-ink-faint hover:bg-ice' : 'bg-white text-ink shadow-sm hover:bg-ice'}`}>
+                        className={`block min-w-10 rounded border px-2.5 py-1.5 text-center text-sm font-extrabold tabular-nums transition-colors ${current
+                            ? 'border-ink bg-ink text-white'
+                            : option.phase === 'locked' ? 'border-transparent text-ink-faint hover:bg-[#E6EEF7]' : 'border-[#D4DEE9] bg-white text-ink hover:bg-[#E6EEF7]'}`}>
                         {option.week}
                     </Link>
                 </li>;

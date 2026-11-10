@@ -29,11 +29,11 @@ export default async function PickemPage() {
     const [read, lastLocked, standings] = await Promise.all([
         pickem.readWeek({ now, asker: 'nobody' }),
         pickem.readWeek({ now, week: 'last-locked', asker: 'nobody' }),
-        pickem.readLeaderboard({ now }),
+        pickem.readPickemLeaderboard({ now }),
     ]);
     const week = read.status === 'week' ? read.week : null;
     const previous = lastLocked.status === 'week' ? lastLocked.week : null;
-    const link = previous ? { href: `/pickem/week/${previous.week}`, label: `${previous.name} picks` } : undefined;
+    const link = previous ? { href: `/pickem/week/${previous.week}`, label: `${previous.name} Pick'em picks` } : undefined;
     const weeks = read.status === 'week' ? read.weeks : lastLocked.status === 'week' ? lastLocked.weeks : null;
     return <main className="mx-auto max-w-3xl px-4 py-10 md:px-8">
         <PageTitle eyebrow={week ? seasonLabel(week.seasonYear) : undefined} title="Pick'em" />
@@ -44,7 +44,7 @@ export default async function PickemPage() {
         </>}
         {weeks && <WeekSwitcher weeks={weeks} selected={week?.week ?? 0} />}
         {week ? <PickemWeekSection week={week} link={link} /> : <p className="mt-8 text-center text-ink-soft">
-            {read.status === 'unavailable' ? 'Matchups are unavailable right now. Try again soon.' : 'No week is open for picks.'}
+            {read.status === 'unavailable' ? 'Matchups are unavailable right now. Try again soon.' : "No Pick'em week is open."}
             {link && <> <Link href={link.href} className="font-bold text-rink-red underline">{link.label}</Link></>}
         </p>}
     </main>;

@@ -2,9 +2,9 @@
 // refresh call its operations and hold no Pick'em rules of their own. Each operation takes the current time.
 //
 // Its interface is four operations; each lives in its own file and is assembled here:
-//  - savePick (save-pick.ts): save or clear one Pick'em pick
+//  - savePickemPick (save-pickem-pick.ts): save or clear one Pick'em pick
 //  - readWeek (read-week.ts): one week, for nobody or the signed-in owner
-//  - readLeaderboard (leaderboard.ts): a season's Pick'em leaderboard, and its winner once the season is complete
+//  - readPickemLeaderboard (pickem-leaderboard.ts): a season's Pick'em leaderboard, and its winner once the season is complete
 //  - settle (settle.ts): record each locked week, freeze each settled one and mark a season complete, run by the
 //    evening Fantrax refresh
 //
@@ -13,28 +13,28 @@
 //
 // Pairings, week dates, scores and final weeks come from the live season module only, turned into franchises
 // with the Fantrax team mapping. Everything stored is keyed by season year, week and franchise (ADR 0005).
-import { createReadLeaderboard } from './leaderboard';
+import { createReadPickemLeaderboard } from './pickem-leaderboard';
 import type { PickemPorts } from './ports';
 import { createReadWeek } from './read-week';
 export type { PickemWeekOption } from './week-switcher';
-import { createSavePick } from './save-pick';
+import { createSavePickemPick } from './save-pickem-pick';
 import { createSettle } from './settle';
 
 export type { PickemPorts } from './ports';
 export type { MatchupPair, PickemFranchise, PickemLaunch, PickemMatchup, PickemPick } from './model';
-export type { SavePickInput, SavePickRejection, SavePickResult } from './save-pick';
+export type { SavePickemPickInput, SavePickemPickRejection, SavePickemPickResult } from './save-pickem-pick';
 export type { Asker, PickemWeek, ReadWeekInput, ReadWeekResult, YourPickem, YourPickemPick } from './read-week';
-export type { PickemLeaderboard, PickemLeaderboardEntry, ReadLeaderboardInput, ReadLeaderboardResult } from './leaderboard';
-export type { PickOutcome } from './results';
+export type { PickemLeaderboard, PickemLeaderboardEntry, ReadPickemLeaderboardInput, ReadPickemLeaderboardResult } from './pickem-leaderboard';
+export type { PickemPickOutcome } from './results';
 export type { PickemWhoIsIn } from './whos-in';
 export type { PickemEntry, PickemMatchupBreakdown, PickemMatchupResult } from './locked-week';
 export type { SettleInput, SettleResult } from './settle';
 
 export function createPickem(ports: PickemPorts) {
     return {
-        savePick: createSavePick(ports),
+        savePickemPick: createSavePickemPick(ports),
         readWeek: createReadWeek(ports),
-        readLeaderboard: createReadLeaderboard(ports),
+        readPickemLeaderboard: createReadPickemLeaderboard(ports),
         settle: createSettle(ports),
     };
 }

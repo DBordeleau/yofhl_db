@@ -11,13 +11,13 @@ const ALL: [number, number][] = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]];
 const anonymousVisit = (act: Awaited<ReturnType<typeof pickemLeague>>['act']) => act(p => Promise.all([
     p.readWeek({ now: now(), asker: 'nobody' }),
     p.readWeek({ now: now(), week: 'last-locked', asker: 'nobody' }),
-    p.readLeaderboard({ now: now() }),
+    p.readPickemLeaderboard({ now: now() }),
 ]));
 
 test('a second anonymous visit reads nothing from the database', async t => {
     const { league, act, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
     await anonymousVisit(act);
     const before = league.queries();
     const [next, locked, standings] = await anonymousVisit(act);
@@ -30,9 +30,9 @@ test('a second anonymous visit reads nothing from the database', async t => {
 test('changing which side of a picked matchup an owner took leaves the cached who\'s-in list alone', async t => {
     const { league, act, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    for (const matchup of ALL) assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked: matchup[0] })), { ok: true });
+    for (const matchup of ALL) assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked: matchup[0] })), { ok: true });
     await anonymousVisit(act);
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: true });
     const before = league.queries();
     const [next] = await anonymousVisit(act);
     assert.equal(league.queries(), before);
@@ -48,18 +48,18 @@ test('a save or clear that changes who is in shows on the next anonymous visit',
         return next.week.whosIn.filter(entry => entry.in).map(entry => entry.franchise.id);
     };
     await signInAs('owner-3');
-    for (const matchup of ALL.slice(0, 4)) assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked: matchup[0] })), { ok: true });
+    for (const matchup of ALL.slice(0, 4)) assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked: matchup[0] })), { ok: true });
     assert.deepEqual(await inNow(), []);
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [9, 10], picked: 10 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [9, 10], picked: 10 })), { ok: true });
     assert.deepEqual(await inNow(), [3]);
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [3, 4], picked: null })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [3, 4], picked: null })), { ok: true });
     assert.deepEqual(await inNow(), []);
 });
 
 test('clearing the league cache, as the revalidate route does, clears Pick\'em\'s cached reads too', async t => {
     const { league, act, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
     await anonymousVisit(act);
     const { LEAGUE_TAG } = await import('@/lib/data/cache-tags');
     league.expire(LEAGUE_TAG);

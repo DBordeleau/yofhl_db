@@ -26,7 +26,7 @@ export default async function PickemSeasonPage({ params }: { params: Promise<{ s
     const seasonYear = Number(season);
     const now = Date.now();
     const [standings, read] = await Promise.all([
-        pickem.readLeaderboard({ now, seasonYear }),
+        pickem.readPickemLeaderboard({ now, seasonYear }),
         pickem.readWeek({ now, seasonYear, asker: 'nobody' }),
     ]);
     if (standings.status === 'no-season') notFound();

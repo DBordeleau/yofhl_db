@@ -17,7 +17,7 @@ test('a signed-in owner sees the next week to lock and saves a Pick\'em pick on 
     assert.deepEqual(week.matchups[0].away, { id: 1, name: 'Franchise 1', abbreviation: 'F1', logo: '/logos/f1.png' });
     assert.deepEqual(week.yours, { status: 'entry', franchiseId: 1, picks: [] });
 
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 4 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 4 })), { ok: true });
     const after = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week: 6, asker: 'session' }));
     assert.ok(after.status === 'week');
     assert.deepEqual(after.week.yours, { status: 'entry', franchiseId: 1, picks: [{ matchup: [3, 4], picked: 4 }] });
@@ -33,7 +33,7 @@ const picksOf = async (act: Awaited<ReturnType<typeof pickemLeague>>['act'], wee
 test('a Pick\'em pick changes to the other franchise and clears, each on its own', async t => {
     const { act, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    const save = (matchup: [number, number], picked: number | null) => act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
+    const save = (matchup: [number, number], picked: number | null) => act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
     assert.deepEqual(await save([3, 4], 4), { ok: true });
     assert.deepEqual(await save([6, 5], 5), { ok: true }, 'the matchup can be named in either order');
     assert.deepEqual(await save([3, 4], 3), { ok: true });
@@ -46,18 +46,18 @@ test('a Pick\'em pick changes to the other franchise and clears, each on its own
 test('an owner picks their own matchup, for or against their own franchise, and a week several weeks out', async t => {
     const { act, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: true });
     assert.deepEqual(await picksOf(act, 6), [{ matchup: [1, 2], picked: 2 }]);
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
     assert.deepEqual(await picksOf(act, 6), [{ matchup: [1, 2], picked: 1 }]);
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 20, matchup: [9, 10], picked: 9 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 20, matchup: [9, 10], picked: 9 })), { ok: true });
     assert.deepEqual(await picksOf(act, 20), [{ matchup: [9, 10], picked: 9 }]);
     assert.deepEqual(await picksOf(act, 6), [{ matchup: [1, 2], picked: 1 }], 'each week keeps its own picks');
 });
 
 test('a save is refused for a signed-out caller and for an owner with no claimed team', async t => {
     const { act, signInAs, signOut } = await pickemLeague(t);
-    const save = () => act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 }));
+    const save = () => act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 }));
     assert.deepEqual(await save(), { ok: false, reason: 'session-expired' });
     await signInAs('owner-none');
     assert.deepEqual(await save(), { ok: false, reason: 'no-team' });
@@ -70,7 +70,7 @@ test('a save is refused for a signed-out caller and for an owner with no claimed
 test('a save is refused for a matchup that does not meet that week and a franchise not in the matchup', async t => {
     const { act, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    const save = (matchup: [number, number], picked: number | null) => act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
+    const save = (matchup: [number, number], picked: number | null) => act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
     assert.deepEqual(await save([1, 3], 1), { ok: false, reason: 'no-such-matchup' });
     assert.deepEqual(await save([1, 3], null), { ok: false, reason: 'no-such-matchup' });
     assert.deepEqual(await save([1, 1], 1), { ok: false, reason: 'no-such-matchup' });
@@ -86,13 +86,13 @@ test('a franchise with a bye has no matchup', async t => {
     const read = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week: 6, asker: 'nobody' }));
     assert.ok(read.status === 'week');
     assert.deepEqual(read.week.matchups.map(matchup => [matchup.away.id, matchup.home.id]), [[1, 2], [3, 4], [5, 6], [7, 8]]);
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [9, 10], picked: 9 })), { ok: false, reason: 'no-such-matchup' });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [9, 10], picked: 9 })), { ok: false, reason: 'no-such-matchup' });
 });
 
 test('a playoff round, a week before the contest starts and a week of another season are not open for picks', async t => {
     const { act, signInAs } = await pickemLeague(t, { launch: { seasonYear: SEASON, week: 8 } });
     await signInAs('owner-1');
-    const save = (seasonYear: number, week: number) => act(p => p.savePick({ now: now(), seasonYear, week, matchup: [1, 2], picked: 1 }));
+    const save = (seasonYear: number, week: number) => act(p => p.savePickemPick({ now: now(), seasonYear, week, matchup: [1, 2], picked: 1 }));
     assert.deepEqual(await save(SEASON, 24), { ok: false, reason: 'not-open' }, 'the Quarterfinals');
     assert.deepEqual(await save(SEASON, 7), { ok: false, reason: 'not-open' }, 'before the start week');
     assert.deepEqual(await save(SEASON, 99), { ok: false, reason: 'not-open' });
@@ -109,7 +109,7 @@ test('with Pick\'em switched off there is no week and a save is refused', async 
     const { act, signInAs } = await pickemLeague(t, { launch: null });
     await signInAs('owner-1');
     assert.deepEqual(await act(p => p.readWeek({ now: now(), asker: 'session' })), { status: 'no-week' });
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: false, reason: 'not-open' });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: false, reason: 'not-open' });
 });
 
 test('a save at or after the lock is refused by the gate', async t => {
@@ -120,11 +120,11 @@ test('a save at or after the lock is refused by the gate', async t => {
     // Week 6 genuinely locks tomorrow, so only the time passed in can refuse these.
     const lock = Date.parse(read.week.lock);
     assert.ok(lock > Date.now());
-    assert.deepEqual(await act(p => p.savePick({ now: lock - 1000, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: lock - 1000, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
     for (const at of [lock, lock + 60_000]) {
-        assert.deepEqual(await act(p => p.savePick({ now: at, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: false, reason: 'locked' });
-        assert.deepEqual(await act(p => p.savePick({ now: at, seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 3 })), { ok: false, reason: 'locked' });
-        assert.deepEqual(await act(p => p.savePick({ now: at, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: null })), { ok: false, reason: 'locked' });
+        assert.deepEqual(await act(p => p.savePickemPick({ now: at, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: false, reason: 'locked' });
+        assert.deepEqual(await act(p => p.savePickemPick({ now: at, seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 3 })), { ok: false, reason: 'locked' });
+        assert.deepEqual(await act(p => p.savePickemPick({ now: at, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: null })), { ok: false, reason: 'locked' });
     }
     const locked = await act(p => p.readWeek({ now: lock, seasonYear: SEASON, week: 6, asker: 'session' }));
     assert.ok(locked.status === 'week');
@@ -135,7 +135,7 @@ test('a save at or after the lock is refused by the gate', async t => {
 test('a save that reaches the database after the lock is refused by the statement itself', async t => {
     const { act, live, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
     // Fantrax moves week 6 to have started yesterday, so its lock has genuinely passed; the time passed in is
     // still before it, as for a request in flight at noon.
     const week6 = live.fantrax.core.weeks.find(week => week.number === 6)!;
@@ -145,19 +145,19 @@ test('a save that reaches the database after the lock is refused by the statemen
     const lock = Date.parse(read.week.lock);
     assert.ok(lock < Date.now());
     const inFlight = lock - 1000;
-    assert.deepEqual(await act(p => p.savePick({ now: inFlight, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: false, reason: 'locked' });
-    assert.deepEqual(await act(p => p.savePick({ now: inFlight, seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 3 })), { ok: false, reason: 'locked' });
-    assert.deepEqual(await act(p => p.savePick({ now: inFlight, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: null })), { ok: false, reason: 'locked' });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: inFlight, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: false, reason: 'locked' });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: inFlight, seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 3 })), { ok: false, reason: 'locked' });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: inFlight, seasonYear: SEASON, week: 6, matchup: [1, 2], picked: null })), { ok: false, reason: 'locked' });
     assert.deepEqual(await picksOf(act, 6, inFlight), [{ matchup: [1, 2], picked: 1 }]);
 });
 
 test('reading a week returns the asker\'s own Pick\'em picks and never another entry\'s', async t => {
     const { act, signInAs, signOut } = await pickemLeague(t);
     await signInAs('owner-1');
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 1 })), { ok: true });
     await signInAs('owner-3');
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: true });
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [7, 8], picked: 8 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 2], picked: 2 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [7, 8], picked: 8 })), { ok: true });
 
     const week = async (asker: 'nobody' | 'session') => {
         const read = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week: 6, asker }));
@@ -182,10 +182,10 @@ test('Pick\'em saves have their own limit of 300 in 15 minutes and other owner a
     const { act, asOwner, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
     for (let i = 0; i < 300; i++) {
-        const result = await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6 + (i % 17), matchup: [1, 2], picked: i % 2 ? 1 : 2 }));
+        const result = await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6 + (i % 17), matchup: [1, 2], picked: i % 2 ? 1 : 2 }));
         assert.deepEqual(result, { ok: true }, `save ${i + 1}`);
     }
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 3 })), { ok: false, reason: 'rate-limited' });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 3 })), { ok: false, reason: 'rate-limited' });
     for (let i = 0; i < 30; i++) assert.equal((await asOwner(s => s.ownerPreamble('keepers'))).ok, true, 'the keepers limit is its own');
     await assert.rejects(asOwner(s => s.ownerPreamble('keepers')), { message: 'Too many attempts. Please try again in 15 minutes.' });
 });

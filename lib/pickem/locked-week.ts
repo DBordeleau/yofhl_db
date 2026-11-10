@@ -5,7 +5,7 @@
 import { sql } from 'drizzle-orm';
 import type { LiveTeam } from '@/lib/fantrax/live-season';
 import { cached, rows } from '@/lib/data/db';
-import { pairOf, pairOfMatchup, samePair, type LivePickemWeek, type PickemFranchise, type PickemMatchup } from './model';
+import { franchiseOf, pairOf, pairOfMatchup, samePair, type LivePickemWeek, type PickemFranchise, type PickemMatchup } from './model';
 import type { PickemPorts } from './ports';
 import { pickemSeasonTag, type RecordedWeek } from './recorded-weeks';
 import { liveWinners, type Winner } from './results';
@@ -42,8 +42,20 @@ const readWeekPicks = cached(async (seasonYear: number, week: number) =>
 
 /** every entry the live season knows, by franchise */
 export const entriesOf = (teams: LiveTeam[]) => new Map(teams.flatMap(team => team.franchiseId === null ? [] : [[team.franchiseId, {
-    franchise: { id: team.franchiseId, name: team.name, abbreviation: team.abbreviation, logo: team.logo }, owner: team.owner,
+    franchise: franchiseOf(team, team.franchiseId), owner: team.owner,
 } satisfies PickemEntry] as const]));
+
+/**
+ * Recorded or live pairings as matchups between `entries`, each with its result from `winners` (in pairing order);
+ * a pairing with a franchise `entries` doesn't know is left out.
+ */
+export function countedPairings(pairings: { away: number; home: number }[], entries: Map<number, PickemEntry>, winners: Winner[] | null) {
+    const counted = pairings.flatMap((pairing, index) => {
+        const away = entries.get(pairing.away), home = entries.get(pairing.home);
+        return away && home ? [{ matchup: { away: away.franchise, home: home.franchise }, winner: winners?.[index] ?? null }] : [];
+    });
+    return { matchups: counted.map(item => item.matchup), winners: winners && counted.map(item => item.winner) };
+}
 
 /**
  * A locked week as it is scored: the pairings its Pick'em picks count against (its record once settle has written
@@ -60,15 +72,10 @@ export type CountedWeek = Pick<ScoredWeek, 'seasonYear' | 'week' | 'name' | 'loc
 /** `live`, a locked week, as it is scored: frozen results once settle has frozen it, else the live season's */
 export async function lockedWeek(ports: Pick<PickemPorts, 'liveSeason'>, live: LivePickemWeek, recorded: RecordedWeek | undefined,
     teams: LiveTeam[]): Promise<ScoredWeek> {
-    const entries = entriesOf(teams);
     const pairings = recorded?.pairings ?? live.matchups.map(({ away, home }) => ({ away: away.id, home: home.id, winner: null }));
     const winners = recorded?.frozen ? pairings.map(pairing => pairing.winner)
         : live.final ? await liveWinners(ports, live.week, pairings, teams) : null;
-    const counted = pairings.flatMap((pairing, index) => {
-        const away = entries.get(pairing.away), home = entries.get(pairing.home);
-        return away && home ? [{ matchup: { away: away.franchise, home: home.franchise }, winner: winners?.[index] ?? null }] : [];
-    });
-    return { ...live, lock: recorded?.lock ?? live.lock, matchups: counted.map(item => item.matchup), winners: winners && counted.map(item => item.winner) };
+    return { ...live, lock: recorded?.lock ?? live.lock, ...countedPairings(pairings, entriesOf(teams), winners) };
 }
 
 const resultOf = (matchup: PickemMatchup, winner: Winner): PickemMatchupResult =>

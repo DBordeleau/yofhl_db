@@ -109,6 +109,12 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         return cookie ? identity.verifySession(cookie) : null;
     }
 
+    /** The signed-in owner and the active team they manage (null when none), or null when no owner is signed in. */
+    async function currentOwnerTeam(): Promise<{ owner: OwnerUser; team: ManagedTeam | null } | null> {
+        const owner = await currentOwner();
+        return owner ? { owner, team: await getOwnedTeam(owner.uid) } : null;
+    }
+
     // The admin, or the signed-in owner; null when neither is signed in.
     async function currentActor(): Promise<Actor | null> {
         if (await request.isAdmin()) return { admin: true };
@@ -267,7 +273,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         return saveTeamBranding(start.actor, id, version, branding);
     }
 
-    return { currentOwner, preamble, ownerPreamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
+    return { currentOwner, currentOwnerTeam, preamble, ownerPreamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
 }
 
 export type OwnerSession = ReturnType<typeof createOwnerSession>;

@@ -16,6 +16,8 @@ Seasons use the year they end in. `2026` means the 2025–26 season. Franchise I
 | Trades, free-agent moves, and draft selections | Fantrax history CSVs | History imports replace supplied files or draft seasons |
 | Draft lottery schedule, order, odds, and winner | `/admin/lottery` and the draw service | Stored separately from season imports; see the [lottery guide](lottery.md) |
 | Trophy labels, descriptions, artwork, and stored-name aliases | [lib/awards.ts](../lib/awards.ts) | Code changes, separate from award winner records |
+| Pick'em picks | `/pickem`, through the Pick'em module ([lib/pickem](../lib/pickem/)) | Owners save and clear them until each week's lock; never touched by imports |
+| Pick'em record: locked weeks, their pairings and frozen results, completed seasons | Pick'em settle, after each Fantrax refresh | Written once per week and never rewritten ([ADR 0005](adr/0005-pickem-keeps-its-own-results.md)); never touched by imports |
 
 CSV exports under `data/` are local inputs, not tracked repository contents. Obtain them separately for a new checkout. Legacy award and championship-roster snapshots under `league/seed/` are tracked.
 
@@ -158,6 +160,8 @@ The full season importer refreshes all three materialized views before invalidat
 
 Roster and award edits refresh only `player_careers`. Matchup edits refresh `season_results` and `franchise_records`. Every refresh runs in the order listed in `lib/data/materialized-views.ts`. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
 
+Pick'em's cached reads carry their own tags, defined in [lib/pickem](../lib/pickem/) rather than `lib/data/cache-tags.ts` because only the Pick'em module reads and expires them: `pickemSeasonTag(year)` (a season's recorded weeks, locked-week Pick'em picks and the Pick'em leaderboard; settle expires it after recording, freezing or completing), `PICKEM_SEASONS_TAG` (the list of Pick'em seasons; settle expires it after recording a week or completing a season) and `pickemWhosInTag(year, week)` (a week's who's-in list; a save or clear that changes which matchups an entry has picked expires it). Who's in and past seasons' entries also carry the franchise-cards tag, so a team's branding edit reaches them.
+
 The lottery uses uncached reads and server time instead of the league cache. Its endpoint sets `Cache-Control: no-store, max-age=0`; a request at or after the scheduled start can persist the draw. See the [draw and viewer behavior](lottery.md#draw-and-viewer-behavior).
 
 ## Schema
@@ -178,6 +182,9 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections |
 | `transaction_events`, `transaction_assets`, `draft_picks` | Historical moves and draft slots with source references |
 | `draft_lotteries` | Event snapshots, version, schedule, cancellation, and saved winner |
+| `pickem_picks` | Each Pick'em entry's Pick'em pick per week and matchup (migration 0018) |
+| `pickem_weeks`, `pickem_pairings` | Pick'em's record of each locked week: its lock, its pairings in order and, once frozen, each pairing's result (0019) |
+| `pickem_completed_seasons` | Seasons whose Pick'em is complete, so their winner stands once Fantrax moves on (0020) |
 
 Player seasons are retained when the player scored, was rostered, or is needed by an award or championship roster. Team trophy cases derive Prime Minister's Trophies from a strict league-wide regular-season FPts lead; tied leaders do not receive an inferred winner. Individual awards use their recorded `awards.team_season_id` association, not the player's current team.
 
@@ -247,6 +254,7 @@ Leave out `nextCache` for the app's reads without a cache, or both options for a
 | `npm run test:lottery` | Run model and in-memory database tests for the lottery |
 | `npm run test:data` | Verify cache reuse, edit invalidation, and materialized-view updates against in-memory Postgres |
 | `npm run test:history` | Run parser, identity, grouping, repeat-import, and rollback tests |
+| `npm run test:pickem` | Run the Pick'em module's tests through its operations against in-memory Postgres and the in-memory live season |
 | `npm run db:verify` | Legacy migration comparison against old-site API shapes; not current-site verification |
 
 `db:verify` still calls `/api/stats/...`, `/api/teams/stats`, and `/api/player/...`, which the current app does not implement. Its default target is the current production API, so it will encounter missing routes. It also reports data differences without making those differences a failing exit status. Use it only with a compatible legacy endpoint via `YOFHL_LIVE_API`; use the current API and page checks for present-day verification.
@@ -258,6 +266,8 @@ Apply migrations before deploying the Fantrax controls. `league.fantrax_snapshot
 The four daily refresh targets are 8, 9, 10 and 11:30 p.m. in `America/Toronto`. `vercel.json` defines six once-daily UTC jobs covering both Eastern offsets. The authenticated handler evaluates each job's scheduled time and skips the two slots that do not apply at the current offset. This supports Vercel Hobby and its possible 59-minute scheduling delay, including an 11:30 p.m. job arriving after local midnight. Set a strong production `CRON_SECRET`; Vercel sends it as an Authorization bearer token. Jobs run only on production deployments.
 
 A refresh fetches league information, rosters, standings, scoring leaders, roster statistics and started matchup periods within the seven-day correction window. It saves the complete result only after all requests succeed, then invalidates only the current-season cache tag. Weekly player references, the scoring-season selector, archive queries and older final scores remain cached. Overlapping refreshes cannot replace a newer snapshot with an older one. If no recent saved snapshot exists, the existing 24-hour API caches provide a fallback.
+
+After a successful scheduled capture, the cron handler runs Pick'em settle (`app/api/cron/fantrax/route.ts`). Settle reads the snapshot just saved, records every locked Pick'em week not yet recorded, freezes every recorded week that is final and past its correction window, and marks the season's Pick'em complete once its last regular-season week is frozen. Every step is safe to repeat, so a missed evening is caught up by the next run. It does nothing while Pick'em is switched off. A settle failure leaves the published snapshot in place, logs `Pick'em settle failed:` and returns 500 with `refreshed: true`, so the failure shows in Vercel's cron logs.
 
 Signed-in admins can use **Refresh Fantrax** on `/admin`. **Mark week final** first refreshes scores, then saves a manual flag for a started week. **Clear manual final** returns that week to automatic status. Each action checks the admin session on the server. Public visitors cannot trigger these writes.
 

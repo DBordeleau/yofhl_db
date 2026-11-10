@@ -9,7 +9,7 @@ import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
 
 export const metadata: Metadata = {
     title: "Pick'em · YOFHL",
-    description: "One locked Pick'em week of a past season: how the picks split and who called it.",
+    description: "One locked Pick'em week of a past season: how the Pick'em picks split and who called it.",
 };
 
 // A locked week of a past season, read for nobody from Pick'em's own record. Weeks of the season being played live

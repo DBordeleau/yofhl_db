@@ -10,9 +10,9 @@ import type { PickemPorts } from './ports';
 export type Winner = number | null;
 
 /** A Pick'em pick, scored: correct when its franchise won, wrong when the other did, neither on a tie */
-export type PickOutcome = 'correct' | 'wrong' | 'neither';
+export type PickemPickOutcome = 'correct' | 'wrong' | 'neither';
 
-export const outcomeOf = (picked: number, winner: Winner): PickOutcome =>
+export const outcomeOf = (picked: number, winner: Winner): PickemPickOutcome =>
     winner === null ? 'neither' : winner === picked ? 'correct' : 'wrong';
 
 /**

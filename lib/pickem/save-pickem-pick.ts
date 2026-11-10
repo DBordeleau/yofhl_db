@@ -4,15 +4,15 @@ import { revalidateTag } from 'next/cache';
 import { rows } from '@/lib/data/db';
 import { TooManyAttemptsError, type OwnerPreambleRejection } from '@/lib/owner/create-owner-session';
 import { isLocked, loadLivePickem } from './live-weeks';
-import { pairOf, pairOfMatchup, samePair } from './model';
+import { pairOf, pairOfMatchup, samePair, type MatchupPair } from './model';
 import type { PickemPorts } from './ports';
-import { clearPickQuery, savePickQuery } from './queries';
+import { clearPickemPickQuery, savePickemPickQuery } from './queries';
 import { pickemWhosInTag } from './whos-in';
 
 /** Pick'em saves share their own limit, high enough to fill out a whole season in one sitting */
 const PICKEM_ACTION = { name: 'pickem', attempts: 300 };
 
-export type SavePickRejection = OwnerPreambleRejection
+export type SavePickemPickRejection = OwnerPreambleRejection
     /** Pick'em is off, or the week is not a Pick'em week of the season being played (a playoff round, say) */
     | 'not-open'
     | 'locked'
@@ -20,23 +20,23 @@ export type SavePickRejection = OwnerPreambleRejection
     | 'not-in-matchup'
     | 'rate-limited';
 
-export interface SavePickInput {
+export interface SavePickemPickInput {
     now: number;
     seasonYear: number;
     week: number;
     /** the matchup's two franchises, in either order */
-    matchup: [number, number];
+    matchup: MatchupPair;
     /** the franchise picked to win, or null to clear the pick */
     picked: number | null;
 }
 
-export type SavePickResult = { ok: true } | { ok: false; reason: SavePickRejection };
+export type SavePickemPickResult = { ok: true } | { ok: false; reason: SavePickemPickRejection };
 
-const refuse = (reason: SavePickRejection): SavePickResult => ({ ok: false, reason });
+const refuse = (reason: SavePickemPickRejection): SavePickemPickResult => ({ ok: false, reason });
 const isFranchiseId = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
 
-export function createSavePick(ports: PickemPorts) {
-    return async function savePick(input: SavePickInput): Promise<SavePickResult> {
+export function createSavePickemPick(ports: PickemPorts) {
+    return async function savePickemPick(input: SavePickemPickInput): Promise<SavePickemPickResult> {
         if (!ports.launch) return refuse('not-open');
         const live = await loadLivePickem(ports, input.now);
         if (!live) throw new Error("The live season is unavailable, so Pick'em cannot check the pairing.");
@@ -58,7 +58,7 @@ export function createSavePick(ports: PickemPorts) {
         if (picked !== null && !pair.includes(picked)) return refuse('not-in-matchup');
 
         const target = { seasonYear: live.seasonYear, week: week.week, entryFranchiseId: start.team.id, uid: start.actor.uid, matchup: pair, lock: week.lock };
-        const [entry] = await rows<{ open: boolean; changed: boolean }>(picked === null ? clearPickQuery(target) : savePickQuery(target, picked));
+        const [entry] = await rows<{ open: boolean; changed: boolean }>(picked === null ? clearPickemPickQuery(target) : savePickemPickQuery(target, picked));
         if (!entry) return refuse('no-team');
         // Only a new or cleared pick can change who is in; switching sides cannot, and keeps the cached list.
         if (entry.changed) revalidateTag(pickemWhosInTag(live.seasonYear, week.week));
