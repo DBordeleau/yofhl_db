@@ -13,7 +13,8 @@ interface Props {
     base?: string;
 }
 
-const LEAVING = 'pickemLeaving';
+// the slate on screen when a week is chosen; the next week's slate is a new element, so it never carries the mark
+const leaving = (on: boolean) => document.querySelectorAll('[data-pickem-slate]').forEach(slate => slate.toggleAttribute('data-leaving', on));
 
 // Every Pick'em week of the season on one line, with no scrolling: a stepper with the week's name, then a tick per
 // week (locked weeks dimmer) with a red slab under the one shown. Choosing a week slides the slab there at once and
@@ -27,19 +28,16 @@ export default function WeekSwitcher({ weeks, selected, base = '/pickem/week' }:
     const next = index >= 0 && index < weeks.length - 1 ? weeks[index + 1] : null;
     const name = weeks[at]?.name ?? `Week ${shown}`;
 
-    // The next week has rendered (or this one again): the old slate is gone, so stop folding it.
-    useEffect(() => {
-        setGoing(null);
-        delete document.documentElement.dataset[LEAVING];
-    }, [selected]);
+    // The next week has rendered: its slate is a new element, and the indicator settles on it.
+    useEffect(() => { setGoing(null); }, [selected]);
 
     function go(week: number) {
         return (event: MouseEvent<HTMLAnchorElement>) => {
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0 || week === selected) return;
             setGoing(week);
-            document.documentElement.dataset[LEAVING] = '';
+            leaving(true);
             // a navigation that never lands must not leave the slate folded
-            window.setTimeout(() => delete document.documentElement.dataset[LEAVING], 4000);
+            window.setTimeout(() => leaving(false), 4000);
         };
     }
 

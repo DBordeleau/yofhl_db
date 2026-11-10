@@ -52,7 +52,7 @@ export default function PickemBreakdown({ seasonYear, week, breakdown, owners, l
         return () => { cancelled = true; cancelAnimationFrame(frame); };
     }, [seasonYear, week]);
 
-    return <div className={styles.slate}>
+    return <div className={styles.slate} data-pickem-slate="">
         {link && <div className={styles.slateHead}>{link}</div>}
         <ol className={styles.strips}>
             {breakdown.map(({ matchup, away, home, result }, i) => {

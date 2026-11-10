@@ -119,12 +119,13 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 
 /* ── matchup strips: two club-colour slabs sharing one slant ──────────── */
 .strips { display: flex; flex-direction: column; gap: 12px; }
-.strip { --cut: 28px; position: relative; display: flex; min-height: 116px; }
-.side { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 18px; padding: 16px calc(var(--cut) + 40px) 16px 26px; overflow: hidden; background: linear-gradient(100deg, var(--club), var(--club-deep)); color: #fff; text-align: left; clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%); container-type: inline-size; transition: flex-grow .55s cubic-bezier(.2, .75, .15, 1), filter .25s; animation: fromLeftSoft .6s calc(var(--i) * 70ms) cubic-bezier(.2, .75, .15, 1) backwards; }
-.side + .vs + .side { margin-left: calc(4px - var(--cut)); flex-direction: row-reverse; padding: 16px 26px 16px calc(var(--cut) + 40px); background: linear-gradient(260deg, var(--club), var(--club-deep)); text-align: right; clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%); animation-name: fromRightSoft; }
+/* the strip, not its sides, carries the entrance: a side is redrawn as a button once the owner's picks load, and
+   that must not replay it. Each strip opens out from the seam, staggered. */
+.strip { --cut: 28px; position: relative; display: flex; min-height: 116px; animation: open .6s calc(var(--i) * 70ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+@keyframes open { from { clip-path: inset(0 50% 0 50%); opacity: .4; transform: translateY(10px); } to { clip-path: inset(0); } }
+.side { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 18px; padding: 16px calc(var(--cut) + 40px) 16px 26px; overflow: hidden; background: linear-gradient(100deg, var(--club), var(--club-deep)); color: #fff; text-align: left; clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%); container-type: inline-size; transition: flex-grow .55s cubic-bezier(.2, .75, .15, 1), filter .25s; }
+.side + .vs + .side { margin-left: calc(4px - var(--cut)); flex-direction: row-reverse; padding: 16px 26px 16px calc(var(--cut) + 40px); background: linear-gradient(260deg, var(--club), var(--club-deep)); text-align: right; clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%); }
 .side::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, #ffffff3d 48%, transparent 66%); transform: translateX(-110%); pointer-events: none; }
-@keyframes fromLeftSoft { from { transform: translateX(-36px); opacity: 0; } }
-@keyframes fromRightSoft { from { transform: translateX(36px); opacity: 0; } }
 
 .logo { position: relative; flex: none; display: grid; place-items: center; width: 74px; height: 74px; transition: transform .5s cubic-bezier(.3, 1.4, .5, 1); filter: drop-shadow(0 10px 16px #050c1880); }
 .logo::before { content: ''; position: absolute; inset: -40%; border-radius: 50%; background: radial-gradient(closest-side, #ffffffb3, transparent); opacity: 0; transition: opacity .4s; }
@@ -213,7 +214,7 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .prize .goldSlab { flex: none; margin-top: -3px; }
 
 /* ── a week change: the old slate folds away while the next one loads ── */
-:global(html[data-pickem-leaving]) .strips, :global(html[data-pickem-leaving]) .slateHead { animation: leave .32s cubic-bezier(.33, 1, .68, 1) forwards; }
+.slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: leave .32s cubic-bezier(.33, 1, .68, 1) forwards; }
 @keyframes leave { to { opacity: .15; transform: scale(.985); filter: blur(3px); } }
 
 /* ── phones ───────────────────────────────────────────────────────────── */
@@ -274,8 +275,8 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .side, .table tbody tr, .tick, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh]::after { animation: none; }
+    .strip, .table tbody tr, .tick, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh]::after { animation: none; }
     .bumper { display: none; }
     .side, .logo, .indicator, .whosItem::before, .step svg, .weekLink svg { transition: none; }
-    :global(html[data-pickem-leaving]) .strips, :global(html[data-pickem-leaving]) .slateHead { animation: none; }
+    .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: none; }
 }

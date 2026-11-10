@@ -91,7 +91,7 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
 
     const canPick = !locked && yours?.status === 'entry';
     const allIn = canPick && matchups.length > 0 && picks.size === matchups.length;
-    return <div className={styles.slate}>
+    return <div className={styles.slate} data-pickem-slate="">
         <div className={styles.slateHead}>
             {canPick && (allIn
                 ? <span className={styles.allIn}><Check />All in</span>
