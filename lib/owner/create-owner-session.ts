@@ -36,6 +36,12 @@ type TeamRejection = Extract<Awaited<ReturnType<typeof saveTeamIdentity>>, { ok:
 export type OwnerAction = string | { name: string; attempts: number };
 
 export type OwnerPreambleRejection = 'session-expired' | 'no-team';
+
+/** Thrown by a preamble past its action's limit, so a caller that reports reasons can name it. */
+export class TooManyAttemptsError extends Error {
+    constructor() { super('Too many attempts. Please try again in 15 minutes.'); this.name = 'TooManyAttemptsError'; }
+}
+
 export type ClaimRejection = 'invalid-code' | 'code-unavailable' | 'already-owns-team';
 export type SaveTeamRejection = 'session-expired' | 'invalid-team' | 'invalid-name' | 'image-too-large'
     | 'image-unreadable' | 'upload-failed' | 'save-failed' | TeamRejection;
@@ -94,7 +100,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         const by = key || await request.clientIp();
         await getDb().execute(rateLimitCleanupQuery);
         const [limit] = await rows<{ attempts: number }>(rateLimitQuery(hashCode(`${name}:${by}`)));
-        if (limit.attempts > attempts) throw new Error('Too many attempts. Please try again in 15 minutes.');
+        if (limit.attempts > attempts) throw new TooManyAttemptsError();
     }
 
     /** The signed-in owner, checked for revocation, or null. */

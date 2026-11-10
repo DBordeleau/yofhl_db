@@ -1,5 +1,6 @@
 import {
     boolean,
+    check,
     date,
     index,
     integer,
@@ -126,6 +127,23 @@ export const keeperSubmissions = league.table('keeper_submissions', {
     submittedAt: timestamp('submitted_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     submittedBy: text('submitted_by').notNull(),
 }, (t) => [primaryKey({ columns: [t.seasonYear, t.franchiseId] })]);
+
+// Pick'em picks (GLOSSARY.md): one per season year, week, entry franchise and matchup, the matchup being its pair
+// of franchises with the lower id first. Keyed by franchise, never by team season or Fantrax team ID (ADR 0005).
+// A schedule change never rewrites a pick; it counts only while its pair still meets that week.
+export const pickemPicks = league.table('pickem_picks', {
+    seasonYear: integer('season_year').notNull(),
+    week: integer('week').notNull(),
+    entryFranchiseId: integer('entry_franchise_id').notNull().references(() => franchises.id),
+    lowFranchiseId: integer('low_franchise_id').notNull().references(() => franchises.id),
+    highFranchiseId: integer('high_franchise_id').notNull().references(() => franchises.id),
+    pickedFranchiseId: integer('picked_franchise_id').notNull().references(() => franchises.id),
+    savedAt: timestamp('saved_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.week, t.entryFranchiseId, t.lowFranchiseId, t.highFranchiseId] }),
+    check('pickem_picks_matchup', sql`${t.lowFranchiseId} < ${t.highFranchiseId}
+        and ${t.pickedFranchiseId} in (${t.lowFranchiseId}, ${t.highFranchiseId})`),
+]);
 
 // a franchise's identity and regular-season standings for one season
 export const teamSeasons = league.table(
