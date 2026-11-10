@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { readYourPickem, savePickemPick } from '@/app/pickem/actions';
 import { useTeamBranding } from '@/components/team-branding/branding-provider';
 import type { PickemFranchise, PickemMatchup, YourPickem } from '@/lib/pickem/create-pickem';
@@ -21,8 +21,6 @@ interface Props {
     locked?: boolean;
     /** each franchise's owner, by franchise id, when the page knows them */
     owners?: Record<number, string>;
-    /** the slate's header line: a link to another week */
-    link?: ReactNode;
 }
 
 const keyOf = (pair: [number, number]) => pairOf(...pair).join('-');
@@ -32,7 +30,7 @@ const keyOf = (pair: [number, number]) => pairOf(...pair).join('-');
 // pick again clears it. Picking every matchup plays the All-in bumper once.
 // The public page renders the matchups; the owner's own Pick'em picks load only when the session hint says an
 // owner may be signed in (ADR 0003), so an anonymous visit makes no extra request.
-export default function PickemWeek({ seasonYear, week, matchups, locked = false, owners, link }: Props) {
+export default function PickemWeek({ seasonYear, week, matchups, locked = false, owners }: Props) {
     const palettes = useTeamBranding();
     const [yours, setYours] = useState<YourPickem | null>(null);
     const [picks, setPicks] = useState<Map<string, number>>(new Map());
@@ -105,7 +103,6 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
                 <Link href="/owner" className={styles.ctaButton}>Sign in</Link></p>}
             {yours?.status === 'no-team' && <p className={styles.cta}>Claim your team to play Pick&apos;em.
                 <Link href="/owner" className={styles.ctaButton}>Claim your team</Link></p>}
-            {link}
             {bumper > 0 && <span key={bumper} className={styles.bumper} aria-hidden="true" onAnimationEnd={event => {
                 if (event.target === event.currentTarget) setBumper(0);
             }}>

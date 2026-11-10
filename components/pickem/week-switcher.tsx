@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { Chevron } from '@/components/pickem/icons';
 import type { PickemWeekOption } from '@/lib/pickem/create-pickem';
 import styles from './pickem.module.css';
@@ -11,6 +11,8 @@ interface Props {
     selected: number;
     /** where each week lives: /pickem/week/[week] for the season being played */
     base?: string;
+    /** the shown week's lock clock, set right after the week's name */
+    clock?: ReactNode;
 }
 
 // the slate on screen when a week is chosen; the next week's slate is a new element, so it never carries the mark
@@ -19,7 +21,7 @@ const leaving = (on: boolean) => document.querySelectorAll('[data-pickem-slate]'
 // Every Pick'em week of the season on one line, with no scrolling: a stepper with the week's name, then a tick per
 // week (locked weeks dimmer) with a red slab under the one shown. Choosing a week slides the slab there at once and
 // folds the old slate away while the next week loads (pickem.module.css, "a week change").
-export default function WeekSwitcher({ weeks, selected, base = '/pickem/week' }: Props) {
+export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', clock }: Props) {
     const [going, setGoing] = useState<number | null>(null);
     const shown = going ?? selected;
     const at = Math.max(0, weeks.findIndex(option => option.week === shown));
@@ -54,6 +56,7 @@ export default function WeekSwitcher({ weeks, selected, base = '/pickem/week' }:
             <span className={styles.weekName} aria-live="polite">{name}</span>
             {step(next, false)}
         </div>
+        {clock}
         <ol className={styles.track} style={{ '--count': weeks.length, '--at': at } as CSSProperties}>
             <li className={styles.indicator} aria-hidden="true" />
             {weeks.map((option, i) => {

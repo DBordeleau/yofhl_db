@@ -36,7 +36,6 @@ export default async function PickemWeekPage({ params }: { params: Promise<{ wee
         seasons={leaderboard && standings.status === 'leaderboard' ? { list: standings.seasons, beingPlayed: leaderboard.seasonYear } : undefined}
         week={week}
         weeks={read.status === 'week' ? read.weeks : null}
-        link={{ href: '/pickem', label: 'Next week to lock' }}
         standings={leaderboard ?? (standings.status === 'unavailable' ? 'unavailable' : null)}
         owners={owners}
         message="Matchups are unavailable right now. Try again soon." />;

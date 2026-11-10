@@ -31,7 +31,7 @@ export default function PickemWhosIn({ whosIn, seasonYear, week }: { whosIn: Pic
         <ul className={styles.whosList}>
             {entries.map(({ franchise, owner, in: isIn }) => <li key={franchise.id} className={styles.whosItem} data-in={isIn ? '' : undefined}
                 title={`${owner ?? franchise.name}${owner ? ` · ${franchise.name}` : ''}`}>
-                <TeamBadge logo={franchise.logo} abbreviation={franchise.abbreviation} teamName={franchise.name} size={34} />
+                <TeamBadge logo={franchise.logo} abbreviation={franchise.abbreviation} teamName={franchise.name} size={30} />
                 <span className={styles.whosName}>{owner?.split(' ')[0] ?? franchise.abbreviation}</span>
                 <span className={styles.whosState}>{isIn ? 'In' : 'Not yet'}</span>
             </li>)}

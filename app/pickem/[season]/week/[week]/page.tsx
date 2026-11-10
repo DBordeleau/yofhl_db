@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import PickemPageView from '@/components/pickem/pickem-page';
-import { seasonLabel } from '@/lib/league';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
 
@@ -32,7 +31,6 @@ export default async function PickemSeasonWeekPage({ params }: { params: Promise
         week={read.status === 'week' ? read.week : null}
         weeks={read.status === 'week' ? read.weeks : null}
         base={`/pickem/${seasonYear}/week`}
-        link={{ href: `/pickem/${seasonYear}`, label: `${seasonLabel(seasonYear)} Pick'em` }}
         standings={standings.status === 'leaderboard' ? standings.leaderboard : standings.status === 'unavailable' ? 'unavailable' : null}
         message="This season is unavailable right now. Try again soon." />;
 }

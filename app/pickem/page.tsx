@@ -34,7 +34,6 @@ export default async function PickemPage() {
         seasons={leaderboard ? { list: standings.status === 'leaderboard' ? standings.seasons : [], beingPlayed: leaderboard.seasonYear } : undefined}
         week={week}
         weeks={read.status === 'week' ? read.weeks : lastLocked.status === 'week' ? lastLocked.weeks : null}
-        link={previous ? { href: `/pickem/week/${previous.week}`, label: `${previous.name} picks` } : undefined}
         standings={leaderboard ?? (standings.status === 'unavailable' ? 'unavailable' : null)}
         owners={owners}
         message={read.status === 'unavailable' ? 'Matchups are unavailable right now. Try again soon.' : "No Pick'em week is open."} />;

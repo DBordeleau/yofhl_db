@@ -11,9 +11,3 @@ export function Check() {
         <path d="m2.5 8.5 3.5 3.5 7.5-8" />
     </svg>;
 }
-
-export function Arrow() {
-    return <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-        <path d="M2 8h11M9 4l4 4-4 4" />
-    </svg>;
-}

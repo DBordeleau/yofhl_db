@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { readYourPickem } from '@/app/pickem/actions';
 import { useTeamBranding } from '@/components/team-branding/branding-provider';
 import type { PickemEntry, PickemMatchupBreakdown, PickemPickOutcome } from '@/lib/pickem/create-pickem';
@@ -32,10 +32,9 @@ interface Props {
     breakdown: PickemMatchupBreakdown[];
     /** each franchise's owner, by franchise id, when the page knows them */
     owners?: Record<number, string>;
-    link?: ReactNode;
 }
 
-export default function PickemBreakdown({ seasonYear, week, breakdown, owners, link }: Props) {
+export default function PickemBreakdown({ seasonYear, week, breakdown, owners }: Props) {
     const palettes = useTeamBranding();
     const [yours, setYours] = useState<Map<string, { picked: number; outcome?: PickemPickOutcome }>>(new Map());
     const [shared, setShared] = useState(false);
@@ -53,7 +52,6 @@ export default function PickemBreakdown({ seasonYear, week, breakdown, owners, l
     }, [seasonYear, week]);
 
     return <div className={styles.slate} data-pickem-slate="">
-        {link && <div className={styles.slateHead}>{link}</div>}
         <ol className={styles.strips}>
             {breakdown.map(({ matchup, away, home, result }, i) => {
                 const mine = yours.get(keyOf(pairOfMatchup(matchup)));
