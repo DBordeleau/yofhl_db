@@ -163,9 +163,11 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 /* a locked week: counts at the seam, who took each side underneath */
 .logoMark { width: 100%; height: 100%; }
 .strip[data-locked] { min-height: 132px; }
-.strip[data-locked] .side { flex-direction: column; align-items: stretch; justify-content: center; gap: 10px; transition: flex-grow 1.1s .2s cubic-bezier(.2, .75, .15, 1), filter .25s; }
+.strip[data-locked] .side { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 10px; transition: flex-grow 1.1s .2s cubic-bezier(.2, .75, .15, 1), filter .25s; }
 .strip[data-locked] .side + .vs + .side { flex-direction: column; align-items: stretch; }
-.sideTop { display: flex; align-items: center; gap: 18px; min-width: 0; }
+/* both sides start at the top, so the two shares line up across the seam however much each side holds */
+.sideTop { display: flex; align-items: flex-start; gap: 18px; min-width: 0; }
+.sideTop .share { align-self: flex-start; display: flex; align-items: center; height: 74px; }
 .sideTop .who { flex: 1; }
 .strip[data-locked] .name { font-size: clamp(14px, 5.6cqi, 22px); }
 .side + .vs + .side .sideTop { flex-direction: row-reverse; }
@@ -269,7 +271,7 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .side + .vs + .side .sideTop { grid-template-columns: 1fr auto; grid-template-areas: 'share logo' 'who who'; }
     .sideTop .logo { grid-area: logo; }
     .sideTop .who { grid-area: who; }
-    .sideTop .share { grid-area: share; margin: 0; font-size: 34px; justify-self: end; }
+    .sideTop .share { grid-area: share; height: auto; margin: 0; font-size: 34px; justify-self: end; }
     .side + .vs + .side .sideTop .share { justify-self: start; }
     .picker { width: 28px; height: 26px; }
     .picker [data-team-mark] { width: 20px !important; height: 20px !important; }
@@ -283,6 +285,7 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .layout { grid-template-columns: minmax(0, 1fr) 500px; }
     .strip { min-height: 140px; --cut: 34px; }
     .logo { width: 92px; height: 92px; }
+    .sideTop .share { height: 92px; }
     .owner { font-size: 15px; }
     .table { font-size: 16px; }
     .weekName { font-size: 36px; }
