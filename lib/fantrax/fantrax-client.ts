@@ -147,7 +147,6 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     return { league, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
 }
 
-
 /** The port's core snapshot from raw responses, fresh or saved: Fantrax's periods become weeks. */
 export function readCore(league: FantraxLeague, players: PlayerDirectory): SourceCore {
     const { info, rosters, standings, fetchedAt } = league;
