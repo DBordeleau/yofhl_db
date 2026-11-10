@@ -84,9 +84,10 @@ export interface LiveSeasonSource {
     archivedPlayerIds(): Promise<string[]>;
     /** `fresh` skips the saved snapshot and the caches */
     core(options: { fresh: boolean }): Promise<SourceCore>;
-    weekScores(week: SourceWeek, core: Pick<SourceCore, 'fetchedAt'>): Promise<WeekScores>;
-    scoringLeaders(seasonYear: number): Promise<SourceLeaders>;
-    rosterStats(seasonYear: number): Promise<RosterStats>;
+    // `core` is the one this source returned for the same read, so a source can serve these from what it read then.
+    weekScores(week: SourceWeek, core: SourceCore): Promise<WeekScores>;
+    scoringLeaders(core: SourceCore): Promise<SourceLeaders>;
+    rosterStats(core: SourceCore): Promise<RosterStats>;
     manualFinalWeeks(seasonYear: number): Promise<number[]>;
     setManualFinalWeek(seasonYear: number, week: number, final: boolean): Promise<void>;
     /** Capture every Fantrax request, save the snapshot and publish it. Publishes only if every request succeeds. */

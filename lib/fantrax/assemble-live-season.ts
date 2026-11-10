@@ -210,13 +210,13 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
             section('scores', async () => currentWeek.phase === 'upcoming' ? null
                 : source.weekScores(currentWeek, core)),
             section('scoring leaders', async () => {
-                const raw = await source.scoringLeaders(core.seasonYear);
+                const raw = await source.scoringLeaders(core);
                 return { fetchedAt: raw.fetchedAt, players: raw.players.map(player => ({
                     id: player.id, name: player.name, position: player.position, points: player.points, perGame: player.perGame,
                     team: teams.find(team => team.id === player.teamId) ?? null, fantraxTeam: player.team, archiveId: archiveId(player.id),
                 })) };
             }),
-            section('roster stats', () => source.rosterStats(core.seasonYear)),
+            section('roster stats', () => source.rosterStats(core)),
         ]);
         return { status: 'available', value: {
             seasonYear: core.seasonYear, fantraxLeagueId, fetchedAt: core.fetchedAt, weeks, currentWeek,
