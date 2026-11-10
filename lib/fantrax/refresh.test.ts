@@ -121,7 +121,7 @@ test('an overlapping older refresh cannot overwrite a newer snapshot', async t =
     assert.deepEqual(stored.map(row => row.data.source.fetchedAt), [newer.result.fetchedAt]);
 });
 
-test('the live season reads the Fantrax league of the latest season in league.fantrax_teams', async t => {
+test('the live season reads the Fantrax league and teams of the latest season in league.fantrax_teams', async t => {
     const requestedLeagues = new Set<string | null>();
     const fetchFantrax = fantrax(() => false);
     await disposableLeague(t, { app: true, nextCache: true, seed: `
@@ -140,7 +140,10 @@ test('the live season reads the Fantrax league of the latest season in league.fa
     const { getLiveSeason } = await import('./live-season');
     const result = await getLiveSeason({ now });
     assert.equal(result.status, 'available');
-    assert.equal((result as { value: LiveSeason }).value.fantraxLeagueId, LEAGUE);
+    const live = (result as { value: LiveSeason }).value;
+    // 2026 maps the same Fantrax teams to the other franchises.
+    assert.deepEqual(live.teams.map(team => [team.id, team.franchiseId]), [['a', 1], ['b', 2]]);
+    assert.equal(live.fantraxLeagueId, LEAGUE);
     assert.deepEqual([...requestedLeagues], [LEAGUE]);
 });
 
