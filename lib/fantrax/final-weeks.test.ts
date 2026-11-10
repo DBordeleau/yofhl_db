@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import { finalWeekQuery } from './final-weeks';
+import { finalWeekQuery } from './fantrax-source';
 import { disposableLeague } from '../testing/disposable-league';
 
 test('manual Finals persist independently of archive seasons and are scoped to the league, season and week', async t => {

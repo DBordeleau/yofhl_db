@@ -37,8 +37,8 @@ export function createMemorySource(state: MemoryState): LiveSeasonSource {
             if (!scores) throw new Error(`Fantrax has no scores for week ${week.number}`);
             return structuredClone(scores);
         },
-        scoringLeaders: async seasonYear => structuredClone(savedFor(seasonYear)?.leaders ?? fantrax('leaders').leaders),
-        rosterStats: async seasonYear => structuredClone(savedFor(seasonYear)?.rosterStats ?? fantrax('rosterStats').rosterStats),
+        scoringLeaders: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.leaders ?? fantrax('leaders').leaders),
+        rosterStats: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.rosterStats ?? fantrax('rosterStats').rosterStats),
         manualFinalWeeks: async seasonYear => [...state.manualFinalWeeks[seasonYear] ?? []],
         setManualFinalWeek: async (seasonYear, week, final) => {
             const weeks = new Set(state.manualFinalWeeks[seasonYear] ?? []);
