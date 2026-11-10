@@ -1,7 +1,7 @@
 // The live season module: the current season as Fantrax has it now, already assembled. It only assembles; what
 // it reads comes through the live season source port, so this file is free of Next and Fantrax specifics.
 // Callers use the production binding in live-season.ts.
-import { archiveIdLookup, playerName, automaticFinalPeriods, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
+import { archiveIdLookup, playerName, type RosterStats, type ScheduledMatchup, type SnapshotPlayer } from './model';
 import { PLAYOFF_FORMAT } from './config';
 import { liveFantraxLeagueId, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
 
@@ -105,6 +105,39 @@ function stages(weeks: SourceWeek[]) {
     return { stage, lastRegularWeek: numbers[firstRound - 1] ?? 0, firstPlayoffWeek: numbers[Math.max(firstRound, 0)] ?? 0 };
 }
 
+/**
+ * The weeks whose results every team's standings record already counts. Fantrax can post regular-season results
+ * before its next matchup week starts. They stop at the league's regular season: playoff weeks are only final by
+ * date or by hand.
+ */
+function automaticFinalWeeks(core: Pick<SourceCore, 'weeks' | 'schedule' | 'teams' | 'standings'>, now: number): number[] {
+    const { lastRegularWeek } = stages(core.weeks);
+    const standings = new Map(core.standings.map(standing => [standing.teamId, standing.record]));
+    const results = new Map(core.teams.map(team => {
+        const record = standings.get(team.id);
+        return [team.id, record && /^\d+-\d+-\d+$/.test(record) ? record.split('-').reduce((sum, value) => sum + Number(value), 0) : -1];
+    }));
+    const expected = new Map<string, number>();
+    const final: number[] = [];
+    for (const week of [...core.weeks].sort((a, b) => a.number - b.number)) {
+        if (week.number > lastRegularWeek || now < Date.parse(week.startDate)) break;
+        const round = core.schedule.find(item => item.week === week.number);
+        // Missing schedule history cannot establish how many results a team should have.
+        if (!round?.matchups.length) break;
+        const playing = new Set<string>();
+        for (const matchup of round.matchups) {
+            if (!matchup.away.id || !matchup.home.id) continue; // An unpaired team has a bye.
+            for (const id of [matchup.away.id, matchup.home.id]) {
+                if (playing.has(id) || !results.has(id)) return final;
+                playing.add(id);
+                expected.set(id, (expected.get(id) ?? 0) + 1);
+            }
+        }
+        if (playing.size && [...playing].every(id => results.get(id)! >= expected.get(id)!)) final.push(week.number);
+    }
+    return final;
+}
+
 /** the last week before the playoff rounds */
 export const lastRegularSeasonWeek = (weeks: SourceWeek[]) => stages(weeks).lastRegularWeek;
 
@@ -121,15 +154,8 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
     }
 
     function assembleWeeks(core: SourceCore, manual: number[], now: number): Week[] {
-        const { stage, lastRegularWeek } = stages(core.weeks);
-        const records = new Map(core.standings.map(standing => [standing.teamId, standing.record]));
-        // Automatic final weeks stop at the league's regular season; playoff weeks are only final by date or by hand.
-        const automatic = automaticFinalPeriods({
-            scoringPeriods: core.weeks, lastRegularSeasonPeriod: lastRegularWeek,
-            schedule: core.schedule.map(round => ({ period: round.week, matchupList: round.matchups })),
-            teams: core.teams.map(team => ({ id: team.id, record: records.get(team.id) ?? null })),
-        }, now);
-        const final = new Set([...automatic, ...manual]);
+        const { stage } = stages(core.weeks);
+        const final = new Set([...automaticFinalWeeks(core, now), ...manual]);
         return [...core.weeks].sort((a, b) => a.number - b.number).map(week => {
             const weekStage = stage.get(week.number)!;
             const phase = now < Date.parse(week.startDate) ? 'upcoming'

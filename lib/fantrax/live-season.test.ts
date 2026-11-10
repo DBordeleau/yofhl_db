@@ -111,6 +111,44 @@ test('a week turns final as soon as the standings count its results, through wee
     assert.deepEqual([quarterfinals.name, quarterfinals.phase], ['Quarterfinals', 'active']);
 });
 
+test('posted results finalize a week before its end date', async t => {
+    assert.equal(weekView(await setup(t, league({ played: 1 })).season({ now: during(1, 2) }), 1).phase, 'final');
+});
+
+test('requires every scheduled result, handles ties, and counts actual matches rather than the week number', async t => {
+    const now = during(2, 2);
+    const phases = async (state: MemoryState) => {
+        const live = await setup(t, state).season({ now });
+        return [weekView(live, 1).phase, weekView(live, 2).phase];
+    };
+    assert.deepEqual(await phases(league({ played: 1 })), ['final', 'active']);
+    const ties = league();
+    ties.fantrax.core.standings.forEach(standing => { standing.record = '1-0-1'; });
+    assert.deepEqual(await phases(ties), ['final', 'final']);
+    const byes = league({ played: 1 });
+    byes.fantrax.core.schedule[0].matchups = [{ away: { id: 'fx1' }, home: {} }];
+    assert.deepEqual(await phases(byes), ['final', 'final'], 'byes do not count as a recorded matchup');
+});
+
+test('does not infer early Finals from incomplete standings, missing history, duplicate teams or playoff records', async t => {
+    const now = during(1, 2);
+    const weekOne = async (state: MemoryState) => weekView(await setup(t, state).season({ now }), 1).phase;
+    for (const record of ['0-0-0', '', '1-0', '1-0-0x', '-1-1-0']) {
+        const state = league({ played: 1 }); state.fantrax.core.standings[1].record = record;
+        assert.equal(await weekOne(state), 'active', record);
+    }
+    const missing = league({ played: 1 }); missing.fantrax.core.teams.pop();
+    assert.equal(await weekOne(missing), 'active');
+    const duplicate = league({ played: 1 }); duplicate.fantrax.core.schedule[0].matchups.push(duplicate.fantrax.core.schedule[0].matchups[0]);
+    assert.equal(await weekOne(duplicate), 'active');
+    const history = league({ played: 2 }); history.fantrax.core.schedule.shift();
+    assert.equal(weekView(await setup(t, history).season({ now: during(2, 2) }), 2).phase, 'active');
+    const playoffs = league({ played: 24 });
+    playoffs.fantrax.core.schedule.push({ week: 24, matchups: [{ away: { id: 'fx3' }, home: { id: 'fx6' } }, { away: { id: 'fx4' }, home: { id: 'fx5' } }] });
+    const live = await setup(t, playoffs).season({ now: during(24, 2) });
+    assert.deepEqual([weekView(live, 23).phase, weekView(live, 24).phase], ['final', 'active']);
+});
+
 test('a week marked final by hand is final, and clearing it returns the week to its automatic status', async t => {
     const { live, season, setNow } = setup(t);
     setNow(during(24));
