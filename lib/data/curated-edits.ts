@@ -97,10 +97,11 @@ export async function saveMatchup(year: number, matchupId: number, winner: 'scor
     if (winner !== 'score' && winner !== game.a_f && winner !== game.h_f) return { ok: false, reason: 'not-in-matchup' };
 
     const cleanNote = String(note ?? '').trim().slice(0, 300) || null;
-    const winnerTeamSeason = matchupWinner(
-        { id: game.a_ts, score: game.a_score },
-        { id: game.h_ts, score: game.h_score },
-        winner === game.a_f ? game.a_ts : winner === game.h_f ? game.h_ts : null);
+    // The override names a franchise; the matchup stores the winning team season.
+    const away = { franchise: game.a_f, id: game.a_ts, score: game.a_score };
+    const home = { franchise: game.h_f, id: game.h_ts, score: game.h_score };
+    const overriddenBy = [away, home].find(side => side.franchise === winner);
+    const winnerTeamSeason = matchupWinner(away, home, overriddenBy?.id);
     const [low, high] = [Math.min(game.a_f, game.h_f), Math.max(game.a_f, game.h_f)];
     const override = winner === 'score' && !cleanNote
         ? sql`delete from league.matchup_overrides
