@@ -1,9 +1,9 @@
 import type { Diagnostic, PlayerRef, TeamRef } from './script';
 
-// Scripts refer to teams loosely: an abbreviation (HH), an owner's first name (Jeremy) or a word from
-// the team name (Hooterville). Every surface resolves them here, against one studio team list: the
-// draft check against the fact packet's, the editor and Publish against the live one, and an episode
-// page against its team snapshot (GLOSSARY.md).
+// Scripts refer to teams loosely: an abbreviation (HH), an owner's first name (Jeremy), the full team name
+// or a word from it (Hooterville). Every surface resolves them here, against a studio team list (GLOSSARY.md):
+// the draft check against the fact packet's, the editor and Publish against the live one, and an episode
+// page against its team snapshot.
 
 export interface StudioTeam {
     id: number;
@@ -16,11 +16,10 @@ export interface StudioTeam {
     secondary: string;
 }
 
-export type TeamMatch =
+export type TeamResolution =
     | { kind: 'team'; team: StudioTeam }
     | { kind: 'unknown' }
     | { kind: 'ambiguous'; candidates: StudioTeam[] };
-export type ResolvedTeamRef = TeamRef & TeamMatch;
 
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '');
 
@@ -32,7 +31,7 @@ const TIERS: ((team: StudioTeam, key: string) => boolean)[] = [
     (t, key) => key.length > 2 && t.name.split(/\s+/).some(word => norm(word) === key),
 ];
 
-const matchTeam = (teams: StudioTeam[], ref: string): TeamMatch => {
+const matchTeam = (teams: StudioTeam[], ref: string): TeamResolution => {
     const key = norm(ref);
     if (!key) return { kind: 'unknown' };
     for (const tier of TIERS) {
@@ -43,7 +42,7 @@ const matchTeam = (teams: StudioTeam[], ref: string): TeamMatch => {
     return { kind: 'unknown' };
 };
 
-export const resolveTeams = (teams: StudioTeam[], refs: TeamRef[]): ResolvedTeamRef[] =>
+export const resolveTeams = (teams: StudioTeam[], refs: TeamRef[]): (TeamRef & TeamResolution)[] =>
     refs.map(ref => ({ ...ref, ...matchTeam(teams, ref.ref) }));
 
 /** the monitor's lookup: the team a cue was checked against, or none when it's unknown or ambiguous */

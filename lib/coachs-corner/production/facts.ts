@@ -72,6 +72,7 @@ const teamSeason = (franchise: Franchise, season: number) =>
 
 type FantraxFields = Pick<FactTeam, 'fantraxId' | 'rank' | 'record' | 'points'>;
 const NO_FANTRAX: FantraxFields = { fantraxId: '', rank: null, record: null, points: null };
+const fantraxFields = ({ fantraxId, rank, record, points }: FantraxFields): FantraxFields => ({ fantraxId, rank, record, points });
 const TEAM_IDENTITY_NOTE = 'Team identity, owners and logos come from ';
 const TEAM_IDENTITY = `${TEAM_IDENTITY_NOTE}the database's current identity at capture time, with saved team colours: the same team list the admin editor checks and Publish freezes.`;
 
@@ -86,14 +87,13 @@ export function packetTeams(studio: StudioTeam[], fantrax: Map<number, FantraxFi
     }
     return studio.map(team => {
         const found = fantrax.get(team.id);
-        return { ...team, ...(found ? { fantraxId: found.fantraxId, rank: found.rank, record: found.record, points: found.points } : NO_FANTRAX) };
+        return { ...team, ...(found ? fantraxFields(found) : NO_FANTRAX) };
     });
 }
 
 /** Recapture the team list into an existing packet, keeping each franchise's Fantrax fields. */
 export function withStudioTeams(packet: FactPacket, studio: StudioTeam[]): FactPacket {
-    const fantrax = new Map(packet.teams.filter(team => team.fantraxId)
-        .map(({ id, name, fantraxId, rank, record, points }) => [id, { name, fantraxId, rank, record, points }]));
+    const fantrax = new Map(packet.teams.filter(team => team.fantraxId).map(team => [team.id, { name: team.name, ...fantraxFields(team) }]));
     // the identity note keeps its place; a packet from before it gains one
     const limitations = packet.limitations.some(note => note.startsWith(TEAM_IDENTITY_NOTE))
         ? packet.limitations.map(note => note.startsWith(TEAM_IDENTITY_NOTE) ? TEAM_IDENTITY : note) : [...packet.limitations, TEAM_IDENTITY];

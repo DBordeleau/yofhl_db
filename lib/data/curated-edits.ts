@@ -10,10 +10,10 @@ import pilotTeams from '../coachs-corner/pilot-teams.json';
 // (ADR 0002). Callers keep authentication, file uploads and their own page paths.
 
 export type Invalidate = (tag: string) => void;
+export interface EditOptions { invalidate?: Invalidate }
 
 // the bundled pilot's team snapshot lives in the repository, not on an episode row
 const pilotLogos = [...new Set(pilotTeams.flatMap(team => (team.logo ? [team.logo] : [])))];
-export interface EditOptions { invalidate?: Invalidate }
 
 type Rejected<Reason> = { ok: false; reason: Reason };
 

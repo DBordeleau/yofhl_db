@@ -240,7 +240,7 @@ test('curated edits against disposable Postgres', async t => {
             'an import never overwrites a managed identity');
     });
 
-    await t.test('a replaced logo is orphaned only when no season still uses it', async () => {
+    await t.test('a replaced logo is orphaned only when no season or team snapshot still uses it', async () => {
         assert.deepEqual(await edits.saveTeamIdentity(owner, { franchiseId: 1, version: 3, name: 'Renamed', logoUrl: '/team-logos/1/b.webp' }, recorder()),
             { ok: true, orphanedLogoUrl: '/team-logos/1/a.webp' });
         await client.exec("update league.team_seasons set logo_url = '/team-logos/1/b.webp' where id = 3");
@@ -248,6 +248,10 @@ test('curated edits against disposable Postgres', async t => {
             { ok: true, orphanedLogoUrl: null });
         assert.deepEqual(await edits.saveTeamIdentity(owner, { franchiseId: 1, version: 5, name: 'Renamed', logoUrl: '/team-logos/1/c.webp' }, recorder()),
             { ok: true, orphanedLogoUrl: null }, 're-saving the same logo orphans nothing');
+        const { version } = await managed(1);
+        await edits.saveTeamIdentity(owner, { franchiseId: 1, version, name: 'Renamed', logoUrl: '/pvlslogo.png' }, recorder());
+        assert.deepEqual(await edits.saveTeamIdentity(owner, { franchiseId: 1, version: version + 1, name: 'Renamed', logoUrl: '/team-logos/1/d.webp' }, recorder()),
+            { ok: true, orphanedLogoUrl: null }, "the bundled pilot's team snapshot still shows it");
     });
 
     const colours = { primary: '#123ABC', secondary: '#D24015', tertiary: '#FFFFFF', treatment: 'stripes' } as const;
