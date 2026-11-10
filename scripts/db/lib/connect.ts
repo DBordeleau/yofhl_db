@@ -8,6 +8,7 @@ import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
 import { migrate as migratePostgres } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import * as schema from '@/db/schema';
+import { MATERIALIZED_VIEWS } from '@/lib/data/materialized-views';
 
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
@@ -47,9 +48,6 @@ export const connect = async () => {
     };
 };
 
-// season_results first: franchise_records reads it
 export const refreshViews = async (db: Db) => {
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.season_results`);
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.player_careers`);
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.franchise_records`);
+    for (const view of MATERIALIZED_VIEWS) await db.execute(sql`REFRESH MATERIALIZED VIEW league.${sql.identifier(view)}`);
 };

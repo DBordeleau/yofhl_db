@@ -15,6 +15,7 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
+import { MATERIALIZED_VIEWS } from '../data/materialized-views';
 
 export type LeagueOptions = {
     /** SQL run after the migrations; the materialized views are refreshed after it. */
@@ -64,7 +65,6 @@ export type DisposableLeague = {
     runAsRoute<T>(route: string, fn: () => Promise<T>): Promise<{ result: T; revalidatedTags: string[] }>;
 };
 
-const VIEWS = ['season_results', 'player_careers', 'franchise_records'];
 const ASYNC_STORAGE_GLOBAL = 'AsyncLocalStorage';
 const CACHE_BACKEND_GLOBAL = '__incrementalCache';
 const offline = async () => { throw new Error('Tests must not access the network'); };
@@ -96,7 +96,7 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
     }
     if (options.seed !== undefined) {
         await client.exec(options.seed);
-        for (const view of VIEWS) await client.exec(`refresh materialized view league.${view};`);
+        for (const view of MATERIALIZED_VIEWS) await client.exec(`refresh materialized view league.${view};`);
     }
 
     const entries = new Map<string, { value: unknown; tags: string[]; revalidate: number }>();

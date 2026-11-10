@@ -3,6 +3,7 @@ import { revalidateTag } from 'next/cache';
 import type { TeamColours } from '../team-branding';
 import { curatedEditEffects, leagueTags, teamIdentityTags, type CuratedEdit } from './cache-tags';
 import { rows } from './db';
+import { inRefreshOrder } from './materialized-views';
 
 // Curated edits: changes an admin or owner makes through the site. Each one checks the edit,
 // writes it in one statement, refreshes the views it affects and expires the pages that show it
@@ -22,7 +23,7 @@ const writeAndRefresh = async (kind: CuratedEdit, year: number, write: SQL, opti
     const { views, tags } = curatedEditEffects(kind, year);
     // A refresh failure comes after the write has committed, so expire the pages before rethrowing.
     try {
-        for (const view of views) await rows(sql`refresh materialized view league.${sql.identifier(view)}`);
+        for (const view of inRefreshOrder(views)) await rows(sql`refresh materialized view league.${sql.identifier(view)}`);
     } finally {
         expire(tags, options);
     }

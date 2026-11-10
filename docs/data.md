@@ -156,7 +156,7 @@ The full season importer refreshes all three materialized views before invalidat
 | `player_careers` | Career totals, FP/G, positions, championships, awards, and all-time rank |
 | `franchise_records` | Regular-season record, points, championship seasons, and finals appearances |
 
-Roster and award edits refresh only `player_careers`. Matchup edits refresh `season_results` and then `franchise_records`, which reads it. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
+Roster and award edits refresh only `player_careers`. Matchup edits refresh `season_results` and `franchise_records`. Every refresh runs in the order listed in `lib/data/materialized-views.ts`. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
 
 The lottery uses uncached reads and server time instead of the league cache. Its endpoint sets `Cache-Control: no-store, max-age=0`; a request at or after the scheduled start can persist the draw. See the [draw and viewer behavior](lottery.md#draw-and-viewer-behavior).
 
