@@ -2,6 +2,7 @@ import {
     boolean,
     check,
     date,
+    foreignKey,
     index,
     integer,
     jsonb,
@@ -143,6 +144,33 @@ export const pickemPicks = league.table('pickem_picks', {
     primaryKey({ columns: [t.seasonYear, t.week, t.entryFranchiseId, t.lowFranchiseId, t.highFranchiseId] }),
     check('pickem_picks_matchup', sql`${t.lowFranchiseId} < ${t.highFranchiseId}
         and ${t.pickedFranchiseId} in (${t.lowFranchiseId}, ${t.highFranchiseId})`),
+]);
+
+// Pick'em's own record of each locked week (ADR 0005), written by settle once the lock has passed: the lock and
+// the pairings its Pick'em picks count against, keyed by season year, week and franchise
+export const pickemWeeks = league.table('pickem_weeks', {
+    seasonYear: integer('season_year').notNull(),
+    week: integer('week').notNull(),
+    lock: timestamp('lock', { withTimezone: true, mode: 'string' }).notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.seasonYear, t.week] })]);
+
+// One recorded pairing, in the live season's order. Its result is written once, when the week is frozen: the
+// winning franchise, or no winner for a tie.
+export const pickemPairings = league.table('pickem_pairings', {
+    seasonYear: integer('season_year').notNull(),
+    week: integer('week').notNull(),
+    position: smallint('position').notNull(),
+    awayFranchiseId: integer('away_franchise_id').notNull().references(() => franchises.id),
+    homeFranchiseId: integer('home_franchise_id').notNull().references(() => franchises.id),
+    winnerFranchiseId: integer('winner_franchise_id').references(() => franchises.id),
+    frozenAt: timestamp('frozen_at', { withTimezone: true, mode: 'string' }),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.week, t.position] }),
+    foreignKey({ columns: [t.seasonYear, t.week], foreignColumns: [pickemWeeks.seasonYear, pickemWeeks.week] }),
+    check('pickem_pairings_matchup', sql`${t.awayFranchiseId} <> ${t.homeFranchiseId}`),
+    check('pickem_pairings_result', sql`${t.winnerFranchiseId} is null
+        or (${t.frozenAt} is not null and ${t.winnerFranchiseId} in (${t.awayFranchiseId}, ${t.homeFranchiseId}))`),
 ]);
 
 // a franchise's identity and regular-season standings for one season

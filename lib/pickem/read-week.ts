@@ -3,6 +3,7 @@
 import { rows } from '@/lib/data/db';
 import { getOwnedTeam } from '@/lib/owner/teams';
 import { isLocked, loadLivePickem } from './live-weeks';
+import { entriesOf, lockedWeek, readBreakdown, type PickemMatchupBreakdown } from './locked-week';
 import { pairOfMatchup, samePair, type LivePickemWeek, type PickemMatchup, type PickemPick } from './model';
 import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
@@ -35,14 +36,16 @@ export interface PickemWeek {
     yours: YourPickem | null;
     /** every active franchise and whether it is in, for the next week to lock only; null for any other week */
     whosIn: PickemWhoIsIn[] | null;
+    /** every matchup's entries on each side, from the lock on, to any caller; null before the lock */
+    breakdown: PickemMatchupBreakdown[] | null;
 }
 
 export interface ReadWeekInput {
     now: number;
     /** the season being played when omitted */
     seasonYear?: number;
-    /** the next week to lock when omitted */
-    week?: number;
+    /** the next week to lock when omitted; 'last-locked' for the most recently locked week */
+    week?: number | 'last-locked';
     asker: Asker;
 }
 
@@ -71,15 +74,19 @@ export function createReadWeek(ports: PickemPorts) {
         const live = await loadLivePickem(ports, input.now);
         if (!live) return { status: 'unavailable' };
         if (input.seasonYear !== undefined && input.seasonYear !== live.seasonYear) return { status: 'no-week' };
-        const week = input.week === undefined
-            ? live.weeks.find(item => !isLocked(item, input.now))
+        const found = input.week === undefined ? live.weeks.find(item => !isLocked(item, input.now))
+            : input.week === 'last-locked' ? live.weeks.findLast(item => isLocked(item, input.now))
             : live.weeks.find(item => item.week === input.week);
-        if (!week) return { status: 'no-week' };
+        if (!found) return { status: 'no-week' };
         const nextToLock = live.weeks.find(item => !isLocked(item, input.now));
+        const locked = isLocked(found, input.now);
+        const entries = entriesOf(live.teams);
+        const week = locked ? await lockedWeek(found, entries) : found;
         return { status: 'week', week: {
-            ...week, phase: isLocked(week, input.now) ? 'locked' : 'open',
+            ...week, phase: locked ? 'locked' : 'open',
             yours: input.asker === 'session' ? await yours(week) : null,
-            whosIn: week === nextToLock ? await readWhosIn(week) : null,
+            whosIn: found === nextToLock ? await readWhosIn(week) : null,
+            breakdown: locked ? await readBreakdown(week, entries) : null,
         }, weeks: weekOptions(live.weeks, input.now) };
     };
 }

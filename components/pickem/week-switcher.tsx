@@ -13,7 +13,7 @@ export default function WeekSwitcher({ weeks, selected }: Props) {
             {weeks.map(option => {
                 const current = option.week === selected;
                 return <li key={option.week}>
-                    <Link href={`/pickem?week=${option.week}`} scroll={false} aria-current={current ? 'page' : undefined}
+                    <Link href={`/pickem/week/${option.week}`} scroll={false} aria-current={current ? 'page' : undefined}
                         title={option.phase === 'locked' ? `${option.name}, locked` : option.name}
                         className={`block min-w-10 rounded-lg px-2.5 py-1.5 text-center text-sm font-extrabold tabular-nums transition-colors ${current
                             ? 'bg-ink text-white'
