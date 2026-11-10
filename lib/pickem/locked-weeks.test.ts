@@ -129,6 +129,34 @@ test('no caller can save or clear a Pick\'em pick on a locked week, before or af
     await attempts();
 });
 
+test('a recorded week stays locked when Fantrax later moves its start into the future', async t => {
+    const league = await pickemLeague(t);
+    await savePicks(league, 6, [[1, [1, 2], 1]]);
+    startAgo(league, 6);
+    const recordedLock = (await readAt(league, 6, now())).lock;
+    assert.deepEqual(weeksOf(await settle(league)), [1, 2, 3, 4, 5, 6].map(week => [SEASON, week]));
+    // Fantrax moves week 6 to start in three days, so its live lock has not come yet.
+    league.live.fantrax.core.weeks.find(week => week.number === 6)!.startDate = new Date(Date.now() + 3 * DAY).toISOString();
+
+    for (const owner of ['owner-1', 'owner-3']) {
+        await league.signInAs(owner);
+        const save = (matchup: [number, number], picked: number | null) => league.act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
+        assert.deepEqual(await save([1, 2], 2), { ok: false, reason: 'locked' }, owner);
+        assert.deepEqual(await save([3, 4], 3), { ok: false, reason: 'locked' }, owner);
+        assert.deepEqual(await save([1, 2], null), { ok: false, reason: 'locked' }, owner);
+    }
+    await league.signOut();
+
+    const week = await readAt(league, 6, now());
+    assert.equal(week.phase, 'locked');
+    assert.equal(week.lock, recordedLock);
+    assert.deepEqual(sides(week), [[1, 2, [1], []], [3, 4, [], []], [5, 6, [], []], [7, 8, [], []], [9, 10, [], []]]);
+    const read = await league.act(p => p.readWeek({ now: now(), seasonYear: SEASON, asker: 'nobody' }));
+    assert.ok(read.status === 'week');
+    assert.equal(read.week.week, 7, 'the next week to lock is still the one after it');
+    assert.equal(read.weeks.find(option => option.week === 6)?.phase, 'locked', 'the switcher has it locked');
+});
+
 test('the most recently locked week can be read without naming it', async t => {
     const league = await pickemLeague(t, { launch: { seasonYear: SEASON, week: 3 } });
     const read = await league.act(p => p.readWeek({ now: now(), week: 'last-locked', asker: 'nobody' }));

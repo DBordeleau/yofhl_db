@@ -12,11 +12,13 @@ interface PickTarget {
 }
 
 // Every write is one statement (ADR 0002) that rechecks, against the database clock, that the owner manages the
-// entry's franchise, that it has not folded and that the week has not locked. It returns no row when the owner no
-// longer manages the franchise, and `open: false` when the lock has passed. `changed` says whether the entry's picked
+// entry's franchise, that it has not folded and that the week has not locked: neither its lock has passed nor
+// settle has recorded it (a recorded week stays locked even if Fantrax later moves its start). It returns no row
+// when the owner no longer manages the franchise, and `open: false` once the week has locked. `changed` says whether the entry's picked
 // matchups changed (a new pick, or a pick cleared) rather than only the side picked, which is what who's in reads.
 const entry = (target: PickTarget) => sql`entry as (
-    select f.id, clock_timestamp() < ${target.lock}::timestamptz as open
+    select f.id, clock_timestamp() < ${target.lock}::timestamptz
+               and not exists (select 1 from league.pickem_weeks w where w.season_year = ${target.seasonYear}::int and w.week = ${target.week}::int) as open
     from league.franchises f join league.team_management m on m.franchise_id = f.id
     where f.id = ${target.entryFranchiseId}::int and f.folded_after_season is null and m.owner_uid = ${target.uid}
 )`;
