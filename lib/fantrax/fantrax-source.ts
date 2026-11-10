@@ -12,7 +12,7 @@ import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type S
 
 const fantraxClient = createFantraxClient();
 
-export const latestFantraxTeamsQuery = sql`
+const latestFantraxTeamsQuery = sql`
     select season_year as "seasonYear", fantrax_league_id as "fantraxLeagueId", fantrax_team_id as "fantraxTeamId", franchise_id as "franchiseId"
     from league.fantrax_teams where season_year = (select max(season_year) from league.fantrax_teams)
     order by fantrax_team_id`;
@@ -40,7 +40,7 @@ async function getSavedLiveSeason(leagueId: string) {
     return saved && Date.now() - Date.parse(saved.source.fetchedAt) < DAY * 1000 ? saved : null;
 }
 
-export function saveSnapshotQuery(leagueId: string, data: SavedLiveSeason) {
+function saveSnapshotQuery(leagueId: string, data: SavedLiveSeason) {
     return sql`insert into league.fantrax_snapshots as stored (league_id, data)
         values (${leagueId}, ${JSON.stringify(data)}::jsonb)
         on conflict (league_id) do update set data = excluded.data
@@ -56,7 +56,7 @@ const getManualFinalPeriods = (leagueId: string, seasonYear: number): Promise<nu
         revalidate: false, tags: [finalWeeksTag(seasonYear)],
     })();
 
-export function finalWeekQuery(leagueId: string, seasonYear: number, period: number, final: boolean) {
+function finalWeekQuery(leagueId: string, seasonYear: number, period: number, final: boolean) {
     return final ? sql`
         insert into league.fantrax_final_weeks (league_id, season_year, period)
         values (${leagueId}, ${seasonYear}, ${period}) on conflict do nothing
