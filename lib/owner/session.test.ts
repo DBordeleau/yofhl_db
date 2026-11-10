@@ -110,6 +110,54 @@ test('signing out ends the owner session', async t => {
     assert.deepEqual(await act(s => s.preamble('save-team')), { ok: false, reason: 'session-expired' });
 });
 
+/** The readable session hint must match the session cookie in everything but HttpOnly. */
+function assertHintBesideSession(request: ReturnType<typeof createMemoryRequest>) {
+    const session = request.state.cookies.get('yofhl_owner');
+    const hint = request.state.cookies.get('yofhl_owner_hint');
+    assert.ok(session && hint, 'both cookies are set');
+    assert.equal(hint.value, '1');
+    assert.equal(hint.options?.httpOnly, false, 'the page can read the hint');
+    const { httpOnly: _session, ...sessionOptions } = session.options!;
+    const { httpOnly: _hint, ...hintOptions } = hint.options!;
+    assert.deepEqual(hintOptions, sessionOptions, 'same path, lifetime, SameSite and secure setting');
+}
+
+test('signing in and claiming set the session hint, and signing out clears it', async t => {
+    const { identity, request, act, signInAs } = await owners(t);
+    await signInAs('owner-1');
+    assertHintBesideSession(request);
+    await act(s => s.signOut());
+    assert.deepEqual([...request.state.cookies.keys()], [], 'the session cookie and the hint are both cleared');
+    await act(s => s.claimTeam(identity.signIn('new-owner'), OPEN_CODE));
+    assertHintBesideSession(request);
+});
+
+test('the header answer sets the hint for a valid session and clears it for an invalid or revoked one', async t => {
+    const { identity, request, act, signInAs } = await owners(t);
+    const signedOut = { signedIn: false, team: null, keepers: null };
+    assert.deepEqual(await act(s => s.headerAnswer()), signedOut);
+    assert.equal(request.state.cookies.size, 0, 'an anonymous answer sets no cookie');
+
+    // An owner signed in before the hint existed.
+    await signInAs('owner-1');
+    request.state.cookies.delete('yofhl_owner_hint');
+    assert.deepEqual(await act(s => s.headerAnswer()), {
+        signedIn: true,
+        team: { name: 'Owned Club', logo: 'https://blob.test/team-logos/1/logo-old.webp', abbreviation: 'OC' },
+        keepers: null,
+    });
+    assertHintBesideSession(request);
+
+    identity.state.revoked.add('owner-1');
+    assert.deepEqual(await act(s => s.headerAnswer()), signedOut);
+    assert.equal(request.state.cookies.has('yofhl_owner_hint'), false, 'a revoked session clears the hint');
+
+    request.state.cookies.set('yofhl_owner', { value: 'forged' });
+    request.state.cookies.set('yofhl_owner_hint', { value: '1' });
+    assert.deepEqual(await act(s => s.headerAnswer()), signedOut);
+    assert.equal(request.state.cookies.has('yofhl_owner_hint'), false, 'an invalid session clears the hint');
+});
+
 const claimedBy = async (query: Awaited<ReturnType<typeof owners>>['query'], franchiseId: number) =>
     (await query<{ owner_uid: string | null }>(`select owner_uid from league.team_management where franchise_id = ${franchiseId}`))[0]?.owner_uid ?? null;
 
