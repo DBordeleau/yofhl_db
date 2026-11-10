@@ -99,7 +99,7 @@ export interface LiveSeasonSource {
     franchises(): Promise<FranchiseIdentity[]>;
     /** archive player IDs, as stored (some are wrapped in asterisks) */
     archivedPlayerIds(): Promise<string[]>;
-    /** `fresh` skips the saved snapshot and the caches */
+    /** `fresh` reads the league and player directory from Fantrax, not the saved snapshot or the caches; the saved snapshot still serves its scores, leaders and roster stats */
     core(options: { fresh: boolean }): Promise<SourceCore>;
     // `core` is the one this source returned for the same read, so a source can serve these from what it read then.
     weekScores(week: SourceWeek, core: SourceCore): Promise<WeekScores>;
