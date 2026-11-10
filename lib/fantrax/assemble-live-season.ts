@@ -164,7 +164,8 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
                     const player = core.players[item.id];
                     return {
                         id: item.id, name: playerName(player?.name ?? item.id), position: player?.position ?? item.position,
-                        lineupPosition: item.position, nhlTeam: player?.team ?? '—', status: item.status, archiveId: archiveId(item.id),
+                        // Fantrax gives a free agent's NHL team as "(N/A)".
+                        lineupPosition: item.position, nhlTeam: player?.team === '(N/A)' ? 'FA' : player?.team ?? '—', status: item.status, archiveId: archiveId(item.id),
                     };
                 }).sort((a, b) => a.name.localeCompare(b.name)),
             };

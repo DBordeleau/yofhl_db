@@ -177,6 +177,14 @@ test('rostered players and scoring leaders link to their archive player pages wh
         [['Connor McDavid', '*p1*', 'Franchise 1'], ['Free Agent', null, 'FA']]);
 });
 
+test('a rostered free agent\'s NHL team reads FA, and a player with no NHL team shows a dash', async t => {
+    const state = league();
+    state.fantrax.core.players.p1.team = '(N/A)';
+    const { season } = setup(t, state);
+    assert.deepEqual((await season()).teams[0].players.map(player => [player.name, player.nhlTeam]),
+        [['Connor McDavid', 'FA'], ['Goalie Rookie', '—']]);
+});
+
 test('the standings draw the playoff line under 6th and give the top 2 seeds byes', async t => {
     const { season } = setup(t);
     const { standings } = await season();

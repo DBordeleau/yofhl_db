@@ -29,7 +29,7 @@ function Player({ player, stats, share, order }: { player: SnapshotPlayer; stats
                 <span>{player.name}</span>
                 {player.status === 'INJURED_RESERVE' ? <span className={styles.irBadge} title="Injured reserve" aria-label="Injured reserve">IR</span> : null}
             </div>
-            <span className={styles.playerClub}>{showPosition ? `${player.position.replace(/,/g, '/')} · ` : ''}{player.nhlTeam === '(N/A)' ? 'FA' : player.nhlTeam}</span>
+            <span className={styles.playerClub}>{showPosition ? `${player.position.replace(/,/g, '/')} · ` : ''}{player.nhlTeam}</span>
         </div>
         <dl className={styles.playerStats}>
             <div><dt className="sr-only">Fantasy points</dt><dd>{stats?.points == null ? <span aria-label="Unavailable">—</span> : formatFpts(stats.points)}</dd></div>
