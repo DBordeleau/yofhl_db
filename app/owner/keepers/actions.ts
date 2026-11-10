@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { ownerSession, requireSameOrigin, limitOwnerAction } from '@/lib/owner/auth';
+import { ownerSession } from '@/lib/owner/owner-session';
 import { getKeeperRoster, getKeeperSubmission } from '@/lib/keepers/data';
 import { getOwnedTeam } from '@/lib/owner/teams';
 import { KEEPERS_ENABLED, CALDER_SEASON, keepersOpen, rosterFingerprint, validateKeepers, type KeeperInput, type KeeperSaveResult, type KeeperPlayer } from '@/lib/keepers/model';
@@ -13,11 +13,11 @@ import type { KeeperSubmission } from '@/lib/keepers/model';
 export async function saveKeeperSelection(input: KeeperInput): Promise<KeeperSaveResult> {
     if (!KEEPERS_ENABLED) return { error: 'Keeper submissions are currently unavailable.' };
     try {
-        await requireSameOrigin();
-        const user = await ownerSession();
+        await ownerSession.requireSameOrigin();
+        const user = await ownerSession.currentOwner();
         if (!user) return { error: 'Sign in again to submit your keepers.' };
         if (!keepersOpen()) return { error: 'Keeper submissions closed on October 9 at 7:00 p.m. Eastern.' };
-        await limitOwnerAction('keepers', user.uid);
+        await ownerSession.rateLimit('keepers', user.uid);
         if (!input || !Number.isSafeInteger(input.version) || input.version < 0 ||
             typeof input.rosterFingerprint !== 'string' || input.rosterFingerprint.length > 20000 ||
             !Array.isArray(input.keptIds) || input.keptIds.length > 100 || input.keptIds.some(id => typeof id !== 'string' || id.length > 64) ||
@@ -46,11 +46,11 @@ export async function saveKeeperSelection(input: KeeperInput): Promise<KeeperSav
 export async function refreshKeeperRoster(): Promise<{ roster: KeeperPlayer[]; fetchedAt: string; serverNow: string; error?: never } | { error: string; roster?: never }> {
     if (!KEEPERS_ENABLED) return { error: 'Keeper submissions are currently unavailable.' };
     try {
-        await requireSameOrigin();
-        const user = await ownerSession();
+        await ownerSession.requireSameOrigin();
+        const user = await ownerSession.currentOwner();
         if (!user) return { error: 'Sign in again to refresh your roster.' };
         if (!keepersOpen()) return { error: 'Keeper submissions are closed. Your submitted roster is now read-only.' };
-        await limitOwnerAction('keeper-refresh', user.uid);
+        await ownerSession.rateLimit('keeper-refresh', user.uid);
         const team = await getOwnedTeam(user.uid);
         if (!team) return { error: 'This account does not manage an active team.' };
         const current = await getKeeperRoster(team.id, true);
