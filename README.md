@@ -22,6 +22,7 @@ The YOFHL league archive and live draft lottery, built with Next.js and PostgreS
 | `/admin` | Sign-in and season checklists for roster, award, and bracket edits |
 | `/admin/lottery` | Lottery scheduling, odds, starting order, and full presentation preview |
 | `/owner` | Owner sign-in, team claims, password resets, and current team editing |
+| `/pickem`, `/pickem/week/<week>`, `/pickem/<end year>` and `/pickem/<end year>/week/<week>` | Pick'em: owners call each regular-season matchup's winner, with the Pick'em leaderboard, who's in and each locked week's breakdown. Not found until the launch setting in `lib/pickem/settings.ts` is set |
 | `/admin/teams` | Team names, logos, claim status, and owner invitation codes |
 
 `/stats` redirects to the all-time leaderboard. The team listing is at `/teams/stats`; there is no `/teams` index route. Defunct franchises remain accessible and always appear after active teams in every team-card sort. Each group follows the selected statistic, with wins breaking ties.
