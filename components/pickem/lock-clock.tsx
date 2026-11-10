@@ -46,7 +46,7 @@ export default function LockClock({ lock, locked }: { lock: string; locked: bool
     const { d, h, m, s } = parts(left);
     const units = [...(d ? [{ key: 'd', value: String(d) }] : []), { key: 'h', value: two(h) }, { key: 'm', value: two(m) }, { key: 's', value: two(s) }];
     return <div className={styles.clock} data-urgent={left < HOUR ? '' : undefined} role="timer" aria-label={`Locks ${when}`}>
-        <span className={styles.clockLabel} aria-hidden="true">Locks in<small>{when}</small></span>
+        <span className={styles.clockLabel} aria-hidden="true">Locks on<small>{when}</small></span>
         <span className={styles.clockTime} aria-hidden="true">
             {units.map(unit => <span key={unit.key} className={styles.unit}>
                 <b key={unit.value} className={styles.tick} suppressHydrationWarning>{unit.value}</b>
