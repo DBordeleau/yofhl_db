@@ -10,7 +10,7 @@ import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, finalWeeksTag, scoresAreArchived
 import { createFantraxClient, readCore, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
 import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek } from './live-season-source';
 
-export const fantraxClient = createFantraxClient();
+const fantraxClient = createFantraxClient();
 
 export const latestFantraxTeamsQuery = sql`
     select season_year as "seasonYear", fantrax_league_id as "fantraxLeagueId", fantrax_team_id as "fantraxTeamId", franchise_id as "franchiseId"
@@ -68,7 +68,7 @@ export function finalWeekQuery(leagueId: string, seasonYear: number, period: num
 
 const getDailyFantrax = (leagueId: string): Promise<FantraxLeague> => unstable_cache(() => fantraxClient.league(leagueId), ['fantrax-daily-v4', leagueId],
     { revalidate: DAY, tags: [FANTRAX_TAG, FANTRAX_CURRENT_TAG] })();
-export const getPlayerDirectory = unstable_cache(() => fantraxClient.playerDirectory(), ['fantrax-player-directory', 'NHL'], { revalidate: 7 * DAY, tags: [FANTRAX_TAG] });
+const getPlayerDirectory = unstable_cache(() => fantraxClient.playerDirectory(), ['fantrax-player-directory', 'NHL'], { revalidate: 7 * DAY, tags: [FANTRAX_TAG] });
 
 // A new standings snapshot must never label scores from an older snapshot as Final.
 const getDailyScores = (leagueId: string, week: number, snapshotFetchedAt: string) => unstable_cache(() => fantraxClient.weekScores(leagueId, week),
@@ -104,7 +104,7 @@ const getCachedLeaders = savedOrDaily(saved => saved.leaders, getDailyLeaders);
 const getCachedRosterStats = savedOrDaily(saved => saved.rosterStats, getDailyRosterStats);
 
 /** Capture every request, save the snapshot and publish it, only if every request succeeds. */
-export async function captureAndSave(leagueId: string): Promise<SavedLiveSeason> {
+async function captureAndSave(leagueId: string): Promise<SavedLiveSeason> {
     const data = await fantraxClient.capture(leagueId, { scoringSeason: getScoringSeason, archivedPlayerIds });
     await rows(saveSnapshotQuery(leagueId, data));
     revalidateTag(FANTRAX_CURRENT_TAG);
