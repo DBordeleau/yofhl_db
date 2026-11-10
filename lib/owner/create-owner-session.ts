@@ -249,7 +249,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         return saveTeamBranding(start.actor, franchiseId, version, branding);
     }
 
-    return { requireSameOrigin, rateLimit, currentOwner, preamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
+    return { requireSameOrigin, currentOwner, preamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
 }
 
 export type OwnerSession = ReturnType<typeof createOwnerSession>;
