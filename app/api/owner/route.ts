@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ownerSession } from '@/lib/owner/auth';
+import { ownerSession } from '@/lib/owner/owner-session';
 import { getOwnedTeam } from '@/lib/owner/teams';
 import { getKeeperRoster, getKeeperSubmission } from '@/lib/keepers/data';
 import { KEEPERS_ENABLED, keepersOpen, submissionStatus } from '@/lib/keepers/model';
@@ -7,7 +7,7 @@ import { KEEPERS_ENABLED, keepersOpen, submissionStatus } from '@/lib/keepers/mo
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-    const user = await ownerSession();
+    const user = await ownerSession.currentOwner();
     const team = user ? await getOwnedTeam(user.uid) : null;
     let keepers = null;
     if (KEEPERS_ENABLED && team && keepersOpen()) {

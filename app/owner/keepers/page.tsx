@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import KeeperEditor from '@/components/keepers/keeper-editor';
-import { ownerSession } from '@/lib/owner/auth';
+import { ownerSession } from '@/lib/owner/owner-session';
 import { getKeeperSubmission, getKeeperRoster } from '@/lib/keepers/data';
 import { getOwnedTeam } from '@/lib/owner/teams';
 import { KEEPERS_ENABLED, keepersOpen } from '@/lib/keepers/model';
@@ -15,7 +15,7 @@ export const metadata = { title: 'My keepers · YOFHL', robots: { index: false, 
 
 export default async function KeeperPage() {
     if (!KEEPERS_ENABLED) notFound();
-    const user = await ownerSession();
+    const user = await ownerSession.currentOwner();
     if (!user) redirect('/owner');
     const team = await getOwnedTeam(user.uid);
     if (!team) redirect('/owner');

@@ -74,6 +74,14 @@ The Quarterfinals, Semifinals or Final, each one week.
 A change an admin or owner makes through the site (identity, profile, curated history), as opposed to data synced from Fantrax. Each kind is one function in the curated edit module (`lib/data/curated-edits.ts`) that checks, writes, refreshes views and expires cached pages.
 _Avoid_: admin write, mutation
 
+**Actor**:
+Who is making a curated edit: the admin or one owner. The owner session module (`lib/owner/create-owner-session.ts`) resolves it; the curated edit module decides what it may change.
+_Avoid_: user, editor, principal
+
+**Owner session**:
+A signed-in owner's five-day session, started by signing in or claiming a team and ended by signing out or a password reset. The owner session module owns it, along with what signing in, claiming and saving a team do.
+_Avoid_: owner auth, login
+
 ## Coach's Corner
 
 **Script**:
