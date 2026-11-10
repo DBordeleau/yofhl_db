@@ -10,7 +10,7 @@ import {
 
 export type { RosterStats, ScheduledMatchup, WeekScores } from './live-season-source';
 
-export type PlayoffRound = (typeof PLAYOFF_FORMAT.rounds)[number];
+type PlayoffRound = (typeof PLAYOFF_FORMAT.rounds)[number];
 
 export interface Week {
     number: number;
@@ -58,7 +58,7 @@ export interface LiveTeam {
     players: LivePlayer[];
 }
 
-export interface StandingsRow {
+interface StandingsRow {
     team: LiveTeam;
     rank: number | null;
     record: string | null;
@@ -69,13 +69,13 @@ export interface StandingsRow {
     playoffLineBelow: boolean;
 }
 
-export interface Standings {
+interface Standings {
     rows: StandingsRow[];
     playoffTeams: number;
     byeTeams: number;
 }
 
-export interface ScoringLeader {
+interface ScoringLeader {
     id: string;
     name: string;
     position: string;
@@ -88,7 +88,7 @@ export interface ScoringLeader {
     archiveId: string | null;
 }
 
-export type Availability<T> = { status: 'available'; value: T } | { status: 'unavailable' };
+type Availability<T> = { status: 'available'; value: T } | { status: 'unavailable' };
 
 export interface LiveSeason {
     seasonYear: number;
@@ -108,7 +108,7 @@ export interface LiveSeason {
 }
 
 /** the whole live season is unavailable when its core snapshot (teams, schedule, weeks) can't be loaded */
-export type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { status: 'unavailable'; fantraxLeagueId: string | null };
+type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { status: 'unavailable'; fantraxLeagueId: string | null };
 
 /** the live season's Fantrax league, for links to Fantrax; known even while the season is unavailable, unless league.fantrax_teams can't be read */
 export const fantraxLeagueIdOf = (result: LiveSeasonResult): string | null =>
@@ -154,9 +154,6 @@ function automaticFinalWeeks(core: Pick<SourceCore, 'weeks' | 'schedule' | 'team
     }
     return final;
 }
-
-/** the last week before the playoff rounds */
-export const lastRegularSeasonWeek = (weeks: SourceWeek[]) => stages(weeks).lastRegularWeek;
 
 export function createLiveSeason(source: LiveSeasonSource, options: { now?: () => number } = {}) {
     const clock = options.now ?? (() => Date.now());

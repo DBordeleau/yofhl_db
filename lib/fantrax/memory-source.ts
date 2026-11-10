@@ -2,7 +2,7 @@
 // the saved snapshot; `down` lists the Fantrax requests that are failing.
 import type { FantraxTeamRow, FranchiseIdentity, LiveSeasonSource, RosterStats, SourceCore, SourceLeaders, WeekScores } from './live-season-source';
 
-export interface MemoryCapture {
+interface MemoryCapture {
     core: SourceCore;
     scores: Record<number, WeekScores>;
     leaders: SourceLeaders;

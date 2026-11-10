@@ -8,7 +8,7 @@ import { archiveIdLookup, type FantraxPlayoffs, type RosterStats, type Scheduled
 export type { Fetcher } from './leaders';
 export type { SourceCore, SourceWeek } from './live-season-source';
 
-export interface LeagueInfo {
+interface LeagueInfo {
     /** the season year; Fantrax's own start year is converted as the response is read */
     seasonYear: number;
     teamInfo: Record<string, { name: string; id: string }>;
@@ -18,18 +18,18 @@ export interface LeagueInfo {
     matchups: { period: number; matchupList: ScheduledMatchup[] }[];
     playoffs: FantraxPlayoffs;
 }
-export interface RosterResponse {
+interface RosterResponse {
     period: number;
     rosters: Record<string, { rosterItems: { id: string; position: string; status: string }[] }>;
 }
-export interface Standing {
+interface Standing {
     teamId: string;
     rank: number;
     points: string;
     totalPointsFor: number;
 }
-export interface PlayerInfo { name: string; position: string; team?: string }
-export type PlayerDirectory = Record<string, PlayerInfo>;
+interface PlayerInfo { name: string; position: string; team?: string }
+type PlayerDirectory = Record<string, PlayerInfo>;
 
 /** the raw core responses, as the saved snapshot stores them */
 export interface FantraxLeague {
@@ -38,7 +38,7 @@ export interface FantraxLeague {
     standings: Standing[];
     fetchedAt: string;
 }
-export type ScoringLeaders = { fetchedAt: string; players: (Awaited<ReturnType<typeof loadScoringLeaders>>[number] & { archiveId: string | null })[] };
+type ScoringLeaders = { fetchedAt: string; players: (Awaited<ReturnType<typeof loadScoringLeaders>>[number] & { archiveId: string | null })[] };
 
 /** getMatchupScores as the saved snapshot stores it: keyed and labelled by Fantrax's period */
 export interface MatchupScores {
@@ -59,7 +59,7 @@ export interface SavedLiveSeason {
 }
 
 const toIso = (date: string) => new Date(date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).toISOString();
-export const normalizePeriod = (period: SourceWeek): SourceWeek => ({ ...period, startDate: toIso(period.startDate), endDate: toIso(period.endDate) });
+const normalizePeriod = (period: SourceWeek): SourceWeek => ({ ...period, startDate: toIso(period.startDate), endDate: toIso(period.endDate) });
 
 /** Fantrax's "Last, First" player name as "First Last" */
 export function playerName(name: string): string {
@@ -147,7 +147,6 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     return { league, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
 }
 
-export type FantraxClient = ReturnType<typeof createFantraxClient>;
 
 /** The port's core snapshot from raw responses, fresh or saved: Fantrax's periods become weeks. */
 export function readCore(league: FantraxLeague, players: PlayerDirectory): SourceCore {

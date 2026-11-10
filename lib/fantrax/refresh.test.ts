@@ -85,21 +85,87 @@ test('a refresh publishes the live season without touching archive caches, and a
     assert.deepEqual(await savedSnapshot(), saved);
 });
 
-test('an overlapping older refresh cannot overwrite a newer snapshot', async t => {
-    const { db, client } = await disposableLeague(t);
-    // Imported late: Next's cache modules need the AsyncLocalStorage stand-in installed first.
-    const { saveSnapshotQuery } = await import('./fantrax-source');
-    const snapshot = (fetchedAt: string) => ({ source: { fetchedAt } }) as SavedLiveSeason;
-    await db.execute(saveSnapshotQuery(LEAGUE, snapshot('2026-10-18T22:00:00.000Z')));
-    await db.execute(saveSnapshotQuery(LEAGUE, snapshot('2026-01-01T00:00:00.000Z')));
-    const stored = (await client.query<{ data: SavedLiveSeason }>('select data from league.fantrax_snapshots')).rows;
-    assert.deepEqual(stored.map(row => row.data.source.fetchedAt), ['2026-10-18T22:00:00.000Z']);
-});
-
 const SEED = `
     insert into league.franchises (id, display_name, first_season) values (1, 'One', 2026), (2, 'Two', 2026);
     insert into league.fantrax_teams values (2027, '${LEAGUE}', 'a', 1), (2027, '${LEAGUE}', 'b', 2);
 `;
+
+test('an overlapping older refresh cannot overwrite a newer snapshot', async t => {
+    // The older refresh's league info is held back until the newer refresh has saved.
+    let reachHold: () => void, release: () => void;
+    const reached = new Promise<void>(resolve => reachHold = resolve);
+    let hold: Promise<void> | null = new Promise(resolve => release = resolve);
+    const fetchFantrax = fantrax(() => false);
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: async (input, options) => {
+        if (hold && new URL(String(input)).pathname.endsWith('/getLeagueInfo')) {
+            const held = hold;
+            hold = null;
+            reachHold();
+            await held;
+        }
+        return fetchFantrax(input, options);
+    } });
+    t.mock.method(Date, 'now', () => Date.parse('2026-10-18T22:00:00Z'));
+    t.mock.method(console, 'warn', () => {});
+    const { refreshLiveSeason } = await import('./live-season');
+
+    const older = league.runAsRoute('/api/cron/fantrax', refreshLiveSeason);
+    await reached;
+    // Capture times are the real clock's; let it move on so the newer capture is strictly later.
+    await new Promise(resolve => setTimeout(resolve, 5));
+    const newer = await league.runAsRoute('/api/cron/fantrax', refreshLiveSeason);
+    release!();
+    const overlapped = await older;
+    assert.ok(overlapped.result.fetchedAt < newer.result.fetchedAt);
+    const stored = (await league.client.query<{ data: SavedLiveSeason }>('select data from league.fantrax_snapshots')).rows;
+    assert.deepEqual(stored.map(row => row.data.source.fetchedAt), [newer.result.fetchedAt]);
+});
+
+test('the live season reads the Fantrax league of the latest season in league.fantrax_teams', async t => {
+    const requestedLeagues = new Set<string | null>();
+    const fetchFantrax = fantrax(() => false);
+    await disposableLeague(t, { app: true, nextCache: true, seed: `
+        insert into league.franchises (id, display_name, first_season) values (1, 'One', 2026), (2, 'Two', 2026);
+        insert into league.fantrax_teams values
+            (2026, 'league26', 'a', 2), (2026, 'league26', 'b', 1),
+            (2027, '${LEAGUE}', 'a', 1), (2027, '${LEAGUE}', 'b', 2);
+    `, fetch: async (input, options) => {
+        const url = new URL(String(input));
+        if (url.searchParams.has('leagueId')) requestedLeagues.add(url.searchParams.get('leagueId'));
+        return fetchFantrax(input, options);
+    } });
+    const now = Date.parse('2026-10-18T22:00:00Z');
+    t.mock.method(Date, 'now', () => now);
+    t.mock.method(console, 'warn', () => {});
+    const { getLiveSeason } = await import('./live-season');
+    const result = await getLiveSeason({ now });
+    assert.equal(result.status, 'available');
+    assert.equal((result as { value: LiveSeason }).value.fantraxLeagueId, LEAGUE);
+    assert.deepEqual([...requestedLeagues], [LEAGUE]);
+});
+
+test('manual final weeks persist independently of archive seasons and are scoped to the league, season and week', async t => {
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: `${SEED}
+        insert into league.fantrax_final_weeks (league_id, season_year, period) values
+            ('another-league', 2027, 1), ('${LEAGUE}', 2026, 1), ('${LEAGUE}', 2027, 2);
+    `, fetch: fantrax(() => false) });
+    t.mock.method(Date, 'now', () => Date.parse('2026-10-18T22:00:00Z'));
+    t.mock.method(console, 'warn', () => {});
+    const { setWeekFinal } = await import('./live-season');
+    const mark = (final: boolean) => league.runAsRoute('/api/admin/fantrax', () => setWeekFinal(1, final));
+    const finals = async () => (await league.client.query<{ league_id: string; season_year: number; period: number }>(
+        'select league_id, season_year, period from league.fantrax_final_weeks order by league_id, season_year, period')).rows;
+    const others = [
+        { league_id: 'another-league', season_year: 2027, period: 1 },
+        { league_id: LEAGUE, season_year: 2026, period: 1 },
+        { league_id: LEAGUE, season_year: 2027, period: 2 },
+    ];
+
+    await mark(true); await mark(true);
+    assert.deepEqual(await finals(), [others[0], others[1], { league_id: LEAGUE, season_year: 2027, period: 1 }, others[2]]);
+    await mark(false);
+    assert.deepEqual(await finals(), others);
+});
 
 test('one read of the live season looks up the saved snapshot once, in season, preseason and fresh', async t => {
     let now = Date.parse('2026-10-18T22:00:00Z');
