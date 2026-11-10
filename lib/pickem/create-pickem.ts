@@ -4,11 +4,12 @@
 // Its interface is four operations; each lives in its own file and is assembled here:
 //  - savePick (save-pick.ts): save or clear one Pick'em pick
 //  - readWeek (read-week.ts): one week, for nobody or the signed-in owner
-//  - settle (settle.ts): record each locked week, run by the evening Fantrax refresh
-//  - the season's Pick'em leaderboard is still to come.
+//  - readLeaderboard (leaderboard.ts): a season's Pick'em leaderboard
+//  - settle (settle.ts): record each locked week and freeze each settled one, run by the evening Fantrax refresh
 //
 // Pairings, week dates, scores and final weeks come from the live season module only, turned into franchises
 // with the Fantrax team mapping. Everything stored is keyed by season year, week and franchise (ADR 0005).
+import { createReadLeaderboard } from './leaderboard';
 import type { PickemPorts } from './ports';
 import { createReadWeek } from './read-week';
 export type { PickemWeekOption } from './week-switcher';
@@ -18,15 +19,18 @@ import { createSettle } from './settle';
 export type { PickemPorts } from './ports';
 export type { MatchupPair, PickemFranchise, PickemLaunch, PickemMatchup, PickemPick } from './model';
 export type { SavePickInput, SavePickRejection, SavePickResult } from './save-pick';
-export type { Asker, PickemWeek, ReadWeekInput, ReadWeekResult, YourPickem } from './read-week';
+export type { Asker, PickemWeek, ReadWeekInput, ReadWeekResult, YourPickem, YourPickemPick } from './read-week';
+export type { PickemLeaderboard, PickemLeaderboardEntry, ReadLeaderboardInput, ReadLeaderboardResult } from './leaderboard';
+export type { PickOutcome } from './results';
 export type { PickemWhoIsIn } from './whos-in';
-export type { PickemEntry, PickemMatchupBreakdown } from './locked-week';
+export type { PickemEntry, PickemMatchupBreakdown, PickemMatchupResult } from './locked-week';
 export type { SettleInput, SettleResult } from './settle';
 
 export function createPickem(ports: PickemPorts) {
     return {
         savePick: createSavePick(ports),
         readWeek: createReadWeek(ports),
+        readLeaderboard: createReadLeaderboard(ports),
         settle: createSettle(ports),
     };
 }

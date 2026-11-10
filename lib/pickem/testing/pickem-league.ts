@@ -43,7 +43,17 @@ export function weeksAroundNow(nextWeek = 6, count = 26): SourceWeek[] {
     });
 }
 
-/** The live season's in-memory state: ten mapped teams, every regular week on the default pairings. */
+/** A week's scores, by Fantrax team: [away, home, away score, home score] per matchup */
+export const scoresOf = (week: number, fetchedAt: string, scores: [number, number, number, number][]) => ({
+    fetchedAt, week, matchups: scores.map(([away, home, awayScore, homeScore]) => ({
+        away: { teamId: `fx${away}`, score: awayScore, gamesPlayed: 0 }, home: { teamId: `fx${home}`, score: homeScore, gamesPlayed: 0 },
+    })),
+});
+
+/**
+ * The live season's in-memory state: ten mapped teams, every regular week on the default pairings, each scored
+ * nil-nil until a test gives it scores.
+ */
 export function liveSeasonState(weeks: SourceWeek[] = weeksAroundNow()): MemoryState {
     const teams = FRANCHISES.map(id => ({ id: `fx${id}`, name: `Fantrax ${id}` }));
     const regularWeeks = weeks.slice(0, Math.max(weeks.length - 3, 0));
@@ -65,7 +75,8 @@ export function liveSeasonState(weeks: SourceWeek[] = weeksAroundNow()): MemoryS
         archivedPlayerIds: [],
         fantrax: {
             core,
-            scores: {},
+            scores: Object.fromEntries(regularWeeks.map(week => [week.number,
+                scoresOf(week.number, core.fetchedAt, DEFAULT_PAIRS.map(([away, home]) => [away, home, 0, 0]))])),
             leaders: { fetchedAt: core.fetchedAt, players: [] },
             rosterStats: { fetchedAt: core.fetchedAt, players: {} },
         },
@@ -93,7 +104,17 @@ export async function pickemLeague(t: TestContext, options: { launch?: PickemLau
     const asOwner = async <T>(fn: (s: typeof session) => Promise<T>) => (await league.runAsRoute('/owner', () => fn(session))).result;
     const signInAs = (uid: string) => asOwner(s => s.signIn(identity.signIn(uid)));
     const signOut = () => asOwner(s => s.signOut());
+    const weekOf = (number: number) => live.fantrax.core.weeks.find(week => week.number === number)!;
     /** the start of week `number` in the live season */
-    const startOf = (number: number) => Date.parse(live.fantrax.core.weeks.find(week => week.number === number)!.startDate);
-    return { league, live, pickem, act, asOwner, signInAs, signOut, startOf };
+    const startOf = (number: number) => Date.parse(weekOf(number).startDate);
+    /** Fantrax moves week `number` to have ended `endedDaysAgo` days ago, a week after it started, so it is a final week */
+    const playWeek = (number: number, endedDaysAgo: number) => {
+        const end = Date.now() - endedDaysAgo * DAY;
+        Object.assign(weekOf(number), { startDate: iso(end - 7 * DAY + 1000), endDate: iso(end) });
+    };
+    /** Fantrax's scores for week `number` (a stat correction, once the week has been scored) */
+    const setScores = (number: number, scores: [number, number, number, number][]) => {
+        live.fantrax.scores[number] = scoresOf(number, iso(Date.now()), scores);
+    };
+    return { league, live, pickem, act, asOwner, signInAs, signOut, startOf, weekOf, playWeek, setScores };
 }

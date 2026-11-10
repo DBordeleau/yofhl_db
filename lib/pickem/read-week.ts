@@ -3,10 +3,12 @@
 import { rows } from '@/lib/data/db';
 import { getOwnedTeam } from '@/lib/owner/teams';
 import { isLocked, loadLivePickem } from './live-weeks';
-import { entriesOf, lockedWeek, readBreakdown, type PickemMatchupBreakdown } from './locked-week';
-import { pairOfMatchup, samePair, type LivePickemWeek, type PickemMatchup, type PickemPick } from './model';
+import { entriesOf, lockedWeek, readBreakdown, type PickemMatchupBreakdown, type ScoredWeek } from './locked-week';
+import { pairOfMatchup, samePair, type PickemMatchup, type PickemPick } from './model';
 import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
+import { readRecordedSeason } from './recorded-weeks';
+import { outcomeOf, type PickOutcome } from './results';
 import { weekOptions, type PickemWeekOption } from './week-switcher';
 import { readWhosIn, type PickemWhoIsIn } from './whos-in';
 
@@ -16,12 +18,17 @@ import { readWhosIn, type PickemWhoIsIn } from './whos-in';
  */
 export type Asker = 'nobody' | 'session';
 
+/** One of the asker's Pick'em picks; `outcome` only once the week is scored */
+export interface YourPickemPick extends PickemPick {
+    outcome?: PickOutcome;
+}
+
 /** The asker's own part of a week */
 export type YourPickem =
     | { status: 'signed-out' }
     | { status: 'no-team' }
     /** the entry's Pick'em picks on the week's pairings; a pick on a pair that no longer meets is left out */
-    | { status: 'entry'; franchiseId: number; picks: PickemPick[] };
+    | { status: 'entry'; franchiseId: number; picks: YourPickemPick[] };
 
 export interface PickemWeek {
     seasonYear: number;
@@ -36,7 +43,7 @@ export interface PickemWeek {
     yours: YourPickem | null;
     /** every active franchise and whether it is in, for the next week to lock only; null for any other week */
     whosIn: PickemWhoIsIn[] | null;
-    /** every matchup's entries on each side, from the lock on, to any caller; null before the lock */
+    /** every matchup's entries on each side and, once scored, its result, from the lock on, to any caller; null before the lock */
     breakdown: PickemMatchupBreakdown[] | null;
 }
 
@@ -57,15 +64,19 @@ export type ReadWeekResult =
     | { status: 'unavailable' };
 
 export function createReadWeek(ports: PickemPorts) {
-    async function yours(week: LivePickemWeek): Promise<YourPickem> {
+    async function yours(week: ScoredWeek): Promise<YourPickem> {
         const owner = await ports.ownerSession.currentOwner();
         if (!owner) return { status: 'signed-out' };
         const team = await getOwnedTeam(owner.uid);
         if (!team) return { status: 'no-team' };
         const saved = await rows<{ low: number; high: number; picked: number }>(entryPicksQuery(week.seasonYear, week.week, team.id));
         const pairs = week.matchups.map(pairOfMatchup);
-        const picks = saved.map(pick => ({ matchup: [pick.low, pick.high] as [number, number], picked: pick.picked }))
-            .filter(pick => pairs.some(pair => samePair(pair, pick.matchup)));
+        const picks = saved.flatMap((pick): YourPickemPick[] => {
+            const matchup: [number, number] = [pick.low, pick.high];
+            const index = pairs.findIndex(pair => samePair(pair, matchup));
+            if (index < 0) return [];
+            return [week.winners ? { matchup, picked: pick.picked, outcome: outcomeOf(pick.picked, week.winners[index]) } : { matchup, picked: pick.picked }];
+        });
         return { status: 'entry', franchiseId: team.id, picks };
     }
 
@@ -81,9 +92,11 @@ export function createReadWeek(ports: PickemPorts) {
         const nextToLock = live.weeks.find(item => !isLocked(item, input.now));
         const locked = isLocked(found, input.now);
         const entries = entriesOf(live.teams);
-        const week = locked ? await lockedWeek(found, entries) : found;
+        const recorded = locked ? (await readRecordedSeason(live.seasonYear)).find(item => item.week === found.week) : undefined;
+        const week: ScoredWeek = locked ? await lockedWeek(ports, found, recorded, live.teams) : { ...found, winners: null };
         return { status: 'week', week: {
-            ...week, phase: locked ? 'locked' : 'open',
+            seasonYear: week.seasonYear, week: week.week, name: week.name, lock: week.lock, matchups: week.matchups,
+            phase: locked ? 'locked' : 'open',
             yours: input.asker === 'session' ? await yours(week) : null,
             whosIn: found === nextToLock ? await readWhosIn(week) : null,
             breakdown: locked ? await readBreakdown(week, entries) : null,
