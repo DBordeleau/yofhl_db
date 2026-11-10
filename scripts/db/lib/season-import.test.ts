@@ -33,8 +33,9 @@ async function fixtureImport(t: TestContext) {
 test('a clean import of the fixture league writes its standings, bracket, season result and history', async (t) => {
     const { db, result } = await fixtureImport(t);
 
-    assert.deepEqual(result, {
-        ok: true,
+    // the statuses it returns are covered in season-import-status.test.ts
+    assert.ok(result.ok);
+    assert.deepEqual({ seasons: result.seasons, legacyNotes: result.legacyNotes }, {
         seasons: [{ year: 2026, players: 12 }],
         legacyNotes: ['2025–26 Net Minder (Dan Dorsey): old site said "Cobalt Comets", linked to Brimley Badgers, his team at season end'],
     });

@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { eq, inArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
+import { SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
 import { seasonLabel } from '@/lib/seasons';
 import { refreshViews, type Db } from './connect';
 import { prepareHistory, writeHistory } from './history';
@@ -403,6 +404,12 @@ const seedLegacy = async (db: Db, config: LeagueConfig, legacy: LegacySeeds, yea
     return notes;
 };
 
+// postgres-js returns the rows themselves, PGlite wraps them in { rows }
+const readSeasonStatuses = async (db: Db): Promise<SeasonStatus[]> => {
+    const result = (await db.execute(SEASON_STATUS_QUERY)) as unknown as SeasonStatus[] | { rows: SeasonStatus[] };
+    return Array.isArray(result) ? result : result.rows;
+};
+
 export interface SeasonImportInput {
     /** A database already migrated: saved bracket corrections are read from it during validation. */
     db: Db;
@@ -419,8 +426,11 @@ export interface SeasonImportInput {
 export type SeasonImportResult =
     /** Every validation problem, de-duplicated. Nothing was written. */
     | { ok: false; errors: string[] }
-    /** Each imported season and how many player seasons it kept, in import order, plus the legacy award notes. */
-    | { ok: true; seasons: { year: number; players: number }[]; legacyNotes: string[] };
+    /**
+     * Each imported season and how many player seasons it kept, in import order; every season's status
+     * (the admin season checklist's numbers, newest first), read after the import's writes; and the legacy award notes.
+     */
+    | { ok: true; seasons: { year: number; players: number }[]; statuses: SeasonStatus[]; legacyNotes: string[] };
 
 export const importSeasons = async ({ db, config, dataDir, seasons, legacy, loadDraftFacts }: SeasonImportInput): Promise<SeasonImportResult> => {
     const available = findSeasonFiles(dataDir);
@@ -476,5 +486,7 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
     await writeHistory(db, history);
     await refreshViews(db);
 
-    return { ok: true, seasons: imported, legacyNotes };
+    // read once every write has landed, so the statuses are what the admin season checklist will show
+    const statuses = await readSeasonStatuses(db);
+    return { ok: true, seasons: imported, statuses, legacyNotes };
 };
