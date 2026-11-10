@@ -12,9 +12,12 @@ export const metadata: Metadata = {
     description: "One Pick'em week: pick every matchup until the lock, then see how the picks split.",
 };
 
-// Any Pick'em week, read for nobody like /pickem: pick controls until the lock, the breakdown from then on. A week
-// turns into its breakdown at its lock, so it is rebuilt every minute.
+// Any Pick'em week, read for nobody like /pickem: pick controls until the lock, the breakdown from then on. Each
+// week is rendered on its first visit and cached (ISR). A render decides locked or open from its own clock, so a
+// copy cached before the lock never shows a breakdown; it is rebuilt every minute, so the breakdown appears within
+// about a minute of the lock without waiting for settle, which expires it on recording or freezing the week.
 export const revalidate = 60;
+export function generateStaticParams() { return []; }
 
 export default async function PickemWeekPage({ params }: { params: Promise<{ week: string }> }) {
     if (!PICKEM_LAUNCH) notFound();
