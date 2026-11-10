@@ -4,6 +4,7 @@ import type { TeamColours } from '../team-branding';
 import { curatedEditEffects, leagueTags, teamIdentityTags, type CuratedEdit } from './cache-tags';
 import { rows } from './db';
 import { inRefreshOrder } from './materialized-views';
+import { matchupWinner } from './matchup-winner';
 
 // Curated edits: changes an admin or owner makes through the site. Each one checks the edit,
 // writes it in one statement, refreshes the views it affects and expires the pages that show it
@@ -96,10 +97,10 @@ export async function saveMatchup(year: number, matchupId: number, winner: 'scor
     if (winner !== 'score' && winner !== game.a_f && winner !== game.h_f) return { ok: false, reason: 'not-in-matchup' };
 
     const cleanNote = String(note ?? '').trim().slice(0, 300) || null;
-    const winnerTeamSeason =
-        winner === game.a_f ? game.a_ts
-            : winner === game.h_f ? game.h_ts
-                : game.a_score > game.h_score ? game.a_ts : game.h_score > game.a_score ? game.h_ts : null;
+    const winnerTeamSeason = matchupWinner(
+        { id: game.a_ts, score: game.a_score },
+        { id: game.h_ts, score: game.h_score },
+        winner === game.a_f ? game.a_ts : winner === game.h_f ? game.h_ts : null);
     const [low, high] = [Math.min(game.a_f, game.h_f), Math.max(game.a_f, game.h_f)];
     const override = winner === 'score' && !cleanNote
         ? sql`delete from league.matchup_overrides
