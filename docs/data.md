@@ -59,7 +59,7 @@ Admin sessions use an HttpOnly cookie scoped to `/admin`, with a 12-hour expiry.
 5. Open `/admin`, sign in, and select the imported season. Set the championship roster, enter award winners, and review the bracket. The roster editor can start from the champion's end-of-season players, then add players dropped before the export.
 6. Check the import summary and the public season page. If importing into a hosted database, confirm the site cache was refreshed.
 
-The importer applies migrations before it validates season data, because it reads saved bracket corrections. Validation errors normally stop season writes, but this is not a dry-run command. League configuration writes, per-season transactions, legacy seeding, and history replacement are separate steps. A failure late in the run can leave earlier steps committed.
+The season import command applies migrations before it validates season data, because it reads saved bracket corrections and existing championship rosters and awards. Every validation problem is reported in one list before anything is written, including a ring or award player missing from the season's player export. The import is all or nothing ([ADR 0004](adr/0004-season-import-is-one-transaction.md)): league configuration, Fantrax teams, every season, legacy seeding, history replacement, and the materialized view refreshes are one transaction, so a failure at any point leaves the database as it was. Three things run outside it: before it, migrations (which stay applied if the import then fails) and the NHL draft-facts fetch (which writes nothing itself); after it commits, the site cache clear. This is not a dry-run command.
 
 Reimports replace imported rows for the selected seasons. Existing championship rosters and awards are preserved, and bracket corrections are reapplied. The legacy seeds can refill an entirely empty historical roster or award list. Lottery snapshots are not changed. Use an isolated database when checking changed exports or import code.
 
@@ -156,7 +156,7 @@ The full season importer refreshes all three materialized views before invalidat
 | `player_careers` | Career totals, FP/G, positions, championships, awards, and all-time rank |
 | `franchise_records` | Regular-season record, points, championship seasons, and finals appearances |
 
-Roster and award edits refresh only `player_careers`. Matchup edits refresh `season_results` and then `franchise_records`, which reads it. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
+Roster and award edits refresh only `player_careers`. Matchup edits refresh `season_results` and `franchise_records`. Every refresh runs in the order listed in `lib/data/materialized-views.ts`. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
 
 The lottery uses uncached reads and server time instead of the league cache. Its endpoint sets `Cache-Control: no-store, max-age=0`; a request at or after the scheduled start can persist the draw. See the [draw and viewer behavior](lottery.md#draw-and-viewer-behavior).
 

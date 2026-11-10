@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator';
@@ -8,6 +8,7 @@ import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
 import { migrate as migratePostgres } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import * as schema from '@/db/schema';
+import { MATERIALIZED_VIEWS } from '@/lib/data/materialized-views';
 
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
@@ -47,9 +48,12 @@ export const connect = async () => {
     };
 };
 
-// season_results first: franchise_records reads it
+// postgres-js returns the rows themselves, PGlite wraps them in { rows }
+export const queryRows = async <T,>(db: Db, query: SQL): Promise<T[]> => {
+    const result = (await db.execute(query)) as unknown as T[] | { rows: T[] };
+    return Array.isArray(result) ? result : result.rows;
+};
+
 export const refreshViews = async (db: Db) => {
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.season_results`);
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.player_careers`);
-    await db.execute(sql`REFRESH MATERIALIZED VIEW league.franchise_records`);
+    for (const view of MATERIALIZED_VIEWS) await db.execute(sql`REFRESH MATERIALIZED VIEW league.${sql.identifier(view)}`);
 };

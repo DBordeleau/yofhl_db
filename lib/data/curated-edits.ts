@@ -4,6 +4,8 @@ import type { TeamColours } from '../team-branding';
 import { curatedEditEffects, leagueTags, teamIdentityTags, type CuratedEdit } from './cache-tags';
 import { rows } from './db';
 import pilotTeams from '../coachs-corner/pilot-teams.json';
+import { inRefreshOrder } from './materialized-views';
+import { matchupWinner } from './matchup-winner';
 
 // Curated edits: changes an admin or owner makes through the site. Each one checks the edit,
 // writes it in one statement, refreshes the views it affects and expires the pages that show it
@@ -26,7 +28,7 @@ const writeAndRefresh = async (kind: CuratedEdit, year: number, write: SQL, opti
     const { views, tags } = curatedEditEffects(kind, year);
     // A refresh failure comes after the write has committed, so expire the pages before rethrowing.
     try {
-        for (const view of views) await rows(sql`refresh materialized view league.${sql.identifier(view)}`);
+        for (const view of inRefreshOrder(views)) await rows(sql`refresh materialized view league.${sql.identifier(view)}`);
     } finally {
         expire(tags, options);
     }
@@ -99,10 +101,11 @@ export async function saveMatchup(year: number, matchupId: number, winner: 'scor
     if (winner !== 'score' && winner !== game.a_f && winner !== game.h_f) return { ok: false, reason: 'not-in-matchup' };
 
     const cleanNote = String(note ?? '').trim().slice(0, 300) || null;
-    const winnerTeamSeason =
-        winner === game.a_f ? game.a_ts
-            : winner === game.h_f ? game.h_ts
-                : game.a_score > game.h_score ? game.a_ts : game.h_score > game.a_score ? game.h_ts : null;
+    // The override names a franchise; the matchup stores the winning team season.
+    const away = { franchise: game.a_f, id: game.a_ts, score: game.a_score };
+    const home = { franchise: game.h_f, id: game.h_ts, score: game.h_score };
+    const overriddenBy = [away, home].find(side => side.franchise === winner);
+    const winnerTeamSeason = matchupWinner(away, home, overriddenBy?.id);
     const [low, high] = [Math.min(game.a_f, game.h_f), Math.max(game.a_f, game.h_f)];
     const override = winner === 'score' && !cleanNote
         ? sql`delete from league.matchup_overrides

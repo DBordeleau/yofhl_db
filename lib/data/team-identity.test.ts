@@ -65,6 +65,7 @@ async function setup(t: TestContext) {
     await client.query(`insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id) values
         (2027, $1, '6pfjiq07mutybt24', 1), (2027, $1, '4num7i90mutybt24', 2)`, [LEAGUE]);
     await client.query(`insert into league.fantrax_snapshots (league_id, data) select $1, $2::jsonb`, [LEAGUE, JSON.stringify(snapshot())]);
+    return { client };
 }
 
 type Identity = { name: string; abbreviation: string; logo: string | null };
