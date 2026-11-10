@@ -134,3 +134,40 @@ test('one read of the live season looks up the saved snapshot once, in season, p
     assert.equal(fresh.live.leaders.status === 'available' && fresh.live.leaders.value.players[0].points, 20);
     assert.equal(fresh.lookups, 1);
 });
+
+test('a refresh and a final week keep the saved snapshot and final weeks rows in their stored shape', async t => {
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: fantrax(() => false) });
+    t.mock.method(Date, 'now', () => Date.parse('2026-10-18T22:00:00Z'));
+    const { setWeekFinal } = await import('./live-season');
+    // Marking a week final refreshes first, so this one route saves both.
+    await league.runAsRoute('/api/admin/fantrax', () => setWeekFinal(1, true));
+    const { data } = (await league.client.query<{ data: SavedLiveSeason }>('select data from league.fantrax_snapshots')).rows[0];
+    // Every capture time is when the test ran, so only its form is checked.
+    const stored = JSON.parse(JSON.stringify(data, (key, value) => {
+        if (key !== 'fetchedAt') return value;
+        assert.ok(!Number.isNaN(Date.parse(value)), `fetchedAt ${value}`);
+        return 'captured';
+    }));
+    // Raw Fantrax responses, in Fantrax's own periods and dates; only the season year is converted. Week scores
+    // are keyed and labelled by period.
+    assert.deepEqual(stored, {
+        source: {
+            fetchedAt: 'captured',
+            info: {
+                seasonYear: 2027, teamInfo: { a: { name: 'A' }, b: { name: 'B' } }, rosterPeriods: [],
+                playoffs: { numPlayoffTeams: 6, lastRegularSeasonPeriod: 1, firstPlayoffPeriod: 2 },
+                scoringPeriods: [{ number: 1, startDate: '2026-10-12T13:00:00-0400', endDate: '2026-10-19T18:59:59-0400' },
+                    ...[2, 3, 4].map(number => ({ number, startDate: `2026-11-0${number}T13:00:00-0400`, endDate: `2026-11-0${number}T18:59:59-0400` }))],
+                matchups: [{ period: 1, matchupList: [{ away: { id: 'a' }, home: { id: 'b' } }] }],
+            },
+            rosters: { period: 1, rosters: {} },
+            standings: [{ teamId: 'a', rank: 1, points: '0-0-0' }, { teamId: 'b', rank: 2, points: '0-0-0' }],
+        },
+        scores: { 1: { fetchedAt: 'captured', period: 1, matchups: [{ away: { teamId: 'a', score: 10, gamesPlayed: 1 }, home: { teamId: 'b', score: 5, gamesPlayed: 1 } }] } },
+        leaders: { fetchedAt: 'captured', players: [{ id: 'p', name: 'Player', position: 'C', points: 20, perGame: 10, teamId: 'a', team: 'A', archiveId: null }] },
+        rosterStats: { fetchedAt: 'captured', players: { p: { points: 20, perGame: 10 } } },
+    });
+    const finals = await league.client.query<{ league_id: string; season_year: number; period: number }>('select * from league.fantrax_final_weeks');
+    assert.deepEqual(finals.fields.map(field => field.name), ['league_id', 'season_year', 'period', 'marked_at']);
+    assert.deepEqual(finals.rows.map(({ league_id, season_year, period }) => ({ league_id, season_year, period })), [{ league_id: LEAGUE, season_year: 2027, period: 1 }]);
+});
