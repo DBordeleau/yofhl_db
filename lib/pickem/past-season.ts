@@ -1,6 +1,7 @@
 // A past season's Pick'em, read from Pick'em's own record alone (ADR 0005): its recorded weeks and their frozen
 // results, and its entries shown with their franchises' season identities.
 import { sql } from 'drizzle-orm';
+import { leagueTags } from '@/lib/data/cache-tags';
 import { cached, rows } from '@/lib/data/db';
 import type { CountedWeek, PickemEntry } from './locked-week';
 import type { PickemFranchise } from './model';
@@ -22,9 +23,12 @@ const seasonEntriesQuery = (seasonYear: number) => sql`
     left join league.owners co on co.id = ct.owner_id`;
 
 const readSeasonTeams = cached(async (seasonYear: number) => rows<PickemFranchise & { owner: string | null }>(seasonEntriesQuery(seasonYear)),
-    'pickem-season-entries');
+    'pickem-season-entries', [leagueTags.franchiseCards]);
 
-/** A past season's entries, by franchise. Cached: the season import expires every league read. */
+/**
+ * A past season's entries, by franchise. Cached: the season import expires every league read, and a branding edit
+ * (which a season not imported yet falls back to) expires it with the franchise cards.
+ */
 export async function readSeasonEntries(seasonYear: number): Promise<Map<number, PickemEntry>> {
     const found = await readSeasonTeams(seasonYear);
     return new Map(found.map(({ owner, ...franchise }) => [franchise.id, { franchise, owner }]));
