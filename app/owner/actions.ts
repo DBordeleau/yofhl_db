@@ -6,6 +6,7 @@ import { rows } from '@/lib/data/db';
 import type { ClaimRejection, SaveBrandingRejection, SaveTeamRejection } from '@/lib/owner/create-owner-session';
 import { hashCode, invitation } from '@/lib/owner/model';
 import { ownerSession } from '@/lib/owner/owner-session';
+import { requireSameOrigin } from '@/lib/owner/same-origin';
 import { issueInviteQuery } from '@/lib/owner/queries';
 
 const claimMessages: Record<ClaimRejection, string> = {
@@ -36,7 +37,7 @@ const refresh = () => {
 };
 
 export async function saveTeamBranding(id: number, version: number, value: unknown) {
-    const result = await ownerSession.saveBranding(id, version, value);
+    const result = await ownerSession.saveBranding({ franchiseId: id, version, branding: value });
     if (!result.ok) return { error: saveMessages[result.reason] };
     refresh();
     revalidatePath(`/admin/teams/${id}/branding`);
@@ -59,7 +60,7 @@ export async function signOutOwner() {
 }
 
 export async function createTeamInvitation(id: number) {
-    await ownerSession.requireSameOrigin();
+    await requireSameOrigin();
     await requireAdmin();
     if (!Number.isSafeInteger(id)) throw new Error('Invalid team.');
     const code = invitation();

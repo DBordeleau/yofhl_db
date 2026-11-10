@@ -15,7 +15,7 @@ export function createMemoryIdentity() {
         sessionChecks: 0,
     };
     let minted = 0;
-    const up = (call: keyof IdentityPort) => { if (state.failing.has(call)) throw new Error('Firebase is down'); };
+    const failIfDown = (call: keyof IdentityPort) => { if (state.failing.has(call)) throw new Error('Firebase is down'); };
     const port: IdentityPort = {
         async verifySession(cookie) {
             state.sessionChecks++;
@@ -24,13 +24,13 @@ export function createMemoryIdentity() {
             return user && !state.revoked.has(user.uid) ? { ...user } : null;
         },
         async verifyIdToken(idToken) {
-            up('verifyIdToken');
+            failIfDown('verifyIdToken');
             const user = state.tokens.get(idToken);
             if (!user || state.revoked.has(user.uid)) throw new Error('auth/invalid-id-token');
             return { ...user };
         },
         async createSession(idToken) {
-            up('createSession');
+            failIfDown('createSession');
             const user = state.tokens.get(idToken);
             if (!user) throw new Error('auth/invalid-id-token');
             const value = `session-${++minted}`;
