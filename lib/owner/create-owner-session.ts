@@ -3,6 +3,9 @@ import sharp from 'sharp';
 import { getDb, rows } from '@/lib/data/db';
 import { saveTeamBranding, saveTeamIdentity, type Actor } from '@/lib/data/curated-edits';
 import { parseTeamColours } from '@/lib/team-branding';
+import type { KeeperReminderState } from '@/components/keepers/reminder';
+import { getKeeperRoster, getKeeperSubmission } from '@/lib/keepers/data';
+import { KEEPERS_ENABLED, keepersOpen, submissionStatus } from '@/lib/keepers/model';
 import { hashCode, teamName, type ManagedTeam } from './model';
 import type { OwnerSessionPorts, OwnerUser } from './ports';
 import { claimTeamQuery, rateLimitQuery } from './queries';
@@ -16,6 +19,7 @@ import { getOwnedTeam } from './teams';
 // actor, rate limit. Its own input is validated after it.
 
 const SESSION_COOKIE = 'yofhl_owner';
+const HINT_COOKIE = 'yofhl_owner_hint';
 const SESSION_MS = 5 * 24 * 60 * 60 * 1000;
 const ATTEMPTS = 30;
 const FRESH_SIGN_IN_SECONDS = 300;
@@ -28,6 +32,13 @@ export type ClaimRejection = 'invalid-code' | 'code-unavailable' | 'already-owns
 export type SaveTeamRejection = 'session-expired' | 'invalid-team' | 'invalid-name' | 'image-too-large'
     | 'image-unreadable' | 'upload-failed' | 'save-failed' | TeamRejection;
 export type SaveBrandingRejection = 'session-expired' | 'invalid-team' | 'invalid-branding' | TeamRejection;
+
+/** What the header route returns. */
+export interface HeaderAnswer {
+    signedIn: boolean;
+    team: { name: string; logo: string | null; abbreviation: string } | null;
+    keepers: KeeperReminderState | null;
+}
 
 export interface SaveTeamInput {
     franchiseId: number;
@@ -122,11 +133,44 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         return { ...user, email: user.email };
     }
 
+    const sessionCookie = (httpOnly: boolean) =>
+        ({ httpOnly, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: SESSION_MS / 1000 }) as const;
+
+    // The session hint tells the header a session may exist, so anonymous visitors make no request. It is
+    // readable by design and carries no secret. See ADR 0003.
+    const setHint = () => request.setCookie(HINT_COOKIE, '1', sessionCookie(false));
+    const clearHint = () => request.setCookie(HINT_COOKIE, '', { path: '/', maxAge: 0 });
+
     async function startSession(idToken: string) {
         const value = await identity.createSession(idToken, SESSION_MS);
-        await request.setCookie(SESSION_COOKIE, value, {
-            httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: SESSION_MS / 1000,
-        });
+        await request.setCookie(SESSION_COOKIE, value, sessionCookie(true));
+        await setHint();
+    }
+
+    /**
+     * What the header shows: whether an owner is signed in, their team and the keeper reminder. Reconciles the
+     * hint with the session, which heals owners signed in before the hint existed and clears a dead session's.
+     */
+    async function headerAnswer(): Promise<HeaderAnswer> {
+        const user = await currentOwner();
+        const hinted = Boolean(await request.cookie(HINT_COOKIE));
+        if (user && !hinted) await setHint();
+        if (!user && hinted) await clearHint();
+        const team = user ? await getOwnedTeam(user.uid) : null;
+        let keepers: HeaderAnswer['keepers'] = null;
+        if (KEEPERS_ENABLED && team && keepersOpen()) {
+            const submission = await getKeeperSubmission(team.id);
+            // An API outage must not make an existing submission look missing. Only the submission status is
+            // reported, so the cached live season is enough.
+            const current = submission ? await getKeeperRoster(team.id, false).catch(() => null) : null;
+            const newerRoster = current && submission && Date.parse(current.fetchedAt) > Date.parse(submission.submittedAt) ? current.roster : undefined;
+            keepers = { status: submissionStatus(submission, newerRoster), serverNow: new Date().toISOString() };
+        }
+        return {
+            signedIn: Boolean(user),
+            team: team ? { name: team.name, logo: team.logo, abbreviation: team.abbreviation } : null,
+            keepers,
+        };
     }
 
     /** Start an owner session from a sign-in no older than five minutes. */
@@ -139,6 +183,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
     async function signOut() {
         await requireSameOrigin();
         await request.setCookie(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
+        await clearHint();
     }
 
     /** Claim the team an invitation code was issued for, signing the owner in first. */
@@ -204,7 +249,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         return saveTeamBranding(start.actor, franchiseId, version, branding);
     }
 
-    return { requireSameOrigin, currentOwner, preamble, signIn, signOut, claimTeam, saveTeam, saveBranding };
+    return { requireSameOrigin, currentOwner, preamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
 }
 
 export type OwnerSession = ReturnType<typeof createOwnerSession>;
