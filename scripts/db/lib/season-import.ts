@@ -5,7 +5,7 @@ import * as schema from '@/db/schema';
 import { matchupWinner } from '@/lib/data/matchup-winner';
 import { SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
 import { seasonLabel } from '@/lib/seasons';
-import { refreshViews, type Db } from './connect';
+import { queryRows, refreshViews, type Db } from './connect';
 import { prepareHistory, writeHistory } from './history';
 import { enrichDraftDevelopment, type DraftFactsLoader } from './draft-development';
 import { prepareFantraxTeams, writeFantraxTeams } from './fantrax-teams';
@@ -416,12 +416,6 @@ const seedLegacy = async (db: Db, config: LeagueConfig, legacy: LegacySeeds, yea
     return notes;
 };
 
-// postgres-js returns the rows themselves, PGlite wraps them in { rows }
-const readSeasonStatuses = async (db: Db): Promise<SeasonStatus[]> => {
-    const result = (await db.execute(SEASON_STATUS_QUERY)) as unknown as SeasonStatus[] | { rows: SeasonStatus[] };
-    return Array.isArray(result) ? result : result.rows;
-};
-
 export interface SeasonImportInput {
     /**
      * A database already migrated, on a driver with interactive transactions (postgres-js or PGlite, not
@@ -522,6 +516,6 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
     });
 
     // read after the transaction commits, so the statuses are what the admin season checklist will show
-    const statuses = await readSeasonStatuses(db);
+    const statuses = await queryRows<SeasonStatus>(db, SEASON_STATUS_QUERY);
     return { ok: true, seasons: imported, statuses, legacyNotes };
 };

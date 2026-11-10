@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator';
@@ -46,6 +46,12 @@ export const connect = async () => {
         migrate: () => migratePostgres(drizzlePostgres(client, { schema }), MIGRATIONS),
         close: () => client.end(),
     };
+};
+
+// postgres-js returns the rows themselves, PGlite wraps them in { rows }
+export const queryRows = async <T,>(db: Db, query: SQL): Promise<T[]> => {
+    const result = (await db.execute(query)) as unknown as T[] | { rows: T[] };
+    return Array.isArray(result) ? result : result.rows;
 };
 
 export const refreshViews = async (db: Db) => {

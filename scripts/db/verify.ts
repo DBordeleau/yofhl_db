@@ -1,5 +1,5 @@
-import { sql, type SQL } from 'drizzle-orm';
-import { connect, type Db } from './lib/connect';
+import { sql } from 'drizzle-orm';
+import { connect, queryRows } from './lib/connect';
 import { normalizeName } from './lib/league-config';
 import { seasonLabel } from '../../lib/seasons';
 
@@ -27,11 +27,6 @@ const live = async <T,>(path: string): Promise<T> => {
     return res.json() as Promise<T>;
 };
 
-const rows = async <T,>(db: Db, query: SQL): Promise<T[]> => {
-    const result = await db.execute(query);
-    return (Array.isArray(result) ? result : (result as unknown as { rows: T[] }).rows) as T[];
-};
-
 let problems = 0;
 const report = (title: string, diffs: string[], checked: number) => {
     problems += diffs.length;
@@ -45,14 +40,14 @@ interface LivePlayer { ID: string; Player: string; FPts: number; FPG: string; Ye
 const main = async () => {
     const { db, label, close: closeDb } = await connect();
     try {
-        const [{ max }] = await rows<{ max: number }>(db, sql`select max(season_year)::int as max from league.player_seasons`);
+        const [{ max }] = await queryRows<{ max: number }>(db, sql`select max(season_year)::int as max from league.player_seasons`);
         const liveSingle = await live<{ players: LivePlayer[]; maxPages: number }>('/stats/single-season/all?page=1');
         const liveLast = Math.max(...liveSingle.players.map((p) => p.Year ?? 0), 2025);
         const upTo = Math.min(max, liveLast);
         console.log(`Comparing ${label} with ${LIVE_API} for seasons up to ${seasonLabel(upTo)}`);
 
         // champions: the hard-coded list on the old site vs the bracket results
-        const results = await rows<{ season_year: number; champion: string | null; status: string }>(db, sql`
+        const results = await queryRows<{ season_year: number; champion: string | null; status: string }>(db, sql`
             select s.year as season_year, s.playoff_status as status, t.name as champion
             from league.seasons s left join league.season_results r on r.season_year = s.year
             left join league.team_seasons t on t.id = r.champion_team_season_id
@@ -69,7 +64,7 @@ const main = async () => {
             ...(await live<{ players: LivePlayer[] }>('/stats/all-time/all?page=1')).players,
             ...(await live<{ players: LivePlayer[] }>('/stats/all-time/all?page=2')).players,
         ];
-        const ourAllTime = await rows<{ player_id: string; total: number; fpg: number; cups: number }>(db, sql`
+        const ourAllTime = await queryRows<{ player_id: string; total: number; fpg: number; cups: number }>(db, sql`
             select ps.player_id, sum(ps.fpts)::float as total, round(avg(ps.fpg), 2)::float as fpg,
                    (select count(*)::int from league.championship_rosters c where c.player_id = ps.player_id and c.season_year <= ${upTo}) as cups
             from league.player_seasons ps where ps.fpts > 0 and ps.season_year <= ${upTo}
@@ -89,7 +84,7 @@ const main = async () => {
 
         // single-season leaderboard, first two pages
         const liveSeasons = [...liveSingle.players, ...(await live<{ players: LivePlayer[] }>('/stats/single-season/all?page=2')).players];
-        const ourSeasons = await rows<{ player_id: string; season_year: number; fpts: number; fpg: number; awards: number; champion: boolean }>(db, sql`
+        const ourSeasons = await queryRows<{ player_id: string; season_year: number; fpts: number; fpg: number; awards: number; champion: boolean }>(db, sql`
             select ps.player_id, ps.season_year, ps.fpts::float as fpts, ps.fpg::float as fpg,
                    (select count(*)::int from league.awards a where a.player_id = ps.player_id and a.season_year = ps.season_year) as awards,
                    exists (select 1 from league.championship_rosters c where c.player_id = ps.player_id and c.season_year = ps.season_year) as champion
@@ -107,7 +102,7 @@ const main = async () => {
         }), liveSeasons.length);
 
         // leaderboard sizes (live maxPages = rows / 25, rounded up)
-        const [counts] = await rows<{ seasons: number; players: number }>(db, sql`
+        const [counts] = await queryRows<{ seasons: number; players: number }>(db, sql`
             select count(*)::int as seasons, count(distinct player_id)::int as players
             from league.player_seasons where fpts > 0 and season_year <= ${upTo}`);
         const liveAllTimePages = (await live<{ maxPages: number }>('/stats/all-time/all?page=1')).maxPages;
@@ -118,7 +113,7 @@ const main = async () => {
 
         // franchise records
         const liveTeams = await live<{ ID: number; Team: string; Wins: number; Losses: number; FPF: number; Championships: string; Finals: string }[]>('/teams/stats');
-        const ourTeams = await rows<{ franchise_id: number; wins: number; losses: number; fpf: number; titles: number[]; finals: number[] }>(db, sql`
+        const ourTeams = await queryRows<{ franchise_id: number; wins: number; losses: number; fpf: number; titles: number[]; finals: number[] }>(db, sql`
             select f.id as franchise_id,
                    coalesce(sum(t.wins), 0)::int as wins, coalesce(sum(t.losses), 0)::int as losses, coalesce(sum(t.fpts_for), 0)::float as fpf,
                    coalesce(array_agg(t.season_year order by t.season_year) filter (where t.id = r.champion_team_season_id), '{}') as titles,
@@ -144,7 +139,7 @@ const main = async () => {
         let careerRows = 0;
         for (const p of liveAllTime.slice(0, 25)) {
             const { playerStats } = await live<{ playerStats: { Year: number; FPts: number; YOFHLTeam: string; Champion: boolean }[] }>(`/player/${encodeURIComponent(p.ID)}`);
-            const ours = await rows<{ season_year: number; fpts: number; abbreviation: string | null; champion: boolean }>(db, sql`
+            const ours = await queryRows<{ season_year: number; fpts: number; abbreviation: string | null; champion: boolean }>(db, sql`
                 select ps.season_year, ps.fpts::float as fpts, t.abbreviation,
                        exists (select 1 from league.championship_rosters c where c.player_id = ps.player_id and c.season_year = ps.season_year) as champion
                 from league.player_seasons ps left join league.team_seasons t on t.id = ps.team_season_id
