@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { MatchupPair } from './model';
 
-interface PickTarget {
+interface PickemPickTarget {
     seasonYear: number;
     week: number;
     entryFranchiseId: number;
@@ -16,14 +16,14 @@ interface PickTarget {
 // settle has recorded it (a recorded week stays locked even if Fantrax later moves its start). It returns no row
 // when the owner no longer manages the franchise, and `open: false` once the week has locked. `changed` says whether the entry's picked
 // matchups changed (a new pick, or a pick cleared) rather than only the side picked, which is what who's in reads.
-const entry = (target: PickTarget) => sql`entry as (
+const entry = (target: PickemPickTarget) => sql`entry as (
     select f.id, clock_timestamp() < ${target.lock}::timestamptz
                and not exists (select 1 from league.pickem_weeks w where w.season_year = ${target.seasonYear}::int and w.week = ${target.week}::int) as open
     from league.franchises f join league.team_management m on m.franchise_id = f.id
     where f.id = ${target.entryFranchiseId}::int and f.folded_after_season is null and m.owner_uid = ${target.uid}
 )`;
 
-export const savePickQuery = (target: PickTarget, picked: number) => sql`
+export const savePickemPickQuery = (target: PickemPickTarget, picked: number) => sql`
     with ${entry(target)},
     saved as (
         insert into league.pickem_picks (season_year, week, entry_franchise_id, low_franchise_id, high_franchise_id, picked_franchise_id)
@@ -35,7 +35,7 @@ export const savePickQuery = (target: PickTarget, picked: number) => sql`
     )
     select open, exists (select 1 from saved where inserted) as changed from entry`;
 
-export const clearPickQuery = (target: PickTarget) => sql`
+export const clearPickemPickQuery = (target: PickemPickTarget) => sql`
     with ${entry(target)},
     cleared as (
         delete from league.pickem_picks p using entry

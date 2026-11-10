@@ -30,7 +30,7 @@ const ALL: [number, number][] = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]];
 
 test('a franchise with a Pick\'em pick on every matchup is in, one missing any is not, and clearing one takes it out', async t => {
     const { act, signInAs } = await pickemLeague(t);
-    const save = (matchup: [number, number], picked: number | null) => act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
+    const save = (matchup: [number, number], picked: number | null) => act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
     await signInAs('owner-1');
     for (const matchup of ALL) assert.deepEqual(await save(matchup, matchup[1]), { ok: true });
     await signInAs('owner-2');
@@ -48,21 +48,21 @@ test('a franchise with a Pick\'em pick on every matchup is in, one missing any i
 test('a Pick\'em pick on a pair that no longer meets does not count toward being in', async t => {
     const { act, live, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    for (const matchup of ALL) assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked: matchup[0] })), { ok: true });
+    for (const matchup of ALL) assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked: matchup[0] })), { ok: true });
     assert.deepEqual(await inFor(act), [1]);
     // Fantrax swaps two pairings: 1 v 2 and 3 v 4 become 1 v 3 and 2 v 4.
     live.fantrax.core.schedule.find(round => round.week === 6)!.matchups = scheduleOf([[1, 3], [2, 4], [5, 6], [7, 8], [9, 10]]);
     assert.deepEqual(await inFor(act), []);
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 3], picked: 1 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [1, 3], picked: 1 })), { ok: true });
     assert.deepEqual(await inFor(act), []);
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [2, 4], picked: 4 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [2, 4], picked: 4 })), { ok: true });
     assert.deepEqual(await inFor(act), [1]);
 });
 
 test('the who\'s-in list reaches a signed-out caller and an owner alike, and never says which side anyone picked', async t => {
     const { act, signInAs, signOut } = await pickemLeague(t);
     await signInAs('owner-4');
-    for (const matchup of ALL) assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked: matchup[1] })), { ok: true });
+    for (const matchup of ALL) assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked: matchup[1] })), { ok: true });
     await signOut();
     assert.deepEqual(await inFor(act, 'session'), [4]);
     assert.deepEqual(await inFor(act, 'nobody'), [4]);
@@ -78,7 +78,7 @@ test('the who\'s-in list reaches a signed-out caller and an owner alike, and nev
 test('a week beyond the next to lock, and a locked week, have no who\'s-in list', async t => {
     const { act, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');
-    assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 7, matchup: [1, 2], picked: 1 })), { ok: true });
+    assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 7, matchup: [1, 2], picked: 1 })), { ok: true });
     for (const week of [5, 7, 20]) {
         for (const asker of ['nobody', 'session'] as const) {
             const read = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week, asker }));

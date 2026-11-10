@@ -30,13 +30,13 @@ export interface PickemLeaderboard {
     winners: PickemLeaderboardEntry[];
 }
 
-export interface ReadLeaderboardInput {
+export interface ReadPickemLeaderboardInput {
     now: number;
     /** the season being played when omitted */
     seasonYear?: number;
 }
 
-export type ReadLeaderboardResult =
+export type ReadPickemLeaderboardResult =
     /**
      * `beingPlayed`: whether this is the season being played, the live season's. `seasons`: every season with a
      * Pick'em, newest first.
@@ -88,8 +88,8 @@ export function rankEntries(weeks: Pick<CountedWeek, 'week' | 'matchups' | 'winn
     });
 }
 
-export function createReadLeaderboard(ports: PickemPorts) {
-    return async function readLeaderboard(input: ReadLeaderboardInput): Promise<ReadLeaderboardResult> {
+export function createReadPickemLeaderboard(ports: PickemPorts) {
+    return async function readPickemLeaderboard(input: ReadPickemLeaderboardInput): Promise<ReadPickemLeaderboardResult> {
         if (!ports.launch) return { status: 'no-season' };
         const season = await askedSeason(ports, input.now, input.seasonYear);
         if (season.kind === 'none') return { status: 'no-season' };

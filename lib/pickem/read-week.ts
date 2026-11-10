@@ -9,7 +9,7 @@ import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
 import { readSeasonEntries, recordedWeek } from './past-season';
 import { readRecordedSeason } from './recorded-weeks';
-import { outcomeOf, type PickOutcome } from './results';
+import { outcomeOf, type PickemPickOutcome } from './results';
 import { askedSeason } from './seasons';
 import { weekOptions, type PickemWeekOption } from './week-switcher';
 import { readWhosIn, type PickemWhoIsIn } from './whos-in';
@@ -22,7 +22,7 @@ export type Asker = 'nobody' | 'session';
 
 /** One of the asker's Pick'em picks; `outcome` only once the week is scored */
 export interface YourPickemPick extends PickemPick {
-    outcome?: PickOutcome;
+    outcome?: PickemPickOutcome;
 }
 
 /** The asker's own part of a week */

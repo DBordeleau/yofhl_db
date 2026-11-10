@@ -16,13 +16,13 @@ const shortSeason = () => liveSeasonState(weeksAroundNow(5, 9));
 async function savePicks({ act, signInAs, signOut }: League, week: number, picks: [number, [number, number], number][], seasonYear = SEASON) {
     for (const [owner, matchup, picked] of picks) {
         await signInAs(`owner-${owner}`);
-        assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear, week, matchup, picked })), { ok: true });
+        assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear, week, matchup, picked })), { ok: true });
     }
     await signOut();
 }
 
 async function leaderboardAt(league: League, time: number, seasonYear?: number) {
-    const read = await league.act(p => p.readLeaderboard({ now: time, seasonYear }));
+    const read = await league.act(p => p.readPickemLeaderboard({ now: time, seasonYear }));
     assert.ok(read.status === 'leaderboard', `the ${seasonYear ?? 'current'} leaderboard reads`);
     return read;
 }
@@ -128,7 +128,7 @@ test('the next season starts at its first week with an empty Pick\'em leaderboar
 
     // A past season needs nothing from the live season.
     league.live.down.add('core');
-    assert.deepEqual(await league.act(p => p.readLeaderboard({ now: now() })), { status: 'unavailable' });
+    assert.deepEqual(await league.act(p => p.readPickemLeaderboard({ now: now() })), { status: 'unavailable' });
     assert.deepEqual((await leaderboardAt(league, now(), SEASON)).leaderboard.winners, finished.leaderboard.winners);
     assert.deepEqual((await weekAt(league, now(), SEASON, 5)).week.breakdown, lockedWeek5.week.breakdown);
 });
@@ -178,7 +178,7 @@ test('a new owner account managing a franchise reads and continues its existing 
 
     await league.signInAs('owner-new');
     assert.deepEqual(await yours(), { status: 'entry', franchiseId: 1, picks: [{ matchup: [1, 2], picked: 1 }, { matchup: [3, 4], picked: 4 }] });
-    assert.deepEqual(await league.act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 3 })), { ok: true });
+    assert.deepEqual(await league.act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup: [3, 4], picked: 3 })), { ok: true });
     assert.deepEqual(await yours(), { status: 'entry', franchiseId: 1, picks: [{ matchup: [1, 2], picked: 1 }, { matchup: [3, 4], picked: 3 }] });
 
     await league.signInAs('owner-1');
@@ -187,6 +187,6 @@ test('a new owner account managing a franchise reads and continues its existing 
 
 test('a season with no Pick\'em has no Pick\'em leaderboard and no weeks', async t => {
     const league = await pickemLeague(t, { launch });
-    assert.deepEqual(await league.act(p => p.readLeaderboard({ now: now(), seasonYear: SEASON - 1 })), { status: 'no-season' });
+    assert.deepEqual(await league.act(p => p.readPickemLeaderboard({ now: now(), seasonYear: SEASON - 1 })), { status: 'no-season' });
     assert.deepEqual(await league.act(p => p.readWeek({ now: now(), seasonYear: SEASON - 1, asker: 'nobody' })), { status: 'no-week' });
 });

@@ -9,7 +9,7 @@ import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
 
 export const metadata: Metadata = {
     title: "Pick'em · YOFHL",
-    description: "One Pick'em week: pick every matchup until the lock, then see how the picks split.",
+    description: "One Pick'em week: pick every matchup until the lock, then see how the Pick'em picks split.",
 };
 
 // Any Pick'em week, read for nobody like /pickem: pick controls until the lock, the breakdown from then on. Each

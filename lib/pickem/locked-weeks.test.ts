@@ -10,7 +10,7 @@ type League = Awaited<ReturnType<typeof pickemLeague>>;
 async function savePicks({ act, signInAs, signOut }: League, week: number, picks: [number, [number, number], number][]) {
     for (const [owner, matchup, picked] of picks) {
         await signInAs(`owner-${owner}`);
-        assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week, matchup, picked })), { ok: true });
+        assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week, matchup, picked })), { ok: true });
     }
     await signOut();
 }
@@ -114,7 +114,7 @@ test('no caller can save or clear a Pick\'em pick on a locked week, before or af
     startAgo(league, 6);
     const attempts = async () => {
         await league.signOut();
-        const save = (matchup: [number, number], picked: number | null) => league.act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
+        const save = (matchup: [number, number], picked: number | null) => league.act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
         assert.deepEqual(await save([1, 2], 2), { ok: false, reason: 'session-expired' });
         for (const owner of ['owner-1', 'owner-3']) {
             await league.signInAs(owner);
@@ -140,7 +140,7 @@ test('a recorded week stays locked when Fantrax later moves its start into the f
 
     for (const owner of ['owner-1', 'owner-3']) {
         await league.signInAs(owner);
-        const save = (matchup: [number, number], picked: number | null) => league.act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
+        const save = (matchup: [number, number], picked: number | null) => league.act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 6, matchup, picked }));
         assert.deepEqual(await save([1, 2], 2), { ok: false, reason: 'locked' }, owner);
         assert.deepEqual(await save([3, 4], 3), { ok: false, reason: 'locked' }, owner);
         assert.deepEqual(await save([1, 2], null), { ok: false, reason: 'locked' }, owner);

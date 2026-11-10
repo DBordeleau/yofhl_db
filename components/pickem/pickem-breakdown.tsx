@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { readYourPickem } from '@/app/pickem/actions';
 import TeamBadge from '@/components/team-badge';
-import type { PickemEntry, PickemFranchise, PickemMatchupBreakdown, PickOutcome } from '@/lib/pickem/create-pickem';
+import type { PickemEntry, PickemFranchise, PickemMatchupBreakdown, PickemPickOutcome } from '@/lib/pickem/create-pickem';
 import { hasSessionHint } from '@/lib/owner/navigation';
 
 // A locked week's breakdown: each matchup's two franchises, how many entries took each side, and their owners.
@@ -12,7 +12,7 @@ import { hasSessionHint } from '@/lib/owner/navigation';
 // be picked.
 
 const pairKey = (a: number, b: number) => a < b ? `${a}-${b}` : `${b}-${a}`;
-const outcomeLabel: Record<PickOutcome, string> = { correct: 'Your pick: correct', wrong: 'Your pick: wrong', neither: 'Your pick: tied' };
+const outcomeLabel: Record<PickemPickOutcome, string> = { correct: "Your Pick'em pick: correct", wrong: "Your Pick'em pick: wrong", neither: "Your Pick'em pick: tied" };
 
 function Side({ franchise, entries, end, won }: { franchise: PickemFranchise; entries: PickemEntry[]; end: boolean; won: boolean }) {
     return <div className={`flex min-w-0 flex-col gap-2 ${end ? 'items-end text-right' : ''}`}>
@@ -30,7 +30,7 @@ function Side({ franchise, entries, end, won }: { franchise: PickemFranchise; en
 
 export default function PickemBreakdown({ seasonYear, week, breakdown }: { seasonYear: number; week: number; breakdown: PickemMatchupBreakdown[] }) {
     const scored = breakdown.some(item => item.result !== null);
-    const [outcomes, setOutcomes] = useState<Map<string, PickOutcome>>(new Map());
+    const [outcomes, setOutcomes] = useState<Map<string, PickemPickOutcome>>(new Map());
 
     useEffect(() => {
         if (!scored || !hasSessionHint()) return;

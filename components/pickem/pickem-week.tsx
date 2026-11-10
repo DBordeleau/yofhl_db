@@ -44,7 +44,7 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false 
         setSaving(key);
         setError(null);
         const result = await savePickemPick({ seasonYear, week, matchup: [matchup.away.id, matchup.home.id], picked })
-            .catch(() => ({ error: 'Could not save your pick. Try again.' }));
+            .catch(() => ({ error: "Could not save your Pick'em pick. Try again." }));
         setSaving(null);
         if ('error' in result) { setError(result.error); return; }
         setPicks(current => {
@@ -57,8 +57,8 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false 
     const canPick = !locked && yours?.status === 'entry';
     return <div className="mt-6">
         {canPick && <p className="mb-4 text-sm font-bold text-ink-soft">{picks.size} of {matchups.length} picked</p>}
-        {yours?.status === 'signed-out' && <p className="mb-4 text-center text-sm text-ink-soft"><Link href="/owner" className="font-bold text-rink-red underline">Sign in</Link> to make your picks.</p>}
-        {yours?.status === 'no-team' && <p className="mb-4 text-center text-sm text-ink-soft"><Link href="/owner" className="font-bold text-rink-red underline">Claim your team</Link> to make picks.</p>}
+        {yours?.status === 'signed-out' && <p className="mb-4 text-center text-sm text-ink-soft"><Link href="/owner" className="font-bold text-rink-red underline">Sign in</Link> to play Pick&apos;em.</p>}
+        {yours?.status === 'no-team' && <p className="mb-4 text-center text-sm text-ink-soft"><Link href="/owner" className="font-bold text-rink-red underline">Claim your team</Link> to play Pick&apos;em.</p>}
         {error && <p role="alert" className="mb-4 rounded-lg bg-rink-red/10 px-4 py-2 text-center text-sm font-bold text-rink-red">{error}</p>}
         <ul className="flex flex-col gap-3">
             {matchups.map(matchup => {

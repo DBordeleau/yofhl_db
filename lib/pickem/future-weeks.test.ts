@@ -34,7 +34,7 @@ test('a week several weeks ahead saves, changes and clears Pick\'em picks up to 
     assert.ok(lock > week6Lock);
 
     const save = (at: number, matchup: [number, number], picked: number | null) =>
-        act(p => p.savePick({ now: at, seasonYear: SEASON, week: 10, matchup, picked }));
+        act(p => p.savePickemPick({ now: at, seasonYear: SEASON, week: 10, matchup, picked }));
     assert.deepEqual(await save(week6Lock + 1000, [1, 2], 1), { ok: true }, 'week 6 locking does not close week 10');
     assert.deepEqual(await save(now(), [3, 4], 4), { ok: true });
     assert.deepEqual(await save(lock - 1000, [1, 2], 2), { ok: true });
@@ -51,7 +51,7 @@ test('reading a future week returns nothing about any other entry', async t => {
     const { act, signInAs, signOut } = await pickemLeague(t);
     for (const owner of ['owner-2', 'owner-3']) {
         await signInAs(owner);
-        assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 12, matchup: [7, 8], picked: 7 })), { ok: true });
+        assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 12, matchup: [7, 8], picked: 7 })), { ok: true });
     }
     await signInAs('owner-1');
     const mine = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week: 12, asker: 'session' }));
@@ -71,7 +71,7 @@ test('a Pick\'em pick reads as unpicked once its two franchises no longer meet, 
     const { act, signInAs } = await pickemLeague(t, { live: state });
     const round = state.fantrax.core.schedule.find(item => item.week === 9)!;
     await signInAs('owner-1');
-    const save = (matchup: [number, number], picked: number) => act(p => p.savePick({ now: now(), seasonYear: SEASON, week: 9, matchup, picked }));
+    const save = (matchup: [number, number], picked: number) => act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week: 9, matchup, picked }));
     const picks = async () => {
         const read = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week: 9, asker: 'session' }));
         assert.ok(read.status === 'week' && read.week.yours?.status === 'entry');
@@ -106,7 +106,7 @@ test('an owner fills every remaining week in one sitting, about a hundred saves 
     let saves = 0;
     for (const { week } of open) {
         for (const pair of [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]] as [number, number][]) {
-            assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week, matchup: pair, picked: pair[week % 2] })), { ok: true }, `week ${week}`);
+            assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week, matchup: pair, picked: pair[week % 2] })), { ok: true }, `week ${week}`);
             saves++;
         }
     }

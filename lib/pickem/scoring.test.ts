@@ -13,13 +13,13 @@ const launch = { seasonYear: SEASON, week: 6 };
 async function savePicks({ act, signInAs, signOut }: League, week: number, picks: [number, [number, number], number][]) {
     for (const [owner, matchup, picked] of picks) {
         await signInAs(`owner-${owner}`);
-        assert.deepEqual(await act(p => p.savePick({ now: now(), seasonYear: SEASON, week, matchup, picked })), { ok: true });
+        assert.deepEqual(await act(p => p.savePickemPick({ now: now(), seasonYear: SEASON, week, matchup, picked })), { ok: true });
     }
     await signOut();
 }
 
 async function leaderboardAt(league: League, time = now()) {
-    const read = await league.act(p => p.readLeaderboard({ now: time, seasonYear: SEASON }));
+    const read = await league.act(p => p.readPickemLeaderboard({ now: time, seasonYear: SEASON }));
     assert.ok(read.status === 'leaderboard', 'the leaderboard reads');
     return read.leaderboard;
 }
@@ -123,5 +123,5 @@ test('the Pick\'em leaderboard is empty before any pick locks, and absent while 
     await savePicks(league, 6, [[1, [1, 2], 1]]);
     assert.deepEqual(records(await leaderboardAt(league)), []);
     const off = await pickemLeague(t, { launch: null });
-    assert.deepEqual(await off.act(p => p.readLeaderboard({ now: now(), seasonYear: SEASON })), { status: 'no-season' });
+    assert.deepEqual(await off.act(p => p.readPickemLeaderboard({ now: now(), seasonYear: SEASON })), { status: 'no-season' });
 });
