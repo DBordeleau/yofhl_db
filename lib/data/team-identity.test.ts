@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
-import type { SQL } from 'drizzle-orm';
 import { disposableLeague } from '../testing/disposable-league';
 
 // Every page that shows a team reads its current identity or its season identity (GLOSSARY.md).
@@ -62,28 +61,26 @@ async function setup(t: TestContext) {
         if (String(url).includes('getPlayerIds')) return Response.json({ p: { name: 'Player, Test', position: 'C' } });
         throw new Error('Tests must not access the network');
     } });
-    const runtime = await import('./db');
     // league.yml maps the live season's Fantrax teams to franchises; the importer loads it into league.fantrax_teams.
     await client.query(`insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id) values
         (2027, $1, '6pfjiq07mutybt24', 1), (2027, $1, '4num7i90mutybt24', 2)`, [LEAGUE]);
     await client.query(`insert into league.fantrax_snapshots (league_id, data) select $1, $2::jsonb`, [LEAGUE, JSON.stringify(snapshot())]);
-    return { client, rows: runtime.rows };
 }
 
 type Identity = { name: string; abbreviation: string; logo: string | null };
 
 // The same franchise as each current-team surface shows it.
-async function currentSurfaces(rows: <T>(query: SQL) => Promise<T[]>, id: number, ownerUid: string | null) {
+async function currentSurfaces(id: number, ownerUid: string | null) {
     const league = await import('./league');
     const { getSearchDirectory } = await import('./search');
     const { getLotteryTeams } = await import('../lottery/data');
-    const { managedTeamsQuery, ownedTeamQuery } = await import('../owner/queries');
+    const { getManagedTeam, getOwnedTeam } = await import('../owner/teams');
     const { getLiveSeason } = await import('../fantrax/live-season');
     const { getStudioTeams } = await import('./coachs-corner');
     const card = (await league.getFranchiseCards()).find(card => card.ID === id)!;
     const page = (await league.getFranchise(id))!;
     const lottery = (await getLotteryTeams()).find(team => team.id === id)!;
-    const managed = (await rows<Identity & { id: number }>(managedTeamsQuery)).find(team => team.id === id)!;
+    const managed = (await getManagedTeam(id))!;
     const search = (await getSearchDirectory()).find(entry => entry.kind === 'teams' && entry.id === String(id))!;
     const season = await getLiveSeason({ now: Date.now() });
     if (season.status !== 'available') assert.fail('the live season is unavailable');
@@ -99,23 +96,23 @@ async function currentSurfaces(rows: <T>(query: SQL) => Promise<T[]>, id: number
         "Coach's Corner team list": { name: studio.name, abbreviation: studio.abbreviation, logo: studio.logo },
     };
     if (ownerUid) {
-        const [owned] = await rows<Identity>(ownedTeamQuery(ownerUid));
+        const owned = (await getOwnedTeam(ownerUid))!;
         surfaces['owner team'] = { name: owned.name, abbreviation: owned.abbreviation, logo: owned.logo };
     }
     return surfaces;
 }
 
 test('an owner rename and new logo appear identically on every current-team surface', async t => {
-    const { rows } = await setup(t);
+    await setup(t);
     const expected: Identity = { name: 'Paddyville Inferno', abbreviation: 'PVLS', logo: '/logos/uploads/inferno.webp' };
-    for (const [surface, identity] of Object.entries(await currentSurfaces(rows, 1, 'owner-1'))) assert.deepEqual(identity, expected, surface);
+    for (const [surface, identity] of Object.entries(await currentSurfaces(1, 'owner-1'))) assert.deepEqual(identity, expected, surface);
 });
 
 test('without owner edits, every current-team surface shows the latest team season', async t => {
-    const { rows } = await setup(t);
+    await setup(t);
     // The 2026 season has no logo of its own, so the franchise logo stands in.
     const expected: Identity = { name: 'New Purrsey Devils', abbreviation: 'NPD', logo: '/logos/new_purrsey_devils.jpg' };
-    for (const [surface, identity] of Object.entries(await currentSurfaces(rows, 2, null))) assert.deepEqual(identity, expected, surface);
+    for (const [surface, identity] of Object.entries(await currentSurfaces(2, null))) assert.deepEqual(identity, expected, surface);
 });
 
 test("Coach's Corner's team list is every active franchise's current identity, owner and saved colours", async t => {
@@ -150,29 +147,29 @@ test('history shows each season identity while the team page shows the current o
 });
 
 test('a franchise with no seasons yet shows its own name and a three-letter abbreviation', async t => {
-    const { rows } = await setup(t);
+    await setup(t);
     const league = await import('./league');
     const { getLotteryTeams } = await import('../lottery/data');
-    const { managedTeamsQuery } = await import('../owner/queries');
+    const { getManagedTeams } = await import('../owner/teams');
     const expected = { name: 'Expansion Club', abbreviation: 'Exp' };
     const card = (await league.getFranchiseCards()).find(card => card.ID === 3);
     const lottery = (await getLotteryTeams()).find(team => team.id === 3);
-    const managed = (await rows<{ id: number; name: string; abbreviation: string }>(managedTeamsQuery)).find(team => team.id === 3);
+    const managed = (await getManagedTeams()).find(team => team.id === 3);
     assert.deepEqual({ name: card?.Team, abbreviation: card?.Abbreviation }, expected, 'franchise cards');
     assert.deepEqual({ name: lottery?.name, abbreviation: lottery?.abbreviation }, expected, 'lottery team list');
     assert.deepEqual({ name: managed?.name, abbreviation: managed?.abbreviation }, expected, 'admin team list');
 });
 
 test('a defunct franchise is flagged the same way everywhere', async t => {
-    const { rows } = await setup(t);
+    await setup(t);
     const league = await import('./league');
     const { getSearchDirectory } = await import('./search');
     const { getLotteryTeams } = await import('../lottery/data');
-    const { managedTeamsQuery } = await import('../owner/queries');
+    const { getManagedTeams } = await import('../owner/teams');
     assert.deepEqual({
         cards: (await league.getFranchiseCards()).filter(card => card.defunct).map(card => card.ID),
         search: (await getSearchDirectory()).filter(entry => entry.kind === 'teams' && entry.defunct).map(entry => Number(entry.id)),
-        admin: (await rows<{ id: number; defunct: boolean }>(managedTeamsQuery)).filter(team => team.defunct).map(team => team.id),
+        admin: (await getManagedTeams()).filter(team => team.defunct).map(team => team.id),
     }, { cards: [4], search: [4], admin: [4] });
     assert.deepEqual((await getLotteryTeams()).map(team => team.id).sort(), [1, 2, 3], 'defunct franchises are not in the draw');
 });

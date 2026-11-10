@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
-import { requireSameOrigin } from '@/lib/owner/auth';
+import { requireSameOrigin } from '@/lib/owner/same-origin';
 import { rows } from '@/lib/data/db';
 import { reviewRookieQuery } from '@/lib/keepers/queries';
 import { KEEPERS_ENABLED } from '@/lib/keepers/model';

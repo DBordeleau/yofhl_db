@@ -15,6 +15,10 @@ Each code expires after 14 days and can be used once. Generating a replacement i
 
 If account creation succeeds but claiming fails, the account still exists. The owner can retry under **Claim a team** with a replacement invitation code and the same email and password. This tab also accepts existing accounts. An unclaimed account cannot edit any team.
 
+### The session hint
+
+Signing in or claiming sets two cookies: the HttpOnly `yofhl_owner` session and a readable `yofhl_owner_hint=1` with the same path, five-day lifetime, `SameSite=Lax` and `secure` setting. Signing out clears both. The header only asks `/api/owner` who the visitor is when the hint is present, so anonymous visitors make no session request. Sign-in, claim, save and sign-out still refresh the header regardless of the hint. Each answer from `/api/owner` sets the hint for a valid session and clears it for an invalid or revoked one, and the owner pages refresh the header once on load, so an owner signed in before the hint existed gets it back by visiting `/owner`. The hint carries no secret; keep it readable. See [ADR 0003](adr/0003-readable-owner-session-hint.md).
+
 **Forgot password?** sends Firebase's password-reset email. The link opens Firebase's hosted reset page. Resetting the password invalidates existing owner sessions. The site does not store passwords or provide access to them.
 
 ## Names, logos and history
@@ -49,5 +53,7 @@ Apply database migrations before deploying code that reads `team_management`. Ex
 Keep Firebase Admin on the compatible 13.x release line while [the 14.x CommonJS/ESM dependency issue](https://github.com/firebase/firebase-admin-node/issues/3181) remains unresolved. The owner test suite checks that its Auth module loads with Node's experimental `require(ESM)` support disabled, matching the failing Vercel runtime.
 
 Run `npm run test:owners`, `npm run test:lottery`, `npm run test:history`, `npm run lint`, `npx tsc --noEmit` and `npm run build`. Owner tests use an isolated in-memory database and cover competing claims, code rotation and expiry, ownership enforcement, stale edits, admin access and import preservation.
+
+Signing in, claiming and saving live in the owner session module (`lib/owner/create-owner-session.ts`); the server actions only unpack forms and map its reasons to copy. It takes Firebase, Vercel Blob and the request as ports (`lib/owner/ports.ts`), wired to production in `lib/owner/owner-session.ts`. Its tests (`lib/owner/session.test.ts`) run on a disposable league with the in-memory ports in `lib/owner/memory-ports.ts`, and real image processing on tiny generated images. They cover the preamble order (origin, then actor, then rate limit), a closed owner action (the keeper deadline) refused before the rate limit and the team lookup, the 30-attempt limit, session-before-claim, used, expired and second claims, name and image validation, failed uploads, refused saves deleting their upload, database errors keeping it, replaced-logo cleanup limited to the team's own upload folder, and the session hint: set by sign-in and claim, cleared by sign-out, and reconciled by the header answer. The header watcher's tests (`lib/owner/navigation.test.ts`) cover throttled focus, outages, cancelled requests, no request without the hint, and forced refreshes asking anyway.
 
 Browser checks should use a separate database and disposable Firebase account. Check claim, sign-in, sign-out, reset, owner/admin edits, upload replacement, stale edits and mobile layout. Do not use real owner invitations for tests. Verify email delivery to your own inbox before distributing invitations; generating and consuming a reset link alone does not test inbox delivery.
