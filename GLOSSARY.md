@@ -91,6 +91,31 @@ _Avoid_: user, editor, principal
 A signed-in owner's five-day session, started by signing in or claiming a team and ended by signing out or a password reset. The owner session module owns it, along with what signing in, claiming and saving a team do.
 _Avoid_: owner auth, login
 
+## Pick'em
+
+**Pick'em**:
+The season-long contest in which owners call the winner of every regular-season matchup. Each season has its own; playoff rounds are not part of it.
+_Avoid_: predictions, pool
+
+**Pick'em pick**:
+One franchise's call of which franchise wins one matchup. Winner only, with no score or margin. A franchise may pick its own matchup, either way. Always qualified, since a bare "pick" is a draft pick.
+_Avoid_: prediction, vote, selection
+
+**Lock**:
+The moment a week's Pick'em picks close: noon Eastern on the week's first day. Before it, a pick can be changed freely and only its owner sees it; after it, nothing changes and everyone sees every pick.
+_Avoid_: deadline, cutoff, close
+
+**Pick'em entry**:
+One franchise's part in a season's Pick'em: its picks and its record. It belongs to the franchise and is shown under its owner's name.
+_Avoid_: player, participant, account
+
+**Pick'em record**:
+An entry's correct and wrong picks over final weeks. A pick on a tied matchup is neither, and a matchup left unpicked is neither.
+
+**Pick'em leaderboard**:
+A season's Pick'em entries ranked by correct picks, then by fewer wrong picks. Entries still level share the place. Always qualified, since the leaderboard at `/stats` ranks players.
+_Avoid_: standings, table
+
 ## Coach's Corner
 
 **Script**:
