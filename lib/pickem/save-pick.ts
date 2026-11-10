@@ -1,11 +1,13 @@
 // Save or clear a Pick'em pick: the owner preamble (with the lock as its closed gate), the pairing checked
 // against the live season, then one statement that rechecks the owner and the lock against the database clock.
+import { revalidateTag } from 'next/cache';
 import { rows } from '@/lib/data/db';
 import { TooManyAttemptsError, type OwnerPreambleRejection } from '@/lib/owner/create-owner-session';
 import { isLocked, loadLivePickem } from './live-weeks';
 import { pairOf, pairOfMatchup, samePair } from './model';
 import type { PickemPorts } from './ports';
 import { clearPickQuery, savePickQuery } from './queries';
+import { pickemWhosInTag } from './whos-in';
 
 /** Pick'em saves share their own limit, high enough to fill out a whole season in one sitting */
 const PICKEM_ACTION = { name: 'pickem', attempts: 300 };
@@ -56,8 +58,10 @@ export function createSavePick(ports: PickemPorts) {
         if (picked !== null && !pair.includes(picked)) return refuse('not-in-matchup');
 
         const target = { seasonYear: live.seasonYear, week: week.week, entryFranchiseId: start.team.id, uid: start.actor.uid, matchup: pair, lock: week.lock };
-        const [entry] = await rows<{ open: boolean }>(picked === null ? clearPickQuery(target) : savePickQuery(target, picked));
+        const [entry] = await rows<{ open: boolean; changed: boolean }>(picked === null ? clearPickQuery(target) : savePickQuery(target, picked));
         if (!entry) return refuse('no-team');
+        // Only a new or cleared pick can change who is in; switching sides cannot, and keeps the cached list.
+        if (entry.changed) revalidateTag(pickemWhosInTag(live.seasonYear, week.week));
         return entry.open ? { ok: true } : refuse('locked');
     };
 }
