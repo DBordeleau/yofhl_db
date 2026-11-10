@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import PageTitle from '@/components/page-title';
-import PickemWeek from '@/components/pickem/pickem-week';
+import PickemWeekSection from '@/components/pickem/pickem-week-section';
 import { seasonLabel } from '@/lib/league';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
@@ -14,24 +15,21 @@ export const metadata: Metadata = {
 // The public page reads for nobody; the next week to lock turns over at noon, so it is rebuilt every minute.
 export const revalidate = 60;
 
-const lockTime = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-});
-
 export default async function PickemPage() {
     if (!PICKEM_LAUNCH) notFound();
-    const read = await pickem.readWeek({ now: Date.now(), asker: 'nobody' });
+    const now = Date.now();
+    const [read, lastLocked] = await Promise.all([
+        pickem.readWeek({ now, asker: 'nobody' }),
+        pickem.readWeek({ now, week: 'last-locked', asker: 'nobody' }),
+    ]);
     const week = read.status === 'week' ? read.week : null;
+    const previous = lastLocked.status === 'week' ? lastLocked.week : null;
+    const link = previous ? { href: `/pickem/week/${previous.week}`, label: `${previous.name} picks` } : undefined;
     return <main className="mx-auto max-w-3xl px-4 py-10 md:px-8">
         <PageTitle eyebrow={week ? seasonLabel(week.seasonYear) : undefined} title="Pick'em" />
-        {week ? <section className="mt-8">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="font-wide text-xl font-extrabold uppercase">{week.name}</h2>
-                <p className="text-sm font-bold text-ink-soft">Locks {lockTime.format(new Date(week.lock))} ET</p>
-            </div>
-            <PickemWeek seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} />
-        </section> : <p className="mt-8 text-center text-ink-soft">
+        {week ? <PickemWeekSection week={week} link={link} /> : <p className="mt-8 text-center text-ink-soft">
             {read.status === 'unavailable' ? 'Matchups are unavailable right now. Try again soon.' : 'No week is open for picks.'}
+            {link && <> <Link href={link.href} className="font-bold text-rink-red underline">{link.label}</Link></>}
         </p>}
     </main>;
 }
