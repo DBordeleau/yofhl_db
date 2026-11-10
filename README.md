@@ -71,16 +71,10 @@ The web app uses Neon's HTTP driver. PGlite is supported by the database scripts
 ```sh
 npm run lint
 npx tsc --noEmit
-npm run test:lottery
-npm run test:draft
-npm run test:history
-npm run test:owners
-npm run test:snapshot
-npm run test:keepers
-npm run test:performance
-npm run test:data
-npm run test:browsing
+npm test
 ```
+
+`npm test` runs every test. The [command reference](docs/data.md#commands) lists the `test:*` scripts that run one area at a time.
 
 The test suites use Node's test runner and in-memory PGlite for database cases. They do not connect to the league database. They cover lottery timing, odds, disclosure and concurrency, plus history parsing, identity matching and repeat imports. UI changes also need a browser check on the affected pages.
 

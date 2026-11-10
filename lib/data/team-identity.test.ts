@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
-import { AsyncLocalStorage } from 'node:async_hooks';
 import test, { type TestContext } from 'node:test';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { SQL } from 'drizzle-orm';
+import { disposableLeague } from '../testing/disposable-league';
 
 // Every page that shows a team reads its current identity or its season identity (GLOSSARY.md).
 // These tests read through the loaders pages call, against the real migrations.
@@ -34,9 +31,6 @@ const SEED = `
                (2026, 1, 1, 1, 2, 'New Purrsey Devils (Fantrax)', null, 'Unknown', 'C', '2025-09-30', '', 'draft.csv');
     insert into league.transaction_events values ('trade', 2020, 'trade', '2020-01-10T12:00:00Z', '2020-01-10', 'trades.csv', '');
     insert into league.transaction_assets values ('trade:1', 'trade', 'p1', 'Player One', 'player', 'trade', 1, 2, 'The Hub City Hyman Hounds', 'Devils', 1);
-    refresh materialized view league.season_results;
-    refresh materialized view league.player_careers;
-    refresh materialized view league.franchise_records;
 `;
 
 // Fantrax's live team 6pfjiq07mutybt24 is franchise 1; the saved snapshot keeps Fantrax off the network.
@@ -64,37 +58,11 @@ const snapshot = () => ({
 });
 
 async function setup(t: TestContext) {
-    const client = new PGlite();
-    const db = drizzle(client);
-    const originalUrl = process.env.DATABASE_URL_V2;
-    const originalMode = process.env.NODE_ENV;
-    // Next installs these globals in a server render; use its real unstable_cache with a local backend.
-    const globals = ['AsyncLocalStorage', '__incrementalCache'] as const;
-    const descriptors = globals.map(key => Object.getOwnPropertyDescriptor(globalThis, key));
-    t.after(async () => {
-        t.mock.restoreAll();
-        await client.close();
-        if (originalUrl === undefined) delete process.env.DATABASE_URL_V2; else process.env.DATABASE_URL_V2 = originalUrl;
-        if (originalMode === undefined) Reflect.deleteProperty(process.env, 'NODE_ENV'); else Object.assign(process.env, { NODE_ENV: originalMode });
-        globals.forEach((key, i) => { if (descriptors[i]) Object.defineProperty(globalThis, key, descriptors[i]!); else Reflect.deleteProperty(globalThis, key); });
-    });
-    process.env.DATABASE_URL_V2 = 'postgresql://test:test@localhost/test';
-    Object.assign(process.env, { NODE_ENV: 'test' });
-    Object.defineProperty(globalThis, 'AsyncLocalStorage', { value: AsyncLocalStorage, configurable: true });
-    const entries = new Map<string, unknown>();
-    Object.defineProperty(globalThis, '__incrementalCache', { configurable: true, value: {
-        generateSimpleCacheKey: async (key: string) => key,
-        get: async (key: string) => entries.get(key) ?? null,
-        set: async (key: string, value: unknown) => { entries.set(key, value); },
-    } });
-    const runtime = await import('./db');
-    t.mock.method(runtime.getDb(), 'execute', (query: SQL) => db.execute(query));
-    t.mock.method(globalThis, 'fetch', async (url: URL) => {
+    const { client } = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: async url => {
         if (String(url).includes('getPlayerIds')) return Response.json({ p: { name: 'Player, Test', position: 'C' } });
         throw new Error('Tests must not access the network');
-    });
-    await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
-    await client.exec(SEED);
+    } });
+    const runtime = await import('./db');
     // league.yml maps the live season's Fantrax teams to franchises; the importer loads it into league.fantrax_teams.
     await client.query(`insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id) values
         (2027, $1, '6pfjiq07mutybt24', 1), (2027, $1, '4num7i90mutybt24', 2)`, [LEAGUE]);

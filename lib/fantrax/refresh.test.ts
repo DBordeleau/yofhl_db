@@ -2,63 +2,22 @@
 // season's rules are covered over the in-memory source (live-season.test.ts) and Fantrax's response checks in
 // fantrax-client.test.ts; this covers only the saved snapshot and Next's caches, which need Fantrax and Next stand-ins.
 import assert from 'node:assert/strict';
-import { AsyncLocalStorage } from 'node:async_hooks';
 import test from 'node:test';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { migrate } from 'drizzle-orm/pglite/migrator';
-import type { SQL } from 'drizzle-orm';
-import { PgDialect } from 'drizzle-orm/pg-core';
+import { disposableLeague } from '../testing/disposable-league';
 import { FANTRAX_CURRENT_TAG } from './cache-policy';
 import type { SavedLiveSeason } from './fantrax-client';
 import type { LiveSeason } from './live-season';
 
 const LEAGUE = 'league27';
 
-async function migratedDatabase() {
-    const client = new PGlite();
-    const db = drizzle(client);
-    await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
-    return { client, db };
-}
-
 test('a refresh publishes the live season without touching archive caches, and a failed save keeps the last snapshot', async t => {
-    const { client, db } = await migratedDatabase();
-    await client.exec(`
+    let settled = false, network = 0;
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: `
         insert into league.franchises (id, display_name, first_season) values (1, 'One', 2026), (2, 'Two', 2026);
         insert into league.fantrax_teams values (2027, '${LEAGUE}', 'a', 1), (2027, '${LEAGUE}', 'b', 2);
-    `);
-    const originalUrl = process.env.DATABASE_URL_V2;
-    const globals = ['AsyncLocalStorage', '__incrementalCache'] as const;
-    const descriptors = globals.map(key => Object.getOwnPropertyDescriptor(globalThis, key));
-    t.after(async () => {
-        t.mock.restoreAll(); await client.close();
-        if (originalUrl === undefined) delete process.env.DATABASE_URL_V2; else process.env.DATABASE_URL_V2 = originalUrl;
-        globals.forEach((key, index) => { if (descriptors[index]) Object.defineProperty(globalThis, key, descriptors[index]!); else Reflect.deleteProperty(globalThis, key); });
-    });
-    process.env.DATABASE_URL_V2 = 'postgresql://test:test@localhost/test';
-    Object.defineProperty(globalThis, 'AsyncLocalStorage', { value: AsyncLocalStorage, configurable: true });
-    const entries = new Map<string, { value: unknown; tags: string[] }>();
-    const incrementalCache = {
-        generateSimpleCacheKey: async (key: string) => key,
-        get: async (key: string) => entries.get(key) ?? null,
-        set: async (key: string, value: unknown, options: { tags: string[] }) => { entries.set(key, { value, tags: options.tags }); },
-    };
-    Object.defineProperty(globalThis, '__incrementalCache', { value: incrementalCache, configurable: true });
-    const runtime = await import('../data/db');
-    let failSave = false;
-    t.mock.method(runtime.getDb(), 'execute', (query: SQL) => {
-        if (failSave && new PgDialect().sqlToQuery(query).sql.startsWith('insert into league.fantrax_snapshots')) throw Error('save failed');
-        return db.execute(query);
-    });
-    const now = Date.parse('2026-10-18T22:00:00Z');
-    t.mock.method(Date, 'now', () => now);
-    // The franchises have no team seasons yet, so the live teams fall back to their Fantrax names.
-    t.mock.method(console, 'warn', () => {});
-    let settled = false, network = 0;
-    t.mock.method(globalThis, 'fetch', async (input: string | URL, options?: RequestInit) => {
+    `, fetch: async (input, options) => {
         network++;
-        const url = new URL(input);
+        const url = new URL(String(input));
         switch (url.pathname.split('/').pop()) {
             case 'getLeagueInfo': return Response.json({ seasonYear: 2026, teamInfo: { a: { name: 'A' }, b: { name: 'B' } }, rosterPeriods: [],
                 playoffs: { numPlayoffTeams: 6, lastRegularSeasonPeriod: 1, firstPlayoffPeriod: 2 },
@@ -80,15 +39,16 @@ test('a refresh publishes the live season without touching archive caches, and a
             }
             default: throw Error(`Unexpected request ${url.pathname}`);
         }
-    });
+    } });
+    const { client } = league;
+    const now = Date.parse('2026-10-18T22:00:00Z');
+    t.mock.method(Date, 'now', () => now);
+    // The franchises have no team seasons yet, so the live teams fall back to their Fantrax names.
+    t.mock.method(console, 'warn', () => {});
     const { getLiveSeason, getWeekScores, refreshLiveSeason } = await import('./live-season');
-    const { workAsyncStorage } = await import('next/dist/server/app-render/work-async-storage.external');
     const refresh = async () => {
-        const store = { incrementalCache, route: '/api/cron/fantrax', pendingRevalidatedTags: [] as string[], pendingRevalidates: {} as Record<string, Promise<unknown>> };
-        const result = await workAsyncStorage.run(store as never, refreshLiveSeason);
-        await Promise.all(Object.values(store.pendingRevalidates));
-        assert.deepEqual(store.pendingRevalidatedTags, [FANTRAX_CURRENT_TAG]);
-        for (const [key, entry] of entries) if (entry.tags.includes(FANTRAX_CURRENT_TAG)) entries.delete(key);
+        const { result, revalidatedTags } = await league.runAsRoute('/api/cron/fantrax', refreshLiveSeason);
+        assert.deepEqual(revalidatedTags, [FANTRAX_CURRENT_TAG]);
         return result;
     };
     const season = async () => {
@@ -100,7 +60,11 @@ test('a refresh publishes the live season without touching archive caches, and a
 
     assert.equal((await season()).weeks[0].phase, 'active');
     assert.equal((await getWeekScores(1))?.matchups[0].away.score, 10);
-    entries.set('archive-sentinel', { value: {}, tags: ['league'] });
+    // An archive page's read, which nothing in the live season reads again.
+    const { getBannerSeasons } = await import('../data/league');
+    const cachedBefore = new Set(league.cacheEntries().keys());
+    await getBannerSeasons();
+    const [archived] = [...league.cacheEntries().keys()].filter(key => !cachedBefore.has(key));
     settled = true;
     assert.equal((await refresh()).seasonYear, 2027);
     const afterRefresh = network;
@@ -110,17 +74,16 @@ test('a refresh publishes the live season without touching archive caches, and a
     assert.equal(live.leaders.status === 'available' && live.leaders.value.players[0].points, 20);
     assert.equal(live.rosterStats.status === 'available' && live.rosterStats.value.players.p.points, 20);
     assert.equal(network, afterRefresh, 'the published snapshot serves without repeated Fantrax requests');
-    assert.ok(entries.has('archive-sentinel'));
+    assert.ok(league.cacheEntries().has(archived), 'the refresh leaves archived entries cached');
 
     const saved = await savedSnapshot();
-    failSave = true;
+    league.failNextQuery('insert into league.fantrax_snapshots', Error('save failed'));
     await assert.rejects(refresh(), /save failed/);
     assert.deepEqual(await savedSnapshot(), saved);
 });
 
 test('an overlapping older refresh cannot overwrite a newer snapshot', async t => {
-    const { client, db } = await migratedDatabase();
-    t.after(() => client.close());
+    const { db, client } = await disposableLeague(t);
     // Imported late: Next's cache modules need the AsyncLocalStorage stand-in installed first.
     const { saveSnapshotQuery } = await import('./snapshot-store');
     const snapshot = (fetchedAt: string) => ({ source: { fetchedAt } }) as SavedLiveSeason;

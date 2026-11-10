@@ -3,10 +3,9 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test, { type TestContext } from 'node:test';
-import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
-import { migrate } from 'drizzle-orm/pglite/migrator';
 import * as schema from '@/db/schema';
+import { disposableLeague } from '@/lib/testing/disposable-league';
 import type { Db } from './connect';
 import { prepareFantraxTeams, writeFantraxTeams } from './fantrax-teams';
 import { loadLeagueConfig, type LeagueConfig } from './league-config';
@@ -31,10 +30,7 @@ const leagueYml = (t: TestContext, seasons: string) => {
 };
 
 async function database(t: TestContext) {
-    const client = new PGlite();
-    t.after(() => client.close());
-    const db = drizzle(client, { schema });
-    await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
+    const db = drizzle((await disposableLeague(t)).client, { schema });
     // the importer writes league.yml's franchises before anything that points at them
     await db.insert(schema.franchises).values([{ id: 1, displayName: 'One', firstSeason: 2020 }, { id: 2, displayName: 'Two', firstSeason: 2020 }]);
     return db;

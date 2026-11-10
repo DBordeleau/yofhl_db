@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { SQL } from 'drizzle-orm';
+import { disposableLeague } from '../testing/disposable-league';
 import { episodeFrom } from './episode';
 import { playerSnapshot, snapshotMessage, type NhlPortraits, type SnapshotRow } from './player-snapshot';
 
@@ -17,12 +15,8 @@ const FANTRAX = {
 const script = (cues: string, front = '') => `---\ntitle: Test\nseason: 2027\n${front}---\n${cues}\nDON: Welcome to the show.`;
 
 async function archive(t: TestContext) {
-    const client = new PGlite();
-    t.after(() => client.close());
-    const db = drizzle(client);
-    await migrate(db, { migrationsFolder: 'db/migrations', migrationsSchema: 'league' });
     const many = Array.from({ length: 25 }, (_, i) => i);
-    await client.exec(`
+    const { db } = await disposableLeague(t, { seed: `
         insert into league.seasons values (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete'), (2027, '2026–27', 'in-progress');
         insert into league.players values ('*003vz*', 'Tom Wilson'), ('*003w3*', 'William Nylander'), ('*003w5*', 'Nico Hischier'),
             ('*048x9*', 'Elias Pettersson'), ('*0ab12*', 'Elias Pettersson'), ('future', 'Future Player'), ('older', 'Older Player'),
@@ -34,7 +28,7 @@ async function archive(t: TestContext) {
             ('future', 2027, 'TOR', '{C}', 50, 1), ('older', 2025, 'TOR', '{C}', 75, 1),
             ('broken', 2026, 'TOR', '{C}', 'NaN', 1),
             ${many.map(i => `('depth${i}', 2026, 'TOR', '{C}', ${i}, 1)`).join(', ')};
-    `);
+    ` });
     return async (query: SQL) => (await db.execute(query)).rows;
 }
 
