@@ -185,33 +185,52 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .side[data-lost] { filter: saturate(.75) brightness(.88); }
 
 /* ── the rail: Pick'em leaderboard, rules and prize ───────────────────── */
-.board { overflow: hidden; border-radius: 10px; background: linear-gradient(180deg, #172a4c, #0b1628); color: #fff; box-shadow: 0 30px 60px -40px #050c1899; }
-.board::before { content: ''; display: block; height: 3px; background: linear-gradient(90deg, #c8102e 0 32%, #4a8bcc); }
-.board h2 { padding: 20px 22px 14px; font-size: 22px; line-height: 1; font-weight: 900; font-style: italic; font-stretch: 112%; letter-spacing: -.01em; text-transform: uppercase; }
-.champion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 22px 16px; font-size: 14px; font-weight: 750; }
+/* the standings board: navy once there is something to rank, a quiet ice panel until then */
+.board { --pad: 20px; overflow: hidden; border-radius: 10px; background: radial-gradient(120% 70% at 0% 0%, #22355c, transparent 70%), linear-gradient(180deg, #152747, #0b1628); color: #fff; box-shadow: 0 30px 60px -40px #050c1899; }
+.boardHead { padding: 20px var(--pad) 16px; }
+.board h2 { font-size: 22px; line-height: 1; font-weight: 900; font-style: italic; font-stretch: 112%; letter-spacing: -.01em; text-transform: uppercase; }
+.champion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; font-size: 14px; font-weight: 750; }
 .goldSlab { display: inline-flex; align-items: center; height: 26px; padding: 0 14px; background: linear-gradient(180deg, #f7d774, #b8860b); font-size: 12px; font-weight: 900; font-style: italic; font-stretch: 112%; text-transform: uppercase; color: #1c1404; clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
+.board[data-empty] { border: 1px solid #dce5ee; border-radius: 6px; background: #fff; color: #12182e; box-shadow: none; }
+.board[data-empty] .boardHead { padding-bottom: 8px; }
+.board[data-empty] h2 { font-size: 18px; }
+.boardEmpty { padding: 0 var(--pad) 20px; font-size: 14px; line-height: 1.5; color: #56627a; }
+
 .table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 14px; }
-.table th:nth-child(3) { width: 64px; }
-.table th:nth-child(4) { width: 54px; }
-.table th:last-child { width: 64px; }
-.table th { padding: 0 8px 9px; border-bottom: 1px solid #ffffff1a; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-align: right; text-transform: uppercase; color: #a9b8cf; }
-.table th:first-child { padding-left: 22px; }
+.colRank { width: calc(var(--pad) + 32px); }
+.colCorrect { width: 58px; }
+.colWrong { width: 50px; }
+.colPct { width: calc(var(--pad) + 48px); }
+.table th { padding: 0 0 8px 8px; border-bottom: 1px solid #ffffff1f; font-size: 10px; font-weight: 800; font-stretch: 75%; letter-spacing: .09em; line-height: 1; text-align: right; text-transform: uppercase; white-space: nowrap; color: #a9b8cf; }
+.headMark { display: none; }
+.headMark svg { width: 12px; height: 12px; }
+.table th:first-child { padding-left: var(--pad); text-align: left; }
 .table th:nth-child(2) { text-align: left; }
-.table th:last-child, .table td:last-child { padding-right: 20px; }
-.table td { padding: 11px 8px; border-top: 1px solid #ffffff10; text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
-.table tbody tr { animation: rowIn .5s calc(var(--i) * 45ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+.table th:last-child, .table td:last-child { padding-right: var(--pad); }
+.table td { height: 56px; padding: 0 0 0 8px; border-top: 1px solid #ffffff0f; text-align: right; font-variant-numeric: tabular-nums; vertical-align: middle; }
 .table tbody tr:first-child td { border-top: 0; }
+.table tbody tr { animation: rowIn .5s calc(var(--i) * 45ms) cubic-bezier(.2, .75, .15, 1) backwards; }
 @keyframes rowIn { from { transform: translateX(16px); opacity: 0; } }
-.table th:first-child { width: 50px; }
-.table .rank { padding-left: 22px; text-align: left; font-size: 24px; font-weight: 900; font-style: italic; font-stretch: 78%; color: #c3cfe4; }
-.table tr[data-first] .rank { color: #f0c75e; }
+/* first place: a gold wash falling from the rank, and a gold numeral */
+.table tr[data-first] { background: linear-gradient(90deg, #f0c75e38, #f0c75e12 40%, transparent 75%); }
+.table tr[data-first] + tr:not([data-first]) td { border-top-color: #f0c75e33; }
+
+.table .rank { padding-left: var(--pad); text-align: left; white-space: nowrap; font-size: 26px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: 1; letter-spacing: -.02em; color: #c3cfe4; }
+.rank abbr { margin-right: 1px; font-size: .5em; font-weight: 850; letter-spacing: 0; vertical-align: .55em; color: #8d9dba; }
+.table tr[data-first] .rank, .table tr[data-first] .rank abbr { color: #f0c75e; }
+
 .entry { display: flex; align-items: center; gap: 10px; min-width: 0; text-align: left; }
-.entry span { min-width: 0; line-height: 1.2; }
-.entry b { display: block; overflow: hidden; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
-.entry small { display: block; overflow: hidden; font-size: 11px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; color: #a9b8cf; }
-.table .muted { color: #a9b8cf; }
-.boardEmpty { padding: 0 22px 24px; font-size: 14px; line-height: 1.5; color: #c3cfe4; }
-.rules { margin-top: 18px; padding: 0 4px; font-size: 14px; line-height: 1.55; color: #3a4560; }
+.entryMark { flex: none; display: grid; place-items: center; width: 40px; height: 34px; background: linear-gradient(100deg, var(--club), var(--club-deep)); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.entryName { min-width: 0; line-height: 1.2; }
+.entryName b { display: block; overflow: hidden; font-size: 15px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.entryName small { display: block; margin-top: 1px; overflow: hidden; font-size: 11.5px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; color: #a9b8cf; }
+
+.table .correct { font-size: 26px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: 1; letter-spacing: -.02em; }
+.table .wrong { font-size: 17px; font-weight: 800; font-stretch: 85%; color: #a9b8cf; }
+.table .pct { font-size: 15px; font-weight: 800; color: #dbe5f2; }
+/* the % hangs past the column edge, so the digits end under PCT */
+.pct small { display: inline-block; width: 0; margin-left: 1px; font-size: .72em; font-weight: 750; text-align: left; color: #a9b8cf; }
+.rules { margin-top: 18px; padding: 0 4px; font-size: 14px; line-height: 1.55; text-wrap: pretty; color: #3a4560; }
 .prize { display: flex; align-items: flex-start; gap: 12px; margin-top: 16px; padding: 0 4px; font-size: 14px; font-weight: 650; line-height: 1.45; color: #12182e; }
 .prize .goldSlab { flex: none; margin-top: -3px; }
 
@@ -275,7 +294,22 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .side + .vs + .side .sideTop .share { justify-self: start; }
     .picker { width: 28px; height: 26px; }
     .picker [data-team-mark] { width: 20px !important; height: 20px !important; }
+    .board { --pad: 16px; }
     .board h2 { font-size: 19px; }
+    .headWord { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .headMark { display: inline-block; }
+    .colRank { width: calc(var(--pad) + 26px); }
+    .colCorrect { width: 42px; }
+    .colWrong { width: 34px; }
+    .colPct { width: calc(var(--pad) + 44px); }
+    .table td { height: 52px; }
+    .table .rank, .table .correct { font-size: 23px; }
+    .table .wrong { font-size: 15px; }
+    .table .pct { font-size: 14px; }
+    .entryMark { width: 36px; height: 30px; }
+    .entryMark [data-team-mark] { width: 22px !important; height: 22px !important; }
+    .entryName b { font-size: 14px; }
+    .entryName small { font-size: 11px; }
     .bumperWords { padding: 0 16px; font-size: 24px; }
     .bumperWords span:last-child { font-size: 13px; }
 }
@@ -287,7 +321,22 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .logo { width: 92px; height: 92px; }
     .sideTop .share { height: 92px; }
     .owner { font-size: 15px; }
-    .table { font-size: 16px; }
+    .board { --pad: 24px; }
+    .board h2 { font-size: 26px; }
+    .table td { height: 66px; }
+    .table th { font-size: 11px; }
+    .colRank { width: calc(var(--pad) + 38px); }
+    .colCorrect { width: 66px; }
+    .colWrong { width: 56px; }
+    .colPct { width: calc(var(--pad) + 56px); }
+    .table .rank, .table .correct { font-size: 32px; }
+    .table .wrong { font-size: 20px; }
+    .table .pct { font-size: 18px; }
+    .entryMark { width: 50px; height: 40px; }
+    .entryMark [data-team-mark] { width: 32px !important; height: 32px !important; }
+    .entryName b { font-size: 17px; }
+    .entryName small { font-size: 13px; }
+    .champion { font-size: 16px; }
     .weekName { font-size: 36px; }
     .unit b { font-size: 46px; }
 }
