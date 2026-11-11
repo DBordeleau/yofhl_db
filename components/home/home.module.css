@@ -42,6 +42,46 @@
     .matchupMeta .weekControls { grid-column: 2; }
     .matchupMeta > a { grid-column: 3; justify-self: end; }
 }
+/* Pick'em, right after the Matchups heading: one navy plate, like the prize plate on the Pick'em page. The season's
+   prize sits flush on its left edge on a gold slab (an honour: "The Gold Is Earned Rule") that catches the light once,
+   then the pitch, then the red slab that does it, flush on its right edge. The whole plate is the link. A locked week
+   only looks back, so it drops the prize and its slab steps down to black. */
+.pickemPromo { display: flex; align-items: stretch; min-height: 48px; margin-right: auto; overflow: hidden; border-radius: 6px; background: radial-gradient(50% 160% at 0% 50%, #f0c75e33, transparent 70%), linear-gradient(180deg, #ffffff0d, transparent 45%, #050c1847), linear-gradient(100deg, #172a4c, #0e1a30); box-shadow: inset 0 1px #ffffff1f, 0 1px 2px #0b142633, 0 8px 16px -10px #0b142680; color: #fff; }
+.pickemPrize { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 22px 0 14px; overflow: hidden; background: linear-gradient(180deg, #f7d774, #d9a92a 55%, #b8860b); box-shadow: inset 0 1px #fff8d680, inset 0 -3px #8a641059; color: #1c1404; clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.pickemPrize b { font-size: 24px; font-weight: 950; font-style: italic; font-stretch: 84%; line-height: .85; text-transform: uppercase; }
+.pickemPrize span { margin-top: 3px; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; color: #4a3504; }
+.pickemPrize::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, #fffbe8b3 50%, transparent 70%); transform: translateX(-110%); animation: pickemGlint 1.2s .8s cubic-bezier(.33, 1, .68, 1) forwards; }
+@keyframes pickemGlint { to { transform: translateX(110%); } }
+.pickemPitch { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 6px 20px 6px 10px; }
+.pickemPitch strong { font-size: 16px; font-weight: 850; font-style: italic; font-stretch: 108%; line-height: 1.05; letter-spacing: -.01em; text-shadow: 0 1px 2px #050c1866; }
+.pickemPitch small { font-size: 13px; font-weight: 600; line-height: 1.2; color: #c3cfe4; }
+.pickemGo { flex: none; display: flex; align-items: center; gap: 8px; padding: 1px 22px 0 28px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 14px; font-weight: 900; font-style: italic; font-stretch: 112%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; white-space: nowrap; clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%); transition: filter .15s; }
+.pickemPromo:not([data-open]) .pickemGo { background: #050c18; text-shadow: none; }
+.pickemPromo:not([data-open]) .pickemPitch { padding-left: 18px; }
+.pickemPromo:hover .pickemGo { filter: brightness(1.12); }
+.pickemPromo:hover strong { color: #b6dcf5; }
+.pickemPromo:focus-visible { outline: 3px solid #3d8bda; outline-offset: 4px; }
+@media (max-width: 600px) {
+    /* under the heading, across the column: the slab shrinks to its arrow (the whole row is the link) so the pitch
+       keeps one line each */
+    .pickemPromo { flex: 1 1 100%; }
+    .pickemGoLabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .pickemPrize { padding: 0 18px 0 10px; }
+    .pickemPromo { margin-right: 0; }
+    .pickemPrize b { font-size: 20px; }
+    .pickemPitch { flex: 1; min-width: 0; padding: 4px 8px; }
+    .pickemPitch strong { font-size: 14px; }
+    .pickemPitch small { font-size: 11.5px; }
+    .pickemGo { padding-inline: 24px 18px; font-size: 18px; }
+}
+@media (min-width: 1800px) {
+    .pickemPromo { min-height: 56px; }
+    .pickemPrize b { font-size: 28px; }
+    .pickemPitch strong { font-size: 19px; }
+    .pickemPitch small { font-size: 15px; }
+    .pickemGo { font-size: 16px; padding-inline: 30px; }
+}
+@media (prefers-reduced-motion: reduce) { .pickemPrize::after { display: none; } .pickemGo { transition: none; } }
 .matchupGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; transition: opacity .15s; }
 @media (min-width: 1200px) { .matchupGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; } }
 .home { --slot-height: 56px; }

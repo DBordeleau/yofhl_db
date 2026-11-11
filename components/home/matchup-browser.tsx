@@ -88,8 +88,10 @@ type Phase = Week['phase'];
 const phaseStatus = (phase: Phase) => phase === 'upcoming' ? 'Upcoming' : phase === 'active' ? 'In progress' : 'Final';
 
 // The cards follow the week picked in the dropdown; the ticker always shows the current week.
-export default function MatchupBrowser({ weeks, current, teams, fantraxLeagueId }: {
+export default function MatchupBrowser({ weeks, current, teams, fantraxLeagueId, pickem }: {
     weeks: Week[]; current: { week: Week; scores: WeekScores | null }; teams: Team[]; fantraxLeagueId: string;
+    /** the weeks with a Pick'em contest, each with its lock (ISO), and the season's first place prize */
+    pickem?: { weeks: { week: number; lock: string }[]; prize: { what: string; season: string } | null };
 }) {
     const palettes = useTeamBranding();
     const [selectedNumber, setSelectedNumber] = useState(current.week.number);
@@ -153,6 +155,23 @@ export default function MatchupBrowser({ weeks, current, teams, fantraxLeagueId 
     };
     const currentWeek = current.week.number;
 
+    // Pick'em: a week still before its lock can be picked. Until the clock is read in the browser, a week that hasn't
+    // started stands in for one that hasn't locked, so the cached page and the browser agree on first render.
+    const [now, setNow] = useState<number | null>(null);
+    useEffect(() => { setNow(Date.now()); }, [selectedNumber]);
+    const pickable = ({ week, lock }: { week: number; lock: string }) => now === null
+        ? weeks.find(item => item.number === week)?.phase === 'upcoming'
+        : Date.parse(lock) > now;
+    // The week the Pick'em promo points at: the week on show when it has a contest, or from the current week (already
+    // locked) the next week still open. A locked week other than the current one shows how the league called it.
+    const pickemWeek = pickem?.weeks.find(item => item.week === selected.number);
+    const nextPickable = pickem?.weeks.find(pickable);
+    const pickemTarget = pickemWeek && pickable(pickemWeek) ? { ...pickemWeek, open: true }
+        : pickemWeek && selected.number !== currentWeek ? { ...pickemWeek, open: false }
+        : selected.number === currentWeek && nextPickable ? { ...nextPickable, open: true }
+        : null;
+    const pickemName = pickemTarget && (weeks.find(week => week.number === pickemTarget.week)?.name ?? `Week ${pickemTarget.week}`);
+
     // One shape for the ticker and the cards: who is playing, the score, and who is ahead.
     const buildGames = (list: ScheduledMatchup[], results: WeekScores | null, gamePhase: Phase) => list.map((matchup, matchIndex) => {
         const result = results?.matchups.find(score => score.away.teamId === matchup.away.id && score.home.teamId === matchup.home.id);
@@ -199,6 +218,15 @@ export default function MatchupBrowser({ weeks, current, teams, fantraxLeagueId 
     return <section id="matchups" className={styles.matchupSection} aria-labelledby="matchup-heading" aria-busy={pending} tabIndex={-1}>
         <div className={styles.sectionHeading}>
             <h2 id="matchup-heading">Matchups</h2>
+            {pickemTarget && <Link href={`/pickem/week/${pickemTarget.week}`} className={styles.pickemPromo} data-open={pickemTarget.open ? '' : undefined}>
+                {pickemTarget.open && pickem?.prize && <span className={styles.pickemPrize}><b>1st</b><span>Prize</span></span>}
+                <span className={styles.pickemPitch}>{pickemTarget.open
+                    ? <><strong>Predict YOFHL matchups</strong><small>{pickem?.prize
+                        ? `for a chance to win a ${pickem.prize.season} ${pickem.prize.what.toLowerCase()}`
+                        : 'and climb the Pick’em leaderboard'}</small></>
+                    : <><strong>See how the league called {pickemName}</strong><small>Pick&rsquo;em picks and results</small></>}</span>
+                <span className={styles.pickemGo}><span className={styles.pickemGoLabel}>{pickemTarget.open ? 'Make your picks' : 'See the picks'}</span> <Arrow /></span>
+            </Link>}
         </div>
 
         {tickerGames.length > 0 ? <div ref={slot} className={styles.tickerSlot}><div className={styles.ticker} data-dock={dock} data-phase={tickerPhase} data-playoff={tickerWeek.stage !== 'regular' ? '' : undefined} style={{ '--ticker-duration': `${Math.max(tickerGames.length, 3) * 10}s` } as CSSProperties}>
