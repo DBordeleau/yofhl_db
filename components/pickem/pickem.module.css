@@ -382,6 +382,8 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .prizeTag span { margin-top: 4px; font-size: 9.5px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; color: #4a3504; }
 /* one glint across the gold as the rail arrives, and never again */
 .prizeTag::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, #fffbe8b3 50%, transparent 70%); transform: translateX(-110%); animation: glint 1.2s .6s cubic-bezier(.33, 1, .68, 1) forwards; }
+/* it catches the light once a visit, not again on every week (pickem-prize.tsx) */
+.prizeTag[data-seen]::after { display: none; }
 @keyframes glint { to { transform: translateX(110%); } }
 .prizeWhat { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; align-content: center; column-gap: .32em; padding: 8px 18px 8px 12px; font-size: clamp(21px, 6.2cqi, 30px); font-weight: 950; font-style: italic; font-stretch: 116%; line-height: 1; letter-spacing: -.03em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 1px 2px #050c1866; }
 /* the season, outlined like the season in the page title */

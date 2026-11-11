@@ -4,7 +4,8 @@ import type { PickemLeaderboardEntry, PickemWeek as Week, PickemWeekOption } fro
 import LockClock from './lock-clock';
 import PickemBreakdown from './pickem-breakdown';
 import PickemLeaderboard from './pickem-leaderboard';
-import PickemSeasonSummary, { PickemPrize } from './pickem-season-summary';
+import { PickemPrize } from './pickem-prize';
+import PickemSeasonSummary from './pickem-season-summary';
 import PickemWeek from './pickem-week';
 import PickemWhosIn from './pickem-whos-in';
 import SeasonSwitcher from './season-switcher';
