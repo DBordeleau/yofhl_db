@@ -62,7 +62,7 @@ export default function LockClock({ lock, locked }: { lock: string; locked: bool
     // data-stage-clock: the pick bar docked on a phone shows its own compact clock only once this one is out of view
     return <div className={styles.clock} data-urgent={left < HOUR ? '' : undefined} role="timer" aria-label={`Locks ${when}`} data-stage-clock="">
         <span className={styles.clockLabel} aria-hidden="true">
-            Locks in<small><span className={styles.whenLong}>{when}</span><span className={styles.whenShort}>{lockDay.format(new Date(lock))}</span></small>
+            Locks on<small><span className={styles.whenLong}>{when}</span><span className={styles.whenShort}>{lockDay.format(new Date(lock))}</span></small>
         </span>
         <span className={styles.clockTime} aria-hidden="true">
             {units.map(unit => <span key={unit.key} className={styles.unit}>
