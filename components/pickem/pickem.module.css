@@ -33,31 +33,47 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 .clockLabel { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 0 20px 0 24px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 13px; font-weight: 900; font-style: italic; font-stretch: 115%; letter-spacing: .04em; line-height: 1; text-transform: uppercase; text-shadow: 0 1px #5a0010; white-space: nowrap; clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
 .clockLabel small { font-size: 11px; font-weight: 700; font-style: normal; font-stretch: 100%; letter-spacing: 0; text-transform: none; color: #ffe1e6; }
 .clockTime { display: flex; align-items: center; gap: 12px; padding: 0 28px 0 20px; background: #050c18; white-space: nowrap; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); transition: background .4s; }
-.unit { display: flex; align-items: baseline; gap: 3px; overflow: hidden; }
-.unit b { display: inline-block; min-width: 2ch; font-size: 34px; font-weight: 900; font-stretch: 78%; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; }
-.unit:first-child b { min-width: 0; }
+.unit { display: flex; align-items: baseline; gap: 3px; }
+.unit b { display: inline-flex; font-size: 34px; font-weight: 900; font-stretch: 78%; line-height: 1; font-variant-numeric: tabular-nums; }
 .unit small { font-size: 12px; font-weight: 800; color: #a9b8cf; text-transform: uppercase; }
-.tick { animation: tick .34s cubic-bezier(.2, .75, .15, 1); }
-@keyframes tick { from { transform: translateY(-55%); opacity: 0; filter: blur(2px); } }
+/* a figure rolls only when it changes: the old one drops out of the window as the new one drops in from above */
+.figure { position: relative; display: inline-block; clip-path: inset(.06em -.1em .1em); }
+.figureIn { display: inline-block; animation: figureIn .44s cubic-bezier(.2, .75, .15, 1) calc(var(--place) * 55ms) both; }
+.figureOut { position: absolute; inset: 0; animation: figureOut .26s cubic-bezier(.55, 0, .8, .2) calc(var(--place) * 55ms) both; }
+@keyframes figureIn { from { transform: translateY(-.82em); opacity: 0; } }
+@keyframes figureOut { to { transform: translateY(.82em); opacity: 0; } }
 .clock[data-urgent] .clockTime { background: linear-gradient(180deg, #df1a3c, #b00d28); }
 .clock[data-urgent] .clockLabel { background: #050c18; text-shadow: none; }
 .clock[data-urgent] .clockLabel small { color: #c3cfe4; }
 .clock[data-locked] .clockLabel { background: #24324f; text-shadow: none; }
 .clock[data-locked] .clockTime { font-size: 17px; font-weight: 850; font-stretch: 92%; }
 
-.track { position: relative; display: flex; height: 44px; container-type: inline-size; }
+/* Every slab on the track is cut at one slant (a quarter of its height), so the red slab and the ticks it passes
+   over lean together. Layers: tick plates, then the red slab, then the numbers on top of both. */
+.track { --track: 44px; position: relative; isolation: isolate; display: flex; height: var(--track); container-type: inline-size; }
 .track li { flex: 1 1 0; min-width: 0; }
-.track a { position: relative; z-index: 1; display: grid; place-items: center; height: 100%; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; color: #fff; }
-.track a::before { content: ''; position: absolute; inset: 10px 2px; z-index: -1; background: #ffffff1c; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); transition: background .15s, inset .2s; }
+.track a { position: relative; display: grid; place-items: center; height: 100%; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; color: #fff; }
+.track a span { position: relative; z-index: 2; transition: opacity .2s; }
+.track a::before { --h: calc(var(--track) - 20px); content: ''; position: absolute; inset: calc((var(--track) - var(--h)) / 2) 2px; z-index: 0; background: #ffffff1c; clip-path: polygon(calc(var(--h) / 4) 0, 100% 0, calc(100% - var(--h) / 4) 100%, 0 100%); transition: background .15s, inset .2s, clip-path .2s; }
 .track a[data-locked] { color: #8494b2; }
 .track a[data-locked]::before { background: #ffffff09; }
-.track a:hover::before { inset: 6px 1px; background: #ffffff33; }
-.track a[aria-current] { color: #fff; }
-.indicator { position: absolute; top: 3px; bottom: 3px; left: calc(var(--at) * 100% / var(--count)); width: calc(100% / var(--count)); background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); box-shadow: 0 6px 20px #c8102e66; transition: left .5s cubic-bezier(.2, .75, .15, 1); }
+.track a:hover::before { --h: calc(var(--track) - 12px); inset-inline: 1px; background: #ffffff33; }
+.track a[aria-current] { font-size: 15px; font-weight: 900; font-style: italic; color: #fff; text-shadow: 0 1px #5a0010; }
+.indicator { position: absolute; inset: 0; z-index: 1; pointer-events: none; transform: translateX(calc((var(--at) + .5) * 100% / var(--count))); filter: drop-shadow(0 5px 12px #c8102e70); transition: transform .5s cubic-bezier(.2, .75, .15, 1); }
+.indicator::before {
+    --h: calc(var(--track) - 6px);
+    --w: max(calc(100% / var(--count) + 2px), calc(var(--h) / 4 + 22px));
+    content: ''; position: absolute; top: 3px; bottom: 3px; left: calc(var(--w) / -2); width: var(--w);
+    background: linear-gradient(#ffffff47, #ffffff47) top / 100% 1px no-repeat, linear-gradient(180deg, #df1a3c, #b00d28);
+    clip-path: polygon(calc(var(--h) / 4) 0, 100% 0, calc(100% - var(--h) / 4) 100%, 0 100%);
+}
 @container (max-width: 560px) {
     .track a span { opacity: 0; }
     .track a[aria-current] span, .track a[data-landmark] span { opacity: 1; }
+    /* the red slab is wider than a tick here, so the landmarks either side of it step aside */
+    .track li:has(+ li > [aria-current]) a span, .track li:has(> [aria-current]) + li a span { opacity: 0; }
     .track a { font-size: 11px; }
+    .track a[aria-current] { font-size: 14px; }
 }
 
 /* who's in: a compact row of ten logo slabs that light up as owners finish their picks */
@@ -273,7 +289,7 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .clock[data-locked] .clockTime { flex: 1; font-size: 15px; }
     .clockTime { gap: 8px; padding: 0 20px 0 12px; }
     .unit b { font-size: 26px; }
-    .track { height: 34px; }
+    .track { --track: 34px; }
     .layout { margin-top: 22px; gap: 36px; }
     .pip { width: 24px; }
     .strip { --cut: 16px; min-height: 148px; }
@@ -342,8 +358,8 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .strip, .picker, .table tbody tr, .tick, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh]::after { animation: none; }
-    .bumper { display: none; }
-    .side, .logo, .indicator, .whosItem::before, .step svg { transition: none; }
+    .strip, .picker, .table tbody tr, .figureIn, .figureOut, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh]::after { animation: none; }
+    .bumper, .figureOut { display: none; }
+    .track a::before, .track a span, .side, .logo, .indicator, .whosItem::before, .step svg { transition: none; }
     .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: none; }
 }
