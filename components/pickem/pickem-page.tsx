@@ -40,7 +40,7 @@ export default function PickemPage({ seasonYear, seasons, week, weeks, base, sta
                 {week?.whosIn && <PickemWhosIn whosIn={week.whosIn} seasonYear={week.seasonYear} week={week.week} />}
             </div>
             {weeks && weeks.length > 0
-                ? <WeekSwitcher weeks={weeks} selected={week?.week ?? 0} base={base} clock={clock} />
+                ? <WeekSwitcher weeks={weeks} selected={week?.week ?? 0} base={base} clock={clock} season={seasonYear ? seasonLabel(seasonYear) : undefined} />
                 : clock && <div className={styles.weeks}>{clock}</div>}
         </section>
         <div className={styles.layout}>
@@ -49,7 +49,7 @@ export default function PickemPage({ seasonYear, seasons, week, weeks, base, sta
                     ? week.phase === 'locked' && week.breakdown
                         ? <PickemBreakdown key={week.week} seasonYear={week.seasonYear} week={week.week} breakdown={week.breakdown} />
                         : <PickemWeek key={week.week} seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} locked={week.phase === 'locked'}
-                            leagueStandings={week.leagueStandings} />
+                            lock={week.lock} leagueStandings={week.leagueStandings} />
                     : <p className={styles.message}>{message}</p>}
             </section>
             <aside className={styles.rail}>

@@ -27,12 +27,17 @@ import styles from './pickem.module.css';
 // the session hint says an owner may be signed in (ADR 0003). Nothing here can be picked.
 
 const keyOf = (pair: [number, number]) => pairOf(...pair).join('-');
-const stamps: Record<PickemPickOutcome | 'pending', { label: string; tone?: 'red' | 'navy' }> = {
+// `lead` is dropped on a phone, where the side is narrow and its lamp already says the pick is yours
+const stamps: Record<PickemPickOutcome | 'pending', { lead?: string; label: string; tone?: 'red' | 'navy' }> = {
     correct: { label: 'Called it', tone: 'red' },
-    wrong: { label: 'Your pick · missed', tone: 'navy' },
-    neither: { label: 'Your pick · tied', tone: 'navy' },
+    wrong: { lead: 'Your pick · ', label: 'missed', tone: 'navy' },
+    neither: { lead: 'Your pick · ', label: 'tied', tone: 'navy' },
     pending: { label: 'Your pick' },
 };
+// On a phone a side with this many pickers or more, and more than the other side, shows the first few and a +N slab;
+// the side fewer owners took always shows everyone
+const CROWD = 6;
+const SHOWN = 4;
 
 // How far a seam leans for a split: a unanimous matchup gives the side nobody took a little over a third of the strip
 const LEAN = .16;
@@ -94,7 +99,25 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
         return () => timers.forEach(clearTimeout);
     }, [yours, breakdown, palettes]);
 
+    // The owner's week before the strips: the entry bar's meter in its next phase, a segment per matchup, lit for each
+    // call that came in, hollow for a miss or a tie, filled faintly while the pick waits on its result.
+    const mine = breakdown.map(({ matchup }) => yours.get(keyOf(pairOfMatchup(matchup))));
+    const decided = mine.some(pick => pick?.outcome);
+    const called = mine.filter(pick => pick?.outcome === 'correct').length;
+    const picked = mine.filter(Boolean).length;
     return <div ref={slate} className={styles.slate} data-pickem-slate="">
+        {picked > 0 && <div className={styles.weekHead}>
+            <div className={styles.entryBar}>
+                <span className={styles.progressText}>
+                    <b className={styles.count}>{decided ? called : picked}</b> of {breakdown.length} {decided ? 'called' : 'picked'}
+                </span>
+                <span className={styles.pips} aria-hidden="true">
+                    {mine.map((pick, i) => <span key={i} className={styles.pip} data-on={pick?.outcome === 'correct' ? '' : undefined}
+                        data-miss={pick?.outcome === 'wrong' || pick?.outcome === 'neither' ? '' : undefined}
+                        data-pending={pick && !pick.outcome ? '' : undefined} style={{ '--d': `${i * 55}ms` } as CSSProperties} />)}
+                </span>
+            </div>
+        </div>}
         <ol className={styles.strips}>
             {breakdown.map(({ matchup, away, home, result, scores }, i) => {
                 const key = keyOf(pairOfMatchup(matchup));
@@ -128,6 +151,8 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
                         const outcome = mine?.picked === franchise.id ? mine.outcome ?? 'pending' : null;
                         const stamp = outcome && stamps[outcome];
                         const share = shares[side];
+                        const others = side === 'away' ? home : away;
+                        const shown = entries.length >= CROWD && entries.length > others.length ? SHOWN : entries.length;
                         const element = <div key={franchise.id} className={styles.side}
                             data-lost={shared && result && result !== 'tie' && result !== side ? '' : undefined}
                             data-mine={outcome ?? undefined} style={clubTone(clubColours(palettes, franchise.id))}>
@@ -140,14 +165,18 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
                                 </SideBody>
                             </span>
                             {entries.length > 0 && <ul className={styles.pickers} aria-label={`Picked ${franchise.name}`}
-                                style={{ '--n': entries.length } as CSSProperties}>
-                                {entries.map(entry => <li key={entry.franchise.id} className={styles.picker} title={named(entry)}>
+                                style={{ '--all': entries.length, '--shown': shown < entries.length ? shown + 1 : entries.length } as CSSProperties}>
+                                {entries.map((entry, j) => <li key={entry.franchise.id} className={styles.picker} title={named(entry)}
+                                    data-extra={j >= shown ? '' : undefined}>
                                     <TeamBadge logo={entry.franchise.logo} abbreviation={entry.franchise.abbreviation} teamName={entry.franchise.name} size={26} />
                                     <span className="sr-only">{named(entry)}</span>
                                 </li>)}
+                                {shown < entries.length && <li className={`${styles.picker} ${styles.pickersMore}`} aria-hidden="true">
+                                    +{entries.length - shown}
+                                </li>}
                             </ul>}
                             {stamp && <span className={styles.stamp} data-tone={stamp.tone} data-called={outcome === 'correct' ? key : undefined}>
-                                {stamp.tone === 'red' && <Check />}{stamp.label}
+                                {stamp.tone === 'red' && <Check />}{stamp.lead && <span className={styles.stampLead}>{stamp.lead}</span>}{stamp.label}
                             </span>}
                         </div>;
                         return side === 'away' ? [element, board] : element;

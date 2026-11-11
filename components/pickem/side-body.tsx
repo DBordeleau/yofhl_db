@@ -18,9 +18,12 @@ interface Props {
 
 /** A strip side's club: its logo, its name and, when known, its W-L-T record and fantasy points */
 export default function SideBody({ franchise, standing, tapeEnd, children, holdRoom = false }: Props) {
-    // three words or more narrow rather than take a third line (pickem.module.css)
-    const long = franchise.name.trim().split(/\s+/).length >= 3 ? '' : undefined;
-    const name = <span className={styles.name} data-long={long}>{franchise.name}</span>;
+    // three words or more narrow rather than take a third line, and on a phone so does a name with a long word, which
+    // can't break and would run off the side (pickem.module.css)
+    const words = franchise.name.trim().split(/\s+/);
+    const long = words.length >= 3 ? '' : undefined;
+    const longWord = words.some(word => word.length >= 9) ? '' : undefined;
+    const name = <span className={styles.name} data-long={long} data-long-word={longWord}>{franchise.name}</span>;
     return <>
         <span className={styles.logo}>
             <TeamBadge logo={franchise.logo} abbreviation={franchise.abbreviation} teamName={franchise.name} size={74} sizeClass={styles.logoMark} />
@@ -28,7 +31,7 @@ export default function SideBody({ franchise, standing, tapeEnd, children, holdR
         <span className={styles.who}>
             {holdRoom ? <span className={styles.nameRoom}>
                 {name}
-                <span className={`${styles.name} ${styles.nameGhost}`} data-long={long} aria-hidden="true">{franchise.name}</span>
+                <span className={`${styles.name} ${styles.nameGhost}`} data-long={long} data-long-word={longWord} aria-hidden="true">{franchise.name}</span>
             </span> : name}
             {standing && <span className={styles.tape}>
                 <span className={styles.tapeRecord}><span className="sr-only">Record </span>{standing.record.replaceAll('-', '–')}</span>

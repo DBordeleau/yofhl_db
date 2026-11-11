@@ -16,6 +16,9 @@ const messages: Record<SavePickemPickRejection, string> = {
     'rate-limited': 'Too many saves in a short time. Try again in 15 minutes.',
 };
 
+// where an owner goes to fix a refusal, when the fix is on another page
+const fixes: Partial<Record<SavePickemPickRejection, string>> = { 'session-expired': '/owner', 'no-team': '/owner' };
+
 const isWhole = (value: unknown): value is number => Number.isSafeInteger(value);
 
 /** The signed-in owner's part of a week. Never cached. */
@@ -26,14 +29,14 @@ export async function readYourPickem(seasonYear: number, week: number): Promise<
 }
 
 export async function savePickemPick(input: { seasonYear: number; week: number; matchup: MatchupPair; picked: number | null }):
-    Promise<{ ok: true } | { error: string }> {
+    Promise<{ ok: true } | { error: string; fix?: string }> {
     if (!PICKEM_LAUNCH) return { error: messages['not-open'] };
     if (!input || !isWhole(input.seasonYear) || !isWhole(input.week) || (input.picked !== null && !isWhole(input.picked))) {
         return { error: 'Reload the page and try again.' };
     }
     try {
         const result = await pickem.savePickemPick({ now: Date.now(), seasonYear: input.seasonYear, week: input.week, matchup: input.matchup, picked: input.picked });
-        return result.ok ? result : { error: messages[result.reason] };
+        return result.ok ? result : { error: messages[result.reason], fix: fixes[result.reason] };
     } catch {
         return { error: "Could not save your Pick'em pick. Try again." };
     }

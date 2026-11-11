@@ -13,6 +13,8 @@ interface Props {
     base?: string;
     /** the shown week's lock clock, set right after the week's name */
     clock?: ReactNode;
+    /** the season, set small over the week's name on a phone, where the title has no room for it */
+    season?: string;
 }
 
 // the slate on screen when a week is chosen; the next week's slate is a new element, so it never carries the mark
@@ -22,7 +24,7 @@ const leaving = (on: boolean) => document.querySelectorAll('[data-pickem-slate]'
 // per week on a row of its own (locked weeks dimmer) with a red slab under the one shown; phones keep the stepper only.
 // Choosing a week slides the slab there at once and folds the old slate away while the next week loads
 // (pickem.module.css, "a week change").
-export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', clock }: Props) {
+export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', clock, season }: Props) {
     const [going, setGoing] = useState<number | null>(null);
     const shown = going ?? selected;
     const at = Math.max(0, weeks.findIndex(option => option.week === shown));
@@ -54,7 +56,9 @@ export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', c
     return <nav aria-label="Weeks" className={styles.weeks}>
         <div className={styles.stepper}>
             {step(previous, true)}
-            <span className={styles.weekName} aria-live="polite">{name}</span>
+            <span className={styles.weekName} aria-live="polite">
+                {season && <small className={styles.weekSeason} aria-hidden="true">{season}</small>}{name}
+            </span>
             {step(next, false)}
         </div>
         {clock}
