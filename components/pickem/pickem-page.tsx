@@ -62,7 +62,8 @@ export default function PickemPage({ seasonYear, seasons, week, weeks, base, sta
                 {week?.whosIn && <PickemWhosIn whosIn={week.whosIn} seasonYear={week.seasonYear} week={week.week} />}
             </div>
             {weeks && weeks.length > 0
-                ? <WeekSwitcher weeks={weeks} selected={week?.week ?? 0} base={base} clock={clock} season={seasonYear ? seasonLabel(seasonYear) : undefined} />
+                ? <WeekSwitcher weeks={weeks} selected={week?.week ?? 0} base={base} clock={clock} season={seasonYear ? seasonLabel(seasonYear) : undefined}
+                    seasonYear={seasonYear ?? undefined} />
                 : clock && <div className={styles.weeks}>{clock}</div>}
         </section>
         {standings

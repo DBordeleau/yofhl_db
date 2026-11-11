@@ -70,6 +70,15 @@ export function aimSeam(strip: HTMLElement, target: number) {
     if (!frame) { last = performance.now(); frame = requestAnimationFrame(step); }
 }
 
+/** Puts a strip's seam straight at a share, its names laid out for it, with no spring: for a strip not yet on screen */
+export function placeSeam(strip: HTMLElement, share: number) {
+    const spring = springs.get(strip);
+    if (!spring) return;
+    Object.assign(spring, { x: share, v: 0, target: share, hold: { target: share, away: share, home: share } });
+    paint(strip, share);
+    paintHold(strip, spring.hold!);
+}
+
 /** The share a strip's names are laid out for: the seam's resting place for the pick, leaving hovers out */
 export function holdSeam(strip: HTMLElement, share: number) {
     const spring = springs.get(strip);

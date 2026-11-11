@@ -3,11 +3,15 @@ import { notFound } from 'next/navigation';
 import PickemPageView from '@/components/pickem/pickem-page';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
+import { pickemWeekMetadata } from '@/app/pickem/metadata';
 
-export const metadata: Metadata = {
-    title: "Pick'em · YOFHL",
-    description: "One Pick'em week: pick every matchup until the lock, then see how the Pick'em picks split.",
-};
+export async function generateMetadata({ params }: { params: Promise<{ week: string }> }): Promise<Metadata> {
+    const { week: asked } = await params;
+    if (!PICKEM_LAUNCH || !/^\d{1,3}$/.test(asked)) return {};
+    const read = await pickem.readWeek({ now: Date.now(), week: Number(asked), asker: 'nobody' });
+    const week = read.status === 'week' ? read.week : null;
+    return pickemWeekMetadata(`/pickem/week/${asked}`, week, week?.seasonYear ?? null);
+}
 
 // Any Pick'em week, read for nobody like /pickem: pick controls until the lock, the breakdown from then on, beside
 // the season's Pick'em leaderboard. Each week is rendered on its first visit and cached (ISR). A render decides

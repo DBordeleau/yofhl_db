@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
-import { readYourPickem, savePickemPick } from '@/app/pickem/actions';
+import { savePickemPick } from '@/app/pickem/actions';
 import { useTeamBranding } from '@/components/team-branding/branding-provider';
 import type { LeagueStanding, PickemFranchise, PickemMatchup, YourPickem } from '@/lib/pickem/create-pickem';
 import { pairOf, pairOfMatchup } from '@/lib/pickem/model';
@@ -10,10 +10,11 @@ import { hasSessionHint } from '@/lib/owner/navigation';
 import { clubColours, clubTone } from './club-tone';
 import { announceEntry, announceOwner } from './entry-event';
 import { Check } from './icons';
-import { aimSeam, holdSeam, trackSeam, untrackSeam } from './seam';
+import { aimSeam, holdSeam, placeSeam, trackSeam, untrackSeam } from './seam';
 import PickemEntryBar, { type EntryInvite } from './pickem-entry-bar';
 import { burst } from './sparks';
 import SideBody from './side-body';
+import { readYours, useEntranceHold } from './your-pickem';
 import styles from './pickem.module.css';
 
 interface Props {
@@ -54,7 +55,8 @@ function seamTarget(pick: Side | undefined, hovered: Side | undefined) {
 // Someone who can't pick yet gets the entry bar empty with its way in (Sign in, or Claim your team); their sides stay
 // tappable, and a tap stamps that way in rather than saving anything.
 // The public page renders the matchups; the owner's own Pick'em picks load only when the session hint says an
-// owner may be signed in (ADR 0003), so an anonymous visit makes no extra request.
+// owner may be signed in (ADR 0003), so an anonymous visit makes no extra request. A week change holds the strips
+// closed until those picks are in (your-pickem.ts), then opens them with each seam already at its pick.
 export default function PickemWeek({ seasonYear, week, matchups, locked = false, lock, leagueStandings }: Props) {
     const palettes = useTeamBranding();
     const [yours, setYours] = useState<YourPickem | null>(null);
@@ -75,6 +77,9 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
     // where the latest call was tapped, for its flood; `id` restarts the flood on every call
     const [flood, setFlood] = useState<{ key: string; id: number; x: string; y: string } | null>(null);
     const slate = useRef<HTMLDivElement>(null);
+    const { held, release } = useEntranceHold(!locked);
+    const holding = useRef(held);
+    holding.current = held;
     const hovered = useRef<Map<string, Side>>(new Map());
 
     const sideOf = (matchup: PickemMatchup, picked: number | undefined): Side | undefined =>
@@ -114,15 +119,23 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
         if (locked) return;
         if (!hasSessionHint()) { setYours({ status: 'signed-out' }); return; }
         let cancelled = false;
-        readYourPickem(seasonYear, week).then(answer => {
+        readYours(seasonYear, week).then(answer => {
             if (cancelled) return;
             setYours(answer ?? { status: 'signed-out' });
+            release();
             if (answer?.status !== 'entry') return;
             announceOwner(answer.franchiseId);
             saved.current = new Map(answer.picks.map(pick => [keyOf(pick.matchup), pick.picked]));
             setPicks(new Map(saved.current));
-        }).catch(() => { if (!cancelled) setYours({ status: 'signed-out' }); });
+            // strips still held closed open with their seams already at the picks, rather than swinging there
+            if (holding.current) for (const matchup of matchups) {
+                const key = keyOf(pairOfMatchup(matchup));
+                const strip = stripOf(key);
+                if (strip) placeSeam(strip, seamTarget(sideOf(matchup, saved.current.get(key)), undefined));
+            }
+        }).catch(() => { if (!cancelled) { setYours({ status: 'signed-out' }); release(); } });
         return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [seasonYear, week, locked]);
 
     function lean(matchup: PickemMatchup, side: Side, event: PointerEvent, on: boolean) {
@@ -255,8 +268,8 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
         : null;
     // On a phone the slate head docks on top of the tab bar while the strips are on screen (pickem.module.css), so a
     // refused save is said there, under the thumb, rather than pushing the strips down.
-    return <div ref={slate} className={styles.slate} data-pickem-slate="">
-        <div className={styles.slateHead}>
+    return <div ref={slate} className={styles.slate} data-pickem-slate="" data-held={held ? '' : undefined}>
+        <div className={styles.slateHead} data-bumper={bumper > 0 ? '' : undefined}>
             {error && <p role="alert" className={styles.alert}>
                 {error.fix ? <Link href={error.fix}>{error.message}</Link> : error.message}
             </p>}

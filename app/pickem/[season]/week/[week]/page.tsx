@@ -3,11 +3,14 @@ import { notFound, redirect } from 'next/navigation';
 import PickemPageView from '@/components/pickem/pickem-page';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
+import { pickemWeekMetadata } from '@/app/pickem/metadata';
 
-export const metadata: Metadata = {
-    title: "Pick'em · YOFHL",
-    description: "One locked Pick'em week of a past season: how the Pick'em picks split and who called it.",
-};
+export async function generateMetadata({ params }: { params: Promise<{ season: string; week: string }> }): Promise<Metadata> {
+    const { season, week: asked } = await params;
+    if (!PICKEM_LAUNCH || !/^\d{4}$/.test(season) || !/^\d{1,3}$/.test(asked)) return {};
+    const read = await pickem.readWeek({ now: Date.now(), seasonYear: Number(season), week: Number(asked), asker: 'nobody' });
+    return pickemWeekMetadata(`/pickem/${season}/week/${asked}`, read.status === 'week' ? read.week : null, Number(season));
+}
 
 // A locked week of a past season, read for nobody from Pick'em's own record, beside that season's Pick'em
 // leaderboard. Weeks of the season being played live at /pickem/week/[week].
