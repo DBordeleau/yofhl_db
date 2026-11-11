@@ -11,6 +11,7 @@ import { clubColours, clubTone } from './club-tone';
 import { announceEntry } from './entry-event';
 import { Check } from './icons';
 import { aimSeam, holdSeam, trackSeam, untrackSeam } from './seam';
+import PickemEntryBar from './pickem-entry-bar';
 import { burst } from './sparks';
 import SideBody from './side-body';
 import styles from './pickem.module.css';
@@ -195,36 +196,23 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
     const standings = leagueStandings && Object.values(leagueStandings).some(standing => standing.record !== '0-0-0' || standing.points !== 0)
         ? leagueStandings : null;
     const canPick = !locked && yours?.status === 'entry';
-    const allIn = canPick && matchups.length > 0 && picks.size === matchups.length;
     return <div ref={slate} className={styles.slate} data-pickem-slate="">
         <div className={styles.slateHead}>
-            {/* the owner's entry bar, the same navy slab a signed-out visitor sees with its Sign in: where the entry
-                stands, a segment per matchup filling red as they're called, and Clear picks */}
-            {canPick && <div className={`${styles.cta} ${styles.entryBar}`}>
-                {allIn
-                    ? <span className={styles.allIn}><Check />All in</span>
-                    : <span className={styles.progressText}><b>{picks.size} of {matchups.length}</b> picked</span>}
-                <span className={styles.pips} aria-hidden="true">
-                    {matchups.map((matchup, i) => <span key={i} className={styles.pip} data-on={i < picks.size ? '' : undefined} />)}
-                </span>
-                <button type="button" className={styles.clearButton}
-                    disabled={clearing || picks.size === 0} aria-busy={clearing}
-                    data-idle={picks.size === 0 && !clearing ? '' : undefined} aria-hidden={picks.size === 0 && !clearing ? true : undefined}
-                    onClick={() => void clearAll()}>
-                    {clearing ? 'Clearing…' : 'Clear picks'}
-                </button>
-            </div>}
+            {canPick && <PickemEntryBar picked={picks.size} total={matchups.length} clearing={clearing} onClear={() => void clearAll()} />}
             {yours?.status === 'signed-out' && <p className={styles.cta}>Sign in to call this week&apos;s matchups.
                 <Link href="/owner" className={styles.ctaButton}>Sign in</Link></p>}
             {yours?.status === 'no-team' && <p className={styles.cta}>Claim your team to play Pick&apos;em.
                 <Link href="/owner" className={styles.ctaButton}>Claim your team</Link></p>}
-            {bumper > 0 && <span key={bumper} className={styles.bumper} aria-hidden="true" onAnimationEnd={event => {
-                if (event.target === event.currentTarget) setBumper(0);
-            }}>
-                <span className={styles.bumperRed} />
-                <span className={styles.bumperNavy} />
-                <span className={styles.bumperWords}><span>All in</span><span>Week {week}</span></span>
-                <span className={styles.bumperStripes} />
+            {/* the bumper's footing sits on a wrapper, since its own wipe would clip the shadow */}
+            {bumper > 0 && <span key={bumper} className={styles.bumperFooting} aria-hidden="true">
+                <span className={styles.bumper} onAnimationEnd={event => {
+                    if (event.target === event.currentTarget) setBumper(0);
+                }}>
+                    <span className={styles.bumperRed} />
+                    <span className={styles.bumperNavy} />
+                    <span className={styles.bumperWords}><span>All in</span><span>Week {week}</span></span>
+                    <span className={styles.bumperStripes} />
+                </span>
             </span>}
         </div>
         {error && <p role="alert" className={styles.alert}>{error}</p>}
