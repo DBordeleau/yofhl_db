@@ -468,6 +468,9 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 /* ── a week change: the old slate folds away while the next one loads ── */
 .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: leave .32s cubic-bezier(.33, 1, .68, 1) forwards; }
 @keyframes leave { to { opacity: .15; transform: scale(.985); filter: blur(3px); } }
+/* the next week's slate holds its entrance at its start, the strips still closed, until the owner's picks are in
+   (your-pickem.ts), so the strips open already showing them */
+.slate[data-held] *, .slate[data-held] *::before, .slate[data-held] *::after { animation-play-state: paused !important; }
 
 /* ── phones ───────────────────────────────────────────────────────────── */
 @media (max-width: 800px) {

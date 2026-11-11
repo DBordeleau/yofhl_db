@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { Chevron } from '@/components/pickem/icons';
 import type { PickemWeekOption } from '@/lib/pickem/create-pickem';
+import { prefetchYours } from './your-pickem';
 import styles from './pickem.module.css';
 
 interface Props {
@@ -15,6 +16,8 @@ interface Props {
     clock?: ReactNode;
     /** the season, set small over the week's name on a phone, where the title has no room for it */
     season?: string;
+    /** the season's year, to start reading the owner's picks for a week as it is chosen */
+    seasonYear?: number;
 }
 
 // the slate on screen when a week is chosen; the next week's slate is a new element, so it never carries the mark
@@ -23,8 +26,8 @@ const leaving = (on: boolean) => document.querySelectorAll('[data-pickem-slate]'
 // Every Pick'em week of the season on one line, with no scrolling: a stepper with the week's name, then a numbered tick
 // per week on a row of its own (locked weeks dimmer) with a red slab under the one shown; phones keep the stepper only.
 // Choosing a week slides the slab there at once and folds the old slate away while the next week loads
-// (pickem.module.css, "a week change").
-export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', clock, season }: Props) {
+// (pickem.module.css, "a week change"), and starts reading the owner's picks for it alongside (your-pickem.ts).
+export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', clock, season, seasonYear }: Props) {
     const [going, setGoing] = useState<number | null>(null);
     const shown = going ?? selected;
     const at = Math.max(0, weeks.findIndex(option => option.week === shown));
@@ -41,6 +44,7 @@ export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', c
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0 || week === selected) return;
             setGoing(week);
             leaving(true);
+            if (seasonYear) prefetchYours(seasonYear, week);
             // a navigation that never lands must not leave the slate folded
             window.setTimeout(() => leaving(false), 4000);
         };

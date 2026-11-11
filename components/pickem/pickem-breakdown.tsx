@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { readYourPickem } from '@/app/pickem/actions';
 import { useTeamBranding } from '@/components/team-branding/branding-provider';
 import type { PickemEntry, PickemMatchupBreakdown, PickemPickOutcome } from '@/lib/pickem/create-pickem';
 import { pairOf, pairOfMatchup } from '@/lib/pickem/model';
@@ -14,6 +13,7 @@ import { burst } from './sparks';
 import TeamBadge from '@/components/team-badge';
 import { formatFpts } from '@/lib/league';
 import SideBody from './side-body';
+import { readYours, useEntranceHold } from './your-pickem';
 import styles from './pickem.module.css';
 
 // A locked week's breakdown: each matchup as the same club strip. The strips open level, then each seam springs toward
@@ -25,7 +25,9 @@ import styles from './pickem.module.css';
 // pick keeps the open week's red lamp
 // along its top edge and is stamped with how it went: a call that came in goes off like the goal light again (the lamp
 // flickers and sparks fly off the stamp), and a miss or a tie leaves the lamp dark. The owner's picks load only when
-// the session hint says an owner may be signed in (ADR 0003). Nothing here can be picked.
+// the session hint says an owner may be signed in (ADR 0003); a week change holds the whole entrance until they are in
+// (your-pickem.ts), so the owner's meter is there before the strips open rather than pushing them down. Nothing here
+// can be picked.
 
 const keyOf = (pair: [number, number]) => pairOf(...pair).join('-');
 // `lead` is dropped on a phone, where the side is narrow and its lamp already says the pick is yours
@@ -65,8 +67,10 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
     const [yours, setYours] = useState<Map<string, { picked: number; outcome?: PickemPickOutcome }>>(new Map());
     const [shared, setShared] = useState(false);
     const slate = useRef<HTMLDivElement>(null);
+    const { held, release } = useEntranceHold(true);
 
     useEffect(() => {
+        if (held) return;
         // the finished losers fade, once
         const frame = requestAnimationFrame(() => setShared(true));
         // each seam springs from level toward its split, a strip at a time
@@ -74,21 +78,25 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
         strips.forEach(trackSeam);
         const timers = strips.map((strip, i) => window.setTimeout(() => aimSeam(strip, Number(strip.dataset.lean)), revealAt(i)));
         return () => { cancelAnimationFrame(frame); timers.forEach(clearTimeout); strips.forEach(untrackSeam); };
-    }, [breakdown]);
+    }, [breakdown, held]);
 
     useEffect(() => {
         if (!hasSessionHint()) return;
         let cancelled = false;
-        readYourPickem(seasonYear, week).then(answer => {
-            if (cancelled || answer?.status !== 'entry') return;
+        readYours(seasonYear, week).then(answer => {
+            if (cancelled) return;
+            release();
+            if (answer?.status !== 'entry') return;
             announceOwner(answer.franchiseId);
             setYours(new Map(answer.picks.map(pick => [keyOf(pick.matchup), { picked: pick.picked, outcome: pick.outcome }] as const)));
-        }).catch(() => {});
+        }).catch(() => { if (!cancelled) release(); });
         return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [seasonYear, week]);
 
     // every call that came in fires its sparks as its lamp flickers back on (the lamp's CSS delay matches celebrateAt)
     useEffect(() => {
+        if (held) return;
         const timers = breakdown.flatMap(({ matchup }, i) => {
             const mine = yours.get(keyOf(pairOfMatchup(matchup)));
             if (mine?.outcome !== 'correct') return [];
@@ -99,7 +107,7 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
             }, celebrateAt(i))];
         });
         return () => timers.forEach(clearTimeout);
-    }, [yours, breakdown, palettes]);
+    }, [yours, breakdown, palettes, held]);
 
     // The owner's week before the strips: the entry bar's meter in its next phase, a segment per matchup, lit for each
     // call that came in, hollow for a miss or a tie, filled faintly while the pick waits on its result.
@@ -107,7 +115,7 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
     const decided = mine.some(pick => pick?.outcome);
     const called = mine.filter(pick => pick?.outcome === 'correct').length;
     const picked = mine.filter(Boolean).length;
-    return <div ref={slate} className={styles.slate} data-pickem-slate="">
+    return <div ref={slate} className={styles.slate} data-pickem-slate="" data-held={held ? '' : undefined}>
         {picked > 0 && <div className={styles.weekHead}>
             <div className={styles.entryBar}>
                 <span className={styles.progressText}>
