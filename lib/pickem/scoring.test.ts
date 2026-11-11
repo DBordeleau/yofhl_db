@@ -35,10 +35,13 @@ async function readAt(league: League, week: number, time = now(), asker: 'nobody
 }
 
 const results = (week: Awaited<ReturnType<typeof readAt>>) => week.breakdown?.map(item => item.result);
+/** the breakdown's scores as [away, home] per matchup */
+const scores = (week: Awaited<ReturnType<typeof readAt>>) => week.breakdown?.map(item => item.scores && [item.scores.away, item.scores.home]);
 const yourPicks = (week: Awaited<ReturnType<typeof readAt>>) => week.yours?.status === 'entry' ? week.yours.picks : null;
 
 /** 1 beats 2, 3 and 4 tie, 6 beats 5, 8 beats 7, 9 and 10 tie */
 const SCORES: [number, number, number, number][] = [[1, 2, 10, 5], [3, 4, 6, 6], [5, 6, 1, 7], [7, 8, 3, 9], [9, 10, 4, 4]];
+const SCORED = SCORES.map(([, , away, home]) => [away, home]);
 
 test('the Pick\'em leaderboard ranks entries by correct picks, then fewer wrong, and entries level on both share the place', async t => {
     const league = await pickemLeague(t, { launch });
@@ -80,6 +83,7 @@ test('a locked week that is not yet final contributes nothing; a final week foll
     await league.signInAs('owner-1');
     const locked = await readAt(league, 6, now(), 'session');
     assert.deepEqual(results(locked), [null, null, null, null, null], 'no results before the week is final');
+    assert.deepEqual(scores(locked), SCORED, 'the scores as they stand while the week is played');
     assert.deepEqual(yourPicks(locked), [{ matchup: [1, 2], picked: 1 }, { matchup: [3, 4], picked: 3 }, { matchup: [5, 6], picked: 5 }]);
 
     league.playWeek(6, 1);
@@ -92,10 +96,24 @@ test('a locked week that is not yet final contributes nothing; a final week foll
         { matchup: [5, 6], picked: 5, outcome: 'wrong' },
     ]);
 
-    // A stat correction inside the window turns 1 v 2 around.
-    league.setScores(6, [[1, 2, 5, 10], ...SCORES.slice(1)]);
+    // A stat correction inside the window turns 1 v 2 around, with Fantrax now listing the pair the other way round.
+    league.setScores(6, [[2, 1, 10, 5], ...SCORES.slice(1)]);
     assert.deepEqual(records(await leaderboardAt(league)), [[1, 2, 1, 0, 1], [2, 1, 0, 2, 0]]);
-    assert.deepEqual(results(await readAt(league, 6)), ['home', 'tie', 'home', 'home', 'tie']);
+    const corrected = await readAt(league, 6);
+    assert.deepEqual(results(corrected), ['home', 'tie', 'home', 'home', 'tie']);
+    assert.deepEqual(scores(corrected), [[5, 10], ...SCORED.slice(1)], 'scores follow the correction, in the pairing\'s own order');
+});
+
+test('a locked week still being played shows its breakdown without scores while Fantrax can\'t be read', async t => {
+    const league = await pickemLeague(t, { launch });
+    await savePicks(league, 6, [[1, [1, 2], 1]]);
+    league.weekOf(6).startDate = new Date(now() - DAY).toISOString();
+    league.setScores(6, SCORES);
+    league.live.down.add('scores');
+
+    const locked = await readAt(league, 6);
+    assert.deepEqual(scores(locked), [null, null, null, null, null]);
+    assert.deepEqual(locked.breakdown![0].away.map(entry => entry.franchise.id), [1]);
 });
 
 test('settle freezes a final week once its correction window closes, and later corrections change nothing', async t => {
@@ -115,7 +133,12 @@ test('settle freezes a final week once its correction window closes, and later c
     league.setScores(6, [[1, 2, 5, 10], [3, 4, 9, 1], [5, 6, 7, 1], [7, 8, 9, 3], [9, 10, 1, 4]]);
     assert.deepEqual(await settle(windowCloses + 2 * DAY), []);
     assert.deepEqual(records(await leaderboardAt(league)), [[1, 1, 1, 1, 0.5], [2, 2, 0, 1, 0]]);
-    assert.deepEqual(results(await readAt(league, 6)), ['away', 'tie', 'home', 'home', 'tie']);
+    const frozen = await readAt(league, 6);
+    assert.deepEqual(results(frozen), ['away', 'tie', 'home', 'home', 'tie']);
+    assert.deepEqual(scores(frozen), SCORED, 'the scores froze with the results');
+    // Frozen scores need nothing from the live season.
+    league.live.down.add('scores');
+    assert.deepEqual(scores(await readAt(league, 6)), SCORED);
 });
 
 test('the Pick\'em leaderboard is empty before any pick locks, and absent while Pick\'em is switched off', async t => {

@@ -164,6 +164,9 @@ export const pickemPairings = league.table('pickem_pairings', {
     awayFranchiseId: integer('away_franchise_id').notNull().references(() => franchises.id),
     homeFranchiseId: integer('home_franchise_id').notNull().references(() => franchises.id),
     winnerFranchiseId: integer('winner_franchise_id').references(() => franchises.id),
+    // the two clubs' fantasy points, frozen with the result; both or neither, and only once frozen
+    awayScore: fpts('away_score'),
+    homeScore: fpts('home_score'),
     frozenAt: timestamp('frozen_at', { withTimezone: true, mode: 'string' }),
 }, (t) => [
     primaryKey({ columns: [t.seasonYear, t.week, t.position] }),
@@ -171,6 +174,7 @@ export const pickemPairings = league.table('pickem_pairings', {
     check('pickem_pairings_matchup', sql`${t.awayFranchiseId} <> ${t.homeFranchiseId}`),
     check('pickem_pairings_result', sql`${t.winnerFranchiseId} is null
         or (${t.frozenAt} is not null and ${t.winnerFranchiseId} in (${t.awayFranchiseId}, ${t.homeFranchiseId}))`),
+    check('pickem_pairings_scores', sql`(${t.awayScore} is null) = (${t.homeScore} is null) and (${t.awayScore} is null or ${t.frozenAt} is not null)`),
 ]);
 
 // A season whose Pick'em is complete: settle writes it once the season's last regular-season week is frozen. It is

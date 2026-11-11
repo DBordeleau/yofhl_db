@@ -1,6 +1,6 @@
 // Settle: the Pick'em module's evening work, run by the Fantrax refresh straight after a successful capture.
 // It records every Pick'em week of the live season whose lock has passed and that is not yet recorded, then freezes
-// every recorded week that is a final week whose correction window has closed and that is not yet frozen, and
+// (results and scores) every recorded week that is a final week whose correction window has closed and that is not yet frozen, and
 // marks the season's Pick'em complete once its last regular-season week is frozen. Each week is one statement that is safe to repeat (ADR 0002), so running twice changes nothing and a missed evening is
 // caught up by the next run.
 import { revalidateTag } from 'next/cache';
@@ -9,7 +9,7 @@ import { correctionWindowClosed } from '@/lib/fantrax/live-season';
 import { isLocked, loadLivePickem } from './live-weeks';
 import type { PickemPorts } from './ports';
 import { freezeWeekQuery, pickemSeasonTag, recordedSeasonQuery, recordWeekQuery, type RecordedWeek } from './recorded-weeks';
-import { liveWinners } from './results';
+import { liveResults } from './results';
 import { completeSeasonQuery, PICKEM_SEASONS_TAG } from './seasons';
 
 export interface SettleInput {
@@ -48,8 +48,11 @@ export function createSettle(ports: PickemPorts) {
         for (const week of known.filter(item => !item.frozen && item.pairings.length)) {
             const liveWeek = live.weeks.find(item => item.week === week.week);
             if (!liveWeek?.final || !correctionWindowClosed(liveWeek.endDate, now)) continue;
-            const winners = await liveWinners(ports, week.week, week.pairings, live.teams);
-            const results = week.pairings.map((pairing, index) => ({ position: pairing.position, winner: winners[index] }));
+            const scored = await liveResults(ports, week.week, week.pairings, live.teams);
+            const results = week.pairings.map((pairing, index) => ({
+                position: pairing.position, winner: scored[index].winner,
+                awayScore: scored[index].score?.away ?? null, homeScore: scored[index].score?.home ?? null,
+            }));
             const [row] = await rows<{ frozen: number }>(freezeWeekQuery(seasonYear, week.week, results));
             if (row?.frozen) frozen.push({ seasonYear, week: week.week });
         }

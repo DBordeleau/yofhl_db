@@ -15,6 +15,9 @@ export interface RecordedPairing {
     home: number;
     /** the frozen result: the winning franchise, or null for a tie (or while the week is not frozen) */
     winner: number | null;
+    /** the frozen scores, frozen with the result; null while the week is not frozen, or when Fantrax had none */
+    awayScore: number | null;
+    homeScore: number | null;
 }
 
 export interface RecordedWeek {
@@ -32,7 +35,8 @@ const isoOf = (column: ReturnType<typeof sql>) => sql`to_char(${column} at time 
 export const recordedSeasonQuery = (seasonYear: number) => sql`
     select w.week, ${isoOf(sql`w.lock`)} as lock,
            coalesce((select json_agg(json_build_object('position', p.position, 'away', p.away_franchise_id,
-                                                       'home', p.home_franchise_id, 'winner', p.winner_franchise_id) order by p.position)
+                                                       'home', p.home_franchise_id, 'winner', p.winner_franchise_id,
+                                                       'awayScore', p.away_score, 'homeScore', p.home_score) order by p.position)
                      from league.pickem_pairings p
                      where p.season_year = w.season_year and p.week = w.week), '[]') as pairings,
            coalesce((select bool_and(p.frozen_at is not null)
@@ -68,13 +72,23 @@ export const recordWeekQuery = (week: LivePickemWeek) => {
     select count(*)::int as recorded from recorded`;
 };
 
-// One statement per week (ADR 0002): every pairing's result is written together, and only where none is frozen
-// yet, so a frozen result is never written again and a second run changes nothing.
-export const freezeWeekQuery = (seasonYear: number, week: number, results: { position: number; winner: number | null }[]) => sql`
+/** A pairing's frozen result: its winner (null for a tie) and its two scores (null when Fantrax had none) */
+export interface FrozenResult {
+    position: number;
+    winner: number | null;
+    awayScore: number | null;
+    homeScore: number | null;
+}
+
+// One statement per week (ADR 0002): every pairing's result and scores are written together, and only where none
+// is frozen yet, so a frozen result is never written again and a second run changes nothing.
+export const freezeWeekQuery = (seasonYear: number, week: number, results: FrozenResult[]) => sql`
     with frozen as (
         update league.pickem_pairings p
-        set winner_franchise_id = r.winner, frozen_at = clock_timestamp()
-        from jsonb_to_recordset(${JSON.stringify(results)}::jsonb) as r(position smallint, winner int)
+        set winner_franchise_id = r.winner, away_score = r.away_score, home_score = r.home_score, frozen_at = clock_timestamp()
+        from jsonb_to_recordset(${JSON.stringify(results.map(({ position, winner, awayScore, homeScore }) =>
+            ({ position, winner, away_score: awayScore, home_score: homeScore })))}::jsonb)
+            as r(position smallint, winner int, away_score numeric, home_score numeric)
         where p.season_year = ${seasonYear}::int and p.week = ${week}::int and p.position = r.position and p.frozen_at is null
         returning 1
     )

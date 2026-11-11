@@ -9,6 +9,19 @@ import type { PickemPorts } from './ports';
 /** a pairing's result: the winning franchise, or null for a tie */
 export type Winner = number | null;
 
+/** a pairing's fantasy points, in the pairing's own away and home order */
+export interface PairingScore {
+    away: number;
+    home: number;
+}
+
+/** a pairing as the live season scores it now: its winner by the matchup winner rule, and its two scores */
+export interface PairingResult {
+    winner: Winner;
+    /** null when Fantrax has no score for the pairing */
+    score: PairingScore | null;
+}
+
 /** A Pick'em pick, scored: correct when its franchise won, wrong when the other did, neither on a tie */
 export type PickemPickOutcome = 'correct' | 'wrong' | 'neither';
 
@@ -16,11 +29,12 @@ export const outcomeOf = (picked: number, winner: Winner): PickemPickOutcome =>
     winner === null ? 'neither' : winner === picked ? 'correct' : 'wrong';
 
 /**
- * Each pairing's result as the live season scores week `week` now, by the matchup winner rule. A pairing Fantrax
- * has no score for (one it no longer has that week) has no winner, so its Pick'em picks count as neither.
+ * Each pairing's result as the live season scores week `week` now, by the matchup winner rule, with its two scores.
+ * A pairing Fantrax has no score for (one it no longer has that week, or a week not started) has no winner and no
+ * score, so its Pick'em picks count as neither.
  */
-export async function liveWinners({ liveSeason }: Pick<PickemPorts, 'liveSeason'>, week: number,
-    pairings: { away: number; home: number }[], teams: LiveTeam[]): Promise<Winner[]> {
+export async function liveResults({ liveSeason }: Pick<PickemPorts, 'liveSeason'>, week: number,
+    pairings: { away: number; home: number }[], teams: LiveTeam[]): Promise<PairingResult[]> {
     const scores = await liveSeason.getWeekScores(week);
     const franchiseOf = new Map(teams.map(team => [team.id, team.franchiseId]));
     const scored = (scores?.matchups ?? []).flatMap(({ away, home }) => {
@@ -29,6 +43,9 @@ export async function liveWinners({ liveSeason }: Pick<PickemPorts, 'liveSeason'
     });
     return pairings.map(pairing => {
         const found = scored.find(item => samePair(pairOf(item.away.id, item.home.id), pairOf(pairing.away, pairing.home)));
-        return found ? matchupWinner(found.away, found.home) : null;
+        if (!found) return { winner: null, score: null };
+        // Fantrax may list the pair the other way round from the pairing Pick'em recorded
+        const [away, home] = found.away.id === pairing.away ? [found.away, found.home] : [found.home, found.away];
+        return { winner: matchupWinner(found.away, found.home), score: { away: away.score, home: home.score } };
     });
 }

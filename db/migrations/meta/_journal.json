@@ -148,6 +148,13 @@
       "when": 1794287774903,
       "tag": "0020_pickem_completed_seasons",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794370231207,
+      "tag": "0021_pickem_pairing_scores",
+      "breakpoints": true
     }
   ]
 }

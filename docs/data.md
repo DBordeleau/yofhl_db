@@ -17,7 +17,7 @@ Seasons use the year they end in. `2026` means the 2025–26 season. Franchise I
 | Draft lottery schedule, order, odds, and winner | `/admin/lottery` and the draw service | Stored separately from season imports; see the [lottery guide](lottery.md) |
 | Trophy labels, descriptions, artwork, and stored-name aliases | [lib/awards.ts](../lib/awards.ts) | Code changes, separate from award winner records |
 | Pick'em picks | `/pickem`, through the Pick'em module ([lib/pickem](../lib/pickem/)) | Owners save and clear them until each week's lock; never touched by imports |
-| Pick'em record: locked weeks, their pairings and frozen results, completed seasons | Pick'em settle, after each Fantrax refresh | Written once per week and never rewritten ([ADR 0005](adr/0005-pickem-keeps-its-own-results.md)); never touched by imports |
+| Pick'em record: locked weeks, their pairings and frozen results and scores, completed seasons | Pick'em settle, after each Fantrax refresh | Written once per week and never rewritten ([ADR 0005](adr/0005-pickem-keeps-its-own-results.md)); never touched by imports |
 
 CSV exports under `data/` are local inputs, not tracked repository contents. Obtain them separately for a new checkout. Legacy award and championship-roster snapshots under `league/seed/` are tracked.
 
@@ -183,7 +183,7 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | `transaction_events`, `transaction_assets`, `draft_picks` | Historical moves and draft slots with source references |
 | `draft_lotteries` | Event snapshots, version, schedule, cancellation, and saved winner |
 | `pickem_picks` | Each Pick'em entry's Pick'em pick per week and matchup (migration 0018) |
-| `pickem_weeks`, `pickem_pairings` | Pick'em's record of each locked week: its lock, its pairings in order and, once frozen, each pairing's result (0019) |
+| `pickem_weeks`, `pickem_pairings` | Pick'em's record of each locked week: its lock, its pairings in order and, once frozen, each pairing's result (0019) and its two scores (0021) |
 | `pickem_completed_seasons` | Seasons whose Pick'em is complete, so their winner stands once Fantrax moves on (0020) |
 
 Player seasons are retained when the player scored, was rostered, or is needed by an award or championship roster. Team trophy cases derive Prime Minister's Trophies from a strict league-wide regular-season FPts lead; tied leaders do not receive an inferred winner. Individual awards use their recorded `awards.team_season_id` association, not the player's current team.

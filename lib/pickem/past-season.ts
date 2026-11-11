@@ -3,7 +3,7 @@
 import { sql } from 'drizzle-orm';
 import { leagueTags } from '@/lib/data/cache-tags';
 import { cached, rows } from '@/lib/data/db';
-import { countedPairings, type CountedWeek, type PickemEntry } from './locked-week';
+import { countedPairings, frozenScore, type CountedWeek, type PickemEntry } from './locked-week';
 import type { PickemFranchise } from './model';
 import type { RecordedWeek } from './recorded-weeks';
 
@@ -37,8 +37,9 @@ export async function readSeasonEntries(seasonYear: number): Promise<Map<number,
 /** A past season's week as Pick'em names it: the live season's names are gone with it */
 export const pastWeekName = (week: number) => `Week ${week}`;
 
-/** A recorded week as it is scored from the record alone: its frozen results, or none while it is not frozen */
+/** A recorded week as it is scored from the record alone: its frozen results and scores, or none while it is not frozen */
 export function recordedWeek(seasonYear: number, recorded: RecordedWeek, entries: Map<number, PickemEntry>): CountedWeek {
     const winners = recorded.frozen ? recorded.pairings.map(pairing => pairing.winner) : null;
-    return { seasonYear, week: recorded.week, name: pastWeekName(recorded.week), lock: recorded.lock, ...countedPairings(recorded.pairings, entries, winners) };
+    const scores = recorded.frozen ? recorded.pairings.map(frozenScore) : null;
+    return { seasonYear, week: recorded.week, name: pastWeekName(recorded.week), lock: recorded.lock, ...countedPairings(recorded.pairings, entries, winners, scores) };
 }

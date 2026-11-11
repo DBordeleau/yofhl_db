@@ -44,7 +44,7 @@ export interface PickemWeek {
     yours: YourPickem | null;
     /** every active franchise and whether it is in, for the next week to lock only; null for any other week */
     whosIn: PickemWhoIsIn[] | null;
-    /** every matchup's entries on each side and, once scored, its result, from the lock on, to any caller; null before the lock */
+    /** every matchup's entries on each side, its scores and, once final, its result, from the lock on, to any caller; null before the lock */
     breakdown: PickemMatchupBreakdown[] | null;
     /** the league standings as they are now, by franchise id, for an open week only: they say nothing of a week already played */
     leagueStandings: Record<number, LeagueStanding> | null;
@@ -118,7 +118,7 @@ export function createReadWeek(ports: PickemPorts) {
         const locked = isLocked(found, input.now);
         const entries = entriesOf(live.teams);
         const recorded = locked ? (await readRecordedSeason(live.seasonYear)).find(item => item.week === found.week) : undefined;
-        const week: ScoredWeek = locked ? await lockedWeek(ports, found, recorded, live.teams) : { ...found, winners: null };
+        const week: ScoredWeek = locked ? await lockedWeek(ports, found, recorded, live.teams) : { ...found, winners: null, scores: null };
         return { status: 'week', beingPlayed: true, week: {
             seasonYear: week.seasonYear, week: week.week, name: week.name, lock: week.lock, matchups: week.matchups,
             phase: locked ? 'locked' : 'open',

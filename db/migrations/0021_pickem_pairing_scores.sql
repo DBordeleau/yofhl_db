@@ -1,0 +1,3 @@
+ALTER TABLE "league"."pickem_pairings" ADD COLUMN "away_score" numeric(8, 2);--> statement-breakpoint
+ALTER TABLE "league"."pickem_pairings" ADD COLUMN "home_score" numeric(8, 2);--> statement-breakpoint
+ALTER TABLE "league"."pickem_pairings" ADD CONSTRAINT "pickem_pairings_scores" CHECK (("league"."pickem_pairings"."away_score" is null) = ("league"."pickem_pairings"."home_score" is null) and ("league"."pickem_pairings"."away_score" is null or "league"."pickem_pairings"."frozen_at" is not null));
