@@ -256,7 +256,7 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
     // On a phone the slate head docks on top of the tab bar while the strips are on screen (pickem.module.css), so a
     // refused save is said there, under the thumb, rather than pushing the strips down.
     return <div ref={slate} className={styles.slate} data-pickem-slate="">
-        <div className={styles.slateHead}>
+        <div className={styles.slateHead} data-bumper={bumper > 0 ? '' : undefined}>
             {error && <p role="alert" className={styles.alert}>
                 {error.fix ? <Link href={error.fix}>{error.message}</Link> : error.message}
             </p>}

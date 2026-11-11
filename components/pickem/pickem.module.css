@@ -180,12 +180,22 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 .dockClock { display: none; }
 .message { padding: 40px 24px; border: 1px solid #dce5ee; border-radius: 6px; background: #fff; text-align: center; font-size: 15px; color: #3a4560; }
 
-/* the all-in bumper: red and navy slabs slide in from opposite sides, the words follow, then it wipes out */
+/* The all-in bumper: red and navy slabs slide in solid from opposite sides, the words follow, then it wipes off to the
+   right along the slabs' slant. The entry bar hides under it once the slabs are in and fades back once it has gone, so
+   Clear picks never shows through the slabs or peeks out of the wipe. */
 .bumperFooting { position: absolute; inset: 0; z-index: 3; filter: var(--footing-drop); pointer-events: none; }
-.bumper { position: absolute; inset: -8px 0 auto; height: 60px; animation: bumperOut 2.6s cubic-bezier(.2, .75, .15, 1) forwards; }
+.bumper { position: absolute; inset: -8px 0 auto; height: 60px; animation: bumperOut 2.5s linear forwards; }
 .bumperRed, .bumperNavy { position: absolute; top: 0; height: 100%; }
-.bumperRed { left: 0; width: 64%; background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); animation: fromLeft .5s cubic-bezier(.2, .75, .15, 1) both; }
-.bumperNavy { right: 0; width: 40%; background: #050c18; clip-path: polygon(26px 0, 100% 0, 100% 100%, 0 100%); animation: fromRight .5s .06s cubic-bezier(.2, .75, .15, 1) both; }
+.bumperRed { left: 0; width: 64%; background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); animation: slabFromLeft .42s cubic-bezier(.2, .75, .15, 1) both; }
+.bumperNavy { right: 0; width: 40%; background: #050c18; clip-path: polygon(26px 0, 100% 0, 100% 100%, 0 100%); animation: slabFromRight .42s .06s cubic-bezier(.2, .75, .15, 1) both; }
+@media (prefers-reduced-motion: no-preference) {
+    .slateHead[data-bumper] > .entryBar { animation: underBumper 0s .45s forwards; }
+}
+.slateHead > .entryBar { animation: barBack .35s cubic-bezier(.2, .75, .15, 1) backwards; }
+@keyframes underBumper { to { visibility: hidden; } }
+@keyframes barBack { from { opacity: 0; transform: translateY(4px); } }
+@keyframes slabFromLeft { from { transform: translateX(-100%); } }
+@keyframes slabFromRight { from { transform: translateX(100%); } }
 .bumperWords { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: 34px; font-weight: 950; font-style: italic; font-stretch: 125%; letter-spacing: -.02em; text-transform: uppercase; color: #fff; }
 .bumperWords span:first-child { animation: fromLeft .55s .14s cubic-bezier(.2, .75, .15, 1) both; text-shadow: 0 2px #5a0010; }
 .bumperWords span:last-child { font-size: 18px; font-stretch: 112%; color: #c3e3f7; animation: fromRight .55s .2s cubic-bezier(.2, .75, .15, 1) both; }
@@ -193,7 +203,12 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 @keyframes fromLeft { from { transform: translateX(-60%); opacity: 0; } }
 @keyframes fromRight { from { transform: translateX(60%); opacity: 0; } }
 @keyframes draw { from { transform: scaleX(0); } }
-@keyframes bumperOut { 0%, 78% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); } 100% { clip-path: polygon(100% 0, 100% 0, calc(100% - 30px) 100%, calc(100% - 30px) 100%); } }
+/* the wipe's leading edge runs on the slabs' slant from just off the left edge to just off the right, speeding up as it
+   goes, so it never lingers over the end of the bar */
+@keyframes bumperOut {
+    0%, 82% { clip-path: polygon(0 0, 100% 0, 100% 100%, -30px 100%); animation-timing-function: cubic-bezier(.45, 0, .75, .5); }
+    100% { clip-path: polygon(calc(100% + 30px) 0, 100% 0, 100% 100%, 100% 100%); }
+}
 
 /* ── matchup strips: two club-colour slabs sharing one slant ──────────── */
 .strips { display: flex; flex-direction: column; gap: 12px; container-type: inline-size; }
@@ -641,6 +656,6 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .scoreFigure, .scoreFigure::before, .scoreWin, .strip[data-locked] .stamp, .strip[data-locked] .side[data-mine]::before { animation: none; }
     .prizeTag::after { display: none; }
     .pip::before, .pip::after, .clearButton { transition: none; }
-    .pip[data-lit], .pip[data-lit]::after, .countIn, .allIn, .ctaButton[data-stamped] { animation: none; }
+    .pip[data-lit], .pip[data-lit]::after, .countIn, .allIn, .ctaButton[data-stamped], .slateHead > .entryBar { animation: none; }
     .countOut { display: none; }
 }
