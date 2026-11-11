@@ -3,11 +3,15 @@ import { notFound } from 'next/navigation';
 import PickemPageView from '@/components/pickem/pickem-page';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
+import { pickemWeekMetadata } from '@/app/pickem/metadata';
 
-export const metadata: Metadata = {
-    title: "Pick'em · YOFHL",
-    description: 'Owners call the winner of every regular-season matchup.',
-};
+// named for the next week to lock, read for nobody from the same cache as the page
+export async function generateMetadata(): Promise<Metadata> {
+    if (!PICKEM_LAUNCH) return {};
+    const read = await pickem.readWeek({ now: Date.now(), asker: 'nobody' });
+    const week = read.status === 'week' ? read.week : null;
+    return pickemWeekMetadata('/pickem', week, week?.seasonYear ?? null);
+}
 
 // The public page reads for nobody: the next week to lock beside the Pick'em leaderboard. Results arrive with the
 // evening refresh's settle, which expires the page's cached reads; the next week to lock turns over at noon, so the

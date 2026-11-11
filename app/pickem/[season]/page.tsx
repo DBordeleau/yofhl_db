@@ -3,11 +3,15 @@ import { notFound, redirect } from 'next/navigation';
 import PickemPageView from '@/components/pickem/pickem-page';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
+import { pickemSeasonMetadata } from '@/app/pickem/metadata';
 
-export const metadata: Metadata = {
-    title: "Pick'em · YOFHL",
-    description: "A past season's Pick'em: its winner, its Pick'em leaderboard and every locked week.",
-};
+export async function generateMetadata({ params }: { params: Promise<{ season: string }> }): Promise<Metadata> {
+    const { season } = await params;
+    if (!PICKEM_LAUNCH || !/^\d{4}$/.test(season)) return {};
+    const standings = await pickem.readPickemLeaderboard({ now: Date.now(), seasonYear: Number(season) });
+    if (standings.status === 'no-season') return {};
+    return pickemSeasonMetadata(Number(season), standings.status === 'leaderboard' ? standings.leaderboard.winners : []);
+}
 
 // A past season's Pick'em, by season year, read for nobody from Pick'em's own record: its last week beside its
 // Pick'em leaderboard, with every other week at /pickem/[season]/week/[week]. The season being played lives at
