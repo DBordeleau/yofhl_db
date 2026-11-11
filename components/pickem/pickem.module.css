@@ -16,8 +16,8 @@
 /* the top line: the title and its season, with who's in on the right */
 .top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 40px; }
 .titleRow { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 24px; }
-.title { font-size: clamp(46px, 4.4vw, 72px); font-weight: 950; font-style: italic; font-stretch: 118%; line-height: .9; letter-spacing: -.04em; text-transform: uppercase; white-space: nowrap; }
-.title span { margin-left: .3em; font-size: .62em; font-stretch: 100%; letter-spacing: -.03em; color: transparent; -webkit-text-stroke: 1.5px #b6dcf5; }
+.title { font-size: clamp(46px, 4.4vw, 72px); font-weight: 950; font-style: italic; font-stretch: 118%; line-height: .9; letter-spacing: -.04em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 .05em .18em #050c1899; }
+.title span { margin-left: .3em; font-size: .52em; font-weight: 900; font-stretch: 100%; letter-spacing: -.01em; color: #b6dcf5; text-shadow: none; }
 
 .seasons { display: flex; flex-wrap: wrap; gap: 6px; }
 .seasons a { display: inline-flex; align-items: center; height: 30px; padding: 0 15px; background: #ffffff14; font-size: 13px; font-weight: 850; font-style: italic; font-stretch: 108%; font-variant-numeric: tabular-nums; color: #c3cfe4; clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); transition: background .15s, color .15s; }
@@ -32,7 +32,7 @@
 a.step:hover { background: #ffffff14; color: #fff; }
 a.step:hover svg { transform: translateX(var(--nudge)); }
 .step[aria-disabled] { opacity: .3; }
-.weekName { min-width: 6.4ch; padding: 0 6px; font-size: 30px; font-weight: 900; font-style: italic; font-stretch: 118%; letter-spacing: -.02em; text-align: center; text-transform: uppercase; white-space: nowrap; }
+.weekName { min-width: 6.4ch; padding: 0 6px; font-size: 24px; font-weight: 900; font-style: italic; font-stretch: 112%; letter-spacing: -.01em; text-align: center; text-transform: uppercase; white-space: nowrap; }
 
 .clock { display: flex; height: 52px; }
 .clockLabel { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 0 20px 0 24px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 13px; font-weight: 900; font-style: italic; font-stretch: 115%; letter-spacing: .04em; line-height: 1; text-transform: uppercase; text-shadow: 0 1px #5a0010; white-space: nowrap; clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
@@ -81,18 +81,16 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
     .track a[aria-current] { font-size: 14px; }
 }
 
-/* who's in: a compact row of ten logo slabs that light up as owners finish their picks */
+/* who's in: the count as a scoreboard figure, then every club's logo, lit once its owner has picked and a faint
+   silhouette until then */
 .whos { display: flex; align-items: center; gap: 14px; }
-.whosCount { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-.whosCount b { font-size: 30px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: 1; font-variant-numeric: tabular-nums; }
-.whosCount b span { font-size: .6em; color: #a9b8cf; }
-.whosCount small { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: #a9b8cf; text-transform: uppercase; }
-.whosList { display: flex; gap: 4px; }
-.whosItem { position: relative; display: grid; place-items: center; width: 42px; height: 40px; background: #0b1628; clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
-.whosItem::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, #e2f2fc, #c3e3f7); clip-path: inset(0 100% 0 0); transition: clip-path .6s cubic-bezier(.2, .75, .15, 1); }
-.whosItem > * { position: relative; }
-.whosItem[data-in]::before { clip-path: inset(0); }
-.whosName, .whosState { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.whosCount { display: flex; align-items: baseline; font-size: 28px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.whosCount span { font-size: .62em; color: #a9b8cf; }
+.whosList { display: flex; gap: 8px; }
+.whosItem { --mark: 30px; display: grid; place-items: center; }
+.whosItem [data-team-mark] { width: var(--mark) !important; height: var(--mark) !important; filter: grayscale(1) brightness(1.5) contrast(.5); opacity: .26; transition: filter .6s cubic-bezier(.2, .75, .15, 1), opacity .6s cubic-bezier(.2, .75, .15, 1); }
+.whosItem[data-in] [data-team-mark] { filter: drop-shadow(0 3px 5px #050c1880); opacity: 1; }
+.whosName { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ── the slate and the rail ───────────────────────────────────────────── */
 .layout { display: grid; gap: 44px; margin-top: 30px; }
@@ -399,11 +397,11 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .track { grid-column: 1 / -1; }
 }
 @media (max-width: 800px) {
-    .top { flex-direction: column; align-items: stretch; }
-    .whos { justify-content: space-between; }
-    .whosList { flex: 1; justify-content: flex-end; }
-    .whosItem { flex: 0 1 34px; width: auto; height: 32px; }
-    .whosItem [data-team-mark] { width: 24px !important; height: 24px !important; }
+    /* the week and its clock come first; who's in follows them, as a full-width row of logos under its count */
+    .stage { display: flex; flex-direction: column; }
+    .top { display: contents; }
+    .whos { order: 1; margin-top: 20px; }
+    .whosList { gap: 12px; }
     .weeks { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 16px; }
     .stepper { justify-content: space-between; }
     .clockTime { flex: 1; justify-content: center; }
@@ -411,19 +409,15 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 @media (max-width: 640px) {
     .stage { padding-top: 16px; padding-bottom: 26px; }
     .stage::after { height: 10px; background: linear-gradient(#c8102e 0 36%, #fff 36% 64%, #3d8bda 64%); }
-    .top { gap: 12px; }
     .title { font-size: 40px; }
-    .whos { gap: 10px; }
-    .whosCount b { font-size: 24px; }
-    .whosCount small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .whosList { gap: 3px; }
-    .whosItem { height: 30px; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
-    .whosItem [data-team-mark] { width: 22px !important; height: 22px !important; }
+    .whos { justify-content: space-between; margin-top: 18px; }
+    .whosList { flex: 1; justify-content: space-between; gap: 2px; }
     .weeks { gap: 8px; margin-top: 14px; }
     /* a phone has no room for a tick per week; the stepper's arrows change weeks */
     .track { display: none; }
     .step { width: 40px; height: 40px; }
     .weekName { font-size: 24px; }
+    .whosItem { --mark: 25px; }
     .clock { height: 46px; }
     .clockLabel { padding: 0 14px 0 18px; font-size: 11px; }
     .clockLabel small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -525,14 +519,17 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .entryMark [data-team-mark] { width: 32px !important; height: 32px !important; }
     .entryName b { font-size: 17px; }
     .champion { font-size: 16px; }
-    .weekName { font-size: 36px; }
+    .weekName { font-size: 29px; }
+    .whosItem { --mark: 38px; }
+    .whosList { gap: 10px; }
+    .whosCount { font-size: 34px; }
     .unit b { font-size: 46px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .strip, .picker, .table tbody tr, .figureIn, .figureOut, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh] .tapePick, .side[data-fresh]::after, .side[data-fresh]::before, .tape { animation: none; }
     .bumper, .figureOut, .flood { display: none; }
-    .track a::before, .track a span, .side, .logo, .indicator, .whosItem::before, .step svg { transition: none; }
+    .track a::before, .track a span, .side, .logo, .indicator, .whosItem [data-team-mark], .step svg { transition: none; }
     .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: none; }
     .won, .strip[data-locked] .stamp, .strip[data-locked] .side[data-mine]::before { animation: none; }
     .prizeTag::after { display: none; }
