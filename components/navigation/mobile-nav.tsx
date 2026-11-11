@@ -11,12 +11,12 @@ export type MobileSheet = 'teams' | 'players' | 'seasons' | 'more';
 
 const pennant = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18M6 3v16l6-3.5 6 3.5V3" /></svg>;
 
-// each tab mirrors a desktop menu; More holds the awards menu, Coach's Corner and the account
+// each tab mirrors a desktop menu; More holds the awards menu, Coach's Corner, Pick'em (signed in) and the account
 const TABS: { id: MobileSheet; label: string; icon: ReactNode; matches: (pathname: string) => boolean }[] = [
     { id: 'teams', label: 'Teams', icon: <FiShield aria-hidden="true" />, matches: (path) => path.startsWith('/teams') || path.startsWith('/compare/teams') },
     { id: 'players', label: 'Players', icon: <FiUser aria-hidden="true" />, matches: (path) => path.startsWith('/stats') || path.startsWith('/player') || path.startsWith('/compare/players') },
     { id: 'seasons', label: 'Seasons', icon: pennant, matches: (path) => path.startsWith('/season') },
-    { id: 'more', label: 'More', icon: <FiMoreHorizontal aria-hidden="true" />, matches: (path) => /^\/(awards|records|coachs-corner)(\/|$)/.test(path) },
+    { id: 'more', label: 'More', icon: <FiMoreHorizontal aria-hidden="true" />, matches: (path) => /^\/(awards|records|coachs-corner|pickem)(\/|$)/.test(path) },
 ];
 
 export default function MobileNav({ sheets }: { sheets: Record<MobileSheet, ReactNode> }) {

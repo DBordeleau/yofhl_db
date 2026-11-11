@@ -16,6 +16,7 @@ import TeamBadge from '@/components/team-badge';
 import { useOwnerNavigation } from '@/lib/owner/navigation';
 import KeeperReminder from '@/components/keepers/reminder';
 import { KEEPERS_ENABLED } from '@/lib/keepers/model';
+import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
 import Arrow from '@/components/arrow';
 import MobileNav, { type MobileSheet } from '@/components/navigation/mobile-nav';
 import { clubName } from '@/lib/team-identity';
@@ -58,6 +59,8 @@ const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime,
         awards: pathname.startsWith('/awards') || pathname.startsWith('/records'),
     };
     const ownerActive = pathname.startsWith('/owner');
+    // Pick'em sits in the nav for signed-in owners only; everyone else finds it from the home page's matchups
+    const showPickem = Boolean(PICKEM_LAUNCH) && owner.signedIn;
     const ownerLink = (
         <Link href="/owner" onClick={() => setOpen(null)} aria-current={ownerActive ? 'page' : undefined}
             className={`inline-flex min-h-11 w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-xl border px-4 py-1.5 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rink-blue focus-visible:ring-offset-2 ${ownerActive ? 'border-ink bg-ink text-white' : 'border-line-strong bg-ice text-ink hover:border-rink-blue hover:bg-rink-wash'}`}>
@@ -220,7 +223,10 @@ const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime,
                 <p className={styles.eyebrow}>Awards &amp; records</p>
                 <div className={styles.sheetLinks}>{sideLink('/awards', 'Awards')}{sideLink('/records', 'Record book')}</div>
             </div>
-            <div className={styles.sheetLinks}>{sideLink('/coachs-corner', <span className={styles.coachsCornerLabel}>Coach&rsquo;s Corner<NewEpisodeBadge episodeKey={latestCoachsCornerEpisode} /></span>)}</div>
+            <div className={styles.sheetLinks}>
+                {sideLink('/coachs-corner', <span className={styles.coachsCornerLabel}>Coach&rsquo;s Corner<NewEpisodeBadge episodeKey={latestCoachsCornerEpisode} /></span>)}
+                {showPickem && sideLink('/pickem', <>Pick&rsquo;em</>)}
+            </div>
             {ownerLink}
         </>,
     };
@@ -251,6 +257,7 @@ const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime,
                         </button>
                     </li>)}
                     <li><Link href="/coachs-corner" className={styles.item} data-active={pathname.startsWith('/coachs-corner') || undefined} onClick={() => setOpen(null)}><span className={styles.coachsCornerLabel}>Coach&rsquo;s Corner<NewEpisodeBadge episodeKey={latestCoachsCornerEpisode} /></span></Link></li>
+                    {showPickem && <li><Link href="/pickem" className={styles.item} data-active={pathname.startsWith('/pickem') || undefined} onClick={() => setOpen(null)}>Pick&rsquo;em</Link></li>}
                 </ul>
 
                 {!isPrivateRoute(pathname) && <HeaderSearch onOpen={close} />}

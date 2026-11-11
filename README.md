@@ -22,6 +22,7 @@ The YOFHL league archive and live draft lottery, built with Next.js and PostgreS
 | `/admin` | Sign-in and season checklists for roster, award, and bracket edits |
 | `/admin/lottery` | Lottery scheduling, odds, starting order, and full presentation preview |
 | `/owner` | Owner sign-in, team claims, password resets, and current team editing |
+| `/pickem`, `/pickem/week/<week>`, `/pickem/<end year>` and `/pickem/<end year>/week/<week>` | Pick'em: owners call each regular-season matchup's winner, with the Pick'em leaderboard, who's in and each locked week's breakdown. Not found until the launch setting in `lib/pickem/settings.ts` is set |
 | `/admin/teams` | Team names, logos, claim status, and owner invitation codes |
 
 `/stats` redirects to the all-time leaderboard. The team listing is at `/teams/stats`; there is no `/teams` index route. Defunct franchises remain accessible and always appear after active teams in every team-card sort. Each group follows the selected statistic, with wins breaking ties.
@@ -125,7 +126,7 @@ The browsing feature requires **$0 in additional hosting services**: no new depe
 
 ## Deployment
 
-The GitHub repository is connected to the Vercel project `yofhl-db`. Its production branch is `master`. Branch pushes create preview deployments; updates to `master` deploy the production site. Pushed branches are named `<type>/<issue>-<slug>` (`feat/42-electrum-wallet-detection`; types `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`). `npm install` turns on the pre-push hook in `.githooks/` that rejects any other name, so `master` only changes through merged pull requests.
+The GitHub repository is connected to the Vercel project `yofhl-db`. Its production branch is `master`. Only `master` deploys automatically: updates to it deploy the production site, and pushes to any other branch deploy nothing (`git.deploymentEnabled` in `vercel.json`, read from the pushed commit, so a branch cut before this rule still deploys until it has it). For a preview of a branch, run `npx vercel` from its checkout or use Create Deployment in the Vercel dashboard. Pushed branches are named `<type>/<issue>-<slug>` (`feat/42-electrum-wallet-detection`; types `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`). `npm install` turns on the pre-push hook in `.githooks/` that rejects any other name, so `master` only changes through merged pull requests.
 
 Configure the [environment variables](docs/data.md#environment) for each Vercel environment. Preview and production deployments use whichever database their variables identify. A preview pointed at the production database can write production data through admin actions or a lottery request after its start time.
 

@@ -14,6 +14,9 @@ import { fantraxLeagueIdOf, getLiveSeason } from '@/lib/fantrax/live-season';
 import { shortDate } from '@/lib/live-season-display';
 import { getPublishedEpisodes } from '@/lib/data/coachs-corner';
 import { formatFpts, seasonLabel } from '@/lib/league';
+import { livePickemWeeks } from '@/lib/pickem/model';
+import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
+import { pickemPrize } from '@/components/pickem/prizes';
 import styles from '@/components/home/home.module.css';
 import Arrow from '@/components/arrow';
 
@@ -42,6 +45,8 @@ export default async function HomePage() {
     const playoffTeams = live?.standings.playoffTeams ?? 0;
     const byeTeams = live?.standings.byeTeams ?? 0;
     const seasonYear = live?.seasonYear ?? null;
+    // the weeks with a Pick'em contest and their locks, so the matchups can point at the week's picks
+    const pickemWeeks = live ? livePickemWeeks(live, PICKEM_LAUNCH).map(({ week, lock }) => ({ week, lock })) : [];
 
     return <main className={styles.home}>
         <section className={styles.hero} aria-labelledby="home-heading">
@@ -65,7 +70,7 @@ export default async function HomePage() {
                 <span className={styles.updateLabel}>{updated ? <>Updated {updated} ET</> : 'Snapshot temporarily unavailable'}</span>
             </div>
 
-            {live ? <MatchupBrowser weeks={live.weeks} current={{ week: live.currentWeek, scores: live.scores.status === 'available' ? live.scores.value : null }} teams={live.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} fantraxLeagueId={live.fantraxLeagueId} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={fantraxUrl} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
+            {live ? <MatchupBrowser weeks={live.weeks} current={{ week: live.currentWeek, scores: live.scores.status === 'available' ? live.scores.value : null }} teams={live.teams.map(({ id, franchiseId, name, abbreviation, logo }) => ({ id, franchiseId, name, abbreviation, logo }))} fantraxLeagueId={live.fantraxLeagueId} pickem={{ weeks: pickemWeeks, prize: pickemPrize(live.seasonYear) }} /> : <section id="matchups" className={styles.unavailable}><h2>League data is temporarily unavailable</h2><p>You can still browse league history or view the current season on Fantrax.</p><a href={fantraxUrl} target="_blank" rel="noreferrer" className={styles.textLink}>Open Fantrax <Arrow direction="out" /></a></section>}
 
             <div className={styles.leagueGrid}>
                 <section id="standings" aria-labelledby="standings-heading" tabIndex={-1}>

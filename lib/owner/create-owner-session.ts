@@ -17,18 +17,31 @@ import { getOwnedTeam } from './teams';
 // Every owner-reachable action starts with a preamble, in this order: same-origin check, resolve the
 // actor, rate limit. Its own input is validated after it. The owner preamble can also be closed (the keeper
 // deadline passed), which refuses the action after the session check and before the rate limit.
+// Each action is limited on its own, per actor, to 30 attempts in 15 minutes unless it names another limit.
 
 const SESSION_COOKIE = 'yofhl_owner';
 const HINT_COOKIE = 'yofhl_owner_hint';
 const SESSION_MS = 5 * 24 * 60 * 60 * 1000;
-const ATTEMPTS = 30;
+const DEFAULT_ATTEMPTS = 30;
 const FRESH_SIGN_IN_SECONDS = 300;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 type Failed<Reason> = { ok: false; reason: Reason };
 type TeamRejection = Extract<Awaited<ReturnType<typeof saveTeamIdentity>>, { ok: false }>['reason'];
 
+/**
+ * The action a preamble starts: its name, which keys its rate limit, or its name and its own limit of
+ * attempts per 15 minutes. A bare name gets the default of 30.
+ */
+export type OwnerAction = string | { name: string; attempts: number };
+
 export type OwnerPreambleRejection = 'session-expired' | 'no-team';
+
+/** Thrown by a preamble past its action's limit, so a caller that reports reasons can name it. */
+export class TooManyAttemptsError extends Error {
+    constructor() { super('Too many attempts. Please try again in 15 minutes.'); this.name = 'TooManyAttemptsError'; }
+}
+
 export type ClaimRejection = 'invalid-code' | 'code-unavailable' | 'already-owns-team';
 export type SaveTeamRejection = 'session-expired' | 'invalid-team' | 'invalid-name' | 'image-too-large'
     | 'image-unreadable' | 'upload-failed' | 'save-failed' | TeamRejection;
@@ -81,18 +94,25 @@ async function processLogo(file: Blob): Promise<Buffer | null> {
 export function createOwnerSession({ identity, storage, request }: OwnerSessionPorts) {
     const requireSameOrigin = async () => assertSameOrigin(await request.origin(), await request.host());
 
-    /** Count an attempt at `action` by `key` (a uid, 'admin', or the client IP when empty); throws past the limit. */
-    async function rateLimit(action: string, key = '') {
+    /** Count an attempt at `action` by `key` (a uid, 'admin', or the client IP when empty); throws past its limit. */
+    async function rateLimit(action: OwnerAction, key = '') {
+        const { name, attempts } = typeof action === 'string' ? { name: action, attempts: DEFAULT_ATTEMPTS } : action;
         const by = key || await request.clientIp();
         await getDb().execute(rateLimitCleanupQuery);
-        const [limit] = await rows<{ attempts: number }>(rateLimitQuery(hashCode(`${action}:${by}`)));
-        if (limit.attempts > ATTEMPTS) throw new Error('Too many attempts. Please try again in 15 minutes.');
+        const [limit] = await rows<{ attempts: number }>(rateLimitQuery(hashCode(`${name}:${by}`)));
+        if (limit.attempts > attempts) throw new TooManyAttemptsError();
     }
 
     /** The signed-in owner, checked for revocation, or null. */
     async function currentOwner(): Promise<OwnerUser | null> {
         const cookie = await request.cookie(SESSION_COOKIE);
         return cookie ? identity.verifySession(cookie) : null;
+    }
+
+    /** The signed-in owner and the active team they manage (null when none), or null when no owner is signed in. */
+    async function currentOwnerTeam(): Promise<{ owner: OwnerUser; team: ManagedTeam | null } | null> {
+        const owner = await currentOwner();
+        return owner ? { owner, team: await getOwnedTeam(owner.uid) } : null;
     }
 
     // The admin, or the signed-in owner; null when neither is signed in.
@@ -106,7 +126,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
      * Start an action the admin or an owner may take: same-origin check, resolve the actor, rate limit.
      * Throws for a foreign origin or too many attempts.
      */
-    async function preamble(action: string): Promise<{ ok: true; actor: Actor } | Failed<'session-expired'>> {
+    async function preamble(action: OwnerAction): Promise<{ ok: true; actor: Actor } | Failed<'session-expired'>> {
         await requireSameOrigin();
         const actor = await currentActor();
         if (!actor) return { ok: false, reason: 'session-expired' };
@@ -120,7 +140,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
      * the keeper deadline), so a closed attempt neither counts toward the limit nor looks the team up.
      * Throws for a foreign origin or too many attempts.
      */
-    async function ownerPreamble<Closed extends string = never>(action: string, closed?: () => Closed | null):
+    async function ownerPreamble<Closed extends string = never>(action: OwnerAction, closed?: () => Closed | null):
         Promise<{ ok: true; actor: { uid: string }; team: ManagedTeam } | Failed<OwnerPreambleRejection | Closed>> {
         await requireSameOrigin();
         const user = await currentOwner();
@@ -133,7 +153,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
     }
 
     // An anonymous action (sign-in, claim) has no actor yet, so it is limited by client IP.
-    async function anonymousPreamble(action: string) {
+    async function anonymousPreamble(action: OwnerAction) {
         await requireSameOrigin();
         await rateLimit(action);
     }
@@ -253,7 +273,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         return saveTeamBranding(start.actor, id, version, branding);
     }
 
-    return { currentOwner, preamble, ownerPreamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
+    return { currentOwner, currentOwnerTeam, preamble, ownerPreamble, headerAnswer, signIn, signOut, claimTeam, saveTeam, saveBranding };
 }
 
 export type OwnerSession = ReturnType<typeof createOwnerSession>;

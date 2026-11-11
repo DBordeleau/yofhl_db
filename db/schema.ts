@@ -1,6 +1,8 @@
 import {
     boolean,
+    check,
     date,
+    foreignKey,
     index,
     integer,
     jsonb,
@@ -126,6 +128,61 @@ export const keeperSubmissions = league.table('keeper_submissions', {
     submittedAt: timestamp('submitted_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     submittedBy: text('submitted_by').notNull(),
 }, (t) => [primaryKey({ columns: [t.seasonYear, t.franchiseId] })]);
+
+// Pick'em picks (GLOSSARY.md): one per season year, week, entry franchise and matchup, the matchup being its pair
+// of franchises with the lower id first. Keyed by franchise, never by team season or Fantrax team ID (ADR 0005).
+// A schedule change never rewrites a pick; it counts only while its pair still meets that week.
+export const pickemPicks = league.table('pickem_picks', {
+    seasonYear: integer('season_year').notNull(),
+    week: integer('week').notNull(),
+    entryFranchiseId: integer('entry_franchise_id').notNull().references(() => franchises.id),
+    lowFranchiseId: integer('low_franchise_id').notNull().references(() => franchises.id),
+    highFranchiseId: integer('high_franchise_id').notNull().references(() => franchises.id),
+    pickedFranchiseId: integer('picked_franchise_id').notNull().references(() => franchises.id),
+    savedAt: timestamp('saved_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.week, t.entryFranchiseId, t.lowFranchiseId, t.highFranchiseId] }),
+    check('pickem_picks_matchup', sql`${t.lowFranchiseId} < ${t.highFranchiseId}
+        and ${t.pickedFranchiseId} in (${t.lowFranchiseId}, ${t.highFranchiseId})`),
+]);
+
+// Pick'em's own record of each locked week (ADR 0005), written by settle once the lock has passed: the lock and
+// the pairings its Pick'em picks count against, keyed by season year, week and franchise
+export const pickemWeeks = league.table('pickem_weeks', {
+    seasonYear: integer('season_year').notNull(),
+    week: integer('week').notNull(),
+    lock: timestamp('lock', { withTimezone: true, mode: 'string' }).notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.seasonYear, t.week] })]);
+
+// One recorded pairing, in the live season's order. Its result is written once, when the week is frozen: the
+// winning franchise, or no winner for a tie.
+export const pickemPairings = league.table('pickem_pairings', {
+    seasonYear: integer('season_year').notNull(),
+    week: integer('week').notNull(),
+    position: smallint('position').notNull(),
+    awayFranchiseId: integer('away_franchise_id').notNull().references(() => franchises.id),
+    homeFranchiseId: integer('home_franchise_id').notNull().references(() => franchises.id),
+    winnerFranchiseId: integer('winner_franchise_id').references(() => franchises.id),
+    // the two clubs' fantasy points, frozen with the result; both or neither, and only once frozen
+    awayScore: fpts('away_score'),
+    homeScore: fpts('home_score'),
+    frozenAt: timestamp('frozen_at', { withTimezone: true, mode: 'string' }),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.week, t.position] }),
+    foreignKey({ columns: [t.seasonYear, t.week], foreignColumns: [pickemWeeks.seasonYear, pickemWeeks.week] }),
+    check('pickem_pairings_matchup', sql`${t.awayFranchiseId} <> ${t.homeFranchiseId}`),
+    check('pickem_pairings_result', sql`${t.winnerFranchiseId} is null
+        or (${t.frozenAt} is not null and ${t.winnerFranchiseId} in (${t.awayFranchiseId}, ${t.homeFranchiseId}))`),
+    check('pickem_pairings_scores', sql`(${t.awayScore} is null) = (${t.homeScore} is null) and (${t.awayScore} is null or ${t.frozenAt} is not null)`),
+]);
+
+// A season whose Pick'em is complete: settle writes it once the season's last regular-season week is frozen. It is
+// stored because the live season stops describing the season once Fantrax moves on.
+export const pickemCompletedSeasons = league.table('pickem_completed_seasons', {
+    seasonYear: integer('season_year').primaryKey(),
+    completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+});
 
 // a franchise's identity and regular-season standings for one season
 export const teamSeasons = league.table(

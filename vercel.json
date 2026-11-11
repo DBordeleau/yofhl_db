@@ -3,7 +3,8 @@
   "ignoreCommand": "bash scripts/vercel-ignore-build.sh",
   "git": {
     "deploymentEnabled": {
-      "codex/**": false
+      "**": false,
+      "master": true
     }
   },
   "crons": [

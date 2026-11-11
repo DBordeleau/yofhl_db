@@ -5,6 +5,8 @@ export { fantraxLeagueIdOf } from './assemble-live-season';
 import { fantraxSource } from './fantrax-source';
 
 export { FANTRAX_TAG } from './cache-policy';
+/** whether a week's seven-day stat-correction window has closed: from then on its scores no longer change */
+export { scoresAreArchived as correctionWindowClosed } from './cache-policy';
 export type { LivePlayer, LiveSeason, LiveTeam, RosterStats, ScheduledMatchup, Week, WeekScores } from './assemble-live-season';
 
 export const { getLiveSeason, getWeekScores, refreshLiveSeason, setWeekFinal } = createLiveSeason(fantraxSource);

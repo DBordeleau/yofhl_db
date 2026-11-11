@@ -127,6 +127,34 @@
       "when": 1794267939664,
       "tag": "0017_coachs_corner_teams",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794284259984,
+      "tag": "0018_pickem_picks",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794285522405,
+      "tag": "0019_pickem_recorded_weeks",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794287774903,
+      "tag": "0020_pickem_completed_seasons",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794370231207,
+      "tag": "0021_pickem_pairing_scores",
+      "breakpoints": true
     }
   ]
 }

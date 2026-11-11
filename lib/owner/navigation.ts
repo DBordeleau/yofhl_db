@@ -12,8 +12,9 @@ export interface OwnerNavigation {
     keepers?: KeeperReminderState | null;
 }
 
-// The owner session sets this readable cookie beside the HttpOnly session cookie. See ADR 0003.
-const hasSessionHint = () => document.cookie.split(';').some(cookie => cookie.trim() === 'yofhl_owner_hint=1');
+// The owner session sets this readable cookie beside the HttpOnly session cookie. See ADR 0003. Without it a
+// visitor is signed out, so owner-only reads are skipped.
+export const hasSessionHint = () => document.cookie.split(';').some(cookie => cookie.trim() === 'yofhl_owner_hint=1');
 
 // The root header survives route changes. Without the session hint the visitor is signed out and nothing is
 // asked. With it, focus can refresh stale state, while explicit sign-in, sign-out, claim and save events

@@ -1,0 +1,646 @@
+/* Pick'em: a navy broadcast stage over the week's slate, with the Pick'em leaderboard beside it. */
+
+.page { padding-bottom: 72px;
+    /* Every navy or club-colour surface on the page sits the same way (DESIGN.md, "The Lit Set Rule"): a soft footing
+       under it, a bright rim along its top edge and a darker foot along its bottom. */
+    --footing: 0 1px 2px #0b142633, 0 6px 10px -6px #0b142659, 0 22px 36px -26px #0b1426a6;
+    --footing-drop: drop-shadow(0 1px 1px #0b142633) drop-shadow(0 6px 8px #0b142640);
+    --rim: inset 0 1px #ffffff3d, inset 0 -3px #050c1840; }
+/* Body overflow must not make a second scroll container, or the leaderboard rail can't stick beside the slate. */
+:global(body):has(.page) { overflow-x: clip; }
+
+/* ── the stage ─────────────────────────────────────────────────────────── */
+.stage { position: relative; margin-inline: calc(50% - 50vw); padding: 22px calc(50vw - 50%) 34px; overflow: hidden; background: radial-gradient(90% 140% at 10% 0%, #26365f, #101d32 65%); color: #fff; }
+.stage::before { content: ''; position: absolute; inset: -40% -10% auto auto; width: 55%; height: 160%; background: radial-gradient(closest-side, #3d8bda24, transparent); pointer-events: none; }
+.stage::after { content: ''; position: absolute; inset-inline: 0; bottom: 0; height: 14px; background: linear-gradient(#c8102e 0 5px, #fff 5px 9px, #3d8bda 9px 14px); }
+.stage > * { position: relative; }
+
+/* the top line: the title and its season, with who's in on the right */
+.top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 40px; }
+.titleRow { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 24px; }
+.title { font-size: clamp(46px, 4.4vw, 72px); font-weight: 950; font-style: italic; font-stretch: 118%; line-height: .9; letter-spacing: -.04em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 .05em .18em #050c1899; }
+.title span { margin-left: .3em; font-size: .52em; font-weight: 900; font-stretch: 100%; letter-spacing: -.01em; color: #b6dcf5; text-shadow: none; }
+
+.seasons { display: flex; flex-wrap: wrap; gap: 6px; }
+.seasons a { display: inline-flex; align-items: center; height: 30px; padding: 0 15px; background: #ffffff14; font-size: 13px; font-weight: 850; font-style: italic; font-stretch: 108%; font-variant-numeric: tabular-nums; color: #c3cfe4; clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); transition: background .15s, color .15s; }
+.seasons a:hover { background: #ffffff26; color: #fff; }
+.seasons a[aria-current] { background: linear-gradient(180deg, #df1a3c, #b00d28); color: #fff; }
+
+/* the week control: stepper, the week's lock clock beside its name, then a tick for every week on a row of its own, so
+   the track keeps one shape and every number whatever the clock is showing */
+.weeks { display: grid; grid-template-columns: auto auto; justify-content: start; align-items: center; gap: 16px 22px; margin-top: 20px; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.step { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #ffffff38; border-radius: 4px; color: #b6dcf5; transition: background .15s, color .15s; }
+.step svg { width: 16px; height: 16px; transition: transform .3s cubic-bezier(.33, 1, .68, 1); }
+a.step:hover { background: #ffffff14; color: #fff; }
+a.step:hover svg { transform: translateX(var(--nudge)); }
+.step[aria-disabled] { opacity: .3; }
+.weekName { min-width: 6.4ch; padding: 0 6px; font-size: 24px; font-weight: 900; font-style: italic; font-stretch: 112%; letter-spacing: -.01em; text-align: center; text-transform: uppercase; white-space: nowrap; }
+/* the season over the week's name, on a phone only (the title carries it elsewhere) */
+.weekSeason { display: none; }
+
+.clock { display: flex; height: 52px; }
+.clockLabel { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 0 20px 0 24px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 13px; font-weight: 900; font-style: italic; font-stretch: 115%; letter-spacing: .04em; line-height: 1; text-transform: uppercase; text-shadow: 0 1px #5a0010; white-space: nowrap; clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
+.clockLabel small { font-size: 11px; font-weight: 700; font-style: normal; font-stretch: 100%; letter-spacing: 0; text-transform: none; color: #ffe1e6; }
+.whenShort { display: none; }
+.clockTime { display: flex; align-items: center; gap: 12px; padding: 0 28px 0 20px; background: #050c18; white-space: nowrap; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); transition: background .4s; }
+.unit { display: flex; align-items: baseline; gap: 3px; }
+.unit b { display: inline-flex; font-size: 34px; font-weight: 900; font-stretch: 78%; line-height: 1; font-variant-numeric: tabular-nums; }
+.unit small { font-size: 12px; font-weight: 800; color: #a9b8cf; text-transform: uppercase; }
+/* a figure rolls only when it changes: the old one drops out of the window as the new one drops in from above */
+.figure { position: relative; display: inline-block; clip-path: inset(.06em -.1em .1em); }
+.figureIn { display: inline-block; animation: figureIn .44s cubic-bezier(.2, .75, .15, 1) calc(var(--place) * 55ms) both; }
+.figureOut { position: absolute; inset: 0; animation: figureOut .26s cubic-bezier(.55, 0, .8, .2) calc(var(--place) * 55ms) both; }
+@keyframes figureIn { from { transform: translateY(-.82em); opacity: 0; } }
+@keyframes figureOut { to { transform: translateY(.82em); opacity: 0; } }
+.clock[data-urgent] .clockTime { background: linear-gradient(180deg, #df1a3c, #b00d28); }
+.clock[data-urgent] .clockLabel { background: #050c18; text-shadow: none; }
+.clock[data-urgent] .clockLabel small { color: #c3cfe4; }
+.clock[data-locked] .clockLabel { background: #24324f; text-shadow: none; }
+.clock[data-locked] .clockTime { font-size: 17px; font-weight: 850; font-stretch: 92%; }
+
+/* Every slab on the track is cut at one slant (a quarter of its height), so the red slab and the ticks it passes
+   over lean together. Layers: tick plates, then the red slab, then the numbers on top of both. */
+.track { --track: 44px; grid-column: 1 / -1; position: relative; isolation: isolate; display: flex; height: var(--track); container-type: inline-size; }
+.track li { flex: 1 1 0; min-width: 0; }
+.track a { position: relative; display: grid; place-items: center; height: 100%; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; color: #fff; }
+.track a span { position: relative; z-index: 2; transition: opacity .2s; }
+.track a::before { --h: calc(var(--track) - 20px); content: ''; position: absolute; inset: calc((var(--track) - var(--h)) / 2) 2px; z-index: 0; background: #ffffff1c; clip-path: polygon(calc(var(--h) / 4) 0, 100% 0, calc(100% - var(--h) / 4) 100%, 0 100%); transition: background .15s, inset .2s, clip-path .2s; }
+.track a[data-locked] { color: #8494b2; }
+.track a[data-locked]::before { background: #ffffff09; }
+.track a:hover::before { --h: calc(var(--track) - 12px); inset-inline: 1px; background: #ffffff33; }
+.track a[aria-current] { font-size: 15px; font-weight: 900; font-style: italic; color: #fff; text-shadow: 0 1px #5a0010; }
+.indicator { position: absolute; inset: 0; z-index: 1; pointer-events: none; transform: translateX(calc((var(--at) + .5) * 100% / var(--count))); filter: drop-shadow(0 5px 12px #c8102e70); transition: transform .5s cubic-bezier(.2, .75, .15, 1); }
+.indicator::before {
+    --h: calc(var(--track) - 6px);
+    --w: max(calc(100% / var(--count) + 2px), calc(var(--h) / 4 + 22px));
+    content: ''; position: absolute; top: 3px; bottom: 3px; left: calc(var(--w) / -2); width: var(--w);
+    background: linear-gradient(#ffffff47, #ffffff47) top / 100% 1px no-repeat, linear-gradient(180deg, #df1a3c, #b00d28);
+    clip-path: polygon(calc(var(--h) / 4) 0, 100% 0, calc(100% - var(--h) / 4) 100%, 0 100%);
+}
+@container (max-width: 760px) {
+    .track a { font-size: 11px; font-stretch: 85%; }
+    .track a[aria-current] { font-size: 14px; }
+}
+
+/* who's in: the count as a scoreboard figure, then every club's logo, lit once its owner has picked and a faint
+   silhouette until then */
+.whos { display: flex; align-items: center; gap: 14px; }
+.whosCount { display: flex; align-items: baseline; font-size: 28px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.whosCount span { font-size: .62em; color: #a9b8cf; }
+.whosList { display: flex; gap: 8px; }
+.whosItem { --mark: 30px; display: grid; place-items: center; }
+.whosItem [data-team-mark] { width: var(--mark) !important; height: var(--mark) !important; filter: grayscale(1) brightness(1.5) contrast(.5); opacity: .26; transition: filter .6s cubic-bezier(.2, .75, .15, 1), opacity .6s cubic-bezier(.2, .75, .15, 1); }
+.whosItem[data-in] [data-team-mark] { filter: drop-shadow(0 3px 5px #050c1880); opacity: 1; }
+.whosName { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ── the slate and the rail ───────────────────────────────────────────── */
+/* Below 1280px the slate and the leaderboard are tabs (pickem-views.tsx): a white bar under the stage, full width like
+   the stage, in the header nav's voice: plain labels, the open one in ink over a 3px red rule flush to the hairline. It
+   pins to the top of the screen; once pinned it lifts off the page with a soft shadow. */
+.viewSentinel { display: block; height: 0; }
+.viewTabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 8; display: grid; grid-template-columns: 1fr 1fr; height: 50px; margin-inline: calc(50% - 50vw); padding-inline: calc(50vw - 50%); border-bottom: 1px solid #dce5ee; background: #fff; transition: box-shadow .2s; }
+.viewTabs[data-stuck] { box-shadow: 0 12px 20px -16px #0b142680; }
+.viewTab { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 700; color: #56627a; transition: color .15s; }
+.viewTab:hover { color: #12182e; }
+.viewTab[aria-selected='true'] { color: #12182e; font-weight: 850; }
+.viewTab[aria-selected='true']::after { content: ''; position: absolute; left: 22%; right: 22%; bottom: -1px; height: 3px; background: #c8102e; }
+.viewTab:focus-visible { outline: 3px solid #3d8bda; outline-offset: -3px; }
+/* the signed-in owner's place on the Leaderboard tab */
+.viewPlace { display: inline-flex; align-items: center; height: 22px; padding: 0 7px; border-radius: 4px; background: #eaf2fa; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; color: #1f6fc2; }
+@media (max-width: 1279px) {
+    .layout[data-view='leaderboard'] > [data-panel='picks'], .layout[data-view='picks'] > [data-panel='leaderboard'] { display: none; }
+}
+@media (min-width: 1280px) {
+    .viewTabs, .viewSentinel { display: none; }
+}
+.layout { display: grid; gap: 44px; margin-top: 30px; }
+@media (min-width: 1280px) {
+    .layout { grid-template-columns: minmax(0, 1fr) 460px; align-items: start; }
+    .rail { position: sticky; top: 24px; }
+}
+
+.slate { position: relative; }
+.slateHead { position: relative; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; min-height: 44px; margin-bottom: 14px; }
+/* The entry bar floats on the ice with no plate of its own, flush with the strips' edges: the count, a meter with a
+   segment per matchup, and Clear picks. */
+.entryBar { display: flex; align-items: center; gap: 22px; width: 100%; min-height: 44px; }
+.progressText { flex: none; display: flex; align-items: baseline; gap: .32em; font-size: 15px; font-weight: 750; font-style: italic; font-stretch: 108%; color: #3a4560; white-space: nowrap; }
+/* the count rolls through a window its own height: up as a call goes in, down as one comes out (--dir) */
+.count { position: relative; display: inline-block; font-size: 30px; font-weight: 900; font-stretch: 80%; line-height: .9; letter-spacing: -.01em; color: #12182e; font-variant-numeric: tabular-nums; clip-path: inset(-.08em -.3em .04em -.3em); }
+.count > span { display: inline-block; }
+.countIn { animation: countIn .46s cubic-bezier(.2, .75, .15, 1) both; }
+.countOut { position: absolute; inset: 0; animation: countOut .24s cubic-bezier(.55, 0, .8, .2) both; }
+@keyframes countIn { from { transform: translateY(calc(var(--dir) * .9em)); opacity: 0; } }
+@keyframes countOut { to { transform: translateY(calc(var(--dir) * -.9em)); opacity: 0; } }
+/* Each segment is a recessed well cut on the slab slant. Red wipes in along that slant (and drains back out along it),
+   in step with --d, the segment's place in a cascade. A call's own segment (data-lit) goes in hot and cools to the
+   slab red as it jumps, like the strip's goal light (a white-hot start would vanish against the ice). */
+.pips { display: flex; flex: 1; min-width: 0; gap: 5px; }
+.pip { --slant: 5px; position: relative; flex: 1; height: 14px; background: #101d3214; box-shadow: inset 0 2px #101d3212; clip-path: polygon(var(--slant) 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%); }
+.pip::before, .pip::after { content: ''; position: absolute; inset: 0; clip-path: polygon(0 0, var(--slant) 0, 0 100%, 0 100%); transition: clip-path .26s cubic-bezier(.4, 0, .6, 1) var(--d, 0ms); }
+.pip::before { background: linear-gradient(180deg, #ff4a64, #df1a3c 35%, #b00d28); box-shadow: inset 0 1px #ffffff59, inset 0 -2px #5a001066; }
+.pip::after { background: linear-gradient(180deg, #ffb3c0, #ff3d5c 45%, #f0163a); box-shadow: inset 0 1px #fff; opacity: 0; }
+.pip[data-on]::before, .pip[data-on]::after { clip-path: polygon(0 0, 100% 0, calc(100% - var(--slant)) 100%, 0 100%); transition: clip-path .46s cubic-bezier(.2, .75, .15, 1) var(--d, 0ms); }
+.pip[data-lit] { animation: pipJump .5s cubic-bezier(.3, 1.4, .5, 1); }
+.pip[data-lit]::after { animation: pipHot .9s cubic-bezier(.33, 1, .68, 1); }
+@keyframes pipJump { 30% { transform: translateY(-2px) scaleY(1.5); } }
+@keyframes pipHot { 0%, 30% { opacity: 1; } 100% { opacity: 0; } }
+/* Clear picks is a bare label until it is pointed at, when a plate cut on the slant comes up behind it. Its text lines
+   up with the strips' right edge. */
+.clearButton { position: relative; isolation: isolate; flex: none; display: inline-flex; align-items: center; gap: 8px; height: 44px; margin-right: -14px; padding: 0 14px; border-radius: 4px; font-size: 13px; font-weight: 850; font-stretch: 112%; letter-spacing: .02em; text-transform: uppercase; color: #3a4560; white-space: nowrap; transition: color .15s, opacity .2s, transform .35s cubic-bezier(.2, .75, .15, 1); }
+.clearButton::before { content: ''; position: absolute; inset: 6px 0; z-index: -1; background: #101d3212; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); opacity: 0; transition: opacity .15s; }
+.clearButton svg { width: 11px; height: 11px; }
+.clearButton:enabled:hover { color: #12182e; }
+.clearButton:enabled:hover::before { opacity: 1; }
+.clearButton:focus-visible { outline: 3px solid #3d8bda; outline-offset: 0; }
+.clearButton:disabled { cursor: progress; }
+/* with nothing picked it keeps its room, so the meter doesn't jump when the first call goes in; it slides in with it */
+.clearButton[data-idle] { visibility: hidden; opacity: 0; transform: translateX(12px); transition: opacity .15s, transform .2s, visibility 0s .2s; }
+.allIn { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 20px 0 18px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 15px; font-weight: 900; font-style: italic; font-stretch: 118%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%); animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
+.allIn svg { width: 15px; height: 15px; }
+.ctaButton:focus-visible { outline: none; box-shadow: inset 0 0 0 3px #7fb2ff; }
+
+/* signed out (or with no team), the entry bar stands empty and its way in is a slab flush with the strips' right edge,
+   where Clear picks would be; tapping a side stamps it */
+.ctaButton { flex: none; display: inline-flex; align-items: center; height: 44px; padding: 0 30px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 15px; font-weight: 900; font-stretch: 112%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: filter .15s; }
+.ctaButton:hover { filter: brightness(1.12); }
+/* a tap on a side nudges it: the slab lifts a little and brightens, then settles back */
+.ctaButton[data-stamped] { animation: nudge .7s cubic-bezier(.45, 0, .25, 1); }
+@keyframes nudge {
+    35% { transform: translateY(-3px) scale(1.045); filter: brightness(1.18); }
+}
+/* a locked week's head: the owner's calls on the entry bar's meter (pickem-breakdown.tsx) */
+.weekHead { display: flex; align-items: center; min-height: 44px; margin-bottom: 14px; }
+.pip[data-miss] { background: transparent; box-shadow: inset 0 0 0 1.5px #101d3238; }
+.pip[data-pending] { background: #101d3230; }
+.alert { flex-basis: 100%; order: 1; padding: 12px 16px; border: 1px solid #c8102e40; border-radius: 6px; background: #c8102e12; font-size: 14px; font-weight: 750; color: #a30d26; }
+.alert a { text-decoration: underline; text-underline-offset: 3px; }
+/* the compact clock is the docked bar's alone (phones) */
+.dockClock { display: none; }
+.message { padding: 40px 24px; border: 1px solid #dce5ee; border-radius: 6px; background: #fff; text-align: center; font-size: 15px; color: #3a4560; }
+
+/* the all-in bumper: red and navy slabs slide in from opposite sides, the words follow, then it wipes out */
+.bumperFooting { position: absolute; inset: 0; z-index: 3; filter: var(--footing-drop); pointer-events: none; }
+.bumper { position: absolute; inset: -8px 0 auto; height: 60px; animation: bumperOut 2.6s cubic-bezier(.2, .75, .15, 1) forwards; }
+.bumperRed, .bumperNavy { position: absolute; top: 0; height: 100%; }
+.bumperRed { left: 0; width: 64%; background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); animation: fromLeft .5s cubic-bezier(.2, .75, .15, 1) both; }
+.bumperNavy { right: 0; width: 40%; background: #050c18; clip-path: polygon(26px 0, 100% 0, 100% 100%, 0 100%); animation: fromRight .5s .06s cubic-bezier(.2, .75, .15, 1) both; }
+.bumperWords { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; font-size: 34px; font-weight: 950; font-style: italic; font-stretch: 125%; letter-spacing: -.02em; text-transform: uppercase; color: #fff; }
+.bumperWords span:first-child { animation: fromLeft .55s .14s cubic-bezier(.2, .75, .15, 1) both; text-shadow: 0 2px #5a0010; }
+.bumperWords span:last-child { font-size: 18px; font-stretch: 112%; color: #c3e3f7; animation: fromRight .55s .2s cubic-bezier(.2, .75, .15, 1) both; }
+.bumperStripes { position: absolute; inset-inline: 0; bottom: -12px; height: 10px; background: linear-gradient(#c8102e 0 36%, #fff 36% 64%, #3d8bda 64%); transform-origin: left; animation: draw .7s .25s cubic-bezier(.2, .75, .15, 1) both; }
+@keyframes fromLeft { from { transform: translateX(-60%); opacity: 0; } }
+@keyframes fromRight { from { transform: translateX(60%); opacity: 0; } }
+@keyframes draw { from { transform: scaleX(0); } }
+@keyframes bumperOut { 0%, 78% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); } 100% { clip-path: polygon(100% 0, 100% 0, calc(100% - 30px) 100%, calc(100% - 30px) 100%); } }
+
+/* ── matchup strips: two club-colour slabs sharing one slant ──────────── */
+.strips { display: flex; flex-direction: column; gap: 12px; container-type: inline-size; }
+/* An open week's strips all stand as tall as the tallest, which keeps room for its names at the narrowest a pick
+   leaves them, so the slate keeps one rhythm. */
+.strips:not(:has([data-locked])) { display: grid; grid-auto-rows: 1fr; }
+/* the strip, not its sides, carries the entrance: a side is redrawn as a button once the owner's picks load, and
+   that must not replay it. Each strip opens out from the seam, staggered. */
+.strip { --cut: 28px; position: relative; display: flex; min-height: 116px; overflow: hidden; border-radius: 4px; box-shadow: var(--footing); animation: open .6s calc(var(--i) * 70ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+/* the clip leaves room below for the strip's shadow, so the strip lands with its footing instead of gaining it after */
+@keyframes open { from { clip-path: inset(0 50% -48px 50%); } to { clip-path: inset(-8px -24px -48px -24px); } }
+/* Each side is a lit plate (DESIGN.md, "The Lit Set Rule"): a key light from its outer top corner and light falling from
+   above onto the club's colour, a bright rim along the top edge and a darker foot along the bottom, so it has weight. */
+.side { --key: 0% 0%; --lit: radial-gradient(130% 150% at var(--key), #ffffff1f, transparent 58%), linear-gradient(180deg, #ffffff14, transparent 42%, #050c1814 70%, #050c1847);
+    position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 18px; padding: 16px calc(var(--cut) + 40px) 16px 26px; overflow: hidden; background: var(--lit), linear-gradient(100deg, var(--club), var(--club-deep)); box-shadow: var(--rim); color: #fff; text-align: left; clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%); container-type: inline-size; transition: flex-grow .55s cubic-bezier(.2, .75, .15, 1), filter .25s; }
+.side + .vs + .side { --key: 100% 0%; margin-left: calc(4px - var(--cut)); flex-direction: row-reverse; padding: 16px 26px 16px calc(var(--cut) + 40px); background: var(--lit), linear-gradient(260deg, var(--club), var(--club-deep)); text-align: right; clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%); }
+.side::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, #ffffff3d 48%, transparent 66%); transform: translateX(-110%); pointer-events: none; }
+
+.logo { position: relative; flex: none; display: grid; place-items: center; width: 74px; height: 74px; transition: transform .5s cubic-bezier(.3, 1.4, .5, 1); filter: drop-shadow(0 10px 16px #050c1880); }
+.logo::before { content: ''; position: absolute; inset: -40%; border-radius: 50%; background: radial-gradient(closest-side, #ffffffb3, transparent); opacity: 0; transition: opacity .4s; }
+.logo > * { position: relative; }
+.who { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.name { font-size: calc(clamp(14px, 3.2cqi, 40px) * var(--name-scale, 1)); font-weight: 900; font-style: italic; font-stretch: 112%; line-height: .96; letter-spacing: -.015em; text-transform: uppercase; text-wrap: balance; }
+/* outlined like a broadcast lower third: a stroke in the club's own deepest shade, painted under the fill so the letters
+   keep their weight, and a soft lift off the plate */
+.name { -webkit-text-stroke: max(2px, .1em) color-mix(in srgb, var(--club-deep) 40%, #050c18); paint-order: stroke fill; text-shadow: 0 .08em .22em #050c1873; }
+/* a name of three words or more narrows on the width axis rather than taking a third line */
+.name[data-long] { --name-scale: .93; font-stretch: 84%; }
+
+.vs { position: relative; z-index: 2; flex: none; width: 0; }
+.vs:not([data-board]) > span { position: absolute; top: 50%; left: 0; display: grid; place-items: center; height: 30px; padding: 0 14px; transform: translate(calc(-50% - var(--cut) / 2 + 2px), -50%); background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 14px; font-weight: 950; font-style: italic; font-stretch: 115%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); white-space: nowrap; }
+
+/* picking */
+button.side { cursor: pointer; }
+button.side:disabled { cursor: default; }
+button.side:focus-visible { outline: none; }
+button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px; border-radius: 2px; }
+@media (hover: hover) {
+    button.side:enabled:hover { filter: brightness(1.12); }
+    button.side:enabled:hover .logo { transform: translateY(-3px) scale(1.05); }
+}
+/* an open week's seam rides a spring (seam.ts), written to the strip as --split: the away side's share */
+.strip[data-seam] > .side { flex-grow: var(--split, .5); transition: filter .25s; }
+.strip[data-seam] > .side + .vs + .side { flex-grow: calc(1 - var(--split, .5)); }
+.strip[data-seam] .logo, .strip[data-seam] .who { position: relative; z-index: 1; }
+.side[aria-pressed='true'] .logo { transform: scale(1.14); }
+.side[aria-pressed='true'] .logo::before { opacity: .45; }
+.side[data-fresh]::after { animation: sweep .9s .05s cubic-bezier(.2, .75, .15, 1); }
+/* the goal light: the club's colour floods out from the tap, white-hot at the centre, then settles back into the slab */
+.flood { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at var(--x) var(--y), #fff 0, color-mix(in srgb, var(--club) 35%, #fff) 10%, color-mix(in srgb, var(--club) 75%, #fff) 32%, var(--club) 62%); animation: flood .85s cubic-bezier(.2, .75, .15, 1) forwards; }
+@keyframes flood {
+    0% { clip-path: circle(0 at var(--x) var(--y)); opacity: 1; }
+    45% { clip-path: circle(150% at var(--x) var(--y)); opacity: .9; }
+    100% { clip-path: circle(150% at var(--x) var(--y)); opacity: 0; }
+}
+/* and the lamp along the picked side's top edge, which flickers on once and stays lit */
+.strip[data-seam] .side[aria-pressed='true']::before { content: ''; position: absolute; inset: 0 0 auto; z-index: 2; height: 6px; background: linear-gradient(180deg, #ff6b80, #e8213f); box-shadow: 0 0 22px 6px #ff2a48a6; pointer-events: none; }
+.strip[data-seam] .side[data-fresh]::before { animation: lamp 1s linear; }
+@keyframes lamp { 0% { opacity: 0; } 8% { opacity: 1; filter: brightness(1.6); } 24% { opacity: .35; } 40% { opacity: 1; filter: brightness(1.5); } 56% { opacity: .5; } 100% { opacity: 1; filter: none; } }
+@keyframes sweep { to { transform: translateX(110%); } }
+.strip[aria-busy='true'] .side { cursor: progress; }
+
+.stamp { position: relative; align-self: flex-start; margin-top: 4px; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 13px 0 12px; font-size: 12px; font-weight: 900; font-style: italic; font-stretch: 115%; text-transform: uppercase; white-space: nowrap; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.side + .vs + .side .stamp { align-self: flex-end; }
+.stamp { z-index: 1; color: #fff; clip-path: none; text-shadow: 0 1px #5a0010; transform: rotate(-3deg); filter: drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 .6px #fff) drop-shadow(0 6px 10px #050c1880); }
+.stamp::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, #df1a3c, #b00d28); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.stamp svg { width: 13px; height: 13px; }
+.stamp[data-tone='navy'] { text-shadow: none; }
+.stamp[data-tone='navy']::before { background: #050c18; }
+.stamp[data-hidden] { visibility: hidden; }
+.side[data-fresh] .stamp { animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes stamp { from { transform: scale(2) rotate(-12deg); opacity: 0; } }
+/* The tale of the tape: the club's W-L-T on a navy slab with its fantasy points butted against it on the same slant;
+   picking the side lands a red slab on the end facing the seam. */
+/* An open week's club is sized by the strip, not by its side, so nothing in it resizes while the seam springs. Each
+   name is laid out for its side's held share (--hold-away, --hold-home from seam.ts), not the seam's live position,
+   so it rewraps once per pick rather than on every bounce; while the seam overshoots, the name runs into the side's
+   padding toward the seam instead of wrapping. The .04 leaves room for a hover leaning the seam toward the other club. */
+.strip:not([data-locked]) { --logo: clamp(52px, 8.5cqi, 112px); --chrome: calc(var(--cut) + 84px + var(--logo)); container-type: inline-size; }
+.strip:not([data-locked]) > .side { container-type: normal; }
+.strip:not([data-locked]) .logo { width: var(--logo); height: var(--logo); }
+.strip:not([data-locked]) .who { flex: none; width: max-content; max-width: calc((var(--hold-away, .5) - .04) * (100cqi + var(--cut) - 4px) - var(--chrome)); gap: clamp(5px, .65cqi, 9px); }
+.strip:not([data-locked]) > .side + .vs + .side .who { max-width: calc((var(--hold-home, .5) - .04) * (100cqi + var(--cut) - 4px) - var(--chrome)); }
+/* A pick narrows the other side and can wrap its name onto another line. So each name is also laid out, unseen, at
+   the narrowest share its side can take (the other club picked, less the hover's .04), in the same cell: the strip is
+   always as tall as its tallest layout, and calling or clearing a pick never moves the strips below it.
+   --narrowest is 1 - heldShare() - .04 (pickem-week.tsx). */
+.strip:not([data-locked]) { --narrowest: .34; }
+.nameRoom { display: grid; }
+.nameRoom > * { grid-area: 1 / 1; }
+.nameGhost { visibility: hidden; max-width: calc(var(--narrowest) * (100cqi + var(--cut) - 4px) - var(--chrome)); }
+.tape { --tape-h: clamp(23px, 3.2cqi, 38px); --tape-pad: clamp(8px, 1.4cqi, 17px); display: flex; margin-top: 2px; animation: tapeIn .55s calc(var(--i) * 70ms + .3s) cubic-bezier(.2, .75, .15, 1) backwards; }
+.side + .vs + .side .tape { justify-content: flex-end; animation-name: tapeInHome; }
+@keyframes tapeIn { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -10px 0 0); } }
+@keyframes tapeInHome { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 -10px); } }
+.tape > * { display: flex; align-items: center; height: var(--tape-h); padding: 0 var(--tape-pad); white-space: nowrap; font-variant-numeric: tabular-nums; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.tape > * + * { margin-left: -2px; }
+.tapeRecord { background: #050c18b8; font-size: clamp(15px, 2.3cqi, 27px); font-weight: 900; font-style: italic; font-stretch: 80%; letter-spacing: .01em; }
+.tapePoints { gap: .35em; background: #ffffff26; font-size: clamp(12px, 1.65cqi, 19px); font-weight: 800; font-stretch: 88%; }
+.tapePoints small { font-size: max(10.5px, .72em); font-weight: 800; font-stretch: 100%; letter-spacing: .08em; text-transform: uppercase; color: #ffffffeb; }
+.tapePoints abbr { text-decoration: none; }
+.tapePick { order: 1; gap: 6px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: clamp(11px, 1.45cqi, 16px); font-weight: 900; font-style: italic; font-stretch: 115%; text-transform: uppercase; text-shadow: 0 1px #5a0010; }
+.side + .vs + .side .tapePick { order: -1; margin-left: 0; margin-right: -2px; }
+.tapePick svg { flex: none; width: 1em; height: 1em; }
+.side[data-fresh] .tapePick { animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
+/* a side too narrow for the words keeps the check; the pressed button already says it is picked (a picked side is
+   about 62% of the strip, so this is a picked side under 500px) */
+@container (max-width: 800px) {
+    .tapePick span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* a locked week: counts at the seam, who took each side underneath */
+.logoMark { width: 100%; height: 100%; }
+.strip[data-locked] { min-height: 132px; }
+.strip[data-locked] .side { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 10px; }
+.strip[data-locked] .side + .vs + .side { flex-direction: column; align-items: stretch; }
+/* each side stands its club at the top: logo, name and, said in words, its share of the Pick'em picks */
+.sideTop { display: flex; align-items: flex-start; gap: 18px; min-width: 0; }
+.sideTop .who { flex: 1; }
+.side + .vs + .side .sideTop { flex-direction: row-reverse; }
+/* Both names in a strip share one size, worked out on the strip from its narrower side (--narrow, that side's share):
+   what that side's name box would be, so a long word (TORTEEHAWS) shrinks there rather than overflows, and the wider
+   side matches it instead of setting its name bigger. A narrow side stacks its name under the logo. */
+@property --locked-name { syntax: '<length>'; inherits: true; initial-value: 20px; }
+.strip[data-locked] .logo { width: 56px; height: 56px; }
+.strip[data-locked] { --locked-name: clamp(14px, calc(.105 * (var(--narrow, .5) * (100cqi + var(--cut) - 4px) - var(--cut) - var(--room) - 26px)), 24px); }
+.strip[data-locked] .name { font-size: var(--locked-name); }
+@container (max-width: 400px) {
+    .sideTop { flex-direction: column; gap: 10px; }
+    .side + .vs + .side .sideTop { flex-direction: column; align-items: flex-end; }
+    .sideTop .who { align-self: stretch; }
+}
+.predict { display: flex; align-items: baseline; gap: .3em; font-size: 14px; font-weight: 750; line-height: 1; color: #ffffffe6; white-space: nowrap; }
+.side + .vs + .side .predict { justify-content: flex-end; }
+.predict b { font-size: 1.7em; font-weight: 900; font-style: italic; font-stretch: 80%; line-height: .9; color: #fff; }
+
+/* The scoreboard on the seam: the two clubs' head-to-head points either side of what they are (Live in red while
+   the week is played; Final or Tie in white once it is scored), slabs butted on one slant. The sides keep their
+   content clear of it on the seam side. */
+.strip[data-locked] { --room: 32px; }
+.strip[data-scored] { --room: 148px; }
+.strip[data-locked] .side { padding-right: calc(var(--cut) + var(--room)); }
+.strip[data-locked] .side + .vs + .side { padding-right: 26px; padding-left: calc(var(--cut) + var(--room)); }
+.vs[data-board] { z-index: 4; }
+.scorebug { position: absolute; top: 50%; left: 0; display: flex; height: 40px; transform: translate(calc(-50% - var(--cut) / 2 + 2px), -50%); filter: drop-shadow(0 10px 18px #050c1873); white-space: nowrap; }
+.scorebug > * { display: flex; align-items: center; padding: 0 16px; clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%); }
+.scorebug > * + * { margin-left: -3px; }
+.scoreFigure { background: #050c18; font-size: 28px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: 1; letter-spacing: -.01em; font-variant-numeric: tabular-nums; color: #fff; }
+.scoreFigure small { font-size: .52em; color: #ffffffcc; }
+.scoreState { padding: 0 14px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 13px; font-weight: 950; font-style: italic; font-stretch: 115%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; }
+.vs[data-settled] .scoreState { background: #fff; color: #12182e; text-shadow: none; }
+/* Once scored, the scoreboard says who won: the winner's figure lights red with a W on its outer edge, the loser's
+   dims. Both land when the old WON slab did, after the seam has sprung. */
+.scoreFigure { position: relative; isolation: isolate; gap: 7px; }
+.scoreFigure[data-outcome='won'] { font-size: 30px; text-shadow: 0 1px #5a0010; }
+.scoreFigure[data-outcome='won']::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, #df1a3c, #b00d28); animation: winLight .45s cubic-bezier(.2, .75, .15, 1) calc(var(--i) * 90ms + .9s) backwards; }
+.scoreFigure[data-outcome='won'] small { color: #ffe1e6; }
+.scoreFigure[data-outcome='lost'] { color: #ffffffa8; animation: loseDim .45s cubic-bezier(.2, .75, .15, 1) calc(var(--i) * 90ms + .9s) backwards; }
+.scoreFigure[data-outcome='lost'] small { color: #ffffff80; }
+.scoreWin { font-size: 12px; font-weight: 950; font-stretch: 115%; letter-spacing: .04em; animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1) calc(var(--i) * 90ms + .9s) backwards; }
+@keyframes winLight { from { opacity: 0; } }
+@keyframes loseDim { from { color: #fff; } }
+/* who took the side: one row of slabs carrying their logos, overlapping as far as the row needs to fit on one line
+   (--n is how many), the owner's name on hover. Each slab is opaque and edged so the one under it reads as a stack. */
+.pickers { display: flex; container-type: inline-size; }
+.side + .vs + .side .pickers { justify-content: flex-end; }
+.picker { --w: 36px; position: relative; isolation: isolate; flex: none; display: grid; place-items: center; width: var(--w); height: 32px; filter: drop-shadow(-2px 0 0 #050c18b3); animation: pickerIn .4s calc(var(--i) * 70ms + 250ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+.picker::before { content: ''; position: absolute; inset: 0; z-index: -1; background: color-mix(in srgb, var(--club-deep) 45%, #050c18); box-shadow: inset 0 1px #ffffff2e; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.pickers { --n: var(--all); }
+.picker + .picker { margin-left: min(-6px, calc((100cqi - var(--n) * var(--w)) / (var(--n) - 1))); }
+/* the +N slab for a crowded side, on a phone only */
+.pickersMore { display: none; padding: 0 9px 0 8px; font-size: 13px; font-weight: 900; font-style: italic; font-stretch: 84%; color: #fff; }
+.pickersMore::before { background: #050c18; }
+@keyframes pickerIn { from { opacity: 0; transform: translateY(6px); } }
+.strip[data-locked] .stamp { transform: none; animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1) calc(var(--i) * 160ms + 1.1s) backwards; }
+/* the owner's own side keeps the open week's lamp: a call that came in flickers it back on as its sparks fly
+   (pickem-breakdown.tsx, celebrateAt), a miss or a tie puts it out */
+.strip[data-locked] .side[data-mine]::before { content: ''; position: absolute; inset: 0 0 auto; z-index: 2; height: 6px; background: linear-gradient(180deg, #ff6b80, #e8213f); box-shadow: 0 0 22px 6px #ff2a48a6; pointer-events: none; }
+.strip[data-locked] .side[data-mine='correct']::before { animation: lamp 1s linear calc(var(--i) * 160ms + 1.1s) backwards; }
+.strip[data-locked] .side[data-mine='wrong']::before, .strip[data-locked] .side[data-mine='neither']::before { background: #ffffff2e; box-shadow: none; animation: lampOut .7s cubic-bezier(.55, 0, .8, .2) calc(var(--i) * 160ms + 1.1s) backwards; }
+@keyframes lampOut { from { background: #ff4d66; box-shadow: 0 0 22px 6px #ff2a48a6; } }
+/* A finished loser dims its colour, not its words: the dimming works on the side's own background through a backdrop
+   layer under its content, so its name and share keep full contrast. It fades in once the seam has sprung. */
+.strip[data-locked] .side::after { inset: 0; z-index: 0; background: none; transform: none; -webkit-backdrop-filter: saturate(.75) brightness(.88); backdrop-filter: saturate(.75) brightness(.88); opacity: 0; transition: opacity .7s calc(var(--i) * 90ms + .9s); }
+.strip[data-locked] .side[data-lost]::after { opacity: 1; }
+.strip[data-locked] .pickers, .strip[data-locked] .name, .strip[data-locked] .predict { position: relative; z-index: 1; }
+
+/* ── the rail: Pick'em leaderboard, rules and prize ───────────────────── */
+/* the standings board: navy once there is something to rank, a quiet ice panel until then */
+.board { --pad: 20px; --mark: 38px; overflow: hidden; border-radius: 6px; background: radial-gradient(120% 70% at 0% 0%, #22355c, transparent 70%), linear-gradient(180deg, #ffffff0a, transparent 30%, transparent 80%, #050c1840), linear-gradient(180deg, #152747, #0b1628); color: #fff; box-shadow: var(--rim), 0 1px 2px #0b142633, 0 10px 16px -10px #0b142666, 0 34px 54px -36px #0b1426b3; }
+/* the head catches a little more light than the rows; the column heads' rule is the only line under it */
+.board:not([data-empty]) .boardHead { background: linear-gradient(180deg, #ffffff0d, transparent); }
+.boardHead { padding: 20px var(--pad) 16px; }
+.board h2 { font-size: 22px; line-height: 1; font-weight: 900; font-style: italic; font-stretch: 112%; letter-spacing: -.01em; text-transform: uppercase; }
+.champion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; font-size: 14px; font-weight: 750; }
+.goldSlab { display: inline-flex; align-items: center; height: 26px; padding: 0 14px; background: linear-gradient(180deg, #f7d774, #b8860b); font-size: 12px; font-weight: 900; font-style: italic; font-stretch: 112%; text-transform: uppercase; color: #1c1404; clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
+.board[data-empty] { border: 1px solid #dce5ee; border-radius: 6px; background: #fff; color: #12182e; box-shadow: none; }
+.board[data-empty] .boardHead { padding-bottom: 8px; }
+.board[data-empty] h2 { font-size: 18px; }
+.boardEmpty { padding: 0 var(--pad) 20px; font-size: 14px; line-height: 1.5; color: #56627a; }
+
+.table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 14px; }
+.colRank { width: calc(var(--pad) + 30px); }
+.colCorrect { width: 60px; }
+.colWrong { width: 56px; }
+.colPct { width: calc(var(--pad) + 40px); }
+.table th { padding: 0 0 10px 8px; border-bottom: 1px solid #ffffff1f; font-size: 10.5px; font-weight: 800; font-stretch: 85%; letter-spacing: .06em; line-height: 1; text-align: right; text-transform: uppercase; white-space: nowrap; color: #b3c1d8; }
+.headMark { display: none; }
+.headMark svg { width: 12px; height: 12px; }
+.table th:first-child { padding-left: var(--pad); text-align: left; }
+/* TEAM starts where the names do, past the logo slab */
+.table th:nth-child(2) { padding-left: calc(8px + var(--mark) + 10px); text-align: left; }
+.table th:last-child, .table td:last-child { padding-right: var(--pad); }
+.table td { height: 56px; padding: 0 0 0 8px; border-top: 1px solid #ffffff0f; text-align: right; font-variant-numeric: tabular-nums; vertical-align: middle; }
+.table tbody tr:first-child td { border-top: 0; }
+.table tbody tr { animation: rowIn .5s calc(var(--i) * 45ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+@keyframes rowIn { from { transform: translateX(16px); opacity: 0; } }
+/* first place: a gold wash falling from the rank, and a gold numeral */
+.table tr[data-first] { background: linear-gradient(90deg, #f0c75e38, #f0c75e12 40%, transparent 75%); }
+.table tr[data-first] + tr:not([data-first]) td { border-top-color: #f0c75e33; }
+
+.table .rank { padding-left: var(--pad); text-align: left; white-space: nowrap; font-size: 24px; font-weight: 900; font-style: italic; font-stretch: 80%; line-height: 1; letter-spacing: -.02em; color: #c3cfe4; }
+/* a shared place reads "T2" on the line, like a golf board */
+.rank abbr { margin-right: 1px; font-size: .68em; font-weight: 850; letter-spacing: 0; color: #8d9dba; }
+.table tr[data-first] .rank, .table tr[data-first] .rank abbr { color: #f0c75e; }
+
+.entry { display: flex; align-items: center; gap: 10px; min-width: 0; text-align: left; }
+.entryMark { flex: none; display: grid; place-items: center; width: var(--mark); height: 34px; background: linear-gradient(100deg, var(--club), var(--club-deep)); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.entryName { min-width: 0; line-height: 1.2; }
+/* names are never cut short: one that runs out of column takes a second, balanced line */
+.entryName b { display: block; font-size: 15px; font-weight: 750; line-height: 1.15; letter-spacing: -.005em; text-wrap: balance; overflow-wrap: anywhere; }
+
+/* the counts read upright and tabular; correct leads, wrong and pct follow */
+.table .correct, .table .wrong, .table .pct { font-style: normal; font-stretch: 90%; line-height: 1; }
+.table .correct { font-size: 20px; font-weight: 850; color: #fff; }
+.table .wrong { font-size: 16px; font-weight: 700; color: #a9b8cf; }
+.table .pct { font-size: 16px; font-weight: 800; color: #dbe5f2; }
+/* the % hangs past the column edge, so the digits end under PCT */
+.pct small { display: inline-block; width: 0; margin-left: 1px; font-size: .72em; font-weight: 750; text-align: left; color: #a9b8cf; }
+.rules { margin-top: 18px; padding: 0 4px; font-size: 14px; line-height: 1.55; text-wrap: pretty; color: #3a4560; }
+/* The first place prize, set like a broadcast tag: a gold 1st slab (the prize is an honour: "The Gold Is Earned Rule")
+   cut into a navy plate exactly as wide as the board below it, then the prize in the page title's voice with its season
+   outlined after it. The plate stands on the same footing and radius as the board. */
+.prize { position: relative; display: flex; align-items: stretch; min-height: 64px; margin-bottom: 12px; overflow: hidden; border-radius: 6px; container-type: inline-size; background: radial-gradient(50% 160% at 0% 50%, #f0c75e33, transparent 70%), linear-gradient(180deg, #ffffff0d, transparent 45%, #050c1847), linear-gradient(100deg, #172a4c, #0e1a30); box-shadow: var(--rim), var(--footing); color: #fff; }
+.prizeTag { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 30px 0 18px; overflow: hidden; background: linear-gradient(180deg, #f7d774, #d9a92a 55%, #b8860b); box-shadow: inset 0 1px #fff8d680, inset 0 -3px #8a641059; color: #1c1404; clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%); }
+.prizeTag b { font-size: 30px; font-weight: 950; font-style: italic; font-stretch: 84%; line-height: .85; text-transform: uppercase; }
+.prizeTag span { margin-top: 4px; font-size: 9.5px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; color: #4a3504; }
+/* one glint across the gold as the rail arrives, and never again */
+.prizeTag::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, #fffbe8b3 50%, transparent 70%); transform: translateX(-110%); animation: glint 1.2s .6s cubic-bezier(.33, 1, .68, 1) forwards; }
+/* it catches the light once a visit, not again on every week (pickem-prize.tsx) */
+.prizeTag[data-seen]::after { display: none; }
+@keyframes glint { to { transform: translateX(110%); } }
+.prizeWhat { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; align-content: center; column-gap: .32em; padding: 8px 18px 8px 12px; font-size: clamp(21px, 6.2cqi, 30px); font-weight: 950; font-style: italic; font-stretch: 116%; line-height: 1; letter-spacing: -.03em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 1px 2px #050c1866; }
+/* the season, outlined like the season in the page title */
+.prizeWhat span { font-size: .64em; font-stretch: 100%; color: transparent; -webkit-text-stroke: 1.25px #b6dcf5; text-shadow: none; }
+
+/* ── a week change: the old slate folds away while the next one loads ── */
+.slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: leave .32s cubic-bezier(.33, 1, .68, 1) forwards; }
+@keyframes leave { to { opacity: .15; transform: scale(.985); filter: blur(3px); } }
+
+/* ── phones ───────────────────────────────────────────────────────────── */
+@media (max-width: 800px) {
+    /* the week and its clock come first; who's in follows them, as a full-width row of logos under its count */
+    .stage { display: flex; flex-direction: column; }
+    .top { display: contents; }
+    .whos { order: 1; margin-top: 20px; }
+    .whosList { gap: 12px; }
+    .weeks { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 16px; }
+    .stepper { justify-content: space-between; }
+    .clockTime { flex: 1; justify-content: center; }
+}
+@media (max-width: 640px) {
+    /* The stage in three rows: the title with the week stepper beside it, the clock across the width, then who's in. The
+       week control spans the first two rows as a subgrid, so its stepper sits beside the title and its clock under both;
+       it lets taps through to the title it overlaps. */
+    .stage { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 12px; align-items: center; padding-top: 14px; padding-bottom: 26px; }
+    .stage::after { height: 10px; background: linear-gradient(#c8102e 0 36%, #fff 36% 64%, #3d8bda 64%); }
+    .titleRow { grid-area: 1 / 1; min-width: 0; }
+    .title { font-size: clamp(24px, 7.4vw, 31px); }
+    /* the season moves over the week's name (week-switcher.tsx) */
+    .title span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .weeks { grid-area: 1 / 1 / 3 / 3; display: grid; grid-template-columns: subgrid; grid-template-rows: subgrid; gap: 12px 10px; margin-top: 0; pointer-events: none; }
+    .weeks > * { pointer-events: auto; }
+    .stepper { grid-area: 1 / 2; gap: 4px; }
+    .weeks > .clock { grid-area: 2 / 1 / 3 / 3; }
+    .whos { grid-area: 3 / 1 / 4 / 3; justify-content: space-between; margin-top: 4px; }
+    .whosList { flex: 1; justify-content: space-between; gap: 2px; }
+    /* a phone has no room for a tick per week; the stepper's arrows change weeks */
+    .track { display: none; }
+    .weekName { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 0 2px; font-size: 18px; line-height: 1; }
+    .weekSeason { display: block; margin-bottom: 3px; font-size: 10.5px; font-style: normal; font-weight: 800; font-stretch: 100%; letter-spacing: .06em; color: #b6dcf5; }
+    .whosItem { --mark: 25px; }
+    .clock { height: 46px; }
+    .clockLabel { padding: 0 14px 0 18px; font-size: 11px; }
+    .clockLabel small { font-size: 10px; }
+    .whenLong { display: none; }
+    .whenShort { display: inline; }
+    .clock[data-locked] .clockTime { flex: 1; font-size: 15px; }
+    .clockTime { gap: 8px; padding: 0 20px 0 12px; }
+    .unit b { font-size: 26px; }
+    .track { --track: 34px; }
+    .layout { margin-top: 18px; gap: 36px; }
+    /* the meter drops under the count and Clear picks */
+    .entryBar { flex-wrap: wrap; gap: 4px 14px; }
+    .entryBar .pips { order: 1; flex-basis: 100%; }
+    .progressText { flex: 1; font-size: 14px; }
+    .count { font-size: 26px; }
+    .clearButton { height: 40px; font-size: 12px; }
+    .ctaButton { height: 40px; padding: 0 22px; font-size: 14px; }
+    .strip { --cut: 16px; min-height: 132px; }
+    .side { flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; padding: 12px calc(var(--cut) + 16px) 12px 12px; }
+    .side + .vs + .side { flex-direction: column; align-items: flex-end; padding: 12px 12px 12px calc(var(--cut) + 16px); }
+    .logo { width: 42px; height: 42px; }
+    /* a phone's names sit a little narrow, and one with a word too long to break narrows further (side-body.tsx), so
+       HOOTERVILLE fits the side a pick leaves it */
+    .name { font-size: calc(clamp(13px, 4.5cqi, 17px) * var(--name-scale, 1)); font-stretch: 92%; }
+    .strip[data-locked] { --locked-name: clamp(13px, calc(.11 * (var(--narrow, .5) * (100cqi + var(--cut) - 4px) - var(--cut) - var(--room) - 14px)), 16px); }
+    .name[data-long], .name[data-long-word] { font-stretch: 78%; }
+    .strip[data-locked] .logo { width: 50px; height: 50px; }
+    .stamp { height: 22px; padding: 0 10px; font-size: 11px; }
+    .vs:not([data-board]) > span { height: 24px; padding: 0 10px; font-size: 12px; }
+    /* the tape stacks: the record (and the pick slab facing the seam) over the points */
+    .strip:not([data-locked]) { --logo: 42px; --chrome: calc(var(--cut) + 28px); }
+    .tape { --tape-h: 24px; --tape-pad: 10px; display: grid; grid-template-columns: auto auto; justify-content: start; row-gap: 3px; }
+    .side + .vs + .side .tape { justify-content: end; }
+    .tapeRecord { font-size: 18px; }
+    .tapePoints { grid-column: 1 / -1; justify-self: start; margin-left: 0 !important; font-size: 13px; }
+    .side + .vs + .side .tapePoints { justify-self: end; }
+    .tapePick { order: 0; font-size: 12px; }
+    .tapePick span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .picker { --w: 31px; height: 28px; }
+    .picker [data-team-mark] { width: 21px !important; height: 21px !important; }
+    .pickers { --n: var(--shown); }
+    .picker[data-extra] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .pickersMore { display: grid; width: auto; }
+    .stampLead { display: none; }
+    .strip:not([data-locked]) { --narrowest: .40; }
+    .board { --pad: 16px; --mark: 36px; }
+    .board h2 { font-size: 19px; }
+    .headWord { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .headMark { display: inline-block; }
+    .colRank { width: calc(var(--pad) + 26px); }
+    .colCorrect { width: 42px; }
+    .colWrong { width: 34px; }
+    .colPct { width: calc(var(--pad) + 44px); }
+    .table td { height: 52px; }
+    .table .rank { font-size: 22px; }
+    .table .correct { font-size: 18px; }
+    .table .wrong, .table .pct { font-size: 14px; }
+    .entryMark { height: 30px; }
+    .entryMark [data-team-mark] { width: 22px !important; height: 22px !important; }
+    .entryName b { font-size: 14px; }
+    .bumperWords { padding: 0 16px; font-size: 24px; }
+    .bumperWords span:last-child { font-size: 13px; }
+
+    /* The pick bar docks on top of the tab bar while the slate is on screen, white like the tab bar, and comes to rest
+       under the last strip once the slate scrolls past: the slate head moves after the strips and sticks to the bottom.
+       It keeps one row: the count without "picked", the meter, the compact clock once the stage's has gone, and Clear
+       (or Undo) at the end. A refused save shows above the row. */
+    .slate { display: flex; flex-direction: column; }
+    .slateHead { order: 1; position: sticky; bottom: calc(63px + env(safe-area-inset-bottom)); z-index: 5; flex-wrap: wrap; gap: 6px 10px; min-height: 58px; margin: 12px calc(50% - 50vw) 0; padding: 7px calc(50vw - 50%); border-top: 1px solid #dce5ee; background: #fff; box-shadow: 0 -14px 24px -18px #0b142673; }
+    .slateHead:empty { display: none; }
+    .slateHead .alert { order: -1; padding: 8px 12px; font-size: 13px; }
+    .entryBar { flex-wrap: nowrap; gap: 8px; }
+    .entryBar .pips { order: 0; flex-basis: auto; gap: 4px; }
+    .entryBar .pip { --slant: 4px; }
+    .progressText { flex: none; }
+    .dockDrop { display: none; }
+    .clearButton { gap: 6px; height: 44px; margin-right: -8px; padding: 0 8px; }
+    .dockClock { flex: none; display: flex; height: 34px; color: #fff; white-space: nowrap; }
+    .dockClock > small { display: flex; align-items: center; width: min-content; padding: 0 8px 0 10px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 10px; font-weight: 900; font-style: italic; font-stretch: 112%; line-height: 1.05; text-transform: uppercase; text-shadow: 0 1px #5a0010; white-space: normal; clip-path: polygon(7px 0, 100% 0, 100% 100%, 0 100%); }
+    .dockClock > span { display: flex; align-items: center; gap: 4px; padding: 0 11px 0 6px; background: #050c18; clip-path: polygon(0 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
+    .dockClock b { font-size: 19px; font-weight: 900; font-stretch: 78%; line-height: 1; font-variant-numeric: tabular-nums; }
+    .dockClock b small { margin-left: 1px; font-size: 10px; font-weight: 800; color: #a9b8cf; text-transform: uppercase; }
+    .dockClock[data-urgent] > small { background: #050c18; text-shadow: none; }
+    .dockClock[data-urgent] > span { background: linear-gradient(180deg, #df1a3c, #b00d28); }
+    .dockClock[data-urgent] b small { color: #ffe1e6; }
+}
+
+/* A phone's side is too narrow to keep clear of a scoreboard on the seam, so it hangs across the foot of the strip
+   instead, centred on the seam, and the sides keep their content above it. */
+@media (max-width: 640px) {
+    .strip[data-locked], .strip[data-scored] { --room: 18px; }
+    .strip[data-locked] .side { padding-left: 14px; }
+    .strip[data-locked] .side + .vs + .side { padding-right: 14px; }
+    .strip[data-locked] .side, .strip[data-locked] .side + .vs + .side { padding-bottom: 54px; }
+    /* A phone's locked side is one column: the logo, the name, the side's share, the owner's stamp right under it, then
+       who took it. (Even the widest side has no room for the stamp beside the share.) */
+    .strip[data-locked] .side { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; justify-items: start; gap: 8px; }
+    .strip[data-locked] .side + .vs + .side { justify-items: end; }
+    .strip[data-locked] .sideTop, .strip[data-locked] .sideTop .who { display: contents; }
+    .strip[data-locked] .logo { width: 40px; height: 40px; }
+    .strip[data-locked] .stamp { order: 1; margin: 0; }
+    .strip[data-locked] .pickers { order: 2; justify-self: stretch; }
+    .scorebug { top: auto; bottom: 10px; height: 32px; transform: translateX(calc(-50% - var(--cut) + 2px)); }
+    .scorebug > * { padding: 0 11px; clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
+    .scoreFigure { font-size: 21px; }
+    .scoreFigure[data-outcome='won'] { font-size: 23px; gap: 5px; }
+    .scoreWin { font-size: 10px; }
+    .scoreState { padding: 0 10px; font-size: 11px; }
+}
+
+/* ── big displays scale up, they don't spread out ─────────────────────── */
+@media (min-width: 1800px) {
+    .prize { min-height: 72px; }
+    .prizeTag { padding: 0 34px 0 22px; }
+    .prizeTag b { font-size: 36px; }
+    .prizeTag span { font-size: 10.5px; }
+    .layout { grid-template-columns: minmax(0, 1fr) 540px; }
+    .strip { min-height: 140px; --cut: 34px; }
+    .logo { width: 92px; height: 92px; }
+    .strip[data-locked] .logo { width: 70px; height: 70px; }
+    .strip[data-scored] { --room: 168px; }
+    .scorebug { height: 48px; }
+    .scoreFigure { font-size: 34px; }
+    .scoreFigure[data-outcome='won'] { font-size: 37px; }
+    .scoreState { font-size: 15px; }
+    .board { --pad: 24px; --mark: 50px; }
+    .board h2 { font-size: 26px; }
+    .table td { height: 66px; }
+    .table th { font-size: 11.5px; }
+    .colRank { width: calc(var(--pad) + 38px); }
+    .colCorrect { width: 66px; }
+    .colWrong { width: 62px; }
+    .colPct { width: calc(var(--pad) + 50px); }
+    .table .rank { font-size: 28px; }
+    .table .correct { font-size: 24px; }
+    .table .wrong, .table .pct { font-size: 19px; }
+    .entryMark { height: 40px; }
+    .entryMark [data-team-mark] { width: 32px !important; height: 32px !important; }
+    .entryName b { font-size: 17px; }
+    .champion { font-size: 16px; }
+    .weekName { font-size: 29px; }
+    .whosItem { --mark: 38px; }
+    .whosList { gap: 10px; }
+    .whosCount { font-size: 34px; }
+    .unit b { font-size: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .strip, .picker, .table tbody tr, .figureIn, .figureOut, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh] .tapePick, .side[data-fresh]::after, .side[data-fresh]::before, .tape { animation: none; }
+    .bumper, .figureOut, .flood { display: none; }
+    .track a::before, .track a span, .side, .logo, .indicator, .whosItem [data-team-mark], .step svg { transition: none; }
+    .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: none; }
+    .scoreFigure, .scoreFigure::before, .scoreWin, .strip[data-locked] .stamp, .strip[data-locked] .side[data-mine]::before { animation: none; }
+    .prizeTag::after { display: none; }
+    .pip::before, .pip::after, .clearButton { transition: none; }
+    .pip[data-lit], .pip[data-lit]::after, .countIn, .allIn, .ctaButton[data-stamped] { animation: none; }
+    .countOut { display: none; }
+}

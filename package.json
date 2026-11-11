@@ -29,6 +29,7 @@
     "test:browsing": "node --import tsx --test lib/search/*.test.ts lib/compare/*.test.ts lib/share/*.test.ts lib/explore.test.ts",
     "test:snapshot": "node --import tsx --test lib/fantrax/*.test.ts",
     "test:keepers": "node --import tsx --test lib/keepers/*.test.ts",
+    "test:pickem": "node --import tsx --test lib/pickem/*.test.ts",
     "db:import:history": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import-history.ts",
     "db:sync:logos": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/sync-logos.ts",
     "db:import": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import.ts",

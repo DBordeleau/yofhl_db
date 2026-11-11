@@ -59,6 +59,16 @@ test('the 31st attempt at an action in 15 minutes is rejected', async t => {
     assert.equal((await act(s => s.preamble('save-branding'))).ok, true, 'each action has its own limit');
 });
 
+test('an action can set its own limit, and a default action in the same window keeps 30', async t => {
+    const { act, signInAs } = await owners(t);
+    await signInAs('owner-1');
+    const burst = { name: 'test-burst', attempts: 40 };
+    for (let i = 0; i < 40; i++) assert.equal((await act(s => s.ownerPreamble(burst))).ok, true);
+    await assert.rejects(act(s => s.ownerPreamble(burst)), { message: 'Too many attempts. Please try again in 15 minutes.' });
+    for (let i = 0; i < 30; i++) assert.equal((await act(s => s.preamble('save-team'))).ok, true, 'the higher limit is not counted against it');
+    await assert.rejects(act(s => s.preamble('save-team')), { message: 'Too many attempts. Please try again in 15 minutes.' });
+});
+
 test('the preamble resolves the admin or the signed-in owner', async t => {
     const { request, act, signInAs } = await owners(t);
     assert.deepEqual(await act(s => s.preamble('save-team')), { ok: false, reason: 'session-expired' });
