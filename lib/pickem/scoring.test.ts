@@ -148,3 +148,38 @@ test('the Pick\'em leaderboard is empty before any pick locks, and absent while 
     const off = await pickemLeague(t, { launch: null });
     assert.deepEqual(await off.act(p => p.readPickemLeaderboard({ now: now(), seasonYear: SEASON })), { status: 'no-season' });
 });
+
+test('settle reads the saved snapshot and asks Fantrax for no league of its own', async t => {
+    const league = await pickemLeague(t, { launch });
+    league.playWeek(6, 8);
+    league.setScores(6, SCORES);
+    // The evening capture has saved its snapshot; Fantrax's league endpoints then fail.
+    league.live.saved = structuredClone(league.live.fantrax);
+    league.live.down.add('core');
+
+    const settled = await league.act(p => p.settle({ now: now() }));
+    assert.deepEqual(settled.frozen, [{ seasonYear: SEASON, week: 6 }]);
+});
+
+test('settle holds a week with a pairing Fantrax has no score for, and freezes it once every pairing is scored', async t => {
+    const league = await pickemLeague(t, { launch });
+    await savePicks(league, 6, [[1, [1, 2], 1], [2, [1, 2], 2]]);
+    league.playWeek(6, 8);
+    league.setScores(6, SCORES);
+    const week6 = [{ seasonYear: SEASON, week: 6 }];
+    const settle = (time = now()) => league.act(p => p.settle({ now: time }));
+    t.mock.method(console, 'warn', () => {});
+
+    // Recorded while its correction window is open; then Fantrax team fx1 loses its franchise, so 1 v 2 can't be scored.
+    const early = await settle(now() - 2 * DAY);
+    assert.deepEqual([early.recorded, early.frozen], [week6, []]);
+    const mapping = league.live.fantraxTeams;
+    league.live.fantraxTeams = mapping.filter(row => row.fantraxTeamId !== 'fx1');
+    const held = await settle();
+    assert.deepEqual([held.frozen, held.held, held.completed], [[], week6, []]);
+
+    league.live.fantraxTeams = mapping;
+    const frozen = await settle();
+    assert.deepEqual([frozen.frozen, frozen.held], [week6, []]);
+    assert.deepEqual(records(await leaderboardAt(league)), [[1, 1, 1, 0, 1], [2, 2, 0, 1, 0]]);
+});
