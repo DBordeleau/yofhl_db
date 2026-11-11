@@ -143,7 +143,11 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
    where Clear picks would be; tapping a side stamps it */
 .ctaButton { flex: none; display: inline-flex; align-items: center; height: 44px; padding: 0 30px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 15px; font-weight: 900; font-stretch: 112%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: filter .15s; }
 .ctaButton:hover { filter: brightness(1.12); }
-.ctaButton[data-stamped] { animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
+/* a tap on a side nudges it: the slab lifts a little and brightens, then settles back */
+.ctaButton[data-stamped] { animation: nudge .7s cubic-bezier(.45, 0, .25, 1); }
+@keyframes nudge {
+    35% { transform: translateY(-3px) scale(1.045); filter: brightness(1.18); }
+}
 .alert { margin-bottom: 14px; padding: 12px 16px; border: 1px solid #c8102e40; border-radius: 6px; background: #c8102e12; font-size: 14px; font-weight: 750; color: #a30d26; }
 .message { padding: 40px 24px; border: 1px solid #dce5ee; border-radius: 6px; background: #fff; text-align: center; font-size: 15px; color: #3a4560; }
 
