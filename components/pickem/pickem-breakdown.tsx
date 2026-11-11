@@ -7,6 +7,7 @@ import type { PickemEntry, PickemMatchupBreakdown, PickemPickOutcome } from '@/l
 import { pairOf, pairOfMatchup } from '@/lib/pickem/model';
 import { hasSessionHint } from '@/lib/owner/navigation';
 import { clubColours, clubTone } from './club-tone';
+import { announceOwner } from './entry-event';
 import { Check } from './icons';
 import { aimSeam, trackSeam, untrackSeam } from './seam';
 import { burst } from './sparks';
@@ -80,6 +81,7 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
         let cancelled = false;
         readYourPickem(seasonYear, week).then(answer => {
             if (cancelled || answer?.status !== 'entry') return;
+            announceOwner(answer.franchiseId);
             setYours(new Map(answer.picks.map(pick => [keyOf(pick.matchup), { picked: pick.picked, outcome: pick.outcome }] as const)));
         }).catch(() => {});
         return () => { cancelled = true; };

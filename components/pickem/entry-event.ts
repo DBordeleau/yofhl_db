@@ -12,3 +12,15 @@ export interface EntryEvent {
 export function announceEntry(detail: EntryEvent) {
     window.dispatchEvent(new CustomEvent<EntryEvent>(ENTRY_EVENT, { detail }));
 }
+
+// The slate tells the Pick'em tabs which entry is the signed-in owner's once their picks load, so the Leaderboard tab can
+// show the owner's place (pickem-views.tsx).
+export const OWNER_EVENT = 'pickem:owner';
+
+export interface OwnerEvent {
+    franchiseId: number;
+}
+
+export function announceOwner(franchiseId: number) {
+    window.dispatchEvent(new CustomEvent<OwnerEvent>(OWNER_EVENT, { detail: { franchiseId } }));
+}

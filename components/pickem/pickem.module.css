@@ -95,6 +95,25 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 .whosName { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ── the slate and the rail ───────────────────────────────────────────── */
+/* Below 1280px the slate and the leaderboard are tabs (pickem-views.tsx): a white bar under the stage, full width like
+   the stage, in the header nav's voice: plain labels, the open one in ink over a 3px red rule flush to the hairline. It
+   pins to the top of the screen; once pinned it lifts off the page with a soft shadow. */
+.viewSentinel { display: block; height: 0; }
+.viewTabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 8; display: grid; grid-template-columns: 1fr 1fr; height: 50px; margin-inline: calc(50% - 50vw); padding-inline: calc(50vw - 50%); border-bottom: 1px solid #dce5ee; background: #fff; transition: box-shadow .2s; }
+.viewTabs[data-stuck] { box-shadow: 0 12px 20px -16px #0b142680; }
+.viewTab { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 700; color: #56627a; transition: color .15s; }
+.viewTab:hover { color: #12182e; }
+.viewTab[aria-selected='true'] { color: #12182e; font-weight: 850; }
+.viewTab[aria-selected='true']::after { content: ''; position: absolute; left: 22%; right: 22%; bottom: -1px; height: 3px; background: #c8102e; }
+.viewTab:focus-visible { outline: 3px solid #3d8bda; outline-offset: -3px; }
+/* the signed-in owner's place on the Leaderboard tab */
+.viewPlace { display: inline-flex; align-items: center; height: 22px; padding: 0 7px; border-radius: 4px; background: #eaf2fa; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; color: #1f6fc2; }
+@media (max-width: 1279px) {
+    .layout[data-view='leaderboard'] > [data-panel='picks'], .layout[data-view='picks'] > [data-panel='leaderboard'] { display: none; }
+}
+@media (min-width: 1280px) {
+    .viewTabs, .viewSentinel { display: none; }
+}
 .layout { display: grid; gap: 44px; margin-top: 30px; }
 @media (min-width: 1280px) {
     .layout { grid-template-columns: minmax(0, 1fr) 460px; align-items: start; }

@@ -8,7 +8,7 @@ import type { LeagueStanding, PickemFranchise, PickemMatchup, YourPickem } from 
 import { pairOf, pairOfMatchup } from '@/lib/pickem/model';
 import { hasSessionHint } from '@/lib/owner/navigation';
 import { clubColours, clubTone } from './club-tone';
-import { announceEntry } from './entry-event';
+import { announceEntry, announceOwner } from './entry-event';
 import { Check } from './icons';
 import { aimSeam, holdSeam, trackSeam, untrackSeam } from './seam';
 import PickemEntryBar, { type EntryInvite } from './pickem-entry-bar';
@@ -118,6 +118,7 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
             if (cancelled) return;
             setYours(answer ?? { status: 'signed-out' });
             if (answer?.status !== 'entry') return;
+            announceOwner(answer.franchiseId);
             saved.current = new Map(answer.picks.map(pick => [keyOf(pick.matchup), pick.picked]));
             setPicks(new Map(saved.current));
         }).catch(() => { if (!cancelled) setYours({ status: 'signed-out' }); });
