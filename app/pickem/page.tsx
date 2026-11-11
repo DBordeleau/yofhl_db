@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import PickemPageView from '@/components/pickem/pickem-page';
 import { pickem } from '@/lib/pickem/pickem';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
-import { currentOwners } from './owners';
 
 export const metadata: Metadata = {
     title: "Pick'em · YOFHL",
@@ -20,11 +19,10 @@ export const revalidate = 60;
 export default async function PickemPage() {
     if (!PICKEM_LAUNCH) notFound();
     const now = Date.now();
-    const [read, lastLocked, standings, owners] = await Promise.all([
+    const [read, lastLocked, standings] = await Promise.all([
         pickem.readWeek({ now, asker: 'nobody' }),
         pickem.readWeek({ now, week: 'last-locked', asker: 'nobody' }),
         pickem.readPickemLeaderboard({ now }),
-        currentOwners(),
     ]);
     const week = read.status === 'week' ? read.week : null;
     const previous = lastLocked.status === 'week' ? lastLocked.week : null;
@@ -35,6 +33,5 @@ export default async function PickemPage() {
         week={week}
         weeks={read.status === 'week' ? read.weeks : lastLocked.status === 'week' ? lastLocked.weeks : null}
         standings={leaderboard ?? (standings.status === 'unavailable' ? 'unavailable' : null)}
-        owners={owners}
         message={read.status === 'unavailable' ? 'Matchups are unavailable right now. Try again soon.' : "No Pick'em week is open."} />;
 }

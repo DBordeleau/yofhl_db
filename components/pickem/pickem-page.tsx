@@ -21,15 +21,13 @@ interface Props {
     base?: string;
     /** the season's Pick'em leaderboard; 'unavailable' when it could not be read */
     standings: { entries: PickemLeaderboardEntry[]; winners: PickemLeaderboardEntry[] } | 'unavailable' | null;
-    /** each franchise's owner, for the season being played */
-    owners?: Record<number, string>;
     /** what the slate says when there is no week to show */
     message?: ReactNode;
 }
 
 // Every Pick'em page: the navy stage (title and who's in, then the week control with its lock clock), then the week's slate
 // beside the Pick'em leaderboard, with the rules and the prize under it.
-export default function PickemPage({ seasonYear, seasons, week, weeks, base, standings, owners, message }: Props) {
+export default function PickemPage({ seasonYear, seasons, week, weeks, base, standings, message }: Props) {
     const clock = week && <LockClock key={week.lock} lock={week.lock} locked={week.phase === 'locked'} />;
     return <main className={`mx-auto max-w-page px-4 md:px-8 3xl:max-w-page-3xl 4xl:max-w-page-4xl ${styles.page}`}>
         <section className={styles.stage} aria-labelledby="pickem-title">
@@ -48,8 +46,8 @@ export default function PickemPage({ seasonYear, seasons, week, weeks, base, sta
             <section aria-label={week?.name ?? 'Week'}>
                 {week
                     ? week.phase === 'locked' && week.breakdown
-                        ? <PickemBreakdown key={week.week} seasonYear={week.seasonYear} week={week.week} breakdown={week.breakdown} owners={owners} />
-                        : <PickemWeek key={week.week} seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} locked={week.phase === 'locked'} owners={owners}
+                        ? <PickemBreakdown key={week.week} seasonYear={week.seasonYear} week={week.week} breakdown={week.breakdown} />
+                        : <PickemWeek key={week.week} seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} locked={week.phase === 'locked'}
                             leagueStandings={week.leagueStandings} />
                     : <p className={styles.message}>{message}</p>}
             </section>
