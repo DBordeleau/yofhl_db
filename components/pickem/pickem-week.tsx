@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
 import { readYourPickem, savePickemPick } from '@/app/pickem/actions';
 import { useTeamBranding } from '@/components/team-branding/branding-provider';
@@ -11,7 +10,7 @@ import { clubColours, clubTone } from './club-tone';
 import { announceEntry } from './entry-event';
 import { Check } from './icons';
 import { aimSeam, holdSeam, trackSeam, untrackSeam } from './seam';
-import PickemEntryBar from './pickem-entry-bar';
+import PickemEntryBar, { type EntryInvite } from './pickem-entry-bar';
 import { burst } from './sparks';
 import SideBody from './side-body';
 import styles from './pickem.module.css';
@@ -47,6 +46,8 @@ function seamTarget(pick: Side | undefined, hovered: Side | undefined) {
 // strip jolts, a red lamp comes on along the side's top edge, the YOUR PICK slab stamps in and light sweeps across.
 // Each side carries its club's W-L-T record and fantasy points from the league standings, and the stamp lands on that
 // as a third slab, toward the seam. Tapping the pick again clears it. Picking every matchup plays the All-in bumper once.
+// Someone who can't pick yet gets the entry bar empty with its way in (Sign in, or Claim your team); their sides stay
+// tappable, and a tap stamps that way in rather than saving anything.
 // The public page renders the matchups; the owner's own Pick'em picks load only when the session hint says an
 // owner may be signed in (ADR 0003), so an anonymous visit makes no extra request.
 export default function PickemWeek({ seasonYear, week, matchups, locked = false, leagueStandings }: Props) {
@@ -60,6 +61,8 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
     const [error, setError] = useState<string | null>(null);
     const [bumper, setBumper] = useState(0);
     const [clearing, setClearing] = useState(false);
+    // how many sides someone who can't pick yet has tapped, each one stamping the entry bar's way in
+    const [nudges, setNudges] = useState(0);
     // where the latest call was tapped, for its flood; `id` restarts the flood on every call
     const [flood, setFlood] = useState<{ key: string; id: number; x: string; y: string } | null>(null);
     const slate = useRef<HTMLDivElement>(null);
@@ -140,6 +143,7 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
 
     async function choose(matchup: PickemMatchup, franchise: PickemFranchise, event: MouseEvent<HTMLButtonElement>) {
         const key = keyOf(pairOfMatchup(matchup));
+        if (yours?.status === 'signed-out' || yours?.status === 'no-team') { setNudges(count => count + 1); return; }
         if (yours?.status !== 'entry' || saving.has(key) || clearing) return;
         // Choosing the current pick again clears it.
         const before = picks.get(key);
@@ -196,13 +200,14 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
     const standings = leagueStandings && Object.values(leagueStandings).some(standing => standing.record !== '0-0-0' || standing.points !== 0)
         ? leagueStandings : null;
     const canPick = !locked && yours?.status === 'entry';
+    const invite: EntryInvite | null = locked ? null
+        : yours?.status === 'signed-out' ? { href: '/owner', label: 'Sign in', prompt: 'Sign in to call it', nudges }
+        : yours?.status === 'no-team' ? { href: '/owner', label: 'Claim your team', prompt: 'Claim your team to call it', nudges }
+        : null;
     return <div ref={slate} className={styles.slate} data-pickem-slate="">
         <div className={styles.slateHead}>
             {canPick && <PickemEntryBar picked={picks.size} total={matchups.length} clearing={clearing} onClear={() => void clearAll()} />}
-            {yours?.status === 'signed-out' && <p className={styles.cta}>Sign in to call this week&apos;s matchups.
-                <Link href="/owner" className={styles.ctaButton}>Sign in</Link></p>}
-            {yours?.status === 'no-team' && <p className={styles.cta}>Claim your team to play Pick&apos;em.
-                <Link href="/owner" className={styles.ctaButton}>Claim your team</Link></p>}
+            {invite && <PickemEntryBar picked={0} total={matchups.length} invite={invite} />}
             {/* the bumper's footing sits on a wrapper, since its own wipe would clip the shadow */}
             {bumper > 0 && <span key={bumper} className={styles.bumperFooting} aria-hidden="true">
                 <span className={styles.bumper} onAnimationEnd={event => {
@@ -228,10 +233,10 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
                         const chosen = current === franchise.id;
                         const standing = standings?.[franchise.id];
                         const stamp = canPick && chosen;
-                        // Always a button, disabled until the owner can pick: swapping element types when their picks
+                        // Always a button, disabled until we know who's looking: swapping element types when their picks
                         // load would remount the side and reload its logo.
                         const element = <button key={franchise.id} type="button" className={styles.side} style={style}
-                            disabled={!canPick} aria-pressed={canPick ? chosen : undefined}
+                            disabled={!canPick && !invite} aria-pressed={canPick ? chosen : undefined}
                             data-fresh={fresh === key && chosen ? '' : undefined} onClick={event => choose(matchup, franchise, event)}
                             onPointerEnter={canPick ? event => lean(matchup, side ? 'home' : 'away', event, true) : undefined}
                             onPointerLeave={canPick ? event => lean(matchup, side ? 'home' : 'away', event, false) : undefined}>

@@ -18,9 +18,10 @@ interface Props {
 // the slate on screen when a week is chosen; the next week's slate is a new element, so it never carries the mark
 const leaving = (on: boolean) => document.querySelectorAll('[data-pickem-slate]').forEach(slate => slate.toggleAttribute('data-leaving', on));
 
-// Every Pick'em week of the season on one line, with no scrolling: a stepper with the week's name, then a tick per
-// week (locked weeks dimmer) with a red slab under the one shown. Choosing a week slides the slab there at once and
-// folds the old slate away while the next week loads (pickem.module.css, "a week change").
+// Every Pick'em week of the season on one line, with no scrolling: a stepper with the week's name, then a numbered tick
+// per week on a row of its own (locked weeks dimmer) with a red slab under the one shown; phones keep the stepper only.
+// Choosing a week slides the slab there at once and folds the old slate away while the next week loads
+// (pickem.module.css, "a week change").
 export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', clock }: Props) {
     const [going, setGoing] = useState<number | null>(null);
     const shown = going ?? selected;
@@ -59,12 +60,11 @@ export default function WeekSwitcher({ weeks, selected, base = '/pickem/week', c
         {clock}
         <ol className={styles.track} style={{ '--count': weeks.length, '--at': at } as CSSProperties}>
             <li className={styles.indicator} aria-hidden="true" />
-            {weeks.map((option, i) => {
-                const landmark = i === 0 || i === weeks.length - 1 || option.week % 5 === 0;
+            {weeks.map(option => {
                 const locked = option.phase === 'locked';
                 return <li key={option.week}>
                     <Link href={`${base}/${option.week}`} scroll={false} onClick={go(option.week)}
-                        aria-current={option.week === shown ? 'page' : undefined} data-locked={locked ? '' : undefined} data-landmark={landmark ? '' : undefined}
+                        aria-current={option.week === shown ? 'page' : undefined} data-locked={locked ? '' : undefined}
                         aria-label={locked ? `${option.name}, locked` : option.name} title={locked ? `${option.name}, locked` : option.name}>
                         <span>{option.week}</span>
                     </Link>

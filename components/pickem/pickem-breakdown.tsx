@@ -18,9 +18,10 @@ import styles from './pickem.module.css';
 // A locked week's breakdown: each matchup as the same club strip. The strips open level, then each seam springs toward
 // the side more entries took (seam.ts), and the logos of the entries who took each side drop in underneath. The seam
 // carries the matchup's scoreboard: the two clubs' head-to-head fantasy points either side of what they are, Live while
-// the week is played, then Final (or Tie) once it is scored. Under each club's name its share of the Pick'em picks is
-// said in words. The winner gets a WON slab and the finished loser fades slightly, after the reveal. A signed-in
-// owner's own pick keeps the open week's red lamp
+// the week is played, then Final (or Tie) once it is scored. Under each club's name sits its share of the Pick'em
+// picks, then the entries who took it as one overlapping row of logo chips. Once scored, the winner's figure lights up
+// red with a W on its outer edge, the loser's dims, and the finished loser fades slightly. A signed-in owner's own
+// pick keeps the open week's red lamp
 // along its top edge and is stamped with how it went: a call that came in goes off like the goal light again (the lamp
 // flickers and sparks fly off the stamp), and a miss or a tie leaves the lamp dark. The owner's picks load only when
 // the session hint says an owner may be signed in (ADR 0003). Nothing here can be picked.
@@ -104,17 +105,25 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
                 const shares = { away: awayShare, home: awayShare === null ? null : 100 - awayShare };
                 const lean = awayShare === null ? .5 : .5 + (awayShare / 100 - .5) * LEAN * 2;
                 const state = result === 'tie' ? 'Tie' : result ? 'Final' : scores ? 'Live' : 'vs';
+                const outcomeOf = (side: 'away' | 'home') => result === side ? 'won' : result && result !== 'tie' ? 'lost' : undefined;
+                const figure = (side: 'away' | 'home', value: number) => <span className={styles.scoreFigure} data-outcome={outcomeOf(side)}>
+                    {side === 'away' && result === side && <span className={styles.scoreWin} aria-hidden="true">W</span>}
+                    <span><Points value={value} /></span>
+                    {side === 'home' && result === side && <span className={styles.scoreWin} aria-hidden="true">W</span>}
+                </span>;
+                const winner = result === 'away' ? matchup.away : result === 'home' ? matchup.home : null;
                 // the seam element keeps the vs class: every home-side rule finds the home side as .side + .vs + .side
                 const board = <span key="board" className={styles.vs} data-board="" data-settled={result ? '' : undefined}>
                     <span className={styles.scorebug}>
-                        {scores && <span className={styles.scoreFigure}><Points value={scores.away} /></span>}
+                        {scores && figure('away', scores.away)}
                         <span className={styles.scoreState}>{state}</span>
-                        {scores && <span className={styles.scoreFigure}><Points value={scores.home} /></span>}
+                        {scores && figure('home', scores.home)}
                     </span>
                     {scores && <span className="sr-only">: {matchup.away.name} {formatFpts(scores.away)}, {matchup.home.name} {formatFpts(scores.home)} fantasy points</span>}
+                    {winner && <span className="sr-only">. {winner.name} won</span>}
                 </span>;
                 return <li key={key} className={styles.strip} data-locked="" data-seam={key} data-lean={lean} data-scored={scores ? '' : undefined}
-                    style={{ '--i': i } as CSSProperties}>
+                    style={{ '--i': i, '--narrow': Math.min(lean, 1 - lean) } as CSSProperties}>
                     {([['away', matchup.away, away], ['home', matchup.home, home]] as const).flatMap(([side, franchise, entries]) => {
                         const outcome = mine?.picked === franchise.id ? mine.outcome ?? 'pending' : null;
                         const stamp = outcome && stamps[outcome];
@@ -125,14 +134,13 @@ export default function PickemBreakdown({ seasonYear, week, breakdown }: Props) 
                             <span className={styles.sideTop}>
                                 <SideBody franchise={franchise}>
                                     {share !== null && <span className={styles.predict}>
-                                        {/* a finished week is told in the past */}
-                                        <b>{share}%</b> {result ? 'predicted' : 'predict'} {franchise.name} {result ? 'would' : 'will'} win
-                                        <span className="sr-only"> ({entries.length} of {total} Pick&apos;em picks)</span>
+                                        <b>{share}%</b> picked
+                                        <span className="sr-only"> {franchise.name} ({entries.length} of {total} Pick&apos;em picks)</span>
                                     </span>}
                                 </SideBody>
                             </span>
-                            {result === side && <span className={styles.won}>Won</span>}
-                            {entries.length > 0 && <ul className={styles.pickers} aria-label={`Picked ${franchise.name}`}>
+                            {entries.length > 0 && <ul className={styles.pickers} aria-label={`Picked ${franchise.name}`}
+                                style={{ '--n': entries.length } as CSSProperties}>
                                 {entries.map(entry => <li key={entry.franchise.id} className={styles.picker} title={named(entry)}>
                                     <TeamBadge logo={entry.franchise.logo} abbreviation={entry.franchise.abbreviation} teamName={entry.franchise.name} size={26} />
                                     <span className="sr-only">{named(entry)}</span>

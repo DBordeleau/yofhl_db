@@ -6,6 +6,8 @@
     --footing: 0 1px 2px #0b142633, 0 6px 10px -6px #0b142659, 0 22px 36px -26px #0b1426a6;
     --footing-drop: drop-shadow(0 1px 1px #0b142633) drop-shadow(0 6px 8px #0b142640);
     --rim: inset 0 1px #ffffff3d, inset 0 -3px #050c1840; }
+/* Body overflow must not make a second scroll container, or the leaderboard rail can't stick beside the slate. */
+:global(body):has(.page) { overflow-x: clip; }
 
 /* ── the stage ─────────────────────────────────────────────────────────── */
 .stage { position: relative; margin-inline: calc(50% - 50vw); padding: 22px calc(50vw - 50%) 34px; overflow: hidden; background: radial-gradient(90% 140% at 10% 0%, #26365f, #101d32 65%); color: #fff; }
@@ -24,8 +26,9 @@
 .seasons a:hover { background: #ffffff26; color: #fff; }
 .seasons a[aria-current] { background: linear-gradient(180deg, #df1a3c, #b00d28); color: #fff; }
 
-/* the week control: stepper, the week's lock clock beside its name, then a tick for every week */
-.weeks { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 22px; margin-top: 20px; }
+/* the week control: stepper, the week's lock clock beside its name, then a tick for every week on a row of its own, so
+   the track keeps one shape and every number whatever the clock is showing */
+.weeks { display: grid; grid-template-columns: auto auto; justify-content: start; align-items: center; gap: 16px 22px; margin-top: 20px; }
 .stepper { display: flex; align-items: center; gap: 8px; }
 .step { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #ffffff38; border-radius: 4px; color: #b6dcf5; transition: background .15s, color .15s; }
 .step svg { width: 16px; height: 16px; transition: transform .3s cubic-bezier(.33, 1, .68, 1); }
@@ -55,7 +58,7 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 
 /* Every slab on the track is cut at one slant (a quarter of its height), so the red slab and the ticks it passes
    over lean together. Layers: tick plates, then the red slab, then the numbers on top of both. */
-.track { --track: 44px; position: relative; isolation: isolate; display: flex; height: var(--track); container-type: inline-size; }
+.track { --track: 44px; grid-column: 1 / -1; position: relative; isolation: isolate; display: flex; height: var(--track); container-type: inline-size; }
 .track li { flex: 1 1 0; min-width: 0; }
 .track a { position: relative; display: grid; place-items: center; height: 100%; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; color: #fff; }
 .track a span { position: relative; z-index: 2; transition: opacity .2s; }
@@ -72,12 +75,8 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
     background: linear-gradient(#ffffff47, #ffffff47) top / 100% 1px no-repeat, linear-gradient(180deg, #df1a3c, #b00d28);
     clip-path: polygon(calc(var(--h) / 4) 0, 100% 0, calc(100% - var(--h) / 4) 100%, 0 100%);
 }
-@container (max-width: 560px) {
-    .track a span { opacity: 0; }
-    .track a[aria-current] span, .track a[data-landmark] span { opacity: 1; }
-    /* the red slab is wider than a tick here, so the landmarks either side of it step aside */
-    .track li:has(+ li > [aria-current]) a span, .track li:has(> [aria-current]) + li a span { opacity: 0; }
-    .track a { font-size: 11px; }
+@container (max-width: 760px) {
+    .track a { font-size: 11px; font-stretch: 85%; }
     .track a[aria-current] { font-size: 14px; }
 }
 
@@ -140,10 +139,11 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 .allIn svg { width: 15px; height: 15px; }
 .ctaButton:focus-visible { outline: none; box-shadow: inset 0 0 0 3px #7fb2ff; }
 
-/* signed out, the prompt floats on the ice like the entry bar, and only Sign in is a slab: flush with the strips' right edge */
-.cta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 20px; width: 100%; min-height: 44px; font-size: 16px; font-weight: 800; font-style: italic; font-stretch: 108%; color: #12182e; }
-.ctaButton { display: inline-flex; align-items: center; height: 44px; padding: 0 30px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 15px; font-weight: 900; font-stretch: 112%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: filter .15s; }
+/* signed out (or with no team), the entry bar stands empty and its way in is a slab flush with the strips' right edge,
+   where Clear picks would be; tapping a side stamps it */
+.ctaButton { flex: none; display: inline-flex; align-items: center; height: 44px; padding: 0 30px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 15px; font-weight: 900; font-stretch: 112%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: filter .15s; }
 .ctaButton:hover { filter: brightness(1.12); }
+.ctaButton[data-stamped] { animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
 .alert { margin-bottom: 14px; padding: 12px 16px; border: 1px solid #c8102e40; border-radius: 6px; background: #c8102e12; font-size: 14px; font-weight: 750; color: #a30d26; }
 .message { padding: 40px 24px; border: 1px solid #dce5ee; border-radius: 6px; background: #fff; text-align: center; font-size: 15px; color: #3a4560; }
 
@@ -163,7 +163,10 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 @keyframes bumperOut { 0%, 78% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); } 100% { clip-path: polygon(100% 0, 100% 0, calc(100% - 30px) 100%, calc(100% - 30px) 100%); } }
 
 /* ── matchup strips: two club-colour slabs sharing one slant ──────────── */
-.strips { display: flex; flex-direction: column; gap: 12px; }
+.strips { display: flex; flex-direction: column; gap: 12px; container-type: inline-size; }
+/* An open week's strips all stand as tall as the tallest, which keeps room for its names at the narrowest a pick
+   leaves them, so the slate keeps one rhythm. */
+.strips:not(:has([data-locked])) { display: grid; grid-auto-rows: 1fr; }
 /* the strip, not its sides, carries the entrance: a side is redrawn as a button once the owner's picks load, and
    that must not replay it. Each strip opens out from the seam, staggered. */
 .strip { --cut: 28px; position: relative; display: flex; min-height: 116px; overflow: hidden; border-radius: 4px; box-shadow: var(--footing); animation: open .6s calc(var(--i) * 70ms) cubic-bezier(.2, .75, .15, 1) backwards; }
@@ -180,10 +183,12 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 .logo::before { content: ''; position: absolute; inset: -40%; border-radius: 50%; background: radial-gradient(closest-side, #ffffffb3, transparent); opacity: 0; transition: opacity .4s; }
 .logo > * { position: relative; }
 .who { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.name { font-size: clamp(14px, 3.2cqi, 40px); font-weight: 900; font-style: italic; font-stretch: 112%; line-height: .96; letter-spacing: -.015em; text-transform: uppercase; text-wrap: balance; }
+.name { font-size: calc(clamp(14px, 3.2cqi, 40px) * var(--name-scale, 1)); font-weight: 900; font-style: italic; font-stretch: 112%; line-height: .96; letter-spacing: -.015em; text-transform: uppercase; text-wrap: balance; }
 /* outlined like a broadcast lower third: a stroke in the club's own deepest shade, painted under the fill so the letters
    keep their weight, and a soft lift off the plate */
 .name { -webkit-text-stroke: max(2px, .1em) color-mix(in srgb, var(--club-deep) 40%, #050c18); paint-order: stroke fill; text-shadow: 0 .08em .22em #050c1873; }
+/* a name of three words or more narrows on the width axis rather than taking a third line */
+.name[data-long] { --name-scale: .93; font-stretch: 84%; }
 
 .vs { position: relative; z-index: 2; flex: none; width: 0; }
 .vs:not([data-board]) > span { position: absolute; top: 50%; left: 0; display: grid; place-items: center; height: 30px; padding: 0 14px; transform: translate(calc(-50% - var(--cut) / 2 + 2px), -50%); background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 14px; font-weight: 950; font-style: italic; font-stretch: 115%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); white-space: nowrap; }
@@ -276,24 +281,27 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .sideTop { display: flex; align-items: flex-start; gap: 18px; min-width: 0; }
 .sideTop .who { flex: 1; }
 .side + .vs + .side .sideTop { flex-direction: row-reverse; }
-/* The name is sized to its own box, so a long word (TORTEEHAWS) shrinks rather than overflows; a narrow side stacks
-   its name under the logo. */
+/* Both names in a strip share one size, worked out on the strip from its narrower side (--narrow, that side's share):
+   what that side's name box would be, so a long word (TORTEEHAWS) shrinks there rather than overflows, and the wider
+   side matches it instead of setting its name bigger. A narrow side stacks its name under the logo. */
+@property --locked-name { syntax: '<length>'; inherits: true; initial-value: 20px; }
 .strip[data-locked] .logo { width: 56px; height: 56px; }
-.strip[data-locked] .who { container-type: inline-size; }
-.strip[data-locked] .name { font-size: clamp(14px, 10.5cqi, 24px); }
+.strip[data-locked] { --locked-name: clamp(14px, calc(.105 * (var(--narrow, .5) * (100cqi + var(--cut) - 4px) - var(--cut) - var(--room) - 26px)), 24px); }
+.strip[data-locked] .name { font-size: var(--locked-name); }
 @container (max-width: 400px) {
     .sideTop { flex-direction: column; gap: 10px; }
     .side + .vs + .side .sideTop { flex-direction: column; align-items: flex-end; }
     .sideTop .who { align-self: stretch; }
 }
-.predict { font-size: clamp(13px, 5.6cqi, 15px); font-weight: 650; line-height: 1.3; color: #ffffffe6; text-wrap: pretty; }
-.predict b { font-size: 1.3em; font-weight: 900; font-style: italic; font-stretch: 80%; color: #fff; }
+.predict { display: flex; align-items: baseline; gap: .3em; font-size: 14px; font-weight: 750; line-height: 1; color: #ffffffe6; white-space: nowrap; }
+.side + .vs + .side .predict { justify-content: flex-end; }
+.predict b { font-size: 1.7em; font-weight: 900; font-style: italic; font-stretch: 80%; line-height: .9; color: #fff; }
 
 /* The scoreboard on the seam: the two clubs' head-to-head points either side of what they are (Live in red while
    the week is played; Final or Tie in white once it is scored), slabs butted on one slant. The sides keep their
    content clear of it on the seam side. */
 .strip[data-locked] { --room: 32px; }
-.strip[data-scored] { --room: 132px; }
+.strip[data-scored] { --room: 148px; }
 .strip[data-locked] .side { padding-right: calc(var(--cut) + var(--room)); }
 .strip[data-locked] .side + .vs + .side { padding-right: 26px; padding-left: calc(var(--cut) + var(--room)); }
 .vs[data-board] { z-index: 4; }
@@ -304,13 +312,25 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .scoreFigure small { font-size: .52em; color: #ffffffcc; }
 .scoreState { padding: 0 14px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 13px; font-weight: 950; font-style: italic; font-stretch: 115%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; }
 .vs[data-settled] .scoreState { background: #fff; color: #12182e; text-shadow: none; }
-/* who took the side: a slab per entry carrying its logo, the owner's name on hover */
-.pickers { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Once scored, the scoreboard says who won: the winner's figure lights red with a W on its outer edge, the loser's
+   dims. Both land when the old WON slab did, after the seam has sprung. */
+.scoreFigure { position: relative; isolation: isolate; gap: 7px; }
+.scoreFigure[data-outcome='won'] { font-size: 30px; text-shadow: 0 1px #5a0010; }
+.scoreFigure[data-outcome='won']::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, #df1a3c, #b00d28); animation: winLight .45s cubic-bezier(.2, .75, .15, 1) calc(var(--i) * 90ms + .9s) backwards; }
+.scoreFigure[data-outcome='won'] small { color: #ffe1e6; }
+.scoreFigure[data-outcome='lost'] { color: #ffffffa8; animation: loseDim .45s cubic-bezier(.2, .75, .15, 1) calc(var(--i) * 90ms + .9s) backwards; }
+.scoreFigure[data-outcome='lost'] small { color: #ffffff80; }
+.scoreWin { font-size: 12px; font-weight: 950; font-stretch: 115%; letter-spacing: .04em; animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1) calc(var(--i) * 90ms + .9s) backwards; }
+@keyframes winLight { from { opacity: 0; } }
+@keyframes loseDim { from { color: #fff; } }
+/* who took the side: one row of slabs carrying their logos, overlapping as far as the row needs to fit on one line
+   (--n is how many), the owner's name on hover. Each slab is opaque and edged so the one under it reads as a stack. */
+.pickers { display: flex; container-type: inline-size; }
 .side + .vs + .side .pickers { justify-content: flex-end; }
-.picker { display: grid; place-items: center; width: 36px; height: 32px; background: #050c1859; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); animation: pickerIn .4s calc(var(--i) * 70ms + 250ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+.picker { --w: 36px; position: relative; isolation: isolate; flex: none; display: grid; place-items: center; width: var(--w); height: 32px; filter: drop-shadow(-2px 0 0 #050c18b3); animation: pickerIn .4s calc(var(--i) * 70ms + 250ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+.picker::before { content: ''; position: absolute; inset: 0; z-index: -1; background: color-mix(in srgb, var(--club-deep) 45%, #050c18); box-shadow: inset 0 1px #ffffff2e; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.picker + .picker { margin-left: min(-6px, calc((100cqi - var(--n) * var(--w)) / (var(--n) - 1))); }
 @keyframes pickerIn { from { opacity: 0; transform: translateY(6px); } }
-.won { display: inline-flex; align-self: flex-start; align-items: center; height: 22px; padding: 0 11px; background: #fff; font-size: 11px; font-weight: 900; font-style: italic; font-stretch: 115%; text-transform: uppercase; color: #b00d28; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1) calc(var(--i) * 90ms + .9s) backwards; }
-.side + .vs + .side .won { align-self: flex-end; }
 .strip[data-locked] .stamp { transform: none; animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1) calc(var(--i) * 160ms + 1.1s) backwards; }
 /* the owner's own side keeps the open week's lamp: a call that came in flickers it back on as its sparks fly
    (pickem-breakdown.tsx, celebrateAt), a miss or a tie puts it out */
@@ -394,10 +414,6 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 @keyframes leave { to { opacity: .15; transform: scale(.985); filter: blur(3px); } }
 
 /* ── phones ───────────────────────────────────────────────────────────── */
-@media (max-width: 1279px) {
-    .weeks { grid-template-columns: auto auto; justify-content: start; }
-    .track { grid-column: 1 / -1; }
-}
 @media (max-width: 800px) {
     /* the week and its clock come first; who's in follows them, as a full-width row of logos under its count */
     .stage { display: flex; flex-direction: column; }
@@ -434,14 +450,14 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .progressText { flex: 1; font-size: 14px; }
     .count { font-size: 26px; }
     .clearButton { height: 40px; font-size: 12px; }
-    .cta { flex-wrap: nowrap; gap: 14px; font-size: 14px; line-height: 1.3; }
-    .ctaButton { flex: none; height: 40px; padding: 0 22px; font-size: 14px; }
+    .ctaButton { height: 40px; padding: 0 22px; font-size: 14px; }
     .strip { --cut: 16px; min-height: 148px; }
     .side { flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 14px calc(var(--cut) + 18px) 14px 14px; }
     .side + .vs + .side { flex-direction: column; align-items: flex-end; padding: 14px 14px 14px calc(var(--cut) + 18px); }
     .logo { width: 50px; height: 50px; }
-    .name { font-size: clamp(13px, 4.5cqi, 17px); font-stretch: 100%; }
-    .strip[data-locked] .name { font-size: clamp(13px, 11cqi, 16px); }
+    .name { font-size: calc(clamp(13px, 4.5cqi, 17px) * var(--name-scale, 1)); font-stretch: 100%; }
+    .strip[data-locked] { --locked-name: clamp(13px, calc(.11 * (var(--narrow, .5) * (100cqi + var(--cut) - 4px) - var(--cut) - var(--room) - 14px)), 16px); }
+    .name[data-long] { font-stretch: 86%; }
     .strip[data-locked] .logo { width: 50px; height: 50px; }
     .stamp { height: 22px; padding: 0 10px; font-size: 11px; }
     .vs:not([data-board]) > span { height: 24px; padding: 0 10px; font-size: 12px; }
@@ -454,7 +470,7 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .side + .vs + .side .tapePoints { justify-self: end; }
     .tapePick { order: 0; font-size: 12px; }
     .tapePick span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .picker { width: 28px; height: 26px; }
+    .picker { --w: 28px; height: 26px; }
     .picker [data-team-mark] { width: 20px !important; height: 20px !important; }
     .strip:not([data-locked]) { --narrowest: .38; }
     .board { --pad: 16px; --mark: 36px; }
@@ -489,6 +505,8 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .scorebug { top: auto; bottom: 10px; height: 32px; transform: translateX(calc(-50% - var(--cut) + 2px)); }
     .scorebug > * { padding: 0 11px; clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
     .scoreFigure { font-size: 21px; }
+    .scoreFigure[data-outcome='won'] { font-size: 23px; gap: 5px; }
+    .scoreWin { font-size: 10px; }
     .scoreState { padding: 0 10px; font-size: 11px; }
 }
 
@@ -502,9 +520,10 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .strip { min-height: 140px; --cut: 34px; }
     .logo { width: 92px; height: 92px; }
     .strip[data-locked] .logo { width: 70px; height: 70px; }
-    .strip[data-scored] { --room: 150px; }
+    .strip[data-scored] { --room: 168px; }
     .scorebug { height: 48px; }
     .scoreFigure { font-size: 34px; }
+    .scoreFigure[data-outcome='won'] { font-size: 37px; }
     .scoreState { font-size: 15px; }
     .board { --pad: 24px; --mark: 50px; }
     .board h2 { font-size: 26px; }
@@ -533,9 +552,9 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .bumper, .figureOut, .flood { display: none; }
     .track a::before, .track a span, .side, .logo, .indicator, .whosItem [data-team-mark], .step svg { transition: none; }
     .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: none; }
-    .won, .strip[data-locked] .stamp, .strip[data-locked] .side[data-mine]::before { animation: none; }
+    .scoreFigure, .scoreFigure::before, .scoreWin, .strip[data-locked] .stamp, .strip[data-locked] .side[data-mine]::before { animation: none; }
     .prizeTag::after { display: none; }
     .pip::before, .pip::after, .clearButton { transition: none; }
-    .pip[data-lit], .pip[data-lit]::after, .countIn, .allIn { animation: none; }
+    .pip[data-lit], .pip[data-lit]::after, .countIn, .allIn, .ctaButton[data-stamped] { animation: none; }
     .countOut { display: none; }
 }
