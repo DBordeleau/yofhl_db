@@ -12,16 +12,22 @@ interface Props {
     tapeEnd?: ReactNode;
     /** anything else the side adds under its name (a pick stamp where there is no standing to butt it onto) */
     children?: ReactNode;
+    /** keep room for the name at the narrowest the side gets (an open week, where picks move the seam) */
+    holdRoom?: boolean;
 }
 
 /** A strip side's club: its logo, its name and, when known, its W-L-T record and fantasy points */
-export default function SideBody({ franchise, standing, tapeEnd, children }: Props) {
+export default function SideBody({ franchise, standing, tapeEnd, children, holdRoom = false }: Props) {
+    const name = <span className={styles.name}>{franchise.name}</span>;
     return <>
         <span className={styles.logo}>
             <TeamBadge logo={franchise.logo} abbreviation={franchise.abbreviation} teamName={franchise.name} size={74} sizeClass={styles.logoMark} />
         </span>
         <span className={styles.who}>
-            <span className={styles.name}>{franchise.name}</span>
+            {holdRoom ? <span className={styles.nameRoom}>
+                {name}
+                <span className={`${styles.name} ${styles.nameGhost}`} aria-hidden="true">{franchise.name}</span>
+            </span> : name}
             {standing && <span className={styles.tape}>
                 <span className={styles.tapeRecord}><span className="sr-only">Record </span>{standing.record.replaceAll('-', '–')}</span>
                 {tapeEnd}

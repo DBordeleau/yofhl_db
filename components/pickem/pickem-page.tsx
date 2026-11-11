@@ -4,7 +4,7 @@ import type { PickemLeaderboardEntry, PickemWeek as Week, PickemWeekOption } fro
 import LockClock from './lock-clock';
 import PickemBreakdown from './pickem-breakdown';
 import PickemLeaderboard from './pickem-leaderboard';
-import PickemSeasonSummary from './pickem-season-summary';
+import PickemSeasonSummary, { PickemPrize } from './pickem-season-summary';
 import PickemWeek from './pickem-week';
 import PickemWhosIn from './pickem-whos-in';
 import SeasonSwitcher from './season-switcher';
@@ -26,7 +26,7 @@ interface Props {
 }
 
 // Every Pick'em page: the navy stage (title and who's in, then the week control with its lock clock), then the week's slate
-// beside the Pick'em leaderboard, with the rules and the prize under it.
+// beside the Pick'em leaderboard, with the prize above it and the rules under it.
 export default function PickemPage({ seasonYear, seasons, week, weeks, base, standings, message }: Props) {
     const clock = week && <LockClock key={week.lock} lock={week.lock} locked={week.phase === 'locked'} />;
     return <main className={`mx-auto max-w-page px-4 md:px-8 3xl:max-w-page-3xl 4xl:max-w-page-4xl ${styles.page}`}>
@@ -52,9 +52,10 @@ export default function PickemPage({ seasonYear, seasons, week, weeks, base, sta
                     : <p className={styles.message}>{message}</p>}
             </section>
             <aside className={styles.rail}>
+                {seasonYear && <PickemPrize seasonYear={seasonYear} />}
                 {standings && <PickemLeaderboard entries={standings === 'unavailable' ? [] : standings.entries}
                     winners={standings === 'unavailable' ? [] : standings.winners} unavailable={standings === 'unavailable'} />}
-                {seasonYear && <PickemSeasonSummary seasonYear={seasonYear} />}
+                {seasonYear && <PickemSeasonSummary />}
             </aside>
         </div>
     </main>;

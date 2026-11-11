@@ -1,6 +1,11 @@
 /* Pick'em: a navy broadcast stage over the week's slate, with the Pick'em leaderboard beside it. */
 
-.page { padding-bottom: 72px; }
+.page { padding-bottom: 72px;
+    /* Every navy or club-colour surface on the page sits the same way (DESIGN.md, "The Lit Set Rule"): a soft footing
+       under it, a bright rim along its top edge and a darker foot along its bottom. */
+    --footing: 0 1px 2px #0b142633, 0 6px 10px -6px #0b142659, 0 22px 36px -26px #0b1426a6;
+    --footing-drop: drop-shadow(0 1px 1px #0b142633) drop-shadow(0 6px 8px #0b142640);
+    --rim: inset 0 1px #ffffff3d, inset 0 -3px #050c1840; }
 
 /* ── the stage ─────────────────────────────────────────────────────────── */
 .stage { position: relative; margin-inline: calc(50% - 50vw); padding: 22px calc(50vw - 50%) 34px; overflow: hidden; background: radial-gradient(90% 140% at 10% 0%, #26365f, #101d32 65%); color: #fff; }
@@ -92,23 +97,30 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 /* ── the slate and the rail ───────────────────────────────────────────── */
 .layout { display: grid; gap: 44px; margin-top: 36px; }
 @media (min-width: 1280px) {
-    .layout { grid-template-columns: minmax(0, 1fr) 420px; align-items: start; }
+    .layout { grid-template-columns: minmax(0, 1fr) 460px; align-items: start; }
     .rail { position: sticky; top: 24px; }
 }
 
 .slate { position: relative; }
-.slateHead { position: relative; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; min-height: 52px; margin-bottom: 16px; }
-.progress { display: flex; align-items: center; gap: 16px; }
-.pips { display: flex; gap: 4px; }
-.pip { width: 34px; height: 14px; background: #dce5ee; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); transition: background .3s; }
-.pip[data-on] { background: linear-gradient(180deg, #df1a3c, #b00d28); }
-.progressText { font-size: 15px; font-weight: 700; color: #3a4560; }
-.progressText b { font-weight: 900; color: #12182e; font-variant-numeric: tabular-nums; }
+.slateHead { position: relative; filter: var(--footing-drop); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; min-height: 52px; margin-bottom: 16px; }
+/* the entry bar: on the signed-out bar's navy slab, the count, a meter with a segment per matchup, and Clear picks */
+.entryBar { flex-wrap: nowrap; gap: 22px; min-height: 64px; padding-left: 30px; }
+.pips { display: flex; flex: 1; min-width: 0; gap: 5px; }
+.pip { flex: 1; height: 12px; background: linear-gradient(180deg, #050c1899, #ffffff0f); box-shadow: inset 0 -1px #ffffff14; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); transition: background .3s, box-shadow .3s; }
+.pip[data-on] { background: linear-gradient(180deg, #ff4a64, #df1a3c 35%, #b00d28); box-shadow: inset 0 1px #ffffff59, inset 0 -2px #5a001066; }
+.progressText { flex: none; font-size: 16px; font-weight: 750; font-style: italic; color: #c3cfe4; white-space: nowrap; }
+.progressText b { font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
+.clearButton { flex: none; display: inline-flex; align-items: center; height: 44px; padding: 0 24px; background: #ffffff14; font-size: 14px; font-weight: 900; font-style: normal; font-stretch: 112%; text-transform: uppercase; color: #c3cfe4; white-space: nowrap; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: background .15s, color .15s; }
+.clearButton:enabled:hover { background: #ffffff26; color: #fff; }
+.clearButton:focus-visible { outline: none; box-shadow: inset 0 0 0 3px #7fb2ff; }
+.clearButton:disabled { cursor: progress; }
+/* with nothing picked it keeps its room, so the meter doesn't jump when the first call goes in */
+.clearButton[data-idle] { visibility: hidden; }
 .allIn { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 20px 0 18px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 15px; font-weight: 900; font-style: italic; font-stretch: 118%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%); }
 .allIn svg { width: 15px; height: 15px; }
 .ctaButton:focus-visible { outline: none; box-shadow: inset 0 0 0 3px #7fb2ff; }
 
-.cta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; width: 100%; padding: 10px 10px 10px 28px; background: linear-gradient(100deg, #172a4c, #101d32); font-size: 16px; font-weight: 800; font-style: italic; font-stretch: 108%; color: #fff; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+.cta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; width: 100%; padding: 10px 10px 10px 28px; background: radial-gradient(70% 160% at 0% 0%, #ffffff14, transparent 60%), linear-gradient(180deg, #ffffff0d, transparent 45%, #050c1847), linear-gradient(100deg, #172a4c, #101d32); box-shadow: var(--rim); font-size: 16px; font-weight: 800; font-style: italic; font-stretch: 108%; color: #fff; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
 .ctaButton { display: inline-flex; align-items: center; height: 44px; padding: 0 30px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 15px; font-weight: 900; font-stretch: 112%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: filter .15s; }
 .ctaButton:hover { filter: brightness(1.12); }
 .alert { margin-bottom: 14px; padding: 12px 16px; border: 1px solid #c8102e40; border-radius: 6px; background: #c8102e12; font-size: 14px; font-weight: 750; color: #a30d26; }
@@ -132,17 +144,24 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 .strips { display: flex; flex-direction: column; gap: 12px; }
 /* the strip, not its sides, carries the entrance: a side is redrawn as a button once the owner's picks load, and
    that must not replay it. Each strip opens out from the seam, staggered. */
-.strip { --cut: 28px; position: relative; display: flex; min-height: 116px; animation: open .6s calc(var(--i) * 70ms) cubic-bezier(.2, .75, .15, 1) backwards; }
-@keyframes open { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0); } }
-.side { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 18px; padding: 16px calc(var(--cut) + 40px) 16px 26px; overflow: hidden; background: linear-gradient(100deg, var(--club), var(--club-deep)); color: #fff; text-align: left; clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%); container-type: inline-size; transition: flex-grow .55s cubic-bezier(.2, .75, .15, 1), filter .25s; }
-.side + .vs + .side { margin-left: calc(4px - var(--cut)); flex-direction: row-reverse; padding: 16px 26px 16px calc(var(--cut) + 40px); background: linear-gradient(260deg, var(--club), var(--club-deep)); text-align: right; clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%); }
+.strip { --cut: 28px; position: relative; display: flex; min-height: 116px; overflow: hidden; border-radius: 4px; box-shadow: var(--footing); animation: open .6s calc(var(--i) * 70ms) cubic-bezier(.2, .75, .15, 1) backwards; }
+/* the clip leaves room below for the strip's shadow, so the strip lands with its footing instead of gaining it after */
+@keyframes open { from { clip-path: inset(0 50% -48px 50%); } to { clip-path: inset(-8px -24px -48px -24px); } }
+/* Each side is a lit plate (DESIGN.md, "The Lit Set Rule"): a key light from its outer top corner and light falling from
+   above onto the club's colour, a bright rim along the top edge and a darker foot along the bottom, so it has weight. */
+.side { --key: 0% 0%; --lit: radial-gradient(130% 150% at var(--key), #ffffff1f, transparent 58%), linear-gradient(180deg, #ffffff14, transparent 42%, #050c1814 70%, #050c1847);
+    position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 18px; padding: 16px calc(var(--cut) + 40px) 16px 26px; overflow: hidden; background: var(--lit), linear-gradient(100deg, var(--club), var(--club-deep)); box-shadow: var(--rim); color: #fff; text-align: left; clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%); container-type: inline-size; transition: flex-grow .55s cubic-bezier(.2, .75, .15, 1), filter .25s; }
+.side + .vs + .side { --key: 100% 0%; margin-left: calc(4px - var(--cut)); flex-direction: row-reverse; padding: 16px 26px 16px calc(var(--cut) + 40px); background: var(--lit), linear-gradient(260deg, var(--club), var(--club-deep)); text-align: right; clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%); }
 .side::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, #ffffff3d 48%, transparent 66%); transform: translateX(-110%); pointer-events: none; }
 
 .logo { position: relative; flex: none; display: grid; place-items: center; width: 74px; height: 74px; transition: transform .5s cubic-bezier(.3, 1.4, .5, 1); filter: drop-shadow(0 10px 16px #050c1880); }
 .logo::before { content: ''; position: absolute; inset: -40%; border-radius: 50%; background: radial-gradient(closest-side, #ffffffb3, transparent); opacity: 0; transition: opacity .4s; }
 .logo > * { position: relative; }
 .who { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.name { font-size: clamp(14px, 6.4cqi, 40px); font-weight: 900; font-style: italic; font-stretch: 112%; line-height: .96; letter-spacing: -.015em; text-transform: uppercase; text-wrap: balance; }
+.name { font-size: clamp(14px, 3.2cqi, 40px); font-weight: 900; font-style: italic; font-stretch: 112%; line-height: .96; letter-spacing: -.015em; text-transform: uppercase; text-wrap: balance; }
+/* outlined like a broadcast lower third: a stroke in the club's own deepest shade, painted under the fill so the letters
+   keep their weight, and a soft lift off the plate */
+.name { -webkit-text-stroke: max(2px, .1em) color-mix(in srgb, var(--club-deep) 40%, #050c18); paint-order: stroke fill; text-shadow: 0 .08em .22em #050c1873; }
 
 .vs { position: relative; z-index: 2; flex: none; width: 0; }
 .vs:not([data-board]) > span { position: absolute; top: 50%; left: 0; display: grid; place-items: center; height: 30px; padding: 0 14px; transform: translate(calc(-50% - var(--cut) / 2 + 2px), -50%); background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 14px; font-weight: 950; font-style: italic; font-stretch: 115%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); white-space: nowrap; }
@@ -160,7 +179,6 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .strip[data-seam] > .side { flex-grow: var(--split, .5); transition: filter .25s; }
 .strip[data-seam] > .side + .vs + .side { flex-grow: calc(1 - var(--split, .5)); }
 .strip[data-seam] .logo, .strip[data-seam] .who { position: relative; z-index: 1; }
-.side[aria-pressed='true'] { box-shadow: inset 0 -4px #fff; }
 .side[aria-pressed='true'] .logo { transform: scale(1.14); }
 .side[aria-pressed='true'] .logo::before { opacity: .45; }
 .side[data-fresh]::after { animation: sweep .9s .05s cubic-bezier(.2, .75, .15, 1); }
@@ -189,27 +207,41 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .side[data-fresh] .stamp { animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
 @keyframes stamp { from { transform: scale(2) rotate(-12deg); opacity: 0; } }
 /* The tale of the tape: the club's W-L-T on a navy slab with its fantasy points butted against it on the same slant;
-   picking the side lands a red slab on the end facing the seam. The logo and the slabs scale with the side, so a side
-   growing or giving way on a pick resizes smoothly instead of jumping between layouts. */
-/* an open week's club fills its side: the logo, name and tape all scale with the side's width */
-.strip:not([data-locked]) .logo { width: clamp(52px, 17cqi, 112px); height: clamp(52px, 17cqi, 112px); }
-.strip:not([data-locked]) .who { gap: clamp(5px, 1.3cqi, 9px); }
-.tape { --tape-h: clamp(23px, 6.4cqi, 38px); --tape-pad: clamp(8px, 2.8cqi, 17px); display: flex; margin-top: 2px; animation: tapeIn .55s calc(var(--i) * 70ms + .3s) cubic-bezier(.2, .75, .15, 1) backwards; }
+   picking the side lands a red slab on the end facing the seam. */
+/* An open week's club is sized by the strip, not by its side, so nothing in it resizes while the seam springs. Each
+   name is laid out for its side's held share (--hold-away, --hold-home from seam.ts), not the seam's live position,
+   so it rewraps once per pick rather than on every bounce; while the seam overshoots, the name runs into the side's
+   padding toward the seam instead of wrapping. The .04 leaves room for a hover leaning the seam toward the other club. */
+.strip:not([data-locked]) { --logo: clamp(52px, 8.5cqi, 112px); --chrome: calc(var(--cut) + 84px + var(--logo)); container-type: inline-size; }
+.strip:not([data-locked]) > .side { container-type: normal; }
+.strip:not([data-locked]) .logo { width: var(--logo); height: var(--logo); }
+.strip:not([data-locked]) .who { flex: none; width: max-content; max-width: calc((var(--hold-away, .5) - .04) * (100cqi + var(--cut) - 4px) - var(--chrome)); gap: clamp(5px, .65cqi, 9px); }
+.strip:not([data-locked]) > .side + .vs + .side .who { max-width: calc((var(--hold-home, .5) - .04) * (100cqi + var(--cut) - 4px) - var(--chrome)); }
+/* A pick narrows the other side and can wrap its name onto another line. So each name is also laid out, unseen, at
+   the narrowest share its side can take (the other club picked, less the hover's .04), in the same cell: the strip is
+   always as tall as its tallest layout, and calling or clearing a pick never moves the strips below it.
+   --narrowest is 1 - heldShare() - .04 (pickem-week.tsx). */
+.strip:not([data-locked]) { --narrowest: .34; }
+.nameRoom { display: grid; }
+.nameRoom > * { grid-area: 1 / 1; }
+.nameGhost { visibility: hidden; max-width: calc(var(--narrowest) * (100cqi + var(--cut) - 4px) - var(--chrome)); }
+.tape { --tape-h: clamp(23px, 3.2cqi, 38px); --tape-pad: clamp(8px, 1.4cqi, 17px); display: flex; margin-top: 2px; animation: tapeIn .55s calc(var(--i) * 70ms + .3s) cubic-bezier(.2, .75, .15, 1) backwards; }
 .side + .vs + .side .tape { justify-content: flex-end; animation-name: tapeInHome; }
 @keyframes tapeIn { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -10px 0 0); } }
 @keyframes tapeInHome { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 -10px); } }
 .tape > * { display: flex; align-items: center; height: var(--tape-h); padding: 0 var(--tape-pad); white-space: nowrap; font-variant-numeric: tabular-nums; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 .tape > * + * { margin-left: -2px; }
-.tapeRecord { background: #050c18b8; font-size: clamp(15px, 4.6cqi, 27px); font-weight: 900; font-style: italic; font-stretch: 80%; letter-spacing: .01em; }
-.tapePoints { gap: .35em; background: #ffffff26; font-size: clamp(12px, 3.3cqi, 19px); font-weight: 800; font-stretch: 88%; }
+.tapeRecord { background: #050c18b8; font-size: clamp(15px, 2.3cqi, 27px); font-weight: 900; font-style: italic; font-stretch: 80%; letter-spacing: .01em; }
+.tapePoints { gap: .35em; background: #ffffff26; font-size: clamp(12px, 1.65cqi, 19px); font-weight: 800; font-stretch: 88%; }
 .tapePoints small { font-size: .72em; font-weight: 800; font-stretch: 100%; letter-spacing: .1em; text-transform: uppercase; color: #ffffffc7; }
 .tapePoints abbr { text-decoration: none; }
-.tapePick { order: 1; gap: 6px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: clamp(11px, 2.9cqi, 16px); font-weight: 900; font-style: italic; font-stretch: 115%; text-transform: uppercase; text-shadow: 0 1px #5a0010; }
+.tapePick { order: 1; gap: 6px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: clamp(11px, 1.45cqi, 16px); font-weight: 900; font-style: italic; font-stretch: 115%; text-transform: uppercase; text-shadow: 0 1px #5a0010; }
 .side + .vs + .side .tapePick { order: -1; margin-left: 0; margin-right: -2px; }
 .tapePick svg { flex: none; width: 1em; height: 1em; }
 .side[data-fresh] .tapePick { animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
-/* a side too narrow for the words keeps the check; the pressed button already says it is picked */
-@container (max-width: 500px) {
+/* a side too narrow for the words keeps the check; the pressed button already says it is picked (a picked side is
+   about 62% of the strip, so this is a picked side under 500px) */
+@container (max-width: 800px) {
     .tapePick span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 
@@ -268,7 +300,9 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 
 /* ── the rail: Pick'em leaderboard, rules and prize ───────────────────── */
 /* the standings board: navy once there is something to rank, a quiet ice panel until then */
-.board { --pad: 20px; overflow: hidden; border-radius: 10px; background: radial-gradient(120% 70% at 0% 0%, #22355c, transparent 70%), linear-gradient(180deg, #152747, #0b1628); color: #fff; box-shadow: 0 30px 60px -40px #050c1899; }
+.board { --pad: 20px; --mark: 38px; overflow: hidden; border-radius: 6px; background: radial-gradient(120% 70% at 0% 0%, #22355c, transparent 70%), linear-gradient(180deg, #ffffff0a, transparent 30%, transparent 80%, #050c1840), linear-gradient(180deg, #152747, #0b1628); color: #fff; box-shadow: var(--rim), 0 1px 2px #0b142633, 0 10px 16px -10px #0b142666, 0 34px 54px -36px #0b1426b3; }
+/* the head catches a little more light than the rows; the column heads' rule is the only line under it */
+.board:not([data-empty]) .boardHead { background: linear-gradient(180deg, #ffffff0d, transparent); }
 .boardHead { padding: 20px var(--pad) 16px; }
 .board h2 { font-size: 22px; line-height: 1; font-weight: 900; font-style: italic; font-stretch: 112%; letter-spacing: -.01em; text-transform: uppercase; }
 .champion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; font-size: 14px; font-weight: 750; }
@@ -279,15 +313,16 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .boardEmpty { padding: 0 var(--pad) 20px; font-size: 14px; line-height: 1.5; color: #56627a; }
 
 .table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 14px; }
-.colRank { width: calc(var(--pad) + 32px); }
-.colCorrect { width: 58px; }
-.colWrong { width: 50px; }
-.colPct { width: calc(var(--pad) + 48px); }
-.table th { padding: 0 0 8px 8px; border-bottom: 1px solid #ffffff1f; font-size: 10px; font-weight: 800; font-stretch: 75%; letter-spacing: .09em; line-height: 1; text-align: right; text-transform: uppercase; white-space: nowrap; color: #a9b8cf; }
+.colRank { width: calc(var(--pad) + 30px); }
+.colCorrect { width: 60px; }
+.colWrong { width: 56px; }
+.colPct { width: calc(var(--pad) + 40px); }
+.table th { padding: 0 0 10px 8px; border-bottom: 1px solid #ffffff1f; font-size: 10.5px; font-weight: 800; font-stretch: 85%; letter-spacing: .06em; line-height: 1; text-align: right; text-transform: uppercase; white-space: nowrap; color: #b3c1d8; }
 .headMark { display: none; }
 .headMark svg { width: 12px; height: 12px; }
 .table th:first-child { padding-left: var(--pad); text-align: left; }
-.table th:nth-child(2) { text-align: left; }
+/* TEAM starts where the names do, past the logo slab */
+.table th:nth-child(2) { padding-left: calc(8px + var(--mark) + 10px); text-align: left; }
 .table th:last-child, .table td:last-child { padding-right: var(--pad); }
 .table td { height: 56px; padding: 0 0 0 8px; border-top: 1px solid #ffffff0f; text-align: right; font-variant-numeric: tabular-nums; vertical-align: middle; }
 .table tbody tr:first-child td { border-top: 0; }
@@ -297,24 +332,38 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .table tr[data-first] { background: linear-gradient(90deg, #f0c75e38, #f0c75e12 40%, transparent 75%); }
 .table tr[data-first] + tr:not([data-first]) td { border-top-color: #f0c75e33; }
 
-.table .rank { padding-left: var(--pad); text-align: left; white-space: nowrap; font-size: 26px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: 1; letter-spacing: -.02em; color: #c3cfe4; }
-.rank abbr { margin-right: 1px; font-size: .5em; font-weight: 850; letter-spacing: 0; vertical-align: .55em; color: #8d9dba; }
+.table .rank { padding-left: var(--pad); text-align: left; white-space: nowrap; font-size: 24px; font-weight: 900; font-style: italic; font-stretch: 80%; line-height: 1; letter-spacing: -.02em; color: #c3cfe4; }
+/* a shared place reads "T2" on the line, like a golf board */
+.rank abbr { margin-right: 1px; font-size: .68em; font-weight: 850; letter-spacing: 0; color: #8d9dba; }
 .table tr[data-first] .rank, .table tr[data-first] .rank abbr { color: #f0c75e; }
 
 .entry { display: flex; align-items: center; gap: 10px; min-width: 0; text-align: left; }
-.entryMark { flex: none; display: grid; place-items: center; width: 40px; height: 34px; background: linear-gradient(100deg, var(--club), var(--club-deep)); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.entryMark { flex: none; display: grid; place-items: center; width: var(--mark); height: 34px; background: linear-gradient(100deg, var(--club), var(--club-deep)); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 .entryName { min-width: 0; line-height: 1.2; }
-.entryName b { display: block; overflow: hidden; font-size: 15px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
-.entryName small { display: block; margin-top: 1px; overflow: hidden; font-size: 11.5px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; color: #a9b8cf; }
+/* names are never cut short: one that runs out of column takes a second, balanced line */
+.entryName b { display: block; font-size: 15px; font-weight: 750; line-height: 1.15; letter-spacing: -.005em; text-wrap: balance; overflow-wrap: anywhere; }
 
-.table .correct { font-size: 26px; font-weight: 900; font-style: italic; font-stretch: 78%; line-height: 1; letter-spacing: -.02em; }
-.table .wrong { font-size: 17px; font-weight: 800; font-stretch: 85%; color: #a9b8cf; }
-.table .pct { font-size: 15px; font-weight: 800; color: #dbe5f2; }
+/* the counts read upright and tabular; correct leads, wrong and pct follow */
+.table .correct, .table .wrong, .table .pct { font-style: normal; font-stretch: 90%; line-height: 1; }
+.table .correct { font-size: 20px; font-weight: 850; color: #fff; }
+.table .wrong { font-size: 16px; font-weight: 700; color: #a9b8cf; }
+.table .pct { font-size: 16px; font-weight: 800; color: #dbe5f2; }
 /* the % hangs past the column edge, so the digits end under PCT */
 .pct small { display: inline-block; width: 0; margin-left: 1px; font-size: .72em; font-weight: 750; text-align: left; color: #a9b8cf; }
 .rules { margin-top: 18px; padding: 0 4px; font-size: 14px; line-height: 1.55; text-wrap: pretty; color: #3a4560; }
-.prize { display: flex; align-items: flex-start; gap: 12px; margin-top: 16px; padding: 0 4px; font-size: 14px; font-weight: 650; line-height: 1.45; color: #12182e; }
-.prize .goldSlab { flex: none; margin-top: -3px; }
+/* The first place prize, set like a broadcast tag: a gold 1st slab (the prize is an honour: "The Gold Is Earned Rule")
+   cut into a navy plate exactly as wide as the board below it, then the prize in the page title's voice with its season
+   outlined after it. The plate stands on the same footing and radius as the board. */
+.prize { position: relative; display: flex; align-items: stretch; min-height: 64px; margin-bottom: 12px; overflow: hidden; border-radius: 6px; container-type: inline-size; background: radial-gradient(50% 160% at 0% 50%, #f0c75e33, transparent 70%), linear-gradient(180deg, #ffffff0d, transparent 45%, #050c1847), linear-gradient(100deg, #172a4c, #0e1a30); box-shadow: var(--rim), var(--footing); color: #fff; }
+.prizeTag { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 30px 0 18px; overflow: hidden; background: linear-gradient(180deg, #f7d774, #d9a92a 55%, #b8860b); box-shadow: inset 0 1px #fff8d680, inset 0 -3px #8a641059; color: #1c1404; clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%); }
+.prizeTag b { font-size: 30px; font-weight: 950; font-style: italic; font-stretch: 84%; line-height: .85; text-transform: uppercase; }
+.prizeTag span { margin-top: 4px; font-size: 9.5px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; color: #4a3504; }
+/* one glint across the gold as the rail arrives, and never again */
+.prizeTag::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, #fffbe8b3 50%, transparent 70%); transform: translateX(-110%); animation: glint 1.2s .6s cubic-bezier(.33, 1, .68, 1) forwards; }
+@keyframes glint { to { transform: translateX(110%); } }
+.prizeWhat { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; align-content: center; column-gap: .32em; padding: 8px 18px 8px 12px; font-size: clamp(21px, 6.2cqi, 30px); font-weight: 950; font-style: italic; font-stretch: 116%; line-height: 1; letter-spacing: -.03em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 1px 2px #050c1866; }
+/* the season, outlined like the season in the page title */
+.prizeWhat span { font-size: .64em; font-stretch: 100%; color: transparent; -webkit-text-stroke: 1.25px #b6dcf5; text-shadow: none; }
 
 /* ── a week change: the old slate folds away while the next one loads ── */
 .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: leave .32s cubic-bezier(.33, 1, .68, 1) forwards; }
@@ -347,6 +396,8 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .whosItem { height: 30px; clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%); }
     .whosItem [data-team-mark] { width: 22px !important; height: 22px !important; }
     .weeks { gap: 8px; margin-top: 14px; }
+    /* a phone has no room for a tick per week; the stepper's arrows change weeks */
+    .track { display: none; }
     .step { width: 40px; height: 40px; }
     .weekName { font-size: 24px; }
     .clock { height: 46px; }
@@ -357,18 +408,22 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .unit b { font-size: 26px; }
     .track { --track: 34px; }
     .layout { margin-top: 22px; gap: 36px; }
-    .pip { width: 24px; }
+    /* the meter drops under the count and Clear picks */
+    .entryBar { flex-wrap: wrap; gap: 10px 14px; padding: 10px 10px 14px 22px; }
+    .entryBar .pips { order: 1; flex-basis: 100%; padding-right: 8px; }
+    .progressText { flex: 1; font-size: 15px; }
+    .clearButton { height: 40px; padding: 0 18px; font-size: 13px; }
     .strip { --cut: 16px; min-height: 148px; }
     .side { flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 14px calc(var(--cut) + 18px) 14px 14px; }
     .side + .vs + .side { flex-direction: column; align-items: flex-end; padding: 14px 14px 14px calc(var(--cut) + 18px); }
     .logo { width: 50px; height: 50px; }
-    .name { font-size: clamp(13px, 9cqi, 17px); font-stretch: 100%; }
+    .name { font-size: clamp(13px, 4.5cqi, 17px); font-stretch: 100%; }
     .strip[data-locked] .name { font-size: clamp(13px, 11cqi, 16px); }
     .strip[data-locked] .logo { width: 50px; height: 50px; }
     .stamp { height: 22px; padding: 0 10px; font-size: 11px; }
     .vs:not([data-board]) > span { height: 24px; padding: 0 10px; font-size: 12px; }
     /* the tape stacks: the record (and the pick slab facing the seam) over the points */
-    .strip:not([data-locked]) .logo { width: 50px; height: 50px; }
+    .strip:not([data-locked]) { --logo: 50px; --chrome: calc(var(--cut) + 32px); }
     .tape { --tape-h: 24px; --tape-pad: 10px; display: grid; grid-template-columns: auto auto; justify-content: start; row-gap: 3px; }
     .side + .vs + .side .tape { justify-content: end; }
     .tapeRecord { font-size: 18px; }
@@ -378,7 +433,8 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .tapePick span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .picker { width: 28px; height: 26px; }
     .picker [data-team-mark] { width: 20px !important; height: 20px !important; }
-    .board { --pad: 16px; }
+    .strip:not([data-locked]) { --narrowest: .38; }
+    .board { --pad: 16px; --mark: 36px; }
     .board h2 { font-size: 19px; }
     .headWord { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .headMark { display: inline-block; }
@@ -387,13 +443,12 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .colWrong { width: 34px; }
     .colPct { width: calc(var(--pad) + 44px); }
     .table td { height: 52px; }
-    .table .rank, .table .correct { font-size: 23px; }
-    .table .wrong { font-size: 15px; }
-    .table .pct { font-size: 14px; }
-    .entryMark { width: 36px; height: 30px; }
+    .table .rank { font-size: 22px; }
+    .table .correct { font-size: 18px; }
+    .table .wrong, .table .pct { font-size: 14px; }
+    .entryMark { height: 30px; }
     .entryMark [data-team-mark] { width: 22px !important; height: 22px !important; }
     .entryName b { font-size: 14px; }
-    .entryName small { font-size: 11px; }
     .bumperWords { padding: 0 16px; font-size: 24px; }
     .bumperWords span:last-child { font-size: 13px; }
 }
@@ -416,7 +471,11 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 
 /* ── big displays scale up, they don't spread out ─────────────────────── */
 @media (min-width: 1800px) {
-    .layout { grid-template-columns: minmax(0, 1fr) 500px; }
+    .prize { min-height: 72px; }
+    .prizeTag { padding: 0 34px 0 22px; }
+    .prizeTag b { font-size: 36px; }
+    .prizeTag span { font-size: 10.5px; }
+    .layout { grid-template-columns: minmax(0, 1fr) 540px; }
     .strip { min-height: 140px; --cut: 34px; }
     .logo { width: 92px; height: 92px; }
     .strip[data-locked] .logo { width: 70px; height: 70px; }
@@ -424,21 +483,20 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .scorebug { height: 48px; }
     .scoreFigure { font-size: 34px; }
     .scoreState { font-size: 15px; }
-    .board { --pad: 24px; }
+    .board { --pad: 24px; --mark: 50px; }
     .board h2 { font-size: 26px; }
     .table td { height: 66px; }
-    .table th { font-size: 11px; }
+    .table th { font-size: 11.5px; }
     .colRank { width: calc(var(--pad) + 38px); }
     .colCorrect { width: 66px; }
-    .colWrong { width: 56px; }
-    .colPct { width: calc(var(--pad) + 56px); }
-    .table .rank, .table .correct { font-size: 32px; }
-    .table .wrong { font-size: 20px; }
-    .table .pct { font-size: 18px; }
-    .entryMark { width: 50px; height: 40px; }
+    .colWrong { width: 62px; }
+    .colPct { width: calc(var(--pad) + 50px); }
+    .table .rank { font-size: 28px; }
+    .table .correct { font-size: 24px; }
+    .table .wrong, .table .pct { font-size: 19px; }
+    .entryMark { height: 40px; }
     .entryMark [data-team-mark] { width: 32px !important; height: 32px !important; }
     .entryName b { font-size: 17px; }
-    .entryName small { font-size: 13px; }
     .champion { font-size: 16px; }
     .weekName { font-size: 36px; }
     .unit b { font-size: 46px; }
@@ -450,4 +508,5 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .track a::before, .track a span, .side, .logo, .indicator, .whosItem::before, .step svg { transition: none; }
     .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: none; }
     .won, .strip[data-locked] .stamp, .strip[data-locked] .side[data-mine]::before { animation: none; }
+    .prizeTag::after { display: none; }
 }

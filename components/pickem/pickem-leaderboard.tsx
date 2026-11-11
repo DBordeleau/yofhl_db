@@ -8,19 +8,19 @@ import { clubColours, clubTone } from './club-tone';
 import { Check, Cross } from './icons';
 import styles from './pickem.module.css';
 
-// The Pick'em leaderboard as a navy standings board: rank, the entry's logo on its club-colour slab, owner and
-// franchise, then correct, wrong and percentage (on phones the correct and wrong heads draw as a check and a cross).
+// The Pick'em leaderboard as a navy standings board: rank, the entry's logo on its club-colour slab and its team
+// name, then correct, wrong and percentage (on phones the correct and wrong heads draw as a check and a cross).
 // Places shared by level entries read T2. First place takes gold, and the winner or joint winners head it once the
 // season is complete. With nothing to rank yet it stays a quiet panel.
 
-const named = ({ owner, franchise }: PickemLeaderboardEntry) => owner ?? franchise.name;
+const named = ({ franchise }: PickemLeaderboardEntry) => franchise.name;
 
 export default function PickemLeaderboard({ entries, winners, unavailable = false }: { entries: PickemLeaderboardEntry[]; winners: PickemLeaderboardEntry[]; unavailable?: boolean }) {
     const palettes = useTeamBranding();
     const empty = unavailable || !entries.length;
     return <section aria-labelledby="pickem-leaderboard" className={styles.board} data-empty={empty ? '' : undefined}>
         <div className={styles.boardHead}>
-            <h2 id="pickem-leaderboard">Pick&apos;em leaderboard</h2>
+            <h2 id="pickem-leaderboard">Leaderboard</h2>
             {winners.length > 0 && <p className={styles.champion}>
                 <span className={styles.goldSlab}>{winners.length > 1 ? 'Joint winners' : 'Winner'}</span>
                 {winners.map(named).join(', ')}
@@ -39,7 +39,7 @@ export default function PickemLeaderboard({ entries, winners, unavailable = fals
                 <thead>
                     <tr>
                         <th scope="col"><abbr title="Rank" className="no-underline">#</abbr></th>
-                        <th scope="col">Owner</th>
+                        <th scope="col">Team</th>
                         <th scope="col"><span className={styles.headWord}>Correct</span><span className={styles.headMark} title="Correct"><Check /></span></th>
                         <th scope="col"><span className={styles.headWord}>Wrong</span><span className={styles.headMark} title="Wrong"><Cross /></span></th>
                         <th scope="col"><abbr title="Percentage" className="no-underline">Pct</abbr></th>
@@ -59,7 +59,6 @@ export default function PickemLeaderboard({ entries, winners, unavailable = fals
                                     </span>
                                     <span className={styles.entryName}>
                                         <b>{named(entry)}</b>
-                                        {entry.owner && <small>{entry.franchise.name}</small>}
                                     </span>
                                 </span>
                             </td>

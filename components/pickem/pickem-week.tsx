@@ -10,7 +10,7 @@ import { hasSessionHint } from '@/lib/owner/navigation';
 import { clubColours, clubTone } from './club-tone';
 import { announceEntry } from './entry-event';
 import { Check } from './icons';
-import { aimSeam, trackSeam, untrackSeam } from './seam';
+import { aimSeam, holdSeam, trackSeam, untrackSeam } from './seam';
 import { burst } from './sparks';
 import SideBody from './side-body';
 import styles from './pickem.module.css';
@@ -28,7 +28,8 @@ interface Props {
 const keyOf = (pair: [number, number]) => pairOf(...pair).join('-');
 type Side = 'away' | 'home';
 
-// The away side's share of the strip with the away club picked; the home club's pick mirrors it
+// The away side's share of the strip with the away club picked; the home club's pick mirrors it. pickem.module.css
+// keeps each name's room for the narrowest share this leaves the other side (--narrowest), so keep the two in step.
 const heldShare = () => window.innerWidth <= 640 ? .58 : .62;
 
 /** Where a strip's seam sits: held toward the pick, leaning toward a hovered club, and pulled back a little by a hover
@@ -57,6 +58,7 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
     const [fresh, setFresh] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [bumper, setBumper] = useState(0);
+    const [clearing, setClearing] = useState(false);
     // where the latest call was tapped, for its flood; `id` restarts the flood on every call
     const [flood, setFlood] = useState<{ key: string; id: number; x: string; y: string } | null>(null);
     const slate = useRef<HTMLDivElement>(null);
@@ -66,19 +68,26 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
         picked === matchup.away.id ? 'away' : picked === matchup.home.id ? 'home' : undefined;
     const stripOf = (key: string) => slate.current?.querySelector<HTMLElement>(`[data-seam="${key}"]`) ?? null;
 
+    // A save refreshes the page's data, which hands over equal matchups in a new array; keyed on the pairings, the
+    // seams keep their springs through it instead of snapping back to the middle.
+    const pairings = matchups.map(matchup => keyOf(pairOfMatchup(matchup))).join(' ');
     useEffect(() => {
         const strips = [...slate.current?.querySelectorAll<HTMLElement>('[data-seam]') ?? []];
         strips.forEach(trackSeam);
         return () => strips.forEach(untrackSeam);
-    }, [matchups]);
+    }, [pairings]);
 
     useEffect(() => {
         for (const matchup of matchups) {
             const key = keyOf(pairOfMatchup(matchup));
             const strip = stripOf(key);
-            if (strip) aimSeam(strip, seamTarget(sideOf(matchup, picks.get(key)), hovered.current.get(key)));
+            if (!strip) continue;
+            const pick = sideOf(matchup, picks.get(key));
+            holdSeam(strip, seamTarget(pick, undefined));
+            aimSeam(strip, seamTarget(pick, hovered.current.get(key)));
         }
-    }, [matchups, picks]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pairings, picks]);
 
     useEffect(() => {
         if (locked) return;
@@ -130,7 +139,7 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
 
     async function choose(matchup: PickemMatchup, franchise: PickemFranchise, event: MouseEvent<HTMLButtonElement>) {
         const key = keyOf(pairOfMatchup(matchup));
-        if (yours?.status !== 'entry' || saving.has(key)) return;
+        if (yours?.status !== 'entry' || saving.has(key) || clearing) return;
         // Choosing the current pick again clears it.
         const before = picks.get(key);
         const picked = before === franchise.id ? null : franchise.id;
@@ -161,6 +170,27 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
         if (isIn && !wasIn) setBumper(count => count + 1);
     }
 
+    /** Clears every Pick'em pick of the week, one save at a time; a refused save stops it and shows what the server kept */
+    async function clearAll() {
+        if (yours?.status !== 'entry' || clearing) return;
+        const picked = matchups.filter(matchup => picks.has(keyOf(pairOfMatchup(matchup))));
+        if (!picked.length) return;
+        const wasIn = saved.current.size === matchups.length;
+        setClearing(true);
+        setError(null);
+        setFresh(null);
+        setPicks(new Map());
+        for (const matchup of picked) {
+            const result = await savePickemPick({ seasonYear, week, matchup: pairOfMatchup(matchup), picked: null })
+                .catch(() => ({ error: "Could not clear your Pick'em picks. Try again." }));
+            if ('error' in result) { setError(result.error); break; }
+            saved.current.delete(keyOf(pairOfMatchup(matchup)));
+        }
+        setPicks(new Map(saved.current));
+        setClearing(false);
+        if (wasIn && saved.current.size !== matchups.length) announceEntry({ seasonYear, week, franchiseId: yours.franchiseId, in: false });
+    }
+
     // Before anyone has played, every club is 0-0-0 with no points, which says nothing worth showing.
     const standings = leagueStandings && Object.values(leagueStandings).some(standing => standing.record !== '0-0-0' || standing.points !== 0)
         ? leagueStandings : null;
@@ -168,14 +198,22 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
     const allIn = canPick && matchups.length > 0 && picks.size === matchups.length;
     return <div ref={slate} className={styles.slate} data-pickem-slate="">
         <div className={styles.slateHead}>
-            {canPick && (allIn
-                ? <span className={styles.allIn}><Check />All in</span>
-                : <span className={styles.progress}>
-                    <span className={styles.pips} aria-hidden="true">
-                        {matchups.map((matchup, i) => <span key={i} className={styles.pip} data-on={i < picks.size ? '' : undefined} />)}
-                    </span>
-                    <span className={styles.progressText}><b>{picks.size} of {matchups.length}</b> picked</span>
-                </span>)}
+            {/* the owner's entry bar, the same navy slab a signed-out visitor sees with its Sign in: where the entry
+                stands, a segment per matchup filling red as they're called, and Clear picks */}
+            {canPick && <div className={`${styles.cta} ${styles.entryBar}`}>
+                {allIn
+                    ? <span className={styles.allIn}><Check />All in</span>
+                    : <span className={styles.progressText}><b>{picks.size} of {matchups.length}</b> picked</span>}
+                <span className={styles.pips} aria-hidden="true">
+                    {matchups.map((matchup, i) => <span key={i} className={styles.pip} data-on={i < picks.size ? '' : undefined} />)}
+                </span>
+                <button type="button" className={styles.clearButton}
+                    disabled={clearing || picks.size === 0} aria-busy={clearing}
+                    data-idle={picks.size === 0 && !clearing ? '' : undefined} aria-hidden={picks.size === 0 && !clearing ? true : undefined}
+                    onClick={() => void clearAll()}>
+                    {clearing ? 'Clearing…' : 'Clear picks'}
+                </button>
+            </div>}
             {yours?.status === 'signed-out' && <p className={styles.cta}>Sign in to call this week&apos;s matchups.
                 <Link href="/owner" className={styles.ctaButton}>Sign in</Link></p>}
             {yours?.status === 'no-team' && <p className={styles.cta}>Claim your team to play Pick&apos;em.
@@ -211,7 +249,7 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
                             onPointerLeave={canPick ? event => lean(matchup, side ? 'home' : 'away', event, false) : undefined}>
                             {stamp && fresh === key && flood?.key === key && <span key={flood.id} className={styles.flood} aria-hidden="true"
                                 style={{ '--x': flood.x, '--y': flood.y } as CSSProperties} onAnimationEnd={() => setFlood(null)} />}
-                            <SideBody franchise={franchise} standing={standing}
+                            <SideBody franchise={franchise} standing={standing} holdRoom
                                 tapeEnd={standing && stamp && <span className={styles.tapePick}><Check /><span>Your pick</span></span>}>
                                 {/* Every pickable side holds the stamp's room, shown only on the pick, so calling a side never
                                     shoves its centred club upward (the pressed button already says which side is picked) */}
