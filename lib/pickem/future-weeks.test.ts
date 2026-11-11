@@ -22,6 +22,23 @@ test('the switcher lists every regular-season week from the start week on, with 
     assert.deepEqual(ahead.weeks, read.weeks, 'every week of the season reads the same switcher');
 });
 
+test('an open week carries every franchise\'s league standing as it is now; a locked week does not', async t => {
+    const state = liveSeasonState();
+    state.fantrax.core.standings = state.fantrax.core.standings.map((row, index) =>
+        index === 0 ? { ...row, record: '4-1-0', points: 612.4 } : index === 1 ? { ...row, record: null, points: null } : row);
+    const { act } = await pickemLeague(t, { live: state });
+    for (const week of [6, 15]) {
+        const read = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week, asker: 'nobody' }));
+        assert.ok(read.status === 'week' && read.week.phase === 'open');
+        assert.deepEqual(read.week.leagueStandings?.[1], { record: '4-1-0', points: 612.4 });
+        assert.equal(read.week.leagueStandings?.[2], undefined, 'a franchise Fantrax has no standing for is left out');
+        assert.deepEqual(Object.keys(read.week.leagueStandings ?? {}).map(Number).sort((a, b) => a - b), [1, 3, 4, 5, 6, 7, 8, 9, 10]);
+    }
+    const locked = await act(p => p.readWeek({ now: now(), seasonYear: SEASON, week: 5, asker: 'nobody' }));
+    assert.ok(locked.status === 'week' && locked.week.phase === 'locked');
+    assert.equal(locked.week.leagueStandings, null, 'standings now say nothing about a week already played');
+});
+
 test('a week several weeks ahead saves, changes and clears Pick\'em picks up to its own lock', async t => {
     const { act, signInAs } = await pickemLeague(t);
     await signInAs('owner-1');

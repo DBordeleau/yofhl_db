@@ -3,7 +3,7 @@
 import { rows } from '@/lib/data/db';
 import { isLocked } from './live-weeks';
 import { entriesOf, lockedWeek, readBreakdown, type CountedWeek, type PickemMatchupBreakdown, type ScoredWeek } from './locked-week';
-import { pairOfMatchup, samePair, type MatchupPair, type PickemMatchup, type PickemPick } from './model';
+import { pairOfMatchup, samePair, type LeagueStanding, type MatchupPair, type PickemMatchup, type PickemPick } from './model';
 import type { PickemPorts } from './ports';
 import { entryPicksQuery } from './queries';
 import { pastWeekName, readSeasonEntries, recordedWeek } from './past-season';
@@ -46,6 +46,8 @@ export interface PickemWeek {
     whosIn: PickemWhoIsIn[] | null;
     /** every matchup's entries on each side and, once scored, its result, from the lock on, to any caller; null before the lock */
     breakdown: PickemMatchupBreakdown[] | null;
+    /** the league standings as they are now, by franchise id, for an open week only: they say nothing of a week already played */
+    leagueStandings: Record<number, LeagueStanding> | null;
 }
 
 export interface ReadWeekInput {
@@ -98,6 +100,7 @@ export function createReadWeek(ports: PickemPorts) {
             yours: input.asker === 'session' ? await yours(week) : null,
             whosIn: null,
             breakdown: await readBreakdown(week, entries),
+            leagueStandings: null,
         }, weeks: recorded.map(item => ({ week: item.week, name: pastWeekName(item.week), lock: item.lock, phase: 'locked' })) };
     }
 
@@ -122,6 +125,7 @@ export function createReadWeek(ports: PickemPorts) {
             yours: input.asker === 'session' ? await yours(week) : null,
             whosIn: found === nextToLock ? await readWhosIn(week) : null,
             breakdown: locked ? await readBreakdown(week, entries) : null,
+            leagueStandings: locked ? null : live.leagueStandings,
         }, weeks: weekOptions(live.weeks, input.now) };
     };
 }

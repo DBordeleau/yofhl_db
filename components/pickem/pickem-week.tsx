@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { readYourPickem, savePickemPick } from '@/app/pickem/actions';
 import { useTeamBranding } from '@/components/team-branding/branding-provider';
-import type { PickemFranchise, PickemMatchup, YourPickem } from '@/lib/pickem/create-pickem';
+import type { LeagueStanding, PickemFranchise, PickemMatchup, YourPickem } from '@/lib/pickem/create-pickem';
 import { pairOf, pairOfMatchup } from '@/lib/pickem/model';
 import { hasSessionHint } from '@/lib/owner/navigation';
 import { clubColours, clubTone } from './club-tone';
@@ -21,16 +21,20 @@ interface Props {
     locked?: boolean;
     /** each franchise's owner, by franchise id, when the page knows them */
     owners?: Record<number, string>;
+    /** each club's league standing, by franchise id, while the week can be picked */
+    leagueStandings?: Record<number, LeagueStanding> | null;
 }
 
 const keyOf = (pair: [number, number]) => pairOf(...pair).join('-');
 
 // The week's slate: a full-width strip per matchup, the two clubs' slabs sharing one slant. Tapping a side calls it:
-// the side grows along the slant, a YOUR PICK stamp lands, the logo pops and light sweeps across once. Tapping the
+// the side grows along the slant, a YOUR PICK stamp lands, the logo pops and light sweeps across once. Each side carries
+// its club's W-L-T record and fantasy points from the league standings, and the stamp lands on that as a third slab,
+// toward the seam. Tapping the
 // pick again clears it. Picking every matchup plays the All-in bumper once.
 // The public page renders the matchups; the owner's own Pick'em picks load only when the session hint says an
 // owner may be signed in (ADR 0003), so an anonymous visit makes no extra request.
-export default function PickemWeek({ seasonYear, week, matchups, locked = false, owners }: Props) {
+export default function PickemWeek({ seasonYear, week, matchups, locked = false, owners, leagueStandings }: Props) {
     const palettes = useTeamBranding();
     const [yours, setYours] = useState<YourPickem | null>(null);
     const [picks, setPicks] = useState<Map<string, number>>(new Map());
@@ -87,6 +91,9 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
         if (isIn && !wasIn) setBumper(count => count + 1);
     }
 
+    // Before anyone has played, every club is 0-0-0 with no points, which says nothing worth showing.
+    const standings = leagueStandings && Object.values(leagueStandings).some(standing => standing.record !== '0-0-0' || standing.points !== 0)
+        ? leagueStandings : null;
     const canPick = !locked && yours?.status === 'entry';
     const allIn = canPick && matchups.length > 0 && picks.size === matchups.length;
     return <div className={styles.slate} data-pickem-slate="">
@@ -118,18 +125,21 @@ export default function PickemWeek({ seasonYear, week, matchups, locked = false,
                 const key = keyOf(pairOfMatchup(matchup));
                 const current = picks.get(key);
                 const pick = current === matchup.away.id ? 'away' : current === matchup.home.id ? 'home' : undefined;
-                return <li key={key} className={styles.strip} data-pick={pick} aria-busy={saving.has(key)}
+                return <li key={key} className={styles.strip} data-pick={pick} data-tape={standings ? '' : undefined} aria-busy={saving.has(key)}
                     style={{ '--i': i } as CSSProperties}>
                     {[matchup.away, matchup.home].flatMap((franchise, side) => {
                         const style = clubTone(clubColours(palettes, franchise.id));
                         const chosen = current === franchise.id;
+                        const standing = standings?.[franchise.id];
+                        const stamp = canPick && chosen;
                         // Always a button, disabled until the owner can pick: swapping element types when their picks
                         // load would remount the side and reload its logo.
                         const element = <button key={franchise.id} type="button" className={styles.side} style={style}
                             disabled={!canPick} aria-pressed={canPick ? chosen : undefined}
                             data-fresh={fresh === key && chosen ? '' : undefined} onClick={() => choose(matchup, franchise)}>
-                            <SideBody franchise={franchise} owner={owners?.[franchise.id]}>
-                                {canPick && chosen && <span className={styles.stamp}><Check />Your pick</span>}
+                            <SideBody franchise={franchise} owner={owners?.[franchise.id]} standing={standing}
+                                tapeEnd={standing && stamp && <span className={styles.tapePick}><Check /><span>Your pick</span></span>}>
+                                {!standing && stamp && <span className={styles.stamp}><Check />Your pick</span>}
                             </SideBody>
                         </button>;
                         return side === 0 ? [element, <span key="vs" className={styles.vs}><span>vs</span></span>] : element;

@@ -49,7 +49,8 @@ export default function PickemPage({ seasonYear, seasons, week, weeks, base, sta
                 {week
                     ? week.phase === 'locked' && week.breakdown
                         ? <PickemBreakdown key={week.week} seasonYear={week.seasonYear} week={week.week} breakdown={week.breakdown} owners={owners} />
-                        : <PickemWeek key={week.week} seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} locked={week.phase === 'locked'} owners={owners} />
+                        : <PickemWeek key={week.week} seasonYear={week.seasonYear} week={week.week} matchups={week.matchups} locked={week.phase === 'locked'} owners={owners}
+                            leagueStandings={week.leagueStandings} />
                     : <p className={styles.message}>{message}</p>}
             </section>
             <aside className={styles.rail}>

@@ -21,6 +21,18 @@ export interface PickemMatchup {
     home: PickemFranchise;
 }
 
+/** A franchise's place in the league standings: its W-L-T record ("4-1-0") and its fantasy points for */
+export interface LeagueStanding {
+    record: string;
+    points: number;
+}
+
+/** The live season's standings, by franchise id; a franchise Fantrax has no record or points for is left out */
+export function leagueStandingsOf(live: LiveSeason): Record<number, LeagueStanding> {
+    return Object.fromEntries(live.standings.rows.flatMap(({ team, record, points }) =>
+        team.franchiseId === null || record === null || points === null ? [] : [[team.franchiseId, { record, points }]]));
+}
+
 /** A matchup as Pick'em keys it: its two franchises, the lower id first */
 export type MatchupPair = [low: number, high: number];
 

@@ -142,8 +142,8 @@ a.step:hover svg { transform: translateX(var(--nudge)); }
 .logo::before { content: ''; position: absolute; inset: -40%; border-radius: 50%; background: radial-gradient(closest-side, #ffffffb3, transparent); opacity: 0; transition: opacity .4s; }
 .logo > * { position: relative; }
 .who { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.name { font-size: clamp(14px, 6.4cqi, 24px); font-weight: 900; font-style: italic; font-stretch: 112%; line-height: .96; letter-spacing: -.015em; text-transform: uppercase; text-wrap: balance; }
-.owner { font-size: 13px; font-weight: 650; color: #ffffffe6; }
+.name { font-size: clamp(14px, 6.4cqi, 40px); font-weight: 900; font-style: italic; font-stretch: 112%; line-height: .96; letter-spacing: -.015em; text-transform: uppercase; text-wrap: balance; }
+.owner { font-size: clamp(13px, 3.1cqi, 18px); font-weight: 650; color: #ffffffe6; }
 
 .vs { position: relative; z-index: 2; flex: none; width: 0; }
 .vs span { position: absolute; top: 50%; left: 0; display: grid; place-items: center; height: 30px; padding: 0 14px; transform: translate(calc(-50% - var(--cut) / 2 + 2px), -50%); background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: 14px; font-weight: 950; font-style: italic; font-stretch: 115%; text-transform: uppercase; color: #fff; text-shadow: 0 1px #5a0010; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); white-space: nowrap; }
@@ -175,6 +175,30 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 .stamp[data-tone='navy']::before { background: #050c18; }
 .side[data-fresh] .stamp { animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
 @keyframes stamp { from { transform: scale(2) rotate(-12deg); opacity: 0; } }
+/* The tale of the tape: the club's W-L-T on a navy slab with its fantasy points butted against it on the same slant;
+   picking the side lands a red slab on the end facing the seam. The logo and the slabs scale with the side, so a side
+   growing or giving way on a pick resizes smoothly instead of jumping between layouts. */
+/* an open week's club fills its side: the logo, name and tape all scale with the side's width */
+.strip:not([data-locked]) .logo { width: clamp(52px, 17cqi, 112px); height: clamp(52px, 17cqi, 112px); }
+.strip:not([data-locked]) .who { gap: clamp(5px, 1.3cqi, 9px); }
+.tape { --tape-h: clamp(23px, 6.4cqi, 38px); --tape-pad: clamp(8px, 2.8cqi, 17px); display: flex; margin-top: 2px; animation: tapeIn .55s calc(var(--i) * 70ms + .3s) cubic-bezier(.2, .75, .15, 1) backwards; }
+.side + .vs + .side .tape { justify-content: flex-end; animation-name: tapeInHome; }
+@keyframes tapeIn { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -10px 0 0); } }
+@keyframes tapeInHome { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 -10px); } }
+.tape > * { display: flex; align-items: center; height: var(--tape-h); padding: 0 var(--tape-pad); white-space: nowrap; font-variant-numeric: tabular-nums; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.tape > * + * { margin-left: -2px; }
+.tapeRecord { background: #050c18b8; font-size: clamp(15px, 4.6cqi, 27px); font-weight: 900; font-style: italic; font-stretch: 80%; letter-spacing: .01em; }
+.tapePoints { gap: .35em; background: #ffffff26; font-size: clamp(12px, 3.3cqi, 19px); font-weight: 800; font-stretch: 88%; }
+.tapePoints small { font-size: .72em; font-weight: 800; font-stretch: 100%; letter-spacing: .1em; text-transform: uppercase; color: #ffffffc7; }
+.tapePoints abbr { text-decoration: none; }
+.tapePick { order: 1; gap: 6px; background: linear-gradient(180deg, #df1a3c, #b00d28); font-size: clamp(11px, 2.9cqi, 16px); font-weight: 900; font-style: italic; font-stretch: 115%; text-transform: uppercase; text-shadow: 0 1px #5a0010; }
+.side + .vs + .side .tapePick { order: -1; margin-left: 0; margin-right: -2px; }
+.tapePick svg { flex: none; width: 1em; height: 1em; }
+.side[data-fresh] .tapePick { animation: stamp .45s cubic-bezier(.3, 1.4, .5, 1); }
+/* a side too narrow for the words keeps the check; the pressed button already says it is picked */
+@container (max-width: 500px) {
+    .tapePick span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 
 /* a locked week: counts at the seam, who took each side underneath */
 .logoMark { width: 100%; height: 100%; }
@@ -308,6 +332,15 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .sideTop .who { grid-area: who; }
     .sideTop .share { grid-area: share; height: auto; margin: 0; font-size: 34px; justify-self: end; }
     .side + .vs + .side .sideTop .share { justify-self: start; }
+    /* the tape stacks: the record (and the pick slab facing the seam) over the points */
+    .strip:not([data-locked]) .logo { width: 50px; height: 50px; }
+    .tape { --tape-h: 24px; --tape-pad: 10px; display: grid; grid-template-columns: auto auto; justify-content: start; row-gap: 3px; }
+    .side + .vs + .side .tape { justify-content: end; }
+    .tapeRecord { font-size: 18px; }
+    .tapePoints { grid-column: 1 / -1; justify-self: start; margin-left: 0 !important; font-size: 13px; }
+    .side + .vs + .side .tapePoints { justify-self: end; }
+    .tapePick { order: 0; font-size: 12px; }
+    .tapePick span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .picker { width: 28px; height: 26px; }
     .picker [data-team-mark] { width: 20px !important; height: 20px !important; }
     .board { --pad: 16px; }
@@ -336,7 +369,6 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
     .strip { min-height: 140px; --cut: 34px; }
     .logo { width: 92px; height: 92px; }
     .sideTop .share { height: 92px; }
-    .owner { font-size: 15px; }
     .board { --pad: 24px; }
     .board h2 { font-size: 26px; }
     .table td { height: 66px; }
@@ -358,7 +390,7 @@ button.side:focus-visible .who { outline: 3px solid #7fb2ff; outline-offset: 6px
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .strip, .picker, .table tbody tr, .figureIn, .figureOut, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh]::after { animation: none; }
+    .strip, .picker, .table tbody tr, .figureIn, .figureOut, .bumper, .bumperRed, .bumperNavy, .bumperWords span, .bumperStripes, .side[data-fresh] .stamp, .side[data-fresh] .tapePick, .side[data-fresh]::after, .tape { animation: none; }
     .bumper, .figureOut { display: none; }
     .track a::before, .track a span, .side, .logo, .indicator, .whosItem::before, .step svg { transition: none; }
     .slate[data-leaving] .strips, .slate[data-leaving] .slateHead { animation: none; }

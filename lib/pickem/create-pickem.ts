@@ -21,7 +21,7 @@ import { createSavePickemPick } from './save-pickem-pick';
 import { createSettle } from './settle';
 
 export type { PickemPorts } from './ports';
-export type { MatchupPair, PickemFranchise, PickemLaunch, PickemMatchup, PickemPick } from './model';
+export type { LeagueStanding, MatchupPair, PickemFranchise, PickemLaunch, PickemMatchup, PickemPick } from './model';
 export type { SavePickemPickInput, SavePickemPickRejection, SavePickemPickResult } from './save-pickem-pick';
 export type { Asker, PickemWeek, ReadWeekInput, ReadWeekResult, YourPickem, YourPickemPick } from './read-week';
 export type { PickemLeaderboard, PickemLeaderboardEntry, ReadPickemLeaderboardInput, ReadPickemLeaderboardResult } from './pickem-leaderboard';
