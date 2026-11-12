@@ -233,7 +233,7 @@ test('a refresh and a final week keep the saved snapshot and final weeks rows in
             standings: [{ teamId: 'a', rank: 1, points: '0-0-0' }, { teamId: 'b', rank: 2, points: '0-0-0' }],
         },
         scores: { 1: { fetchedAt: 'captured', period: 1, matchups: [{ away: { teamId: 'a', score: 10, gamesPlayed: 1 }, home: { teamId: 'b', score: 5, gamesPlayed: 1 } }] } },
-        leaders: { fetchedAt: 'captured', players: [{ id: 'p', name: 'Player', position: 'C', points: 20, perGame: 10, teamId: 'a', team: 'A', archiveId: null }] },
+        leaders: { fetchedAt: 'captured', players: [{ id: 'p', name: 'Player', position: 'C', points: 20, perGame: 10, teamId: 'a', team: 'A' }] },
         rosterStats: { fetchedAt: 'captured', players: { p: { points: 20, perGame: 10 } } },
     });
     const finals = await league.client.query<{ league_id: string; season_year: number; period: number }>('select * from league.fantrax_final_weeks');

@@ -14,7 +14,7 @@ test('displays the league calendar in Eastern Time even when the UTC day differs
 });
 
 test('groups active, bench, and IR players by assigned position without duplicating multi-position players', () => {
-    const player: LivePlayer = { id: '1', name: 'Player', position: 'C,LW', lineupPosition: 'LW', nhlTeam: 'TOR', status: 'ACTIVE', archiveId: null };
+    const player: LivePlayer = { id: '1', name: 'Player', position: 'C,LW', lineupPosition: 'LW', nhlTeam: 'TOR', status: 'ACTIVE', inArchive: false };
     assert.equal(rosterGroup(player), 'LW');
     assert.equal(rosterGroup({ ...player, status: 'RESERVE' }), 'LW');
     assert.equal(rosterGroup({ ...player, status: 'INJURED_RESERVE' }), 'LW');
@@ -28,7 +28,7 @@ test('orders each roster group by descending points, with alphabetical ties and 
         ['missing', 'Aaron Missing', 'D'], ['negative', 'Ben Negative', 'D'], ['zero', 'Charlie Zero', 'D'],
         ['tie-z', 'Zach Tie', 'D'], ['leader', 'Evan Leader', 'D'], ['tie-a', 'Adam Tie', 'D'],
         ['null', 'Alex Missing', 'D'], ['wing', 'Will Wing', 'LW'], ['minor', 'Mike Minor', 'MINORS'],
-    ].map(([id, name, position]) => ({ id, name, position, lineupPosition: position, nhlTeam: 'TOR', status: position === 'MINORS' ? 'MINORS' : 'ACTIVE', archiveId: null }));
+    ].map(([id, name, position]) => ({ id, name, position, lineupPosition: position, nhlTeam: 'TOR', status: position === 'MINORS' ? 'MINORS' : 'ACTIVE', inArchive: false }));
     const original = [...players];
     const stats: RosterStats = { fetchedAt: '2026-10-14T00:00:00Z', players: Object.fromEntries([
         ['negative', -2], ['zero', 0], ['tie-z', 10], ['leader', 20], ['tie-a', 10], ['null', null], ['wing', 30], ['minor', 40],

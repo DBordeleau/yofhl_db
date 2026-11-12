@@ -227,10 +227,8 @@ export const getSingleSeasonLeaderboard = cached(async (position: string, page: 
 
 export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null> => {
     const [player] = await rows<{ id: string; name: string }>(sql`
-        select id, name from league.players where id = ${id} or id = ${`*${id}*`}
-        order by (id = ${id}) desc limit 1`);
+        select id, name from league.players where id = ${id}`);
     if (!player) return null;
-    id = player.id;
 
     const [career, playerStats, awards, championships] = await Promise.all([
         rows<{ rank: number; total: number; fpg: number; seasons: number; positions: string[]; team_id: number | null; team_name: string | null; team_logo: string | null; team_abbreviation: string | null }>(sql`
@@ -289,7 +287,7 @@ export const getTopPlayerIds = cached(
     'top-player-ids',
 );
 
-// Preserve the CSV IDs (which can include asterisks) when linking current Fantrax rosters.
+// The archive's player IDs: a current Fantrax player with one of these has a player page.
 export const getArchivedPlayerIds = cached(
     () => rows<{ id: string }>(sql`select player_id as id from league.player_careers`),
     'archived-player-ids',

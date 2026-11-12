@@ -34,7 +34,7 @@ function league(options: { played?: number } = {}): MemoryState {
     return {
         fantraxTeams: TEAMS.slice(0, 7).map((fantraxTeamId, index) => ({ seasonYear: 2027, fantraxLeagueId: 'league27', fantraxTeamId, franchiseId: index + 1 })),
         franchises: TEAMS.slice(0, 7).map((_, index) => ({ id: index + 1, name: `Franchise ${index + 1}`, abbreviation: `F${index + 1}`, logo: `/logos/f${index + 1}.png`, owner: `Owner ${index + 1}` })),
-        archivedPlayerIds: ['*p1*', 'p2'],
+        archivedPlayerIds: ['p1', 'p2'],
         fantrax: {
             core,
             scores: Object.fromEntries(WEEKS.map(week => [week.number, { fetchedAt: core.fetchedAt, week: week.number, matchups: [
@@ -206,14 +206,27 @@ test('a Fantrax team mapped to a franchise missing from current_teams is logged 
     assert.doesNotMatch(logged[0], /fantrax_teams/);
 });
 
-test('rostered players and scoring leaders link to their archive player pages when they have one', async t => {
+test('rostered players and scoring leaders are in the archive exactly when their player ID is an archive player ID', async t => {
     const { season } = setup(t);
     const live = await season();
-    const roster = live.teams[0].players.map(player => [player.name, player.archiveId]);
-    assert.deepEqual(roster, [['Connor McDavid', '*p1*'], ['Goalie Rookie', null]]);
+    const roster = live.teams[0].players.map(player => [player.name, player.inArchive]);
+    assert.deepEqual(roster, [['Connor McDavid', true], ['Goalie Rookie', false]]);
     assert.ok(live.leaders.status === 'available');
-    assert.deepEqual(live.leaders.value.players.map(player => [player.name, player.archiveId, player.team?.name ?? player.fantraxTeam]),
-        [['Connor McDavid', '*p1*', 'Franchise 1'], ['Free Agent', null, 'FA']]);
+    assert.deepEqual(live.leaders.value.players.map(player => [player.name, player.inArchive, player.team?.name ?? player.fantraxTeam]),
+        [['Connor McDavid', true, 'Franchise 1'], ['Free Agent', false, 'FA']]);
+});
+
+test('a saved snapshot that still carries archive IDs assembles from the archive as it is now', async t => {
+    const state = league();
+    state.saved = structuredClone(state.fantrax);
+    // Snapshots captured before player IDs were stored bare kept each leader's archive ID, which may now be stale.
+    const [mcdavid, freeAgent] = state.saved.leaders.players as (typeof state.saved.leaders.players[number] & { archiveId: string | null })[];
+    mcdavid.archiveId = null;
+    freeAgent.archiveId = '*p9*';
+    const live = await setup(t, state).season();
+    assert.ok(live.leaders.status === 'available');
+    assert.deepEqual(live.leaders.value.players.map(player => [player.name, player.inArchive]), [['Connor McDavid', true], ['Free Agent', false]]);
+    assert.ok(live.leaders.value.players.every(player => !('archiveId' in player)));
 });
 
 test('rosters carry the Fantrax lineup week they belong to', async t => {

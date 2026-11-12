@@ -88,7 +88,7 @@ const getCachedScoringSeason = unstable_cache((leagueId: string, seasonYear: num
 const getScoringSeason = typeof cache === 'function' ? cache(getCachedScoringSeason) : getCachedScoringSeason;
 
 const getDailyLeaders = unstable_cache((leagueId: string, seasonYear: number, seasonCode: string) =>
-    fantraxClient.scoringLeaders(leagueId, seasonYear, seasonCode, archivedPlayerIds),
+    fantraxClient.scoringLeaders(leagueId, seasonYear, seasonCode),
 ['fantrax-scoring-leaders-top-10-per-game-v2'], { revalidate: DAY, tags: [FANTRAX_TAG, FANTRAX_CURRENT_TAG] });
 const getDailyRosterStats = unstable_cache((leagueId: string, seasonYear: number, seasonCode: string) =>
     fantraxClient.rosterStats(leagueId, seasonYear, seasonCode),
@@ -105,7 +105,7 @@ const getCachedRosterStats = savedOrDaily(saved => saved.rosterStats, getDailyRo
 
 /** Capture every request, save the snapshot and publish it, only if every request succeeds. */
 async function captureAndSave(leagueId: string): Promise<SavedLiveSeason> {
-    const data = await fantraxClient.capture(leagueId, { scoringSeason: getScoringSeason, archivedPlayerIds });
+    const data = await fantraxClient.capture(leagueId, { scoringSeason: getScoringSeason });
     await rows(saveSnapshotQuery(leagueId, data));
     revalidateTag(FANTRAX_CURRENT_TAG);
     return data;

@@ -37,7 +37,7 @@ function Player({ player, stats, share, order }: { player: LivePlayer; stats: Ro
         </dl>
     </>;
     return <li style={{ '--share': share, '--order': order } as CSSProperties}>
-        {player.archiveId ? <Link href={playerHref(player.archiveId)} className={styles.playerRow} aria-label={player.name}>{content}</Link> : <div className={styles.playerRow}>{content}</div>}
+        {player.inArchive ? <Link href={playerHref(player.id)} className={styles.playerRow} aria-label={player.name}>{content}</Link> : <div className={styles.playerRow}>{content}</div>}
     </li>;
 }
 
