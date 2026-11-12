@@ -30,6 +30,17 @@ async function fixtureImport(t: TestContext) {
     return { db, result };
 }
 
+test('a clean import stores the player IDs bare, though the Fantrax CSVs wrap them', async (t) => {
+    const { db, result } = await fixtureImport(t);
+    assert.ok(result.ok);
+
+    const players = (await db.select().from(schema.players)).map((p) => p.id).sort();
+    assert.deepEqual(players, ['0fx01', '0fx02', '0fx03', '0fx04', '0fx05', '0fx06', '0fx07', '0fx08', '0fx09', '0fx0a', '0fx0b', '0fx0c']);
+    assert.deepEqual((await db.select().from(schema.playerSeasons)).map((s) => s.playerId).sort(), players);
+    assert.deepEqual((await db.select().from(schema.championshipRosters)).map((r) => r.playerId).sort(), ['0fx01', '0fx02', '0fx0c']);
+    assert.deepEqual((await db.select().from(schema.awards)).map((a) => a.playerId).sort(), ['0fx01', '0fx04']);
+});
+
 test('a clean import of the fixture league writes its standings, bracket, season result and history', async (t) => {
     const { db, result } = await fixtureImport(t);
 
@@ -76,16 +87,18 @@ test('a clean import of the fixture league writes its standings, bracket, season
     assert.deepEqual(events.map((e) => [e.seasonYear, e.kind, e.occurredOn, e.sourceFile]), [[2026, 'trade', '2026-01-12', '2025-2026 Trades.csv']]);
     const assets = await db.select().from(schema.transactionAssets).orderBy(asc(schema.transactionAssets.sourceRow));
     assert.deepEqual(assets.map((a) => [a.playerId, a.action, a.fromFranchiseId, a.toFranchiseId]), [
-        ['*0fx08*', 'trade', 3, 4],
-        ['*0fx06*', 'trade', 4, 3],
+        ['0fx08', 'trade', 3, 4],
+        ['0fx06', 'trade', 4, 3],
     ]);
     const picks = await db.select().from(schema.draftPicks).orderBy(asc(schema.draftPicks.overall));
     assert.deepEqual(picks.map((p) => [p.overall, p.playerId, p.franchiseId, p.developmentFacts?.nhlId]), [
-        [1, '*0fx0a*', 6, 9001],
-        [2, '*0fx09*', 5, 9002],
-        [3, '*0fx07*', 4, 9003],
-        [4, '*0fx05*', 3, 9004],
-        [5, '*0fx03*', 2, 9005],
-        [6, '*0fx02*', 1, 9006],
+        [1, '0fx0a', 6, 9001],
+        [2, '0fx09', 5, 9002],
+        [3, '0fx07', 4, 9003],
+        [4, '0fx05', 3, 9004],
+        [5, '0fx03', 2, 9005],
+        [6, '0fx02', 1, 9006],
+        // an empty selection ("*") stays in the draft ledger with no player
+        [7, null, 6, undefined],
     ]);
 });

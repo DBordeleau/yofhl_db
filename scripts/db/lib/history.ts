@@ -5,6 +5,7 @@ import { parse } from 'csv-parse/sync';
 import { eq, inArray } from 'drizzle-orm';
 import * as schema from '@/db/schema';
 import type { Db } from './connect';
+import { csvDraftSelection, csvPlayerId } from './fantrax';
 import { eraFor, findByName, normalizeName, type LeagueConfig } from './league-config';
 
 const key = (parts: unknown[]) => createHash('sha256').update(JSON.stringify(parts)).digest('hex');
@@ -92,18 +93,19 @@ export function prepareHistory(dataDir: string, config: LeagueConfig, years?: nu
     for (const file of filesIn(dataDir, /^\d{4}-\d{4} Player Stats\.csv$/i)) {
         const [header, ...records] = csv(file);
         const col = (name: string) => { const i = header.indexOf(name); if (i < 0) throw new Error(`${file}: missing ${name}`); return i; };
-        for (const row of records) {
-            const identity = { id: row[col('ID')], name: row[col('Player')], season: fileYear(file), teams: row[col('Team')].split('/'), positions: row[col('Position')].split(',') };
+        records.forEach((row, i) => {
+            const identity = { id: csvPlayerId(row[col('ID')], file, i + 2), name: row[col('Player')], season: fileYear(file), teams: row[col('Team')].split('/'), positions: row[col('Position')].split(',') };
             catalog.push(identity);
             identities.set(identity.id, identity.name);
-        }
+        });
     }
     // Draft exports supply ids even for prospects missing from the season's player export.
-    for (const file of drafts) for (const row of csv(file).slice(1)) if (row[5]) {
-        if (!/^\*[^*]+\*$/.test(row[0])) throw new Error(`${file}: invalid player id ${row[0]}`);
-        catalog.push({ id: row[0], name: row[5], season: fileYear(file), teams: row[6].split('/'), positions: row[4].split(',') });
-        if (!identities.has(row[0])) identities.set(row[0], row[5]);
-    }
+    for (const file of drafts) csv(file).slice(1).forEach((row, i) => {
+        const id = csvDraftSelection(row[0], file, i + 2);
+        if (!id) return;
+        catalog.push({ id, name: row[5], season: fileYear(file), teams: row[6].split('/'), positions: row[4].split(',') });
+        if (!identities.has(id)) identities.set(id, row[5]);
+    });
     const byName = new Map<string, Identity[]>();
     for (const identity of catalog) {
         const name = normalizeName(identity.name);
@@ -157,11 +159,11 @@ export function prepareHistory(dataDir: string, config: LeagueConfig, years?: nu
         const year = fileYear(file);
         result.draftYears.push(year);
         const overall = new Set<number>();
-        records.forEach((row) => {
+        records.forEach((row, i) => {
             const round = Number(row[1]), pick = Number(row[2]), number = Number(row[3]);
             if (![round, pick, number].every((v) => Number.isInteger(v) && v > 0) || overall.has(number)) throw new Error(`${file}: invalid or duplicate pick ${row[3]}`);
             overall.add(number);
-            const playerId = row[5] ? row[0] : null;
+            const playerId = csvDraftSelection(row[0], file, i + 2);
             if (playerId) used.add(playerId);
             if (playerId && !row[7]) throw new Error(`${file}: player at pick ${number} has no team`);
             result.picks.push({ seasonYear: year, overall: number, round, pick, franchiseId: row[7] ? franchiseFor(config, row[7], year) : null, teamName: row[7] || null, playerId, playerName: row[5] || null, positions: row[4], nhlTeam: row[6], draftedOn: exportDate(row[8]).occurredOn, sourceTime: row[8], sourceFile: path.basename(file) });
