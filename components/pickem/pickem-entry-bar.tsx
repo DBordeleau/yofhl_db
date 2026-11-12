@@ -56,7 +56,7 @@ export default function PickemEntryBar({ picked, total, clearing = false, onClea
                 {invite.nudges ? invite.prompt : <><b className={styles.count}>0</b> of {total}<span className={styles.dockDrop}> picked</span></>}
             </span>
             : picked === total && total > 0
-                ? <span className={styles.allIn}><Check />All in</span>
+                ? <span className={styles.allIn}><Check /><span className={styles.allInWord}>All in</span></span>
                 : <span className={styles.progressText}><Count value={picked} /> of {total}<span className={styles.dockDrop}> picked</span></span>}
         <span className={styles.pips} aria-hidden="true">
             {Array.from({ length: total }, (_, i) => {
