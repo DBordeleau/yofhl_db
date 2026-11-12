@@ -155,6 +155,13 @@
       "when": 1794370231207,
       "tag": "0021_pickem_pairing_scores",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794453116115,
+      "tag": "0022_bare_player_ids",
+      "breakpoints": true
     }
   ]
 }

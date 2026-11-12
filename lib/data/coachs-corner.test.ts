@@ -169,9 +169,9 @@ test('publishing and real Next data caching against disposable Postgres', async 
         assert.equal((await data.getEpisodePlayers(retro, refsOf(retro)))[0].fpts, 999);
     });
     await t.test('publishing refuses a namesake cited by bare name, and the Fantrax id publishes each one', async () => {
-        await client.exec(`insert into league.players values ('*048x9*', 'Elias Pettersson'), ('*0ab12*', 'Elias Pettersson');
+        await client.exec(`insert into league.players values ('048x9', 'Elias Pettersson'), ('0ab12', 'Elias Pettersson');
             insert into league.player_seasons (player_id, season_year, positions, nhl_team, fpts, fpg)
-            values ('*048x9*', 2026, array['C'], 'VAN', 309.75, 4.2), ('*0ab12*', 2026, array['D'], 'VAN', 134, 1.9);`);
+            values ('048x9', 2026, array['C'], 'VAN', 309.75, 4.2), ('0ab12', 2026, array['D'], 'VAN', 134, 1.9);`);
         const count = async () => (await client.query<{ n: number }>('select count(*)::int as n from league.coachs_corner_episodes')).rows[0].n;
         const before = await count();
         const refused = await saveEpisodeRecord({ id: null, slug: 'petterssons', script: screenplay('Petterssons', 'gap "Elias Pettersson" "Player One"'), publish: true });

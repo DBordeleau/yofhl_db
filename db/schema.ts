@@ -210,10 +210,11 @@ export const teamSeasons = league.table(
     ],
 );
 
+// A player ID is stored bare (02un4), never as Fantrax's CSVs wrap it (*02un4*): docs/adr/0006-player-ids-are-stored-bare.md
 export const players = league.table('players', {
-    id: text('id').primaryKey(), // Fantrax player id, e.g. *02un4*
+    id: text('id').primaryKey(),
     name: text('name').notNull(),
-});
+}, (t) => [check('players_id_bare', sql`position('*' in ${t.id}) = 0`)]);
 
 // A trade can contain several players/picks and involve more than two franchises.
 // Stable source keys make imports repeatable; history references franchise ids, not mutable names.

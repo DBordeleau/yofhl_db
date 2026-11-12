@@ -23,13 +23,15 @@ export async function generateStaticParams() {
     return (await getTopPlayerIds(50)).map(({ id }) => ({ ID: playerSlug(id) }));
 }
 
-const JOHNNY_GAUDREAU_ID = '*02b81*';
+const JOHNNY_GAUDREAU_ID = '02b81';
+// Also matches the wrapped ID, so the memorial holds until production is migrated to bare IDs (#44).
+const isJohnnyGaudreau = (id: string) => playerSlug(id) === JOHNNY_GAUDREAU_ID;
 // 2018–19 through 2023–24 Player Stats CSVs: 2,177.50 FPts, with 36 players ahead.
 const JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE = '#37 on August 29, 2024';
 
 export async function generateMetadata({ params }: { params: Promise<{ ID: string }> }) {
     const player = await getPlayer(decodeURIComponent((await params).ID));
-    if (player?.id === JOHNNY_GAUDREAU_ID) {
+    if (player && isJohnnyGaudreau(player.id)) {
         return {
             title: 'Remembering Johnny Gaudreau · YOFHL',
             description: 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.',
@@ -42,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ ID: strin
 export default async function PlayerPage({ params }: { params: Promise<{ ID: string }> }) {
     const player = await getPlayer(decodeURIComponent((await params).ID));
     if (!player) notFound();
-    const isMemorial = player.id === JOHNNY_GAUDREAU_ID;
+    const isMemorial = isJohnnyGaudreau(player.id);
     const compareAction = <><CompareButton href={comparisonHref({ ids: [player.id], metric: 'fpts' })} title="Compare this player with others" dark /><ShareButton card={playerShareCard(player)} dark /></>;
     const scope = { playerId: player.id };
     const [transactions, historySeasons, archive] = await Promise.all([getHistory(scope), getHistorySeasons(scope), getSeasonArchive()]);

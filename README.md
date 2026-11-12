@@ -108,7 +108,7 @@ The build reads league data while generating pages, so it needs a reachable Neon
 
 The app uses Next.js 15.5, React 18, TypeScript, Tailwind CSS, Framer Motion, and Recharts. PostgreSQL data lives in the `league` schema. Runtime queries use Drizzle with the Neon HTTP driver; import scripts use Postgres.js or PGlite. Exact dependency versions and commands are in [package.json](package.json).
 
-Player URLs omit Fantrax's surrounding `*` characters so their pages can be cached on Windows too. The 50 leading profiles build ahead of time; other profiles cache on first visit. Old starred URLs redirect to the same player, and database IDs stay unchanged.
+Player URLs use the bare player ID the database stores, without the surrounding `*` characters Fantrax's CSV exports add, so their pages can be cached on Windows too. The 50 leading profiles build ahead of time; other profiles cache on first visit. Old starred URLs redirect to the same player.
 
 The homepage uses five-minute page revalidation. Matchup-week selection runs in the browser and fetches only scores, preserving week links and browser history. Historical leaderboard and transaction filters keep up to 32 results for one minute per mounted view. Successful public archive JSON responses can stay at the CDN for 60 seconds; private endpoints and errors are not given public cache headers. After an edit, an already cached JSON result can remain visible for up to two minutes across the CDN and browser caches (less when CDN `Age` is available).
 
