@@ -64,13 +64,13 @@ function createLoader(newestYear: number): DraftFactsLoader {
     const cachePath = `.cache/draft-development/${newestYear}`;
     return async (pick, nhlId) => {
         await mkdir(cachePath, { recursive: true });
-        const cacheId = pick.playerId!.replace(/\*/g, '');
-        if (!/^[a-zA-Z0-9]+$/.test(cacheId)) throw new Error('Invalid Fantrax identity');
-        let profile = profiles.get(pick.playerId!);
+        const playerId = pick.playerId!;
+        if (!/^[a-zA-Z0-9]+$/.test(playerId)) throw new Error('Invalid Fantrax identity');
+        let profile = profiles.get(playerId);
         if (!profile) {
-            profile = await cachedJson<NhlProfile>(`${cachePath}/${cacheId}.json`, async () => {
+            profile = await cachedJson<NhlProfile>(`${cachePath}/${playerId}.json`, async () => {
                 // Verified Fantrax identities disambiguate players who share the same name.
-                let id = nhlId ?? (nhlIdentities as Record<string, { nhlId: number }>)[pick.playerId!]?.nhlId;
+                let id = nhlId ?? (nhlIdentities as Record<string, { nhlId: number }>)[playerId]?.nhlId;
                 if (!id) {
                     const candidates = await request<NhlSearchPlayer[]>('https://search.d3.nhle.com/api/v1/search/player?' + new URLSearchParams({ culture: 'en-us', limit: '100', q: pick.playerName! }));
                     if (!Array.isArray(candidates)) throw new Error('Invalid NHL search response');
@@ -83,7 +83,7 @@ function createLoader(newestYear: number): DraftFactsLoader {
                 return found;
             });
             if (!Number.isInteger(profile.playerId) || !profile.birthDate || !Array.isArray(profile.seasonTotals)) throw new Error('Incomplete NHL profile');
-            profiles.set(pick.playerId!, profile);
+            profiles.set(playerId, profile);
         }
         const experienceNeeded = needsExperience(pick, profile.birthDate!);
         let games: number | null = null;

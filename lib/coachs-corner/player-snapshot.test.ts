@@ -18,13 +18,13 @@ async function archive(t: TestContext) {
     const many = Array.from({ length: 25 }, (_, i) => i);
     const { db } = await disposableLeague(t, { seed: `
         insert into league.seasons values (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete'), (2027, '2026–27', 'in-progress');
-        insert into league.players values ('*003vz*', 'Tom Wilson'), ('*003w3*', 'William Nylander'), ('*003w5*', 'Nico Hischier'),
-            ('*048x9*', 'Elias Pettersson'), ('*0ab12*', 'Elias Pettersson'), ('future', 'Future Player'), ('older', 'Older Player'),
+        insert into league.players values ('003vz', 'Tom Wilson'), ('003w3', 'William Nylander'), ('003w5', 'Nico Hischier'),
+            ('048x9', 'Elias Pettersson'), ('0ab12', 'Elias Pettersson'), ('future', 'Future Player'), ('older', 'Older Player'),
             ('broken', 'Broken Line'), ${many.map(i => `('depth${i}', 'Depth ${i}')`).join(', ')};
         insert into league.player_seasons (player_id, season_year, nhl_team, positions, fpts, fpg) values
-            ('*003vz*', 2025, 'WSH', '{RW}', 100, 1.5), ('*003vz*', 2026, 'WSH', '{RW}', 372, 5.17), ('*003vz*', 2027, 'WSH', '{RW}', 999, 9),
-            ('*003w3*', 2026, 'TOR', '{RW}', 378.25, 5.82), ('*003w5*', 2026, 'NJD', '{C}', 382.25, 4.66),
-            ('*048x9*', 2026, 'VAN', '{C}', 309.75, 4.2), ('*0ab12*', 2026, 'VAN', '{D}', 134, 1.9),
+            ('003vz', 2025, 'WSH', '{RW}', 100, 1.5), ('003vz', 2026, 'WSH', '{RW}', 372, 5.17), ('003vz', 2027, 'WSH', '{RW}', 999, 9),
+            ('003w3', 2026, 'TOR', '{RW}', 378.25, 5.82), ('003w5', 2026, 'NJD', '{C}', 382.25, 4.66),
+            ('048x9', 2026, 'VAN', '{C}', 309.75, 4.2), ('0ab12', 2026, 'VAN', '{D}', 134, 1.9),
             ('future', 2027, 'TOR', '{C}', 50, 1), ('older', 2025, 'TOR', '{C}', 75, 1),
             ('broken', 2026, 'TOR', '{C}', 'NaN', 1),
             ${many.map(i => `('depth${i}', 2026, 'TOR', '{C}', ${i}, 1)`).join(', ')};

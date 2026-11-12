@@ -3,7 +3,7 @@
 import { fantraxApiUrl, readLeagueInfo } from './api';
 import { CORRECTION_WINDOW_MS } from './cache-policy';
 import { discoverScoringSeason, globalFetch, loadRosterStats, loadScoringLeaders, type Fetcher } from './leaders';
-import { archiveIdLookup, type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
+import { type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
 
 export type { Fetcher } from './leaders';
 export type { SourceCore, SourceWeek } from './live-season-source';
@@ -38,7 +38,7 @@ export interface FantraxLeague {
     standings: Standing[];
     fetchedAt: string;
 }
-type ScoringLeaders = { fetchedAt: string; players: (Awaited<ReturnType<typeof loadScoringLeaders>>[number] & { archiveId: string | null })[] };
+type ScoringLeaders = { fetchedAt: string; players: Awaited<ReturnType<typeof loadScoringLeaders>> };
 
 /** getMatchupScores as the saved snapshot stores it: keyed and labelled by Fantrax's period */
 export interface MatchupScores {
@@ -109,11 +109,9 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
 
     const scoringSeason = (leagueId: string, seasonYear: number) => discoverScoringSeason(leagueId, seasonYear, fetcher);
 
-    async function scoringLeaders(leagueId: string, seasonYear: number, seasonCode: string, archivedPlayerIds: () => Promise<string[]>): Promise<ScoringLeaders> {
-        const [players, archive] = await Promise.all([loadScoringLeaders(leagueId, seasonYear, seasonCode, fetcher), archivedPlayerIds()]);
-        const archiveId = archiveIdLookup(archive);
-        return { fetchedAt: new Date().toISOString(), players: players.map(player => ({ ...player, archiveId: archiveId(player.id) })) };
-    }
+    const scoringLeaders = async (leagueId: string, seasonYear: number, seasonCode: string): Promise<ScoringLeaders> => ({
+        players: await loadScoringLeaders(leagueId, seasonYear, seasonCode, fetcher), fetchedAt: new Date().toISOString(),
+    });
 
     const rosterStats = async (leagueId: string, seasonYear: number, seasonCode: string): Promise<RosterStats> => ({
         players: await loadRosterStats(leagueId, seasonYear, seasonCode, fetcher), fetchedAt: new Date().toISOString(),
@@ -123,7 +121,6 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     async function capture(leagueId: string, options: {
         now?: number;
         scoringSeason?: (leagueId: string, seasonYear: number) => Promise<string>;
-        archivedPlayerIds?: () => Promise<string[]>;
     } = {}): Promise<SavedLiveSeason> {
         const now = options.now ?? Date.now();
         const source = await league(leagueId);
@@ -131,7 +128,7 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
             Date.parse(week.startDate) <= now && Date.parse(week.endDate) + CORRECTION_WINDOW_MS > now);
         const season = await (options.scoringSeason ?? scoringSeason)(leagueId, source.info.seasonYear);
         const [leaders, stats, scores] = await Promise.all([
-            scoringLeaders(leagueId, source.info.seasonYear, season, options.archivedPlayerIds ?? (async () => [])),
+            scoringLeaders(leagueId, source.info.seasonYear, season),
             rosterStats(leagueId, source.info.seasonYear, season),
             Promise.all(weeks.map(week => weekScores(leagueId, week.number))),
         ]);

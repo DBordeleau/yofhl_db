@@ -7,11 +7,13 @@ import { createResultCache } from '../result-cache';
 import type { PlayerProfile } from '../data/league';
 
 test('comparison URLs preserve order and metric while bounding and validating selections', () => {
-    const state = parseComparison(new URLSearchParams('player=*abc*&player=def&player=abc&metric=fpg'));
+    const state = parseComparison(new URLSearchParams('player=abc&player=def&player=abc&metric=fpg'));
     assert.deepEqual(state, { ids: ['abc', 'def'], metric: 'fpg', notice: null });
     assert.deepEqual(parseComparison(new URL(comparisonHref(state), 'https://test.local').searchParams), state);
     const malformed = parseComparison(new URLSearchParams('player=%2Fbad&player=abc&metric=bad'));
     assert.deepEqual(malformed.ids, ['abc']); assert.equal(malformed.metric, 'fpts'); assert(malformed.notice);
+    // a player ID wrapped in asterisks, as Fantrax's CSVs write it, is just an unknown ID
+    assert.deepEqual(parseComparison(new URLSearchParams('player=*abc*&player=def')), { ids: ['def'], metric: 'fpts', notice: 'An invalid player ID was ignored.' });
     const huge = parseComparison(new URLSearchParams(Array.from({ length: 3000 }, (_, i) => ['player', String(i)])));
     assert.deepEqual(huge.ids, ['0', '1', '2', '3', '4']); assert(huge.notice);
     assert.deepEqual(teamComparisonState(new URLSearchParams('a=4&b=4&stage=invalid'), [4, 5, 7]), { a: 4, b: 5, stage: 'regular' });

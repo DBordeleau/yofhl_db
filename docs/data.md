@@ -2,7 +2,7 @@
 
 The current site reads PostgreSQL data from the `league` schema in Neon. The application no longer reads the old site's `public` tables. SQL migrations and Drizzle's migration log also use the `league` schema.
 
-Seasons use the year they end in. `2026` means the 2025–26 season. Franchise IDs stay the same through renames and must not be reused. Player IDs come from Fantrax and should be URL-encoded when building links.
+Seasons use the year they end in. `2026` means the 2025–26 season. Franchise IDs stay the same through renames and must not be reused. Player IDs come from Fantrax and should be URL-encoded when building links. They are stored bare (`02b81`), as Fantrax's API and the site's URLs write them. The importer strips the asterisks Fantrax's CSV exports wrap them in (`*02b81*`); any other form in a player stats or draft export stops the import with the file and row, and a lone `*` in a draft export is an empty selection. The legacy seeds and `league/nhl-player-ids.json` already hold bare IDs. See [ADR 0006](adr/0006-player-ids-are-stored-bare.md).
 
 ## Sources and ownership
 
@@ -167,6 +167,8 @@ The lottery uses uncached reads and server time instead of the league cache. Its
 ## Schema
 
 [db/schema.ts](../db/schema.ts) defines the tables. [db/migrations](../db/migrations/) contains the SQL history, including the materialized views and the team identity views.
+
+Migration `0022_bare_player_ids` rewrote every stored player ID and every reference to one from `*02b81*` to `02b81`, refreshed the materialized views, and added a check that rejects a player ID containing `*`. If two stored IDs are the same once stripped, it stops with both IDs named and changes nothing; decide by hand which player each one is before running it again.
 
 Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-database-views.md)); every query that shows a team joins one of them instead of repeating the fallback. They store nothing and need no refresh.
 

@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { parse } from 'csv-parse/sync';
 import { parseCategoryPage, type CategorySeason } from '../lib/records/player-stats';
+import { csvPlayerId } from './db/lib/fantrax';
 
 const seasons = [
     [2019, 'cbeezjr4jmmz6dgo'], [2020, '8zqaak59juzrzfr5'], [2021, 'og1gnuxxkboae8ug'], [2022, 'z7jzx67oku2xdvgj'],
@@ -12,8 +13,10 @@ async function main() {
     const coverage: { year: number; leagueId: string; seasonCode: string; players: number }[] = [];
     await mkdir('output/record-player-stats', { recursive: true });
     for (const [year, leagueId] of seasons) {
-        const archive = parse(await readFile(`data/${year - 1}-${year} Player Stats.csv`, 'utf8'), { columns: true, skip_empty_lines: true, bom: true }) as { ID: string; Position: string; FPts: string }[];
-        const ids = new Set(archive.filter(p => !p.Position.split(',').includes('G')).map(p => p.ID.replace(/\*/g, '')));
+        const file = `data/${year - 1}-${year} Player Stats.csv`;
+        const archive = (parse(await readFile(file, 'utf8'), { columns: true, skip_empty_lines: true, bom: true }) as { ID: string; Position: string; FPts: string }[])
+            .map((p, i) => ({ ...p, id: csvPlayerId(p.ID, file, i) }));
+        const ids = new Set(archive.filter(p => !p.Position.split(',').includes('G')).map(p => p.id));
         const found = new Set<string>(), allIds = new Set<string>();
         let pageCount = 1, total = 0, seasonCode: string | undefined;
         for (let page = 1; page <= pageCount; page++) {
@@ -35,8 +38,8 @@ async function main() {
             for (const player of result.players) if (ids.has(player.id)) { players.push(player); found.add(player.id); }
         }
         if (allIds.size !== total) throw new Error(`Incomplete pagination for ${year}`);
-        const missing = archive.filter(p => ids.has(p.ID.replace(/\*/g, '')) && Number(p.FPts.replace(/,/g, '')) > 0 && !found.has(p.ID.replace(/\*/g, '')));
-        if (missing.length) throw new Error(`Missing ${missing.length} scoring skaters in ${year}: ${missing.slice(0, 5).map(p => p.ID).join(', ')}`);
+        const missing = archive.filter(p => ids.has(p.id) && Number(p.FPts.replace(/,/g, '')) > 0 && !found.has(p.id));
+        if (missing.length) throw new Error(`Missing ${missing.length} scoring skaters in ${year}: ${missing.slice(0, 5).map(p => p.id).join(', ')}`);
         coverage.push({ year, leagueId, seasonCode: seasonCode!, players: found.size });
         console.log(`${year - 1}-${year}: ${found.size} archived skaters; ${allIds.size}/${total} API rows validated`);
     }

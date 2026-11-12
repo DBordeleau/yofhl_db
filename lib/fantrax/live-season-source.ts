@@ -15,12 +15,6 @@ export interface RosterStats {
     players: Record<string, { points: number | null; perGame: number | null }>;
 }
 
-/** Looks up a Fantrax player ID among archive player IDs, some of which are stored wrapped in asterisks. */
-export function archiveIdLookup(archiveIds: string[]): (fantraxId: string) => string | null {
-    const archive = new Map(archiveIds.map(id => [id.replace(/\*/g, ''), id]));
-    return fantraxId => archive.get(fantraxId) ?? null;
-}
-
 export interface SourceWeek {
     number: number;
     /** ISO timestamps */
@@ -97,7 +91,7 @@ export interface LiveSeasonSource {
     /** the latest season's rows of league.fantrax_teams */
     fantraxTeams(): Promise<FantraxTeamRow[]>;
     franchises(): Promise<FranchiseIdentity[]>;
-    /** archive player IDs, as stored (some are wrapped in asterisks) */
+    /** archive player IDs */
     archivedPlayerIds(): Promise<string[]>;
     /** `fresh` reads the league and player directory from Fantrax, not the saved snapshot or the caches; the saved snapshot still serves its scores, leaders and roster stats */
     core(options: { fresh: boolean }): Promise<SourceCore>;

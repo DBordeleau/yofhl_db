@@ -12,15 +12,15 @@ import pilotTeams from '../pilot-teams.json';
 test('graphic stats freeze the episode stats season through the player snapshot, preserve live evidence, and never guess identities or years', async t => {
     const { db } = await disposableLeague(t, { seed: `
         insert into league.seasons values (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete'), (2027, '2026–27', 'in-progress');
-        insert into league.players values ('*003vz*', 'Tom Wilson'), ('nylander', 'William Nylander'),
+        insert into league.players values ('003vz', 'Tom Wilson'), ('nylander', 'William Nylander'),
             ('hischier', 'Nico Hischier'), ('zero', 'Zero Player'), ('future', 'Future Player'),
-            ('older', 'Older Player'), ('*048x9*', 'Elias Pettersson'), ('*0ab12*', 'Elias Pettersson');
+            ('older', 'Older Player'), ('048x9', 'Elias Pettersson'), ('0ab12', 'Elias Pettersson');
         insert into league.player_seasons (player_id, season_year, nhl_team, positions, fpts, fpg) values
-            ('*003vz*', 2025, 'WSH', '{RW}', 100, 1), ('*003vz*', 2026, 'WSH', '{RW}', 372, 5.17),
-            ('*003vz*', 2027, 'WSH', '{RW}', 999, 9), ('nylander', 2026, 'TOR', '{RW}', 378.25, 5.82),
+            ('003vz', 2025, 'WSH', '{RW}', 100, 1), ('003vz', 2026, 'WSH', '{RW}', 372, 5.17),
+            ('003vz', 2027, 'WSH', '{RW}', 999, 9), ('nylander', 2026, 'TOR', '{RW}', 378.25, 5.82),
             ('hischier', 2026, 'NJD', '{C}', 382.25, 4.66), ('zero', 2026, 'TOR', '{C}', 0, 0),
             ('future', 2027, 'TOR', '{C}', 50, 1), ('older', 2025, 'TOR', '{C}', 75, 1),
-            ('*048x9*', 2026, 'VAN', '{C}', 309.75, 4.2), ('*0ab12*', 2026, 'VAN', '{D}', 134, 1.9);
+            ('048x9', 2026, 'VAN', '{C}', 309.75, 4.2), ('0ab12', 2026, 'VAN', '{D}', 134, 1.9);
     ` });
     const packet = referencePacket(loadLeagueConfig(), 2027, pilotTeams);
     const birthSource = { url: 'https://example.test/birthplace', fetchedAt: '2026-10-15T12:00:00Z' };

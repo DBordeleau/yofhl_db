@@ -25,7 +25,7 @@ async function loadProfile(id: string) {
 }
 const dailyProfile = unstable_cache(loadProfile, ['keeper-nhl-profiles-v1', String(KEEPER_SEASON)], { revalidate: 86400 });
 const previousFantasyStats = cached(() => rows<{ id: string; points: number; perGame: number }>(sql`
-    select replace(player_id, '*', '') as id, fpts::float8 as points, fpg::float8 as "perGame"
+    select player_id as id, fpts::float8 as points, fpg::float8 as "perGame"
     from league.player_seasons where season_year = ${KEEPER_SEASON - 1}`), 'keeper-previous-fantasy-stats-2026');
 
 export async function enrichKeeperRoster(roster: KeeperPlayer[]): Promise<KeeperPlayer[]> {

@@ -42,7 +42,7 @@ test('cancelled playoffs do not break title runs and consecutive championships r
 
 test('player season streaks cannot skip a missed scoring season', () => {
     const data = source();
-    data.players = [2019, 2020, 2021, 2022].map(year => ({ id: '*a*', name: 'A', year, points: year === 2020 ? 499.75 : 500, positions: ['C'] }));
+    data.players = [2019, 2020, 2021, 2022].map(year => ({ id: 'a', name: 'A', year, points: year === 2020 ? 499.75 : 500, positions: ['C'] }));
     const records = buildRecords(data);
     assert.equal(records.find(r => r.id === 'five-hundred')!.entries[0].value, 3);
     assert.equal(records.find(r => r.id === 'five-hundred-run')!.entries[0].value, 2);
@@ -105,11 +105,11 @@ test('raw player categories rank independently of FPts and respect season positi
 test('live milestones replace the current season, preserve cents, and never turn missing stats into zero', () => {
     const data = source();
     data.players = [
-        { id: '*abc*', name: 'Player', year: 2026, points: 3950.75, positions: ['RW'] },
-        { id: '*abc*', name: 'Player', year: 2027, points: 10, positions: ['RW'] },
+        { id: 'abc', name: 'Player', year: 2026, points: 3950.75, positions: ['RW'] },
+        { id: 'abc', name: 'Player', year: 2027, points: 10, positions: ['RW'] },
     ];
     const team = { id: 't1', franchiseId: 1, name: 'Team 1', abbreviation: 'T1', logo: null, owner: null, href: '/teams/1',
-        players: [{ id: 'abc', name: 'Player', position: 'RW', lineupPosition: 'RW', nhlTeam: 'BOS', status: 'ACTIVE', archiveId: '*abc*' }] };
+        players: [{ id: 'abc', name: 'Player', position: 'RW', lineupPosition: 'RW', nhlTeam: 'BOS', status: 'ACTIVE', inArchive: true }] };
     const live = { seasonYear: 2027, standings: { playoffTeams: 6, byeTeams: 2,
         rows: [{ team, rank: 1, record: '2-0-0', points: 100, bye: true, playoffLineBelow: false }] } };
     const stats: RosterStats = { fetchedAt: '2026-10-16T12:00:00Z', players: { abc: { points: 42.75, perGame: 6.11 } } };

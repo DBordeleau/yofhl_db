@@ -14,16 +14,16 @@ import styles from '@/components/player-page.module.css';
 import TransactionHistory from '@/components/transaction-history';
 import { isPublished } from '@/lib/seasons';
 import { getSeasonArchive, getPlayer, getTopPlayerIds } from '@/lib/data/league';
-import { playerHref, playerSlug } from '@/lib/player-url';
+import { playerHref } from '@/lib/player-url';
 import { getHistory, getHistorySeasons } from '@/lib/data/history';
 import { awardSlug, seasonLabel } from '@/lib/league';
 
 // Popular profiles build ahead of time; other profiles cache on their first visit.
 export async function generateStaticParams() {
-    return (await getTopPlayerIds(50)).map(({ id }) => ({ ID: playerSlug(id) }));
+    return (await getTopPlayerIds(50)).map(({ id }) => ({ ID: id }));
 }
 
-const JOHNNY_GAUDREAU_ID = '*02b81*';
+const JOHNNY_GAUDREAU_ID = '02b81';
 // 2018–19 through 2023–24 Player Stats CSVs: 2,177.50 FPts, with 36 players ahead.
 const JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE = '#37 on August 29, 2024';
 

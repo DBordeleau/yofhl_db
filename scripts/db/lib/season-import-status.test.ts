@@ -52,7 +52,7 @@ test('a clean import returns each season\'s status', async (t) => {
 
 test('co-winners of one award count once', async (t) => {
     const legacy = fixtureLegacy();
-    legacy.awards.push({ season: 2026, award: 'Top Gun Award', playerId: '*0fx02*', player: 'Ben Birch', team: 'Brimley Badgers' });
+    legacy.awards.push({ season: 2026, award: 'Top Gun Award', playerId: '0fx02', player: 'Ben Birch', team: 'Brimley Badgers' });
     const { statuses } = await importFixture(t, { legacy });
 
     assert.equal(statuses[0].awards, 2);

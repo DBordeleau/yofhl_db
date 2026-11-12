@@ -168,7 +168,7 @@ export function buildChases(source: RecordSource, live: Pick<LiveSeason, 'season
         for (const p of t.players) {
             const current = stats?.players[p.id]?.points;
             if (current == null || !Number.isFinite(current)) continue;
-            const seasons = source.players.filter(s => s.id.replace(/\*/g, '') === p.id && s.year < currentYear);
+            const seasons = source.players.filter(s => s.id === p.id && s.year < currentYear);
             if (!seasons.length) continue;
             add({ id: `player-${p.id}`, name: p.name, team: t.franchiseId, kind: 'Career scoring', unit: 'FPts', step: 1000,
                 archived: round(seasons.reduce((sum, s) => sum + s.points, 0)), current, href: playerHref(seasons[0].id) });

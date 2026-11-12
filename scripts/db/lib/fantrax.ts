@@ -41,6 +41,20 @@ interface Section {
     rows: string[][];
 }
 
+// Fantrax CSVs wrap a player ID in asterisks (*02b81*); the archive stores it bare (02b81), as Fantrax's API
+// and the site's URLs write it (docs/adr/0006-player-ids-are-stored-bare.md). This is the one place the
+// asterisks come off, and anything not wrapped that way stops the import. `record` is the 0-based index
+// among the rows after the header; the error names the CSV line, counting the header as 1.
+export const csvPlayerId = (cell: string, file: string, record: number): string => {
+    const bare = /^\*([A-Za-z0-9]+)\*$/.exec(cell)?.[1];
+    if (!bare) throw new Error(`${file} row ${record + 2}: invalid player ID "${cell}"`);
+    return bare;
+};
+
+/** A draft export's player ID, or null for an empty selection ("*" alone). */
+export const csvDraftSelection = (cell: string, file: string, record: number): string | null =>
+    cell === '*' ? null : csvPlayerId(cell, file, record);
+
 const toNumber = (value: string | undefined) => {
     const n = parseFloat((value ?? '').replace(/,/g, ''));
     return isNaN(n) ? 0 : n;
@@ -81,12 +95,12 @@ const column = (section: Section, name: string, file: string) => {
 
 export const parsePlayerStats = (file: string): PlayerStatRow[] => {
     const records: Record<string, string>[] = parse(readFileSync(file, 'utf8'), { bom: true, columns: true });
-    return records.map((r) => {
+    return records.map((r, i) => {
         const status = r.Status?.trim() ?? '';
         // "FA" and waiver claims like "W <small>(Sat)</small>" mean the player was unrostered
         const fantasyTeam = status === '' || status === 'FA' || status.startsWith('W ') ? null : status;
         return {
-            id: r.ID,
+            id: csvPlayerId(r.ID ?? '', file, i),
             name: r.Player,
             nhlTeam: r.Team && r.Team !== '(N/A)' ? r.Team : null,
             positions: (r.Position ?? '').split(',').map((p) => p.trim()).filter(Boolean),

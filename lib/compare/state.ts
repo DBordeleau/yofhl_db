@@ -1,5 +1,3 @@
-import { playerSlug } from '../player-url';
-
 export type Metric = 'fpts' | 'fpg';
 export interface ComparisonState { ids: string[]; metric: Metric }
 export function parseComparison(params: Pick<URLSearchParams, 'get' | 'getAll' | 'toString'>): ComparisonState & { notice: string | null } {
@@ -8,8 +6,7 @@ export function parseComparison(params: Pick<URLSearchParams, 'get' | 'getAll' |
     let overflow = false;
     const raw = params.toString();
     const entries = raw.length > 2048 ? new URLSearchParams(raw.slice(0, 2048)).getAll('player') : params.getAll('player');
-    for (const entry of entries) {
-        const id = playerSlug(entry);
+    for (const id of entries) {
         if (!/^[a-zA-Z0-9_-]{1,64}$/.test(id)) { invalid = true; continue; }
         if (ids.includes(id)) continue;
         if (ids.length === 5) { overflow = true; continue; }
@@ -21,7 +18,7 @@ export function parseComparison(params: Pick<URLSearchParams, 'get' | 'getAll' |
 }
 export function comparisonHref(state: ComparisonState) {
     const params = new URLSearchParams();
-    for (const id of state.ids) params.append('player', playerSlug(id));
+    for (const id of state.ids) params.append('player', id);
     if (state.metric === 'fpg') params.set('metric', 'fpg');
     return `/compare/players${params.size ? `?${params}` : ''}`;
 }

@@ -106,7 +106,7 @@ export default async function HomePage() {
                                     <span className={styles.leaderRank} aria-label={`Rank ${index + 1}`}>{index + 1}</span>
                                     {team?.href ? <Link className={styles.leaderLogo} href={team.href} aria-label={`${team.name} team page`}>{logo}</Link> : logo}
                                     <div className={styles.leaderDetails}>
-                                        {player.archiveId ? <Link className={styles.leaderName} href={playerHref(player.archiveId)}>{player.name}</Link> : <span className={styles.leaderName}>{player.name}</span>}
+                                        {player.inArchive ? <Link className={styles.leaderName} href={playerHref(player.id)}>{player.name}</Link> : <span className={styles.leaderName}>{player.name}</span>}
                                         <span className={styles.leaderPosition}>{player.position.replace(/,/g, ' · ')}</span>
                                     </div>
                                     <div className={styles.leaderStats}>

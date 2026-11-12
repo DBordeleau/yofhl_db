@@ -77,13 +77,13 @@ test('validation: a ring or award player missing from the player export is repor
     });
     const legacy = fixtureLegacy();
     legacy.rosters['2026'] = legacy.rosters['2026'].filter((p) => p.player !== 'Leo Lark');
-    legacy.awards.push({ season: 2026, award: 'Top Gun Award', playerId: '*0fxzz*', player: 'Zed Zane', team: 'Ashgrove Anglers' });
+    legacy.awards.push({ season: 2026, award: 'Top Gun Award', playerId: '0fxzz', player: 'Zed Zane', team: 'Ashgrove Anglers' });
 
     assert.deepEqual(await run({ config: changedLeague(), dataDir: withoutLeo, legacy }), {
         ok: false,
         errors: [
-            '2025–26: Zed Zane (*0fxzz*) is on a championship roster or award list but isn\'t in "2025-2026 Player Stats.csv"',
-            '2025–26: Leo Lark (*0fx0c*) is on a championship roster or award list but isn\'t in "2025-2026 Player Stats.csv"',
+            '2025–26: Zed Zane (0fxzz) is on a championship roster or award list but isn\'t in "2025-2026 Player Stats.csv"',
+            '2025–26: Leo Lark (0fx0c) is on a championship roster or award list but isn\'t in "2025-2026 Player Stats.csv"',
         ],
     });
     assert.deepEqual(await everyRow(), before);
@@ -116,6 +116,34 @@ test('validation: an unknown team, a missing file or an unmatched score override
     assert.deepEqual(await everyRow(), before);
 });
 
+test('validation: a player ID Fantrax did not wrap in asterisks stops the import, naming the file and row, and nothing is written', async (t) => {
+    const { run, everyRow } = await emptyLeague(t);
+    assert.equal((await run()).ok, true);
+    const before = await everyRow();
+
+    const draft = (dir: string) => path.join(dir, 'drafts', '2025-2026 draft.csv');
+    const replaceIn = (file: (dir: string) => string, from: string, to: string) => dataCopy(t, (dir) => {
+        const text = readFileSync(file(dir), 'utf8');
+        assert.ok(text.includes(from));
+        writeFileSync(file(dir), text.replace(from, to));
+    });
+    // Kyle Knox is the 11th player in the stats export, so row 12 counting the header; Gus Grady is the 3rd pick
+    const cases = [
+        { dir: replaceIn(playerStats, '"*0fx0b*"', '"0fx0b"'), file: '2025-2026 Player Stats.csv', row: 12, id: '0fx0b' },
+        { dir: replaceIn(playerStats, '"*0fx0b*"', '"*0fx0b"'), file: '2025-2026 Player Stats.csv', row: 12, id: '*0fx0b' },
+        { dir: replaceIn(playerStats, '"*0fx0b*"', '"*"'), file: '2025-2026 Player Stats.csv', row: 12, id: '*' },
+        { dir: replaceIn(draft, '"*0fx07*"', '"*0f-x07*"'), file: '2025-2026 draft.csv', row: 4, id: '*0f-x07*' },
+        { dir: replaceIn(draft, '"*0fx07*"', '"**0fx07**"'), file: '2025-2026 draft.csv', row: 4, id: '**0fx07**' },
+    ];
+    for (const { dir, file, row, id } of cases) {
+        await assert.rejects(run({ config: changedLeague(), dataDir: dir }), (error: Error) => {
+            assert.ok(error.message.includes(`${file} row ${row}: invalid player ID "${id}"`), error.message);
+            return true;
+        });
+    }
+    assert.deepEqual(await everyRow(), before);
+});
+
 test('validation: a data folder with no season CSVs is reported and nothing is written', async (t) => {
     const { run, everyRow } = await emptyLeague(t);
     const before = await everyRow();
@@ -131,18 +159,18 @@ test('keep set: a zero-point free agent on a ring or award list is kept and one 
     const { db, run } = await emptyLeague(t);
     // Leo Lark is on the legacy ring list; Max Moss is added to the legacy awards here; Kyle Knox scored
     const legacy = fixtureLegacy();
-    legacy.awards.push({ season: 2026, award: 'Top Gun Award', playerId: '*0fx0d*', player: 'Max Moss', team: 'Ashgrove Anglers' });
+    legacy.awards.push({ season: 2026, award: 'Top Gun Award', playerId: '0fx0d', player: 'Max Moss', team: 'Ashgrove Anglers' });
     const freeAgents = async () =>
         (await db.select().from(schema.playerSeasons)).filter((p) => p.teamSeasonId === null).map((p) => p.playerId).sort();
 
     assert.equal((await run()).ok, true);
-    assert.deepEqual(await freeAgents(), ['*0fx0b*', '*0fx0c*']);
+    assert.deepEqual(await freeAgents(), ['0fx0b', '0fx0c']);
 
     const { db: other, run: runOther } = await emptyLeague(t);
     assert.equal((await runOther({ legacy })).ok, true);
     assert.deepEqual(
         (await other.select().from(schema.playerSeasons)).filter((p) => p.teamSeasonId === null).map((p) => p.playerId).sort(),
-        ['*0fx0b*', '*0fx0c*', '*0fx0d*'],
+        ['0fx0b', '0fx0c', '0fx0d'],
     );
 });
 
@@ -156,7 +184,7 @@ test('re-import: team-season ids and curated rosters and awards survive, and leg
     const [ashgrove] = await db.select().from(schema.teamSeasons).where(eq(schema.teamSeasons.franchiseId, 1));
     const [netMinder] = await db.select().from(schema.awardTypes).where(eq(schema.awardTypes.name, 'Net Minder'));
     await db.delete(schema.awards);
-    await db.insert(schema.awards).values({ seasonYear: 2026, awardTypeId: netMinder.id, playerId: '*0fx02*', teamSeasonId: ashgrove.id });
+    await db.insert(schema.awards).values({ seasonYear: 2026, awardTypeId: netMinder.id, playerId: '0fx02', teamSeasonId: ashgrove.id });
     await db.delete(schema.championshipRosters);
 
     const reimport = await run();
@@ -165,14 +193,14 @@ test('re-import: team-season ids and curated rosters and awards survive, and leg
     assert.deepEqual(await ids(), teamSeasonIds);
     assert.deepEqual(
         (await db.select().from(schema.awards)).map((a) => [a.awardTypeId, a.playerId, a.teamSeasonId]),
-        [[netMinder.id, '*0fx02*', ashgrove.id]],
+        [[netMinder.id, '0fx02', ashgrove.id]],
     );
-    assert.deepEqual((await db.select().from(schema.championshipRosters)).map((r) => r.playerId).sort(), ['*0fx01*', '*0fx02*', '*0fx0c*']);
+    assert.deepEqual((await db.select().from(schema.championshipRosters)).map((r) => r.playerId).sort(), ['0fx01', '0fx02', '0fx0c']);
 
     // and a curated ring is kept as it is
-    await db.delete(schema.championshipRosters).where(eq(schema.championshipRosters.playerId, '*0fx02*'));
+    await db.delete(schema.championshipRosters).where(eq(schema.championshipRosters.playerId, '0fx02'));
     assert.equal((await run()).ok, true);
-    assert.deepEqual((await db.select().from(schema.championshipRosters)).map((r) => r.playerId).sort(), ['*0fx01*', '*0fx0c*']);
+    assert.deepEqual((await db.select().from(schema.championshipRosters)).map((r) => r.playerId).sort(), ['0fx01', '0fx0c']);
 });
 
 test('rollback: a failure during legacy seeding, after the seasons are written, leaves every table as it was', async (t) => {
@@ -187,7 +215,7 @@ test('rollback: a failure during legacy seeding, after the seasons are written, 
         writeFileSync(file, readFileSync(file, 'utf8').replace('"1","Ashgrove Anglers","30","14"', '"1","Ashgrove Anglers","31","13"'));
     });
     const legacy = fixtureLegacy();
-    legacy.awards.push({ season: 2026, award: 'Hart Trophy', playerId: '*0fx0b*', player: 'Kyle Knox', team: 'Ashgrove Anglers' });
+    legacy.awards.push({ season: 2026, award: 'Hart Trophy', playerId: '0fx0b', player: 'Kyle Knox', team: 'Ashgrove Anglers' });
 
     await assert.rejects(run({ config: changedLeague(), dataDir: changedStandings, legacy }), /Legacy award "Hart Trophy" isn't in league.yml awards/);
     assert.deepEqual(await everyRow(), before);

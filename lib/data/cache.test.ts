@@ -105,11 +105,10 @@ test('curated edits expire exactly the cached readers that show their data', asy
     invalidate(LEAGUE_TAG);
     await expectMisses(Object.keys(readers));
 
-    await client.exec("insert into league.players values ('*starred*', 'Wrapped ID'), ('plain', 'Plain ID'), ('*plain*', 'Wrapped collision');");
-    assert.equal((await league.getPlayer('starred'))?.id, '*starred*');
-    assert.equal((await league.getPlayer('*starred*'))?.id, '*starred*');
+    await client.exec("insert into league.players values ('plain', 'Plain ID');");
     assert.equal((await league.getPlayer('plain'))?.name, 'Plain ID');
     assert.equal(await league.getPlayer('missing-player'), null);
+    assert.equal(await league.getPlayer('*plain*'), null, 'a wrapped player ID is an unknown player');
     await client.exec(`
         insert into league.seasons values (2020, '2019–20', 'cancelled'), (2027, '2026–27', 'complete');
         insert into league.owners (id, name) values (1, 'Former Owner'), (2, 'New Owner');
@@ -122,7 +121,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
     assert.equal(directory.find(row => row.kind === 'players' && row.id === 'plain')?.careerPoints, 0);
     assert.equal(directory.filter(row => row.kind === 'players' && row.id === 'plain').length, 1);
     assert.equal(directory.find(row => row.kind === 'players' && row.id === 'plain')?.title, 'Plain ID');
-    assert.equal(directory.find(row => row.id === 'starred')?.subtitle, 'No career statistics yet');
+    assert.equal(directory.find(row => row.id === 'plain')?.subtitle, 'No career statistics yet');
     assert.equal((await searchPublicDirectory({ q: 'Former Owner', type: 'all', page: 1 })).total, 0);
     assert.equal(directory.filter(row => row.kind === 'awards').length, AWARDS.length);
     for (const award of AWARDS) {

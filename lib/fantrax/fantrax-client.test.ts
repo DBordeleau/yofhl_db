@@ -85,9 +85,10 @@ test('an invalid player directory is rejected', async () => {
 test('a capture is rejected unless its scores cover every scheduled matchup', async () => {
     const missing = fantrax({ getMatchupScores: body => { (body as unknown as RecordedScores).matchups.pop(); return body; } });
     await assert.rejects(missing.capture(LEAGUE, { now: NOW }), /incomplete scheduled matchup scores/);
-    const data = await fantrax().capture(LEAGUE, { now: NOW, archivedPlayerIds: async () => ['*03kl0*'] });
+    const data = await fantrax().capture(LEAGUE, { now: NOW });
     assert.equal(data.source.info.seasonYear, 2027);
     assert.deepEqual(Object.keys(data.scores), ['2'], 'only weeks started and still open to corrections');
-    assert.deepEqual(data.leaders.players.map(player => [player.name, player.archiveId]), [['Connor McDavid', '*03kl0*'], ['Igor Shesterkin', null]]);
+    assert.deepEqual(data.leaders.players.map(player => player.name), ['Connor McDavid', 'Igor Shesterkin']);
+    assert.ok(data.leaders.players.every(player => !('archiveId' in player)), 'archive membership is worked out on read, never saved');
     assert.equal(data.rosterStats.players['04ab9'].points, 30.5);
 });
