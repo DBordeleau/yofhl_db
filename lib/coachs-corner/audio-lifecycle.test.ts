@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { createShowAudio } from '../../components/coachs-corner/audio';
 import { CLASSIC_SOUND_BANK, STUDIO_SOUND_BANK } from './sound-bank';
+import { episodeFrom } from './episode';
 
 // Control the clock and source lifetime to exercise rapid transport/mix changes.
 class Param {
@@ -157,11 +158,29 @@ test('a reaction sound follows playback speed, ends within its visible duration 
     const audio = createShowAudio();
     audio.unlock();
     await audio.prepare();
-    audio.fire({ t: 6000, id: 'happy-twinkle', duration: 2000 }, 2);
+    const twinkle = episodeFrom('---\ntitle: Twinkle\n---\n[fx: don happy 2s, 3s]\nDON: Good.').audioCues.find(cue => cue.id === 'happy-twinkle')!;
+    audio.fire(twinkle, 2);
     const source = Context.instances.at(-1)!.sources.at(-1)!;
     assert.equal(source.playbackRate.value, 2);
     assert.ok(source.stops[0] <= 1.05, 'two show seconds must fit one real second at 2x');
     audio.sync(false, true, 6500, 40000);
     assert.equal(source.stops.at(-1), 0.025);
+    audio.dispose();
+});
+
+test('a recorded sfx: plays at its natural rate whatever the show speed', async t => {
+    installContext(t);
+    t.mock.method(globalThis, 'fetch', async () => new Response(new Uint8Array([1])));
+    t.mock.method(Context.prototype, 'decodeAudioData', function (this: Context) {
+        return Promise.resolve(this.createBuffer(1, 660, 100));
+    });
+    const audio = createShowAudio();
+    audio.unlock();
+    await audio.prepare();
+    const pound = episodeFrom('---\ntitle: Pound\n---\nDON: Look.\n[don: pound, sfx: desk-pound, 480ms]\nDON: Again.').audioCues.find(cue => cue.id === 'desk-pound')!;
+    audio.fire(pound, 2);
+    const source = Context.instances.at(-1)!.sources.at(-1)!;
+    assert.equal(source.playbackRate.value, 1);
+    assert.ok(Math.abs(source.stops[0] - (0.005 + 6.6 + 0.01)) < 1e-9, 'the whole recording plays');
     audio.dispose();
 });

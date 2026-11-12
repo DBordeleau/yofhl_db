@@ -277,10 +277,16 @@ export const SPEEDS: Record<string, number> = { fast: 1.3, faster: 1.55, slow: 0
 export const SHOTS = ['auto', 'wide', 'don', 'ron', 'monitor', 'close don', 'close ron'] as const;
 export type Shot = typeof SHOTS[number];
 
-export const REACTIONS = ['happy', 'shocked'] as const;
-export type Reaction = typeof REACTIONS[number];
+/** an fx: reaction, named by its entry in the effect registry */
+export type { Reaction } from './effects';
 
-export const SOUNDS = ['horn', 'whistle', 'buzzer', 'organ', 'sting', 'thud', 'desk-pound', 'happy-twinkle'] as const;
+// What a script may name in sfx:. Synthesized sounds are drawn in the browser; recorded ones are
+// files in the sound bank and play at their natural rate. An fx: reaction's own sound lives in
+// the effect registry (effects.ts), not here.
+export const SYNTH_SOUNDS = ['horn', 'whistle', 'buzzer', 'organ', 'sting', 'thud'] as const;
+export const RECORDED_SOUNDS = ['desk-pound'] as const;
+export type SynthSound = typeof SYNTH_SOUNDS[number];
+export const SOUNDS = [...SYNTH_SOUNDS, ...RECORDED_SOUNDS] as const;
 export type Sound = typeof SOUNDS[number];
 
 // Pinned on both hosts for a whole episode, chosen in the front matter.

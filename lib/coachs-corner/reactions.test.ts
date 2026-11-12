@@ -24,7 +24,35 @@ test('a shock replaces a happy reaction and ends its twinkle at the same show ti
     assert.equal(frameAt(tl, shocked.t).hosts.don.reaction?.effect, 'shocked');
     assert.equal(frameAt(tl, shocked.t + 800).hosts.don.reaction, null);
     assert.deepEqual(compileAudioCues(tl).filter(c => c.id === 'happy-twinkle'),
-        [{ t: happy.t, id: 'happy-twinkle', duration: 1000 }]);
+        [{ t: happy.t, id: 'happy-twinkle', followsShow: { duration: 1000 } }]);
+});
+
+const head = '---\ntitle: Effects\n---\n';
+
+test('reactions without a duration default to 4.5 s for happy and 800 ms for shocked', () => {
+    const tl = compile(parseScript(`${head}[fx: don happy, fx: ron shocked, 6s]\nDON: Good.`));
+    assert.deepEqual(tl.reactions.map(r => [r.effect, r.duration]), [['happy', 4500], ['shocked', 800]]);
+});
+
+test('the fx: error names every effect', () => {
+    const [error] = parseScript(`${head}[fx: don angry]\nDON: Good.`).diagnostics;
+    assert.match(error.message, /happy/);
+    assert.match(error.message, /shocked/);
+    assert.match(error.message, /100ms–12s/);
+});
+
+test('a happy reaction brings its twinkle and a shocked one stays silent', () => {
+    const tl = compile(parseScript(`${head}[fx: don happy 2s, 3s]\n[fx: ron shocked, 2s]\nDON: Good.`));
+    const reactionSounds = compileAudioCues(tl).filter(c => tl.reactions.some(r => r.t === c.t));
+    assert.deepEqual(reactionSounds, [{ t: tl.reactions[0].t, id: 'happy-twinkle', followsShow: { duration: 2000 } }]);
+});
+
+test('sfx: takes only the authoring sounds, not an effect’s twinkle', () => {
+    const script = parseScript(`${head}DON: Good.\n[sfx: happy-twinkle]\n[sfx: desk-pound]\nDON: Again.`);
+    assert.deepEqual(script.diagnostics.map(d => [d.line, d.severity]), [[5, 'error']]);
+    const [said, list] = script.diagnostics[0].message.split('Use one of:');
+    assert.match(said, /isn’t a sound/);
+    assert.equal(list.trim(), 'horn, whistle, buzzer, organ, sting, thud, desk-pound.');
 });
 
 test('particles restore the exact frame on seek and publish animation through silent holds', () => {

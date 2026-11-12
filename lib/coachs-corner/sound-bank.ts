@@ -1,8 +1,9 @@
 import { mediaUrl } from './media';
-import type { CharacterId, Sound } from './cast';
+import type { CharacterId, Sound, SynthSound } from './cast';
+import type { EffectSound } from './effects';
 
-export type SoundId = CharacterId | 'room' | 'tie' | 'monitor' | Sound;
-export type SynthId = 'classic-don' | 'classic-ron' | 'robot-don' | 'robot-ron' | 'studio-room' | 'tie-rustle' | 'monitor' | Exclude<Sound, 'desk-pound' | 'happy-twinkle'>;
+export type SoundId = CharacterId | 'room' | 'tie' | 'monitor' | Sound | EffectSound;
+export type SynthId = 'classic-don' | 'classic-ron' | 'robot-don' | 'robot-ron' | 'studio-room' | 'tie-rustle' | 'monitor' | SynthSound;
 export type SoundSource = { synth: SynthId } | { files: readonly string[] };
 export interface SoundSlot { source: SoundSource; gain: number }
 export type SoundBank = Record<SoundId, SoundSlot>;
