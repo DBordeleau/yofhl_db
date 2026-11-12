@@ -29,7 +29,7 @@ const JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE = '#37 on August 29, 2024';
 
 export async function generateMetadata({ params }: { params: Promise<{ ID: string }> }) {
     const player = await getPlayer(decodeURIComponent((await params).ID));
-    if (player && player.id === JOHNNY_GAUDREAU_ID) {
+    if (player?.id === JOHNNY_GAUDREAU_ID) {
         return {
             title: 'Remembering Johnny Gaudreau · YOFHL',
             description: 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.',

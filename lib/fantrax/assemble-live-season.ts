@@ -186,7 +186,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         });
     }
 
-    function assembleStandingRows(core: SourceCore, mapping: FantraxTeamRow[], franchises: Awaited<ReturnType<LiveSeasonSource['franchises']>>, archive: Set<string>) {
+    function assembleStandingRows(core: SourceCore, mapping: FantraxTeamRow[], franchises: Awaited<ReturnType<LiveSeasonSource['franchises']>>, archivedPlayerIds: Set<string>) {
         const franchiseFor = new Map(mapping.map(row => [row.fantraxTeamId, row.franchiseId]));
         const identities = new Map(franchises.map(franchise => [franchise.id, franchise]));
         const standings = new Map(core.standings.map(standing => [standing.teamId, standing]));
@@ -207,7 +207,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
                     return {
                         id: item.id, name: playerName(player?.name ?? item.id), position: player?.position ?? item.position,
                         // Fantrax gives a free agent's NHL team as "(N/A)".
-                        lineupPosition: item.position, nhlTeam: player?.team === '(N/A)' ? 'FA' : player?.team ?? '—', status: item.status, inArchive: archive.has(item.id),
+                        lineupPosition: item.position, nhlTeam: player?.team === '(N/A)' ? 'FA' : player?.team ?? '—', status: item.status, inArchive: archivedPlayerIds.has(item.id),
                     };
                 }).sort((a, b) => a.name.localeCompare(b.name)),
             };
@@ -217,11 +217,11 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
     }
 
     async function loadCore(fresh: boolean) {
-        const [core, mapping, franchises, archive] = await Promise.all([
+        const [core, mapping, franchises, archivedPlayerIds] = await Promise.all([
             source.core({ fresh }), source.fantraxTeams(), source.franchises(), source.archivedPlayerIds(),
         ]);
         const fantraxLeagueId = liveFantraxLeagueId(mapping);
-        return { core, mapping, franchises, archive: new Set(archive), fantraxLeagueId, manual: await source.manualFinalWeeks(core.seasonYear) };
+        return { core, mapping, franchises, archivedPlayerIds: new Set(archivedPlayerIds), fantraxLeagueId, manual: await source.manualFinalWeeks(core.seasonYear) };
     }
 
     /**
@@ -239,9 +239,9 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
             const fantraxLeagueId = await source.fantraxTeams().then(liveFantraxLeagueId).catch(() => null);
             return { status: 'unavailable', fantraxLeagueId };
         }
-        const { core, mapping, franchises, archive, fantraxLeagueId, manual } = loaded;
+        const { core, mapping, franchises, archivedPlayerIds, fantraxLeagueId, manual } = loaded;
         const weeks = assembleWeeks(core, manual, now);
-        const ranked = assembleStandingRows(core, mapping, franchises, archive);
+        const ranked = assembleStandingRows(core, mapping, franchises, archivedPlayerIds);
         const teams = ranked.map(row => row.team);
         const rows = ranked.map((row, index) => ({
             ...row, bye: index < PLAYOFF_FORMAT.byes,
@@ -256,7 +256,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
                 const raw = await source.scoringLeaders(core);
                 return { fetchedAt: raw.fetchedAt, players: raw.players.map(player => ({
                     id: player.id, name: player.name, position: player.position, points: player.points, perGame: player.perGame,
-                    team: teams.find(team => team.id === player.teamId) ?? null, fantraxTeam: player.team, inArchive: archive.has(player.id),
+                    team: teams.find(team => team.id === player.teamId) ?? null, fantraxTeam: player.team, inArchive: archivedPlayerIds.has(player.id),
                 })) };
             }),
             section('roster stats', () => source.rosterStats(core)),
