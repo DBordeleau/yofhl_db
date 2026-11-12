@@ -15,7 +15,7 @@ async function main() {
     for (const [year, leagueId] of seasons) {
         const file = `data/${year - 1}-${year} Player Stats.csv`;
         const archive = (parse(await readFile(file, 'utf8'), { columns: true, skip_empty_lines: true, bom: true }) as { ID: string; Position: string; FPts: string }[])
-            .map((p, i) => ({ ...p, id: csvPlayerId(p.ID, file, i + 2) }));
+            .map((p, i) => ({ ...p, id: csvPlayerId(p.ID, file, i) }));
         const ids = new Set(archive.filter(p => !p.Position.split(',').includes('G')).map(p => p.id));
         const found = new Set<string>(), allIds = new Set<string>();
         let pageCount = 1, total = 0, seasonCode: string | undefined;

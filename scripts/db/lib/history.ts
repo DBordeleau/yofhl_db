@@ -94,14 +94,14 @@ export function prepareHistory(dataDir: string, config: LeagueConfig, years?: nu
         const [header, ...records] = csv(file);
         const col = (name: string) => { const i = header.indexOf(name); if (i < 0) throw new Error(`${file}: missing ${name}`); return i; };
         records.forEach((row, i) => {
-            const identity = { id: csvPlayerId(row[col('ID')], file, i + 2), name: row[col('Player')], season: fileYear(file), teams: row[col('Team')].split('/'), positions: row[col('Position')].split(',') };
+            const identity = { id: csvPlayerId(row[col('ID')], file, i), name: row[col('Player')], season: fileYear(file), teams: row[col('Team')].split('/'), positions: row[col('Position')].split(',') };
             catalog.push(identity);
             identities.set(identity.id, identity.name);
         });
     }
     // Draft exports supply ids even for prospects missing from the season's player export.
     for (const file of drafts) csv(file).slice(1).forEach((row, i) => {
-        const id = csvDraftSelection(row[0], file, i + 2);
+        const id = csvDraftSelection(row[0], file, i);
         if (!id) return;
         catalog.push({ id, name: row[5], season: fileYear(file), teams: row[6].split('/'), positions: row[4].split(',') });
         if (!identities.has(id)) identities.set(id, row[5]);
@@ -163,7 +163,7 @@ export function prepareHistory(dataDir: string, config: LeagueConfig, years?: nu
             const round = Number(row[1]), pick = Number(row[2]), number = Number(row[3]);
             if (![round, pick, number].every((v) => Number.isInteger(v) && v > 0) || overall.has(number)) throw new Error(`${file}: invalid or duplicate pick ${row[3]}`);
             overall.add(number);
-            const playerId = csvDraftSelection(row[0], file, i + 2);
+            const playerId = csvDraftSelection(row[0], file, i);
             if (playerId) used.add(playerId);
             if (playerId && !row[7]) throw new Error(`${file}: player at pick ${number} has no team`);
             result.picks.push({ seasonYear: year, overall: number, round, pick, franchiseId: row[7] ? franchiseFor(config, row[7], year) : null, teamName: row[7] || null, playerId, playerName: row[5] || null, positions: row[4], nhlTeam: row[6], draftedOn: exportDate(row[8]).occurredOn, sourceTime: row[8], sourceFile: path.basename(file) });
