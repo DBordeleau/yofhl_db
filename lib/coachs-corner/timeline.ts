@@ -1,4 +1,4 @@
-import { CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
+import { actionInWardrobeOf, CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
 import type { Cue, Graphic, Meta, Script, Span } from './script';
 import { spokenForm } from './spoken-numbers';
 import { INTRO_MS, phaseAt, type Phase } from './transport';
@@ -164,7 +164,9 @@ export function compile(script: Script): Timeline {
         const t0 = t;
         const words: Word[] = [];
         let inlineGesture: string | undefined;
-        let lastGesture = rest[who];
+        // a line or span naming no gesture keeps the wardrobe the host is holding as the line starts
+        const held = rest[who];
+        let lastGesture = held;
         let pendingSpace = '';
         let lastDelivery: Delivery | null = null;
 
@@ -173,7 +175,8 @@ export function compile(script: Script): Timeline {
             const style = DELIVERIES[delivery];
             const rate = span.wpm ?? event.style.wpm ?? meta.pace * style.speed * (span.speed ?? 1) * (event.style.speed ?? 1);
             const slot = 60000 / rate;
-            const gesture = span.gesture ?? inlineGesture ?? event.style.gesture ?? CAST[who].deliveryGestures[delivery] ?? 'rest';
+            const gesture = span.gesture ?? inlineGesture ?? event.style.gesture
+                ?? actionInWardrobeOf(who, CAST[who].deliveryGestures[delivery] ?? 'rest', held);
 
             for (const token of text.split(/(\s+)/)) {
                 if (!token) continue;
