@@ -32,7 +32,7 @@ const categories = new Map(playerCategories.players.map(p => [`${p.id}:${p.year}
 const games = regularSeason.games.map(g => ({ ...g, stage: 'regular' as const }));
 export async function getRecordSource(): Promise<RecordSource> {
     const archive = await getRecordArchive();
-    return { ...archive, players: archive.players.map(p => ({ ...p, stats: categories.get(`${p.id.replace(/\*/g, '')}:${p.year}`) })), games, periods };
+    return { ...archive, players: archive.players.map(p => ({ ...p, stats: categories.get(`${p.id}:${p.year}`) })), games, periods };
 }
 
 export async function getRecordBook(filter: { team?: number; position?: string; format?: string; stat?: PlayerStat } = {}) {

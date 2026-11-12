@@ -64,7 +64,7 @@ function createLoader(newestYear: number): DraftFactsLoader {
     const cachePath = `.cache/draft-development/${newestYear}`;
     return async (pick, nhlId) => {
         await mkdir(cachePath, { recursive: true });
-        const cacheId = pick.playerId!.replace(/\*/g, '');
+        const cacheId = pick.playerId!;
         if (!/^[a-zA-Z0-9]+$/.test(cacheId)) throw new Error('Invalid Fantrax identity');
         let profile = profiles.get(pick.playerId!);
         if (!profile) {

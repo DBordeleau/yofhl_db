@@ -4,7 +4,7 @@ status: accepted
 
 # Player IDs are stored bare
 
-The database stores a player ID the way Fantrax's API and every site URL write it (`02b81`), not the way Fantrax's CSV exports do (`*02b81*`). The asterisks are stripped once, where the CSVs and seed files are read, and a migration rewrote the existing keys. Before this, storage held the wrapped form and the live season, URLs, search, Coach's Corner and keepers held the bare one, so about ten places converted between them by slightly different rules and kept consistent only by comments.
+The database stores a player ID the way Fantrax's API and every site URL write it (`02b81`), not the way Fantrax's CSV exports do (`*02b81*`). The asterisks are stripped once, where the CSVs are read; the repo's seed files were rewritten bare on disk, and a migration rewrote the existing keys. Before this, storage held the wrapped form and the live season, URLs, search, Coach's Corner and keepers held the bare one, so about ten places converted between them by slightly different rules and kept consistent only by comments.
 
 ## Considered Options
 

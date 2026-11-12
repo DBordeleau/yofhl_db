@@ -108,6 +108,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
     await client.exec("insert into league.players values ('plain', 'Plain ID');");
     assert.equal((await league.getPlayer('plain'))?.name, 'Plain ID');
     assert.equal(await league.getPlayer('missing-player'), null);
+    assert.equal(await league.getPlayer('*plain*'), null, 'a wrapped player ID is an unknown player');
     await client.exec(`
         insert into league.seasons values (2020, '2019–20', 'cancelled'), (2027, '2026–27', 'complete');
         insert into league.owners (id, name) values (1, 'Former Owner'), (2, 'New Owner');

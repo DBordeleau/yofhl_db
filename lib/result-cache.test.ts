@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createResultCache } from './result-cache';
 import { publicJson } from './public-json';
-import { playerHref, playerSlug } from './player-url';
+import { playerHref } from './player-url';
 
 test('revisiting filters reuses results until their original freshness deadline', async t => {
     let now = 1000;
@@ -55,9 +55,7 @@ test('public JSON caches only at the CDN, for a bounded minute', async () => {
     assert.deepEqual(await response.json(), { value: 7 });
 });
 
-test('player links remove Fantrax wrappers and retain ordinary IDs', () => {
-    assert.equal(playerHref('*02b81*'), '/player/02b81');
-    assert.equal(playerSlug('*02b81*'), '02b81');
-    assert.equal(playerHref('1234'), '/player/1234');
+test('player links URL-encode the player ID', () => {
+    assert.equal(playerHref('02b81'), '/player/02b81');
     assert.equal(playerHref('name with space'), '/player/name%20with%20space');
 });

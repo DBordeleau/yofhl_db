@@ -100,7 +100,7 @@ export async function playerSnapshot(season: number | null, refs: PlayerRef[], {
 }): Promise<PlayerSnapshot> {
     const names = [...new Set(refs.map(ref => key(ref.name)))].filter(Boolean);
     const found = season === null || !names.length ? [] : (await query(sql`
-        select replace(p.id, '*', '') as id, p.name, ps.nhl_team as "nhlTeam", ps.positions,
+        select p.id, p.name, ps.nhl_team as "nhlTeam", ps.positions,
                ps.fpts::float8 as fpts, ps.fpg::float8 as fpg
         from league.players p join league.player_seasons ps on ps.player_id = p.id
         where ps.season_year = ${season} and lower(trim(p.name)) in ${names}

@@ -144,7 +144,7 @@ Use repeated `player` parameters in selection order and one metric parameter:
 /compare/players?player=<canonical-id-1>&player=<canonical-id-2>&metric=fpg
 ```
 
-`player` accepts one to five distinct canonical player IDs. Use `playerSlug` for URL values, keeping database IDs unchanged. `metric` accepts `fpts` or `fpg`, with `fpts` as the default and omitted from canonical URLs. Names, computed statistics, chart colours, and session data do not belong in the URL.
+`player` accepts one to five distinct canonical player IDs. Player IDs go into the URL as stored. `metric` accepts `fpts` or `fpg`, with `fpts` as the default and omitted from canonical URLs. Names, computed statistics, chart colours, and session data do not belong in the URL.
 
 Preserve selection order so card order and series colours match the sender's view. Do not alphabetize IDs during canonicalization. Deduplicate after normalizing starred and unstarred IDs. Reject malformed or overlong identifiers before lookup and keep at most the first five valid unique selections, with an inline explanation if the URL exceeded the limit.
 

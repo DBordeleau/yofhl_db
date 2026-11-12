@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { getFranchiseCards, getSeasonArchive } from './league';
 import { leagueTags } from './cache-tags';
-import { playerHref, playerSlug } from '../player-url';
+import { playerHref } from '../player-url';
 import { seasonLabel } from '../league';
 import { AWARDS, awardHref } from '../awards';
 import { normalizeSearch, searchDirectory, type SearchEntry, type SearchState } from '../search/model';
@@ -22,14 +22,7 @@ export const getSearchDirectory = cached(async (): Promise<SearchEntry[]> => {
             order by st.season_year`),
         getSeasonArchive(),
     ]);
-    // Match getPlayer's preference for an exact, unwrapped ID if legacy IDs collide.
-    const seen = new Set<string>();
-    const uniquePlayers = players.sort((a, b) => Number(a.id !== playerSlug(a.id)) - Number(b.id !== playerSlug(b.id))).filter(player => {
-        const id = playerSlug(player.id);
-        if (seen.has(id)) return false;
-        seen.add(id); return true;
-    });
-    const entries: SearchEntry[] = uniquePlayers.map(player => ({ kind: 'players', id: playerSlug(player.id),
+    const entries: SearchEntry[] = players.map(player => ({ kind: 'players', id: player.id,
         title: player.name, href: playerHref(player.id),
         subtitle: [player.positions?.join(' · '), player.seasons ? `${player.seasons} archive ${player.seasons === 1 ? 'season' : 'seasons'}` : 'No career statistics yet'].filter(Boolean).join(' · '),
         careerPoints: player.careerPoints,

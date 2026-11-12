@@ -7,7 +7,7 @@ import { awardShareCard, comparisonShareCard, playerShareCard, seasonShareCard, 
 import type { RivalryGame } from '../rivalries/model';
 
 test('player card uses the displayed archive totals and groups trophies, and cancelled seasons never invent champions', () => {
-    const player: PlayerProfile = { id: '*one*', name: 'Player', rank: null, totalFPts: 123.45, fpg: 1.23, seasons: 0, positions: [], team: null, playerStats: [],
+    const player: PlayerProfile = { id: 'one', name: 'Player', rank: null, totalFPts: 123.45, fpg: 1.23, seasons: 0, positions: [], team: null, playerStats: [],
         awards: [2021, 2023].map(Year => ({ Award: 'Wayne Gretzky Award', label: 'Wayne Gretzky Award', description: '', Year })), championships: [] };
     const card = playerShareCard(player);
     assert.equal(card.href, '/player/one');
@@ -54,7 +54,7 @@ test('team card respects stage and orientation, reports ties and lists meetings 
 });
 
 test('steal card links to the season steals and carries the climb', () => {
-    const steal = { overall: 36, round: 3, pick: 12, player: 'Mika Zibanejad', playerId: '*x*', positions: 'C', points: 447, fpg: 5.52, value: 447, rank: 3, movement: 33,
+    const steal = { overall: 36, round: 3, pick: 12, player: 'Mika Zibanejad', playerId: 'x', positions: 'C', points: 447, fpg: 5.52, value: 447, rank: 3, movement: 33,
         regretEligible: false, franchiseId: 13, teamName: 'Hall Monitors', teamAbbreviation: 'HUNG', teamLogo: null } as unknown as RankedPick;
     const card = stealShareCard(2026, steal, 1, 10, 96, 8);
     assert.equal(card.href, '/season/2026?draft=steals#draft-class');
