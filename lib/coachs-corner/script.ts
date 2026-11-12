@@ -1,7 +1,8 @@
 import {
-    CAST, CHARACTERS, gestureHelp, LAPELS, REACTIONS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
+    CAST, CHARACTERS, gestureHelp, LAPELS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
     type CharacterId, type Delivery, type Lapel, type Reaction, type Shot, type Sound,
 } from './cast';
+import { EFFECTS } from './effects';
 
 // Parser for Coach's Corner screenplays. The format is documented in docs/coachs-corner.md; in short:
 //
@@ -93,6 +94,14 @@ export interface Script {
 
 export const DEFAULT_PACE = 198;
 const NAMED_PAUSES: Record<string, number> = { beat: 450, pause: 1000, 'long pause': 2400 };
+
+/** one example per effect at its default length, taking turns between the hosts */
+const FX_HELP = (() => {
+    const examples = Object.entries(EFFECTS).map(([effect, { defaultMs }], i) =>
+        `fx: ${CHARACTERS[i % CHARACTERS.length]} ${effect} ${defaultMs >= 1000 ? `${defaultMs / 1000}s` : `${defaultMs}ms`}`);
+    const last = examples.pop();
+    return `Use ${examples.length ? `${examples.join(', ')} or ${last}` : last}; duration must be 100ms–12s.`;
+})();
 
 const parseDuration = (raw: string): number | null => {
     const m = raw.trim().match(/^(\d+(?:\.\d+)?)\s*(ms|s|sec|secs|seconds?)?$/i);
@@ -360,10 +369,11 @@ const parseCues = (raw: string, ctx: CueContext): Cue[] => {
             const value = kv[2].trim();
             if (key === 'fx') {
                 const [who, effect, ...durationParts] = value.toLowerCase().split(/\s+/);
-                const duration = durationParts.length ? parseDuration(durationParts.join(' ')) : effect === 'happy' ? 4500 : 800;
-                if (!(CHARACTERS as readonly string[]).includes(who) || !(REACTIONS as readonly string[]).includes(effect) ||
+                const known = Object.hasOwn(EFFECTS, effect);
+                const duration = durationParts.length ? parseDuration(durationParts.join(' ')) : known ? EFFECTS[effect as Reaction].defaultMs : null;
+                if (!(CHARACTERS as readonly string[]).includes(who) || !known ||
                     duration === null || duration < 100 || duration > 12000) {
-                    ctx.report('error', 'Use fx: don happy 4.5s or fx: ron shocked 800ms; duration must be 100ms–12s.');
+                    ctx.report('error', FX_HELP);
                 } else cues.push({ type: 'reaction', who: who as CharacterId, effect: effect as Reaction, duration });
                 continue;
             }
