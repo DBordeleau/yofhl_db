@@ -29,7 +29,7 @@ test('the migration stores every player ID bare, keeps every reference joining a
         INSERT INTO league.transaction_assets (id, event_id, player_id, label, asset_kind, action, from_franchise_id, to_franchise_id, source_row) VALUES
             ('a1', 'trade', '*0aa01*', 'Ann Able', 'player', 'trade', 1, NULL, 2), ('a2', 'trade', NULL, '2026 Draft Pick, Round 1', 'pick', 'trade', NULL, 1, 3);
     `);
-    await migrateRest();
+    await migrateRest('0022');
 
     const rows = async (query: string) => (await client.query<Record<string, unknown>>(query)).rows;
     assert.deepEqual(await rows('select id, name from league.players order by id'), [
@@ -68,7 +68,7 @@ test('the migration stops and changes nothing when two player IDs would be the s
     };
     const before = await snapshot();
 
-    await assert.rejects(migrateRest(), /\*0aa01\* and 0aa01/);
+    await assert.rejects(migrateRest('0022'), /\*0aa01\* and 0aa01/);
     assert.deepEqual(await snapshot(), before);
     await client.query("INSERT INTO league.players (id, name) VALUES ('*0aa09*', 'Dee Dunn')");
 });
