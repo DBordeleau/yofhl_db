@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HostArtwork } from '../../components/coachs-corner/artwork';
 import { compileAudioCues } from './audio-cues';
-import { actionsOf, allArt, artFor, CAST, CHARACTERS, gestureAfter, resolveGesture, wardrobesOf, type CharacterId } from './cast';
+import { actionInWardrobeOf, actionsOf, allArt, artFor, CAST, CHARACTERS, gestureAfter, resolveGesture, wardrobesOf, type CharacterId } from './cast';
 import { parseScript } from './script';
 import { compile, frameAt, frameSignature } from './timeline';
 
@@ -19,15 +19,51 @@ test('ordinary dialogue and default aliases keep the original normal suit', () =
         assert.equal(artFor('don', gesture!, { mouth: 'closed' }), 'don-default');
         assert.equal(artFor('don', gesture!, { mouth: 'open' }), 'don-talk');
     }
-    for (const variant of variants) {
-        const script = parseScript(head + `[don: ${variant}-rest]\nDON (${variant}-point): A change of suit.\nDON: Back to normal.\nDON (yell): Same suit!`);
+    const script = parseScript(head + `DON: Plain.\nDON (yell): Loud!\nDON: Quiet {yell: then loud!}`);
+    assert.deepEqual(script.diagnostics, []);
+    const tl = compile(script);
+    assert.equal(frameAt(tl, tl.lines[0].t0).hosts.don.gesture, 'rest');
+    assert.equal(frameAt(tl, tl.lines[1].t0).hosts.don.gesture, 'angry');
+    assert.equal(frameAt(tl, tl.lines[2].words[1].t).hosts.don.gesture, 'angry');
+    assert.equal(artFor('don', 'angry', { mouth: 'open' }), 'don-angry-talk');
+});
+
+for (const variant of variants) {
+    test(`lines naming no gesture keep ${variant} after a stage cue`, () => {
+        const script = parseScript(head + `[don: ${variant}-rest]\nDON: Same suit.\nDON (yell): Same suit!\nDON: Still {yell: the same suit!}`);
+        assert.deepEqual(script.diagnostics, []);
+        const tl = compile(script);
+        assert.equal(frameAt(tl, tl.lines[0].t0).hosts.don.gesture, `${variant}-rest`);
+        assert.equal(frameAt(tl, tl.lines[1].t0).hosts.don.gesture, `${variant}-angry`);
+        assert.equal(frameAt(tl, tl.lines[2].words[0].t).hosts.don.gesture, `${variant}-rest`);
+        assert.equal(frameAt(tl, tl.lines[2].words[1].t).hosts.don.gesture, `${variant}-angry`);
+    });
+
+    test(`a plain line after a ${variant} line keeps the wardrobe, and an unprefixed gesture returns to normal`, () => {
+        const script = parseScript(head + `DON (${variant}-point): A change of suit.\nDON: Same suit.\nDON (point): Back to normal.\nDON: Still normal.\nDON (yell): Normal and loud!`);
         assert.deepEqual(script.diagnostics, []);
         const tl = compile(script);
         assert.equal(frameAt(tl, tl.lines[0].t0).hosts.don.gesture, `${variant}-point`);
-        assert.equal(frameAt(tl, tl.lines[1].t0).hosts.don.gesture, 'rest');
-        assert.equal(frameAt(tl, tl.lines[2].t0).hosts.don.gesture, 'angry');
+        assert.equal(frameAt(tl, tl.lines[1].t0).hosts.don.gesture, `${variant}-rest`);
+        assert.equal(frameAt(tl, tl.lines[2].t0).hosts.don.gesture, 'point');
+        assert.equal(frameAt(tl, tl.lines[3].t0).hosts.don.gesture, 'rest');
+        assert.equal(frameAt(tl, tl.lines[4].t0).hosts.don.gesture, 'angry');
+    });
+}
+
+test('Ron keeps his delivery defaults while Don wears another wardrobe', () => {
+    const script = parseScript(head + `[don: remembrance-rest]\nRON: Hm.\nRON (deadpan): Sure.`);
+    assert.deepEqual(script.diagnostics, []);
+    const tl = compile(script);
+    assert.equal(frameAt(tl, tl.lines[0].t0).hosts.ron.gesture, 'rest');
+    assert.equal(frameAt(tl, tl.lines[1].t0).hosts.ron.gesture, 'skeptical');
+});
+
+test('every delivery gesture is an action each wardrobe has', () => {
+    for (const who of CHARACTERS) for (const wardrobe of wardrobesOf(who)) for (const action of Object.values(CAST[who].deliveryGestures)) {
+        assert.ok(CAST[who].gestures[actionInWardrobeOf(who, action!, `${wardrobe.prefix}rest`)], `${who} ${wardrobe.id} ${action}`);
     }
-    assert.equal(artFor('don', 'angry', { mouth: 'open' }), 'don-angry-talk');
+    assert.throws(() => actionInWardrobeOf('don', 'moonwalk', 'rest'), /no moonwalk action/);
 });
 
 for (const variant of variants) {
