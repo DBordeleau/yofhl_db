@@ -37,11 +37,19 @@ const report = (title: string, diffs: string[], checked: number) => {
 
 interface LivePlayer { ID: string; Player: string; FPts: number; FPG: string; Year?: number; ChampionshipsWon?: number; hasAward?: boolean; hasMultipleAwards?: boolean; Champion?: boolean }
 
+// The old site's API is an external source that writes player IDs wrapped (*02b81*), as the Fantrax CSVs do.
+// `id` is the bare form the database stores (docs/adr/0006-player-ids-are-stored-bare.md); `ID` stays wrapped
+// for requests back to that API.
+const livePlayers = async <T extends { players: LivePlayer[] }>(path: string) => {
+    const body = await live<T>(path);
+    return { ...body, players: body.players.map((p) => ({ ...p, id: p.ID.replace(/^\*(.*)\*$/, '$1') })) };
+};
+
 const main = async () => {
     const { db, label, close: closeDb } = await connect();
     try {
         const [{ max }] = await queryRows<{ max: number }>(db, sql`select max(season_year)::int as max from league.player_seasons`);
-        const liveSingle = await live<{ players: LivePlayer[]; maxPages: number }>('/stats/single-season/all?page=1');
+        const liveSingle = await livePlayers<{ players: LivePlayer[]; maxPages: number }>('/stats/single-season/all?page=1');
         const liveLast = Math.max(...liveSingle.players.map((p) => p.Year ?? 0), 2025);
         const upTo = Math.min(max, liveLast);
         console.log(`Comparing ${label} with ${LIVE_API} for seasons up to ${seasonLabel(upTo)}`);
@@ -61,8 +69,8 @@ const main = async () => {
 
         // all-time leaderboard, first two pages
         const liveAllTime = [
-            ...(await live<{ players: LivePlayer[] }>('/stats/all-time/all?page=1')).players,
-            ...(await live<{ players: LivePlayer[] }>('/stats/all-time/all?page=2')).players,
+            ...(await livePlayers('/stats/all-time/all?page=1')).players,
+            ...(await livePlayers('/stats/all-time/all?page=2')).players,
         ];
         const ourAllTime = await queryRows<{ player_id: string; total: number; fpg: number; cups: number }>(db, sql`
             select ps.player_id, sum(ps.fpts)::float as total, round(avg(ps.fpg), 2)::float as fpg,
@@ -71,7 +79,7 @@ const main = async () => {
             group by ps.player_id order by total desc limit ${liveAllTime.length}`);
         report('All-time leaderboard top 50 (order, FPts, FP/G, cups)', liveAllTime.flatMap((p, i) => {
             // players tied on points can be listed in either order
-            const o = ourAllTime[i]?.player_id === p.ID ? ourAllTime[i] : ourAllTime.find((r) => r.player_id === p.ID && close(r.total, ourAllTime[i]?.total ?? NaN));
+            const o = ourAllTime[i]?.player_id === p.id ? ourAllTime[i] : ourAllTime.find((r) => r.player_id === p.id && close(r.total, ourAllTime[i]?.total ?? NaN));
             const diffs = [];
             if (!o) diffs.push(`#${i + 1}: old ${p.Player}, new ${ourAllTime[i]?.player_id}`);
             else {
@@ -83,7 +91,7 @@ const main = async () => {
         }), liveAllTime.length);
 
         // single-season leaderboard, first two pages
-        const liveSeasons = [...liveSingle.players, ...(await live<{ players: LivePlayer[] }>('/stats/single-season/all?page=2')).players];
+        const liveSeasons = [...liveSingle.players, ...(await livePlayers('/stats/single-season/all?page=2')).players];
         const ourSeasons = await queryRows<{ player_id: string; season_year: number; fpts: number; fpg: number; awards: number; champion: boolean }>(db, sql`
             select ps.player_id, ps.season_year, ps.fpts::float as fpts, ps.fpg::float as fpg,
                    (select count(*)::int from league.awards a where a.player_id = ps.player_id and a.season_year = ps.season_year) as awards,
@@ -91,7 +99,7 @@ const main = async () => {
             from league.player_seasons ps where ps.fpts > 0 and ps.season_year <= ${upTo}
             order by ps.fpts desc limit ${liveSeasons.length}`);
         report('Single-season leaderboard top 50 (order, FPts, FP/G, award and ring markers)', liveSeasons.flatMap((p, i) => {
-            const o = ourSeasons.find((r) => r.player_id === p.ID && r.season_year === p.Year);
+            const o = ourSeasons.find((r) => r.player_id === p.id && r.season_year === p.Year);
             if (!o) return [`${p.Player} ${p.Year} missing`];
             const diffs = [];
             if (!close(o.fpts, p.FPts)) diffs.push(`${p.Player} ${p.Year} FPts: old ${p.FPts}, new ${o.fpts}`);
@@ -143,7 +151,7 @@ const main = async () => {
                 select ps.season_year, ps.fpts::float as fpts, t.abbreviation,
                        exists (select 1 from league.championship_rosters c where c.player_id = ps.player_id and c.season_year = ps.season_year) as champion
                 from league.player_seasons ps left join league.team_seasons t on t.id = ps.team_season_id
-                where ps.player_id = ${p.ID} and ps.season_year <= ${upTo}`);
+                where ps.player_id = ${p.id} and ps.season_year <= ${upTo}`);
             for (const season of playerStats) {
                 careerRows++;
                 const o = ours.find((r) => r.season_year === season.Year);
