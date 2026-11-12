@@ -12,7 +12,7 @@ The database stores a player ID the way Fantrax's API and every site URL write i
 
 ## Consequences
 
-- A wrapped ID anywhere past the Fantrax adapter is a bug, not a second valid form. Nothing tries to match one form against the other.
+- A wrapped ID anywhere past the Fantrax CSV reading code is a bug, not a second valid form. Nothing tries to match one form against the other.
 - No real player ever had both forms, so there is no tie-break between a bare and a wrapped ID.
 - A live player is "in the archive" when their Player ID is a stored player. That is worked out when the live season is read, never saved in the Fantrax snapshot, so imports can't leave it stale.
 - Production was migrated before the code that assumes bare IDs was merged. The code before this change already accepted bare IDs.

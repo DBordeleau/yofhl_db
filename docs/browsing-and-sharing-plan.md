@@ -146,7 +146,7 @@ Use repeated `player` parameters in selection order and one metric parameter:
 
 `player` accepts one to five distinct canonical player IDs. Player IDs go into the URL as stored. `metric` accepts `fpts` or `fpg`, with `fpts` as the default and omitted from canonical URLs. Names, computed statistics, chart colours, and session data do not belong in the URL.
 
-Preserve selection order so card order and series colours match the sender's view. Do not alphabetize IDs during canonicalization. Deduplicate after normalizing starred and unstarred IDs. Reject malformed or overlong identifiers before lookup and keep at most the first five valid unique selections, with an inline explanation if the URL exceeded the limit.
+Preserve selection order so card order and series colours match the sender's view. Do not alphabetize IDs during canonicalization. Deduplicate repeated IDs; player IDs are stored bare ([ADR 0006](adr/0006-player-ids-are-stored-bare.md)), so there is no starred form to normalize. Reject malformed or overlong identifiers before lookup and keep at most the first five valid unique selections, with an inline explanation if the URL exceeded the limit.
 
 | URL or interaction | Required behavior |
 | --- | --- |
@@ -288,7 +288,7 @@ Use the existing Node test runner and PGlite patterns. Test behavior through the
 | --- | --- |
 | Search | Case/diacritic normalization, two-character threshold, exact versus prefix ranking, renamed franchises, abbreviation matches, current and older award names, defunct teams, season ranges, pagination, and empty results. |
 | Public data | Search results contain no private account fields; team rename and import invalidation update discovery; unavailable archive seasons cannot produce broken links. |
-| URL state | Round-trip serialization, starred/unstarred deduplication, preserved order, zero/one/five/six players, malformed IDs, unknown IDs, invalid metric, and repeated query values. |
+| URL state | Round-trip serialization, duplicate-ID deduplication, preserved order, zero/one/five/six players, malformed IDs, unknown IDs, invalid metric, and repeated query values. |
 | Comparison loading | Concurrent resolution, non-OK responses, aborted selection changes, removal during fetch, and restoration from navigation. |
 | Shared chart model | Shared years, no overlap, sparse stats, existing zero/null handling, metric switching, and identical export series. |
 | Explore next | Missing team, cancelled season, no award, no champion, duplicate links, no self-link, and valid section anchors. |

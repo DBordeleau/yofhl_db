@@ -71,7 +71,7 @@ The Quarterfinals, Semifinals or Final, each one week.
 ## Players
 
 **Player ID**:
-Fantrax's identifier for a player (`02b81`), the same in the archive, the live season, URLs and scripts. Fantrax's CSV exports wrap it in asterisks (`*02b81*`); that wrapped form never leaves the Fantrax adapter.
+Fantrax's identifier for a player (`02b81`), the same in the archive, the live season, URLs and scripts. Fantrax's CSV exports wrap it in asterisks (`*02b81*`); the Fantrax CSV reading code strips them, and that wrapped form never gets past it.
 _Avoid_: archive ID, Fantrax ID (as if they were different things), slug
 
 ## Importing

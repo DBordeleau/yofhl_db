@@ -168,7 +168,7 @@ The lottery uses uncached reads and server time instead of the league cache. Its
 
 [db/schema.ts](../db/schema.ts) defines the tables. [db/migrations](../db/migrations/) contains the SQL history, including the materialized views and the team identity views.
 
-Migration 0022 (`bare_player_ids`) rewrote every stored player ID and every reference to one from `*02b81*` to `02b81`, refreshed the materialized views, and added a check that rejects a player ID containing `*`. If two stored IDs are the same once stripped, it stops with both IDs named and changes nothing; decide by hand which player each one is before running it again.
+Migration `0022_bare_player_ids` rewrote every stored player ID and every reference to one from `*02b81*` to `02b81`, refreshed the materialized views, and added a check that rejects a player ID containing `*`. If two stored IDs are the same once stripped, it stops with both IDs named and changes nothing; decide by hand which player each one is before running it again.
 
 Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-database-views.md)); every query that shows a team joins one of them instead of repeating the fallback. They store nothing and need no refresh.
 
