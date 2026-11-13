@@ -24,6 +24,34 @@ test("Next's real unstable_cache serves a cached() loader's second read and rere
     assert.equal(league.queries(), afterFirstRead + 1, 'an expired tag makes the next read query again');
 });
 
+test('writeInOrder runs its statements in order as one transaction and keeps none of them when one fails', async t => {
+    const league = await disposableLeague(t, { app: true, seed: SEED });
+    const { sql } = await import('drizzle-orm');
+    const { writeInOrder } = await import('../data/db');
+    const years = async () => (await league.client.query<{ year: number }>('select year from league.seasons order by year')).rows.map(row => row.year);
+
+    const [inserted, counted] = await writeInOrder<[{ year: number }, { count: number }]>([
+        sql`insert into league.seasons values (2027, '2026–27', 'complete') returning year`,
+        sql`select count(*)::int as count from league.seasons`,
+    ]);
+    assert.deepEqual(inserted, [{ year: 2027 }]);
+    assert.deepEqual(counted, [{ count: 2 }], 'the second statement sees the first one\'s write');
+
+    league.failNextQuery('2029', Object.assign(new Error('connection lost'), { code: '08006' }));
+    await assert.rejects(writeInOrder([
+        sql`insert into league.seasons values (2028, '2027–28', 'complete')`,
+        sql`insert into league.seasons values (2029, '2028–29', 'complete')`,
+    ]), /connection lost/);
+    assert.deepEqual(await years(), [2026, 2027], 'the first write is rolled back with the failed one');
+
+    await assert.rejects(writeInOrder([
+        sql`insert into league.seasons values (2030, '2029–30', 'complete')`,
+        sql`insert into league.seasons values (2026, '2025–26', 'complete')`,
+    ]), (error: Error) => (error.cause as { code?: string })?.code === '23505');
+    assert.deepEqual(await years(), [2026, 2027], 'a constraint failure rolls back too');
+    assert.deepEqual(await (await import('../data/db')).rows(sql`select 1 as one`), [{ one: 1 }], 'the app reads normally afterwards');
+});
+
 test('a league puts back the env, the two globals and fetch once its test ends', async t => {
     const url = Object.getOwnPropertyDescriptor(process.env, 'DATABASE_URL_V2');
     const mode = process.env.NODE_ENV;
@@ -52,13 +80,13 @@ test('a league puts back the env, the two globals and fetch once its test ends',
     assert.equal(globalThis.fetch, fetchBefore);
 });
 
-// What only this module may do: build a PGlite, stand in for Next's cache backend, or replace the app's execute.
+// What only this module may do: build a PGlite, stand in for Next's cache backend, or replace the app's execute or batch.
 // scripts/db/lib/connect.ts builds a PGlite too, but it is the production path for pglite: URLs, not a test.
-const OWN_SETUP = [/new PGlite\b/, /PGlite\.create\(/, /__incrementalCache/, /mock\.method\([^;]*?,\s*['"`]execute['"`]/];
+const OWN_SETUP = [/new PGlite\b/, /PGlite\.create\(/, /__incrementalCache/, /mock\.method\([^;]*?,\s*['"`](execute|batch)['"`]/];
 const strays = (code: string) => OWN_SETUP.filter(pattern => pattern.test(code)).map(String);
 const EXEMPT = ['lib/testing/disposable-league.ts', 'lib/testing/disposable-league.test.ts'];
 
-test('no test outside the disposable league builds its own database, cache stand-in or execute mock', () => {
+test('no test outside the disposable league builds its own database, cache stand-in or execute/batch mock', () => {
     const files = ['lib', 'scripts']
         .flatMap(dir => readdirSync(dir, { recursive: true, encoding: 'utf8' }).map(file => `${dir}/${file.replaceAll('\\', '/')}`))
         .filter(file => /\.test\.(ts|mjs)$/.test(file))
@@ -73,4 +101,5 @@ test('no test outside the disposable league builds its own database, cache stand
     assert.equal(strays("t.mock.method(runtime.getDb(), 'execute', (query: SQL) => db.execute(query));").length, 1);
     assert.equal(strays("const neon = runtime.getDb();\nt.mock.method(neon, 'execute', (query: SQL) => db.execute(query));").length, 1);
     assert.equal(strays('mock.method(connection, "execute", run);').length, 1);
+    assert.equal(strays("t.mock.method(getDb(), 'batch', inOrder);").length, 1);
 });
