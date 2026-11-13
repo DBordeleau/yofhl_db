@@ -2,10 +2,10 @@
 // app's database reads pointed at it and Next's real unstable_cache running on an in-memory backend. Everything
 // it stands in for is put back when the test ends, and the network is always off unless the test brings a fetch.
 //
-// This module is the only place that knows the seams: the app's reads go through `getDb().execute` in
-// lib/data/db.ts and its ordered writes (`writeInOrder()`) through `getDb().batch`, unstable_cache finds its backend on `globalThis.__incrementalCache` (with Next's
-// AsyncLocalStorage installed first), and revalidateTag needs Next's work store. A Next upgrade that moves
-// any of them is fixed here.
+// This module is the only place that knows the seams: the app's reads go through `getDb().execute` and its
+// ordered writes (`writeInOrder()`) through `getDb().batch` in lib/data/db.ts, unstable_cache finds its backend
+// on `globalThis.__incrementalCache` (with Next's AsyncLocalStorage installed first), and revalidateTag needs
+// Next's work store. A Next or driver upgrade that moves any of them is fixed here.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { readFileSync } from 'node:fs';
 import type { TestContext } from 'node:test';

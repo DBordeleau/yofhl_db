@@ -80,13 +80,13 @@ test('a league puts back the env, the two globals and fetch once its test ends',
     assert.equal(globalThis.fetch, fetchBefore);
 });
 
-// What only this module may do: build a PGlite, stand in for Next's cache backend, or replace the app's execute.
+// What only this module may do: build a PGlite, stand in for Next's cache backend, or replace the app's execute or batch.
 // scripts/db/lib/connect.ts builds a PGlite too, but it is the production path for pglite: URLs, not a test.
-const OWN_SETUP = [/new PGlite\b/, /PGlite\.create\(/, /__incrementalCache/, /mock\.method\([^;]*?,\s*['"`]execute['"`]/];
+const OWN_SETUP = [/new PGlite\b/, /PGlite\.create\(/, /__incrementalCache/, /mock\.method\([^;]*?,\s*['"`](execute|batch)['"`]/];
 const strays = (code: string) => OWN_SETUP.filter(pattern => pattern.test(code)).map(String);
 const EXEMPT = ['lib/testing/disposable-league.ts', 'lib/testing/disposable-league.test.ts'];
 
-test('no test outside the disposable league builds its own database, cache stand-in or execute mock', () => {
+test('no test outside the disposable league builds its own database, cache stand-in or execute/batch mock', () => {
     const files = ['lib', 'scripts']
         .flatMap(dir => readdirSync(dir, { recursive: true, encoding: 'utf8' }).map(file => `${dir}/${file.replaceAll('\\', '/')}`))
         .filter(file => /\.test\.(ts|mjs)$/.test(file))
@@ -101,4 +101,5 @@ test('no test outside the disposable league builds its own database, cache stand
     assert.equal(strays("t.mock.method(runtime.getDb(), 'execute', (query: SQL) => db.execute(query));").length, 1);
     assert.equal(strays("const neon = runtime.getDb();\nt.mock.method(neon, 'execute', (query: SQL) => db.execute(query));").length, 1);
     assert.equal(strays('mock.method(connection, "execute", run);').length, 1);
+    assert.equal(strays("t.mock.method(getDb(), 'batch', inOrder);").length, 1);
 });

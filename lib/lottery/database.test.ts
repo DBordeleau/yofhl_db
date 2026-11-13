@@ -129,6 +129,7 @@ async function adminLeague(t: TestContext) {
         'select id, title, version, is_current, cancelled_at from league.draft_lotteries order by title')).rows;
     return { league, admin, lotteries };
 }
+const UNSAVED = { error: 'Unable to save. Another scheduled lottery may already exist; reload and try again.' };
 const inHours = (hours: number) => easternInput(new Date(Date.now() + hours * 3600_000).toISOString());
 const draw = [{ id: 1, odds: 60 }, { id: 2, odds: 40 }, { id: 3, odds: null }];
 const input = (overrides: Partial<LotteryInput> = {}): LotteryInput =>
@@ -159,12 +160,12 @@ async function drawnLottery(client: PGlite, ago: string) {
 test('scheduling a lottery archives a finished one, but never one still being revealed', async t => {
     const { league, admin, lotteries } = await adminLeague(t);
     const earlier = await drawnLottery(league.client, '10 seconds');
-    assert.deepEqual(await admin.saveLottery(input()), { error: 'Unable to save. Another scheduled lottery may already exist; reload and try again.' });
+    assert.deepEqual(await admin.saveLottery(input()), UNSAVED);
     assert.deepEqual((await lotteries()).map(row => [row.title, row.is_current, row.version]), [['Earlier', true, 1]], 'the live lottery is untouched');
 
     await league.client.query(`update league.draft_lotteries set starts_at = clock_timestamp() - interval '1 hour' where id = $1`, [earlier]);
     league.failNextQuery('insert into league.draft_lotteries', Object.assign(new Error('connection lost'), { code: '08006' }));
-    assert.match((await admin.saveLottery(input())).error!, /reload and try again/);
+    assert.deepEqual(await admin.saveLottery(input()), UNSAVED);
     assert.deepEqual((await lotteries()).map(row => [row.title, row.is_current]), [['Earlier', true]], 'a failed insert leaves the finished lottery current');
 
     const { lottery } = await admin.saveLottery(input());
@@ -220,12 +221,11 @@ test('cancelling a lottery needs its current version and must happen before it s
 
 test('a database or connection failure is never shown to the admin', async t => {
     const { league, admin } = await adminLeague(t);
-    const unsaved = { error: 'Unable to save. Another scheduled lottery may already exist; reload and try again.' };
     league.failNextQuery('clock_timestamp() as now', new TypeError('fetch failed: getaddrinfo ENOTFOUND ep-secret.neon.tech'));
-    assert.deepEqual(await admin.saveLottery(input()), unsaved);
+    assert.deepEqual(await admin.saveLottery(input()), UNSAVED);
     league.failNextQuery('current_teams', Object.assign(new Error('relation "league.current_teams" does not exist'), { code: '42P01' }));
-    assert.deepEqual(await admin.saveLottery(input()), unsaved);
+    assert.deepEqual(await admin.saveLottery(input()), UNSAVED);
     const { lottery } = await admin.saveLottery(input());
     league.failNextQuery('update league.draft_lotteries', Object.assign(new Error('Failed query: update league.draft_lotteries set title = $1'), { query: 'update' }));
-    assert.deepEqual(await admin.saveLottery(input({ id: lottery!.id, version: 1 })), unsaved);
+    assert.deepEqual(await admin.saveLottery(input({ id: lottery!.id, version: 1 })), UNSAVED);
 });
