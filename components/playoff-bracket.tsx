@@ -3,15 +3,7 @@ import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import type { BracketGame, BracketTeam } from '@/lib/data/league';
-import { formatFpts, playoffTeamId } from '@/lib/league';
-
-const roundName = (round: number, lastRound: number) => {
-    const fromEnd = lastRound - round;
-    if (fromEnd === 0) return 'Final';
-    if (fromEnd === 1) return 'Semifinals';
-    if (fromEnd === 2) return 'Quarterfinals';
-    return `Round ${round}`;
-};
+import { formatFpts, playoffTeamId, roundName } from '@/lib/league';
 
 interface Footnote {
     mark: string;

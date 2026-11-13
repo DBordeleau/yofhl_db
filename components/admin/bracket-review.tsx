@@ -4,7 +4,7 @@ import { FC, useState, useTransition } from 'react';
 import { saveMatchup } from '@/app/admin/actions';
 import SaveBar, { SaveStatus } from '@/components/admin/save-bar';
 import type { AdminGame } from '@/lib/admin/data';
-import { formatFpts } from '@/lib/league';
+import { formatFpts, roundName } from '@/lib/league';
 
 type Winner = 'score' | number;
 
@@ -80,8 +80,8 @@ const GameReview: FC<{ year: number; game: AdminGame; roundName: string }> = ({ 
     );
 };
 
-const roundName = (round: number, lastRound: number, consolation: boolean) => {
-    const base = lastRound - round === 0 ? 'Final' : lastRound - round === 1 ? 'Semifinal' : lastRound - round === 2 ? 'Quarterfinal' : `Round ${round}`;
+const bracketRoundName = (round: number, finalRound: number, consolation: boolean) => {
+    const base = roundName(round, finalRound);
     return consolation ? `Consolation ${base.toLowerCase()}` : base;
 };
 
@@ -92,7 +92,7 @@ const BracketReview: FC<{ year: number; games: AdminGame[] }> = ({ year, games }
     return (
         <ul className="grid gap-3 md:grid-cols-2">
             {ordered.map((game) => (
-                <GameReview key={game.id} year={year} game={game} roundName={roundName(game.round, lastRound(game.bracket), game.bracket === 'consolation')} />
+                <GameReview key={game.id} year={year} game={game} roundName={bracketRoundName(game.round, lastRound(game.bracket), game.bracket === 'consolation')} />
             ))}
         </ul>
     );
