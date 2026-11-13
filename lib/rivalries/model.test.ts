@@ -9,7 +9,7 @@ test('counts recorded winners in both orientations and keeps unresolved results 
     assert.deepEqual([result.winsA, result.winsB, result.undecided], [1, 1, 1]);
     assert.deepEqual(result.meetings.map(item => item.id), [2, 1, 3]);
     assert.equal(result.closest, null, 'synthetic score adjustments must not be billed as close finishes');
-    assert.equal(roundLabel(game), 'Semifinal');
+    assert.equal(roundLabel(game), 'Semifinals');
     assert.equal(roundLabel({ ...game, round: 3 }), 'Final');
     assert.equal(pairSummary([game], 1, 2).closest, null);
 });

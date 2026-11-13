@@ -1,3 +1,5 @@
+import { roundName } from '@/lib/league';
+
 export interface RivalryGame {
     id: number;
     year: number;
@@ -19,7 +21,7 @@ export interface RivalrySeason { year: number; team: number; points: number; win
 export interface TradeAsset { id: string; from: number | null; to: number | null; label: string; playerId: string | null }
 export interface RivalryTrade { id: string; date: string; year: number; assets: TradeAsset[] }
 
-export const roundLabel = (game: RivalryGame) => game.stage === 'regular' ? `Period ${game.round}` : ['Final', 'Semifinal', 'Quarterfinal'][game.finalRound - game.round] ?? `Round ${game.round}`;
+export const roundLabel = (game: RivalryGame) => game.stage === 'regular' ? `Period ${game.round}` : roundName(game.round, game.finalRound);
 export const gameScore = (game: RivalryGame, team: number) => game.away === team ? game.awayScore : game.homeScore;
 
 export function rivalryGames(games: RivalryGame[], a: number, b: number) {

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import FranchisePerformance from '@/components/franchise-performance';
 import type { FranchiseDetail, FranchiseSeason } from '@/lib/data/league';
-import { formatFpts, seasonLabel, teamSeasonHref, winPercentage } from '@/lib/league';
+import { formatFpts, roundName, seasonLabel, teamSeasonHref, winPercentage } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import styles from './franchise.module.css';
 
@@ -11,8 +11,7 @@ const seasonResult = (season: FranchiseSeason, team: FranchiseDetail) => {
     if (team.championships.includes(season.year)) return 'Jagr Cup champion';
     if (team.finals.includes(season.year)) return 'Finalist';
     if (season.playoffRound === null) return 'Missed playoffs';
-    const fromFinal = (season.finalRound ?? season.playoffRound) - season.playoffRound;
-    return fromFinal === 1 ? 'Semifinals' : fromFinal === 2 ? 'Quarterfinals' : `Round ${season.playoffRound}`;
+    return roundName(season.playoffRound, season.finalRound ?? season.playoffRound);
 };
 
 // The owner column only earns its width when the franchise changed hands or names.

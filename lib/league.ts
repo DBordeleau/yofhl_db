@@ -1,4 +1,5 @@
 // shared display helpers; league data itself lives in the database (see lib/data/league.ts)
+import { PLAYOFF_FORMAT } from './fantrax/config';
 
 export const LEADERBOARD_MODES = [
     { slug: 'all-time', label: 'All-Time' },
@@ -23,6 +24,12 @@ export const splitPositions = (position: string) =>
 export { seasonLabel } from './seasons';
 
 export const standingsTeamId = (franchiseId: number) => `standings-team-${franchiseId}`;
+
+// A championship-bracket playoff round, named by its distance from the Final ("Round N" before the Quarterfinals).
+// Consolation callers add their own "Consolation" prefix.
+export const roundName = (round: number, finalRound: number): string =>
+    PLAYOFF_FORMAT.rounds[PLAYOFF_FORMAT.rounds.length - 1 - (finalRound - round)] ?? `Round ${round}`;
+
 export const playoffTeamId = (franchiseId: number, round: number, bracket = 'championship') =>
     `${bracket}-round-${round}-team-${franchiseId}`;
 
