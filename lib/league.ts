@@ -7,10 +7,6 @@ export const LEADERBOARD_MODES = [
 
 export const LEADERBOARD_POSITIONS = ['All', 'C', 'LW', 'RW', 'D', 'G'];
 
-// award names are stored with spaces; URLs use underscores (/awards/Wayne_Gretzky_Award)
-export const awardSlug = (name: string) => name.replace(/ /g, "_");
-export const awardFromSlug = (slug: string) => decodeURIComponent(slug).replace(/_/g, " ");
-
 export const positionNames: { [key: string]: string } = {
     C: "Centre",
     LW: "Left Wing",

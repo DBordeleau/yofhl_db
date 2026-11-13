@@ -16,7 +16,8 @@ import { isPublished } from '@/lib/seasons';
 import { getSeasonArchive, getPlayer, getTopPlayerIds } from '@/lib/data/league';
 import { playerHref } from '@/lib/player-url';
 import { getHistory, getHistorySeasons } from '@/lib/data/history';
-import { awardSlug, seasonLabel } from '@/lib/league';
+import { seasonLabel } from '@/lib/league';
+import { awardHref } from '@/lib/awards';
 
 // Popular profiles build ahead of time; other profiles cache on their first visit.
 export async function generateStaticParams() {
@@ -93,7 +94,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
                     { href: comparisonHref({ ids: [player.id], metric: 'fpts' }), title: `Compare ${player.name}`, reason: 'Add another player and compare their seasons' },
                     player.team ? { href: `/teams/${player.team.id}`, title: player.team.name, reason: 'Last recorded team in the archive' } : null,
                     bestSeason ? { href: `/season/${bestSeason.Year}`, title: seasonLabel(bestSeason.Year), reason: 'Their highest-scoring available season' } : null,
-                    latestAward ? { href: `/awards/${awardSlug(latestAward.Award)}`, title: latestAward.Award, reason: `Their latest award · ${seasonLabel(latestAward.Year)}` } : null,
+                    latestAward ? { href: awardHref(latestAward.Award), title: latestAward.Award, reason: `Their latest award · ${seasonLabel(latestAward.Year)}` } : null,
                 ]} />
             </div>
         </main>
