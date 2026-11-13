@@ -65,9 +65,10 @@ To check a deployment, open the public room and inspect `/api/lottery?summary=1`
 | File | Responsibility |
 | --- | --- |
 | [lib/lottery/model.ts](../lib/lottery/model.ts) | Odds validation, Eastern Time conversion, ordering, timing, and public result disclosure |
-| [lib/lottery/queries.ts](../lib/lottery/queries.ts) | Guarded draw/edit/cancel/archive queries and logo lookup |
+| [lib/lottery/queries.ts](../lib/lottery/queries.ts) | Guarded draw/edit/cancel/archive/insert queries and logo lookup |
+| [lib/lottery/admin.ts](../lib/lottery/admin.ts) | Scheduling validation, save (archive then insert in one ordered write) and cancellation |
 | [lib/lottery/data.ts](../lib/lottery/data.ts) | Active franchise lookup and public event reads |
-| [app/admin/lottery/actions.ts](../app/admin/lottery/actions.ts) | Authenticated scheduling and cancellation |
+| [app/admin/lottery/actions.ts](../app/admin/lottery/actions.ts) | Admin check and page revalidation around the save and cancel |
 | [components/lottery/lottery-room.tsx](../components/lottery/lottery-room.tsx) | Shared public and preview presentation |
 | [lib/lottery/polling.ts](../lib/lottery/polling.ts) | Room polling, visibility, clock synchronization, and retry behavior |
 | [components/lottery/use-lottery.ts](../components/lottery/use-lottery.ts) | React subscription to the room data and clock |

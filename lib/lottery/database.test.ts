@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { type TestContext } from 'node:test';
 import type { PGlite } from '@electric-sql/pglite';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
 import { archiveCompletedQuery, cancelQuery, drawQuery, editQuery, lotteryLogosQuery, publicLotteryQuery } from './queries';
-import { publicLottery, type LotteryEntry, type LotteryRecord } from './model';
+import { easternInput, publicLottery, type LotteryEntry, type LotteryInput, type LotteryRecord } from './model';
 import { disposableLeague } from '../testing/disposable-league';
 
 // Franchises as [id, logo], and team seasons as [franchise, season, logo].
@@ -118,4 +118,114 @@ test('public read returns event, artwork and database clock together, including 
     assert.equal((await read(id)).record?.id, id, 'historical events remain available by ID');
     await db.query(`update league.draft_lotteries set cancelled_at=clock_timestamp() where id=$1`, [id]);
     assert.equal((await read(id)).record, null);
+});
+
+// The admin's save and cancel, driven through the app as the server actions call them.
+async function adminLeague(t: TestContext) {
+    const league = await disposableLeague(t, { app: true });
+    await seedTeams(league.client, [1, 2, 3].map(id => [id, null]));
+    const admin = await import('./admin');
+    const lotteries = async () => (await league.client.query<{ id: string; title: string; version: number; is_current: boolean; cancelled_at: Date | null }>(
+        'select id, title, version, is_current, cancelled_at from league.draft_lotteries order by title')).rows;
+    return { league, admin, lotteries };
+}
+const inHours = (hours: number) => easternInput(new Date(Date.now() + hours * 3600_000).toISOString());
+const draw = [{ id: 1, odds: 60 }, { id: 2, odds: 40 }, { id: 3, odds: null }];
+const input = (overrides: Partial<LotteryInput> = {}): LotteryInput =>
+    ({ id: null, version: 0, title: 'Draft lottery', easternDateTime: inHours(2), entries: draw, ...overrides });
+
+test('scheduling a lottery with none current makes it current and returns it as the editor shows it', async t => {
+    const { admin, lotteries } = await adminLeague(t);
+    const { lottery, error } = await admin.saveLottery(input({ title: '  Draft lottery  ' }));
+    assert.equal(error, undefined);
+    assert.equal(lottery?.title, 'Draft lottery');
+    assert.equal(lottery?.version, 1);
+    assert.equal(lottery?.isCurrent, true);
+    assert.equal(lottery?.winnerId, null);
+    assert.equal(lottery?.cancelledAt, null);
+    assert.equal(easternInput(lottery!.startsAt), input().easternDateTime);
+    assert.deepEqual(lottery?.entries.map(entry => [entry.id, entry.name, entry.odds]), [[1, 'Franchise 1', 60], [2, 'Franchise 2', 40], [3, 'Franchise 3', null]]);
+    assert.deepEqual((await lotteries()).map(row => [row.id, row.is_current]), [[lottery!.id, true]]);
+});
+
+// A drawn lottery that started `ago` ago; a three-team draw finishes revealing 27 seconds after it starts.
+async function drawnLottery(client: PGlite, ago: string) {
+    const entries = draw.map(({ id, odds }) => ({ id, name: `Franchise ${id}`, abbreviation: `T${id}`, logo: null, odds }));
+    return (await client.query<{ id: string }>(`insert into league.draft_lotteries (title, starts_at, entries, winner_id, drawn_at)
+        values ('Earlier', clock_timestamp() - $1::interval, $2::jsonb, 1, clock_timestamp() - $1::interval) returning id`,
+        [ago, JSON.stringify(entries)])).rows[0].id;
+}
+
+test('scheduling a lottery archives a finished one, but never one still being revealed', async t => {
+    const { league, admin, lotteries } = await adminLeague(t);
+    const earlier = await drawnLottery(league.client, '10 seconds');
+    assert.deepEqual(await admin.saveLottery(input()), { error: 'Unable to save. Another scheduled lottery may already exist; reload and try again.' });
+    assert.deepEqual((await lotteries()).map(row => [row.title, row.is_current, row.version]), [['Earlier', true, 1]], 'the live lottery is untouched');
+
+    await league.client.query(`update league.draft_lotteries set starts_at = clock_timestamp() - interval '1 hour' where id = $1`, [earlier]);
+    league.failNextQuery('insert into league.draft_lotteries', Object.assign(new Error('connection lost'), { code: '08006' }));
+    assert.match((await admin.saveLottery(input())).error!, /reload and try again/);
+    assert.deepEqual((await lotteries()).map(row => [row.title, row.is_current]), [['Earlier', true]], 'a failed insert leaves the finished lottery current');
+
+    const { lottery } = await admin.saveLottery(input());
+    assert.deepEqual((await lotteries()).map(row => [row.title, row.is_current]), [['Draft lottery', true], ['Earlier', false]]);
+    assert.equal(lottery?.isCurrent, true);
+});
+
+test('a lottery with a bad title, too little notice or broken entries is refused with its reason and nothing is written', async t => {
+    const { admin, lotteries } = await adminLeague(t);
+    const refusals: [Partial<LotteryInput>, string][] = [
+        [{ title: '   ' }, 'Give the lottery a title of 1–80 characters.'],
+        [{ title: 'x'.repeat(81) }, 'Give the lottery a title of 1–80 characters.'],
+        [{ easternDateTime: inHours(0.5 / 60) }, 'Schedule the lottery at least one minute in the future.'],
+        [{ easternDateTime: inHours(-1) }, 'Schedule the lottery at least one minute in the future.'],
+        [{ easternDateTime: 'tomorrow' }, 'Choose a valid date and time in Eastern Time.'],
+        [{ entries: [{ id: 1, odds: 60 }, { id: 2, odds: 40 }, { id: 9, odds: null }] }, 'Each team must appear exactly once.'],
+        [{ entries: [{ id: 1, odds: 60 }, { id: 2, odds: 30 }, { id: 3, odds: null }] }, 'Lottery odds must add up to exactly 100%.'],
+        [{ entries: draw.slice(0, 2) }, 'Include every active team exactly once in the starting draft order.'],
+    ];
+    for (const [overrides, error] of refusals) assert.deepEqual(await admin.saveLottery(input(overrides)), { error }, JSON.stringify(overrides));
+    assert.deepEqual(await lotteries(), []);
+});
+
+test('editing a lottery needs its current version and must happen before it starts', async t => {
+    const { league, admin, lotteries } = await adminLeague(t);
+    const { lottery } = await admin.saveLottery(input());
+    const changed = 'This lottery has started or was changed in another tab. Reload before editing.';
+    const { lottery: edited } = await admin.saveLottery(input({ id: lottery!.id, version: 1, title: 'Edited' }));
+    assert.deepEqual([edited?.title, edited?.version, edited?.isCurrent], ['Edited', 2, true]);
+    assert.deepEqual(await admin.saveLottery(input({ id: lottery!.id, version: 1, title: 'Stale tab' })), { error: changed });
+    await league.client.query(`update league.draft_lotteries set starts_at = clock_timestamp() - interval '1 second'`);
+    assert.deepEqual(await admin.saveLottery(input({ id: lottery!.id, version: 2, title: 'Too late' })), { error: changed });
+    assert.deepEqual((await lotteries()).map(row => [row.title, row.version]), [['Edited', 2]]);
+});
+
+test('cancelling a lottery needs its current version and must happen before it starts', async t => {
+    const { league, admin, lotteries } = await adminLeague(t);
+    const reload = { error: 'This lottery has started or changed. Reload the page.' };
+    const { lottery } = await admin.saveLottery(input());
+    await admin.saveLottery(input({ id: lottery!.id, version: 1, title: 'Edited' }));
+    assert.deepEqual(await admin.cancelLottery(lottery!.id, 1), reload, 'a stale version');
+    const { lottery: next } = await admin.saveLottery(input({ id: lottery!.id, version: 2, title: 'Edited again' }));
+    await league.client.query(`update league.draft_lotteries set starts_at = clock_timestamp() - interval '1 second'`);
+    assert.deepEqual(await admin.cancelLottery(next!.id, 3), reload, 'after the start');
+    assert.equal((await lotteries())[0].cancelled_at, null);
+
+    await league.client.query(`update league.draft_lotteries set starts_at = clock_timestamp() + interval '1 hour'`);
+    assert.deepEqual(await admin.cancelLottery(next!.id, 3), { success: true });
+    const [cancelled] = await lotteries();
+    assert.deepEqual([cancelled.is_current, cancelled.version], [false, 4]);
+    assert.ok(cancelled.cancelled_at);
+});
+
+test('a database or connection failure is never shown to the admin', async t => {
+    const { league, admin } = await adminLeague(t);
+    const unsaved = { error: 'Unable to save. Another scheduled lottery may already exist; reload and try again.' };
+    league.failNextQuery('clock_timestamp() as now', new TypeError('fetch failed: getaddrinfo ENOTFOUND ep-secret.neon.tech'));
+    assert.deepEqual(await admin.saveLottery(input()), unsaved);
+    league.failNextQuery('current_teams', Object.assign(new Error('relation "league.current_teams" does not exist'), { code: '42P01' }));
+    assert.deepEqual(await admin.saveLottery(input()), unsaved);
+    const { lottery } = await admin.saveLottery(input());
+    league.failNextQuery('update league.draft_lotteries', Object.assign(new Error('Failed query: update league.draft_lotteries set title = $1'), { query: 'update' }));
+    assert.deepEqual(await admin.saveLottery(input({ id: lottery!.id, version: 1 })), unsaved);
 });

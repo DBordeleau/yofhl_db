@@ -24,6 +24,34 @@ test("Next's real unstable_cache serves a cached() loader's second read and rere
     assert.equal(league.queries(), afterFirstRead + 1, 'an expired tag makes the next read query again');
 });
 
+test('writeInOrder runs its statements in order as one transaction and keeps none of them when one fails', async t => {
+    const league = await disposableLeague(t, { app: true, seed: SEED });
+    const { sql } = await import('drizzle-orm');
+    const { writeInOrder } = await import('../data/db');
+    const years = async () => (await league.client.query<{ year: number }>('select year from league.seasons order by year')).rows.map(row => row.year);
+
+    const [inserted, counted] = await writeInOrder<[{ year: number }, { count: number }]>([
+        sql`insert into league.seasons values (2027, '2026–27', 'complete') returning year`,
+        sql`select count(*)::int as count from league.seasons`,
+    ]);
+    assert.deepEqual(inserted, [{ year: 2027 }]);
+    assert.deepEqual(counted, [{ count: 2 }], 'the second statement sees the first one\'s write');
+
+    league.failNextQuery('2029', Object.assign(new Error('connection lost'), { code: '08006' }));
+    await assert.rejects(writeInOrder([
+        sql`insert into league.seasons values (2028, '2027–28', 'complete')`,
+        sql`insert into league.seasons values (2029, '2028–29', 'complete')`,
+    ]), /connection lost/);
+    assert.deepEqual(await years(), [2026, 2027], 'the first write is rolled back with the failed one');
+
+    await assert.rejects(writeInOrder([
+        sql`insert into league.seasons values (2030, '2029–30', 'complete')`,
+        sql`insert into league.seasons values (2026, '2025–26', 'complete')`,
+    ]), (error: Error) => (error.cause as { code?: string })?.code === '23505');
+    assert.deepEqual(await years(), [2026, 2027], 'a constraint failure rolls back too');
+    assert.deepEqual(await (await import('../data/db')).rows(sql`select 1 as one`), [{ one: 1 }], 'the app reads normally afterwards');
+});
+
 test('a league puts back the env, the two globals and fetch once its test ends', async t => {
     const url = Object.getOwnPropertyDescriptor(process.env, 'DATABASE_URL_V2');
     const mode = process.env.NODE_ENV;

@@ -3,7 +3,7 @@
 // it stands in for is put back when the test ends, and the network is always off unless the test brings a fetch.
 //
 // This module is the only place that knows the seams: the app's reads go through `getDb().execute` in
-// lib/data/db.ts, unstable_cache finds its backend on `globalThis.__incrementalCache` (with Next's
+// lib/data/db.ts and its ordered writes (`writeInOrder()`) through `getDb().batch`, unstable_cache finds its backend on `globalThis.__incrementalCache` (with Next's
 // AsyncLocalStorage installed first), and revalidateTag needs Next's work store. A Next upgrade that moves
 // any of them is fixed here.
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -25,7 +25,10 @@ export type LeagueOptions = {
      * later migration does to existing rows. `migrateRest()` applies the others.
      */
     migrateThrough?: string;
-    /** Point the app's reads (`rows()` and `getDb().execute` in lib/data/db.ts) at this league. */
+    /**
+     * Point the app's reads (`rows()` and `getDb().execute` in lib/data/db.ts) at this league, and run its ordered
+     * writes (`writeInOrder()`) in order in one transaction here, as a Neon batch does.
+     */
     app?: boolean;
     /** Run Next's real unstable_cache on an in-memory backend. Needs `app`. */
     nextCache?: boolean;
@@ -131,12 +134,27 @@ export async function disposableLeague(t: TestContext, options: LeagueOptions = 
         replace(undo, process.env, 'DATABASE_URL_V2', 'postgresql://test:test@localhost/test');
         const { getDb } = await import('../data/db');
         const dialect = new PgDialect();
-        replace(undo, getDb(), 'execute', (query: SQL) => {
+        const run = async (query: SQL) => {
             queries++;
             const text = failures.length ? dialect.sqlToQuery(query).sql : '';
             const failure = failures.findIndex(f => text.includes(f.sqlContaining));
             if (failure >= 0) throw failures.splice(failure, 1)[0].error;
             return db.execute(query);
+        };
+        // Lazy, like Drizzle's own query, so writeInOrder can hand its statements to batch before any runs.
+        replace(undo, getDb(), 'execute', (query: SQL) => ({ then: (...callbacks: Parameters<Promise<unknown>['then']>) => run(query).then(...callbacks) }));
+        // PGlite has no batch: run the statements in order through the same execute, in one transaction.
+        replace(undo, getDb(), 'batch', async (statements: PromiseLike<unknown>[]) => {
+            await client.exec('begin');
+            try {
+                const results = [];
+                for (const statement of statements) results.push(await statement);
+                await client.exec('commit');
+                return results;
+            } catch (error) {
+                await client.exec('rollback');
+                throw error;
+            }
         });
     }
 

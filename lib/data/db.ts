@@ -24,6 +24,17 @@ export const getDb = () => {
 
 export const rows = async <T>(query: SQL): Promise<T[]> => (await getDb().execute(query)).rows as T[];
 
+/**
+ * Run writes that must happen in this order and commit together (docs/adr/0007), returning each statement's
+ * rows in order. A Neon batch is one non-interactive transaction that runs its statements in order. Plain SQL
+ * only, never Drizzle query builders, so the tests run exactly this SQL.
+ */
+export const writeInOrder = async <T extends unknown[] = unknown[]>(queries: SQL[]): Promise<{ [K in keyof T]: T[K][] }> => {
+    const db = getDb();
+    const results = await db.batch(queries.map(query => db.execute(query)) as [ReturnType<typeof db.execute>]);
+    return results.map(result => result.rows) as { [K in keyof T]: T[K][] };
+};
+
 export { LEAGUE_TAG } from './cache-tags';
 
 // League data only changes when it's imported or edited, so cache results until told otherwise.

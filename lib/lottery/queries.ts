@@ -52,3 +52,9 @@ export const archiveCompletedQuery = () => sql`
     starts_at + (${INTRO_MS + FINALE_MS} + greatest(0,
         (select max(position)::int from jsonb_array_elements(entries) with ordinality as draw(entry, position)
          where entry->>'odds' is not null) - 2) * ${REVEAL_MS}) * interval '1 millisecond' <= clock_timestamp()`;
+
+// Runs after archiveCompletedQuery in one ordered write: the archive must free the one current slot first.
+export const insertQuery = (title: string, startsAt: string, entries: LotteryEntry[]) => sql`
+    insert into league.draft_lotteries (title, starts_at, entries)
+    values (${title}, ${startsAt}::timestamptz, ${JSON.stringify(entries)}::jsonb)
+    returning ${lotteryColumns}`;
