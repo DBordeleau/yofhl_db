@@ -1,8 +1,8 @@
 import type { PlayerProfile, FranchiseDetail, BannerSeason, FranchiseCard, LeaderRow, AwardWinner } from '../data/league';
-import { awardSlug, seasonLabel, splitPositions, winPercentage } from '../league';
+import { seasonLabel, splitPositions, winPercentage } from '../league';
 import { episodeLabel } from '../coachs-corner/episode-label';
 import { playerHref } from '../player-url';
-import { AWARDS, getAwardDefinition } from '../awards';
+import { AWARDS, awardHref, getAwardDefinition } from '../awards';
 import { comparisonChart, type ComparisonChart, type ComparisonPlayer } from '../compare/model';
 import { comparisonHref, teamComparisonHref, type Metric } from '../compare/state';
 import type { RankedPick } from '../draft/hindsight';
@@ -144,7 +144,7 @@ export interface ShareAward { id: string | null; name: string; label: string; ho
 export function awardShareCard(award: ShareAward, winner: AwardWinner, winners: AwardWinner[], recipient: 'player' | 'team'): AwardShareCard {
     const same = (other: AwardWinner) => recipient === 'team' ? other.TeamID !== null && other.TeamID === winner.TeamID : other.PlayerID === winner.PlayerID;
     const count = winners.filter(other => same(other) && other.Year <= winner.Year).length;
-    return { kind: 'award', title: `${seasonLabel(winner.Year)} ${award.label} ${winner.Winner}`, href: `/awards/${awardSlug(award.name)}`,
+    return { kind: 'award', title: `${seasonLabel(winner.Year)} ${award.label} ${winner.Winner}`, href: awardHref(award.name),
         summary: `${winner.Winner} won the ${seasonLabel(winner.Year)} ${award.label}.`,
         recipient, year: winner.Year, award: award.label, honor: award.honor, image: award.image, winner: winner.Winner,
         team: winner.Team ? { id: winner.TeamID, name: winner.Team, abbreviation: winner.Team.slice(0, 4).toUpperCase(), logo: winner.TeamLogo ?? null } : null,

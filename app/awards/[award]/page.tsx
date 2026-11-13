@@ -4,15 +4,16 @@ import { notFound } from 'next/navigation';
 import AwardTable from '@/components/award-table';
 import RinkDivider from '@/components/rink-divider';
 import { TrophyArt } from '@/components/trophy-icons';
-import { AWARDS, getAwardDefinition } from '@/lib/awards';
+import { AWARDS, awardFromSlug, awardHref, awardSlug, getAwardDefinition } from '@/lib/awards';
 import { getAwardTypes, getAwardWinners, getTeamAwardWinners } from '@/lib/data/league';
-import { awardFromSlug, awardSlug, seasonLabel } from '@/lib/league';
+import { seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import ExploreNext from '@/components/explore-next';
 import { getSeasonArchive } from '@/lib/data/league';
 
 export async function generateStaticParams() {
     const names = new Set([...AWARDS.map((award) => award.name), ...(await getAwardTypes()).map((award) => award.name)]);
+    // raw slugs, not awardHref: Next.js encodes route params itself, so encoded ones would double-encode
     return [...names].map((name) => ({ award: awardSlug(name) }));
 }
 
@@ -35,7 +36,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
     const latestHref = latest?.PlayerID ? playerHref(latest.PlayerID) : latest?.TeamID ? `/teams/${latest.TeamID}` : null;
     const label = definition?.label ?? award.label;
     const latestSeason = latest && (await getSeasonArchive()).published.find(season => season.year === latest.Year);
-    const href = `/awards/${awardSlug(award.name)}`;
+    const href = awardHref(award.name);
 
     return (
         <main className="mx-auto max-w-page px-4 pb-16 pt-5 md:px-8 md:pt-8 3xl:max-w-page-3xl 4xl:max-w-page-4xl">

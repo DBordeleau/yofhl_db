@@ -1,5 +1,3 @@
-import { awardSlug } from '@/lib/league';
-
 export interface AwardDefinition {
     id: string;
     /** Preserve the database name so existing winner records and URLs keep working. */
@@ -60,6 +58,10 @@ export function getAwardDefinition(name: string): AwardDefinition | undefined {
     const key = normalize(name);
     return AWARDS.find((award) => [award.id, award.name, award.label].some((alias) => normalize(alias) === key));
 }
+
+// award names are stored with spaces; URLs use underscores (/awards/Wayne_Gretzky_Award)
+export const awardSlug = (name: string) => name.replace(/ /g, '_');
+export const awardFromSlug = (slug: string) => decodeURIComponent(slug).replace(/_/g, ' ');
 
 export function awardHref(name: string): string {
     return `/awards/${encodeURIComponent(awardSlug(getAwardDefinition(name)?.name ?? name))}`;
