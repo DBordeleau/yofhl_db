@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import type { SeasonIdentity } from '../team-identity';
-import { seasonArchive } from '../seasons';
+import { isPublished, seasonArchive } from '../seasons';
 
 // Every query the site makes. Each is cached until the next import or admin edit (see ./db).
 // Field names in PascalCase match what the existing table components already expect.
@@ -397,7 +397,7 @@ export const getAwardWinners = cached(async (name: string) => {
 }, 'award-winners-v2', [leagueTags.awards]);
 
 // Team honours use the same championship and scoring records as franchise trophy cases.
-export const getTeamAwardWinners = cached(async (award: 'jagr-cup' | 'prime-minister') => {
+const getTeamAwardRows = cached(async (award: 'jagr-cup' | 'prime-minister') => {
     const criterion = award === 'jagr-cup'
         ? sql`exists (select 1 from league.season_results r where r.champion_team_season_id = t.id)`
         : sql`not exists (select 1 from league.team_seasons other
@@ -414,6 +414,12 @@ export const getTeamAwardWinners = cached(async (award: 'jagr-cup' | 'prime-mini
         where ${criterion}
         order by t.season_year desc`);
 }, 'team-award-winners-v2', award => award === 'jagr-cup' ? [leagueTags.cups] : []);
+
+/** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
+export async function getTeamAwardWinners(award: 'jagr-cup' | 'prime-minister'): Promise<AwardWinner[]> {
+    const [winners, archive] = await Promise.all([getTeamAwardRows(award), getSeasonArchive()]);
+    return winners.filter(winner => isPublished(archive, winner.Year));
+}
 
 export const searchPlayers = cached(
     (q: string) =>
