@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { eq, inArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
+import { drawingOrder } from '@/lib/data/bracket-order';
 import { matchupWinner } from '@/lib/data/matchup-winner';
 import { SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
 import { seasonLabel } from '@/lib/seasons';
@@ -85,29 +86,13 @@ const findSeasonFiles = (dataDir: string): Map<number, SeasonFiles> => {
 };
 
 
-// order each round's games so a bracket can be drawn: a game sits next to the games that fed it
+// order each round's games so a bracket can be drawn, from the Final back
 const assignSlots = (games: PreparedGame[]) => {
     for (const bracket of ['championship', 'consolation'] as const) {
-        const rounds = Array.from(new Set(games.filter((g) => g.bracket === bracket).map((g) => g.round))).sort((a, b) => b - a);
-        rounds.forEach((round, i) => {
-            const inRound = games.filter((g) => g.bracket === bracket && g.round === round);
-            if (i === 0) {
-                inRound.forEach((g, slot) => (g.slot = slot));
-                return;
-            }
-            const next = games
-                .filter((g) => g.bracket === bracket && g.round === rounds[i - 1])
-                .sort((a, b) => a.slot - b.slot);
-            const ordered: PreparedGame[] = [];
-            for (const later of next) {
-                for (const team of [later.awayFranchise, later.homeFranchise]) {
-                    const feeder = inRound.find((g) => !ordered.includes(g) && (g.awayFranchise === team || g.homeFranchise === team));
-                    if (feeder) ordered.push(feeder);
-                }
-            }
-            inRound.filter((g) => !ordered.includes(g)).forEach((g) => ordered.push(g));
-            ordered.forEach((g, slot) => (g.slot = slot));
-        });
+        const inBracket = games.filter((g) => g.bracket === bracket);
+        const rounds = Array.from(new Set(inBracket.map((g) => g.round))).sort((a, b) => a - b).map((round) => inBracket.filter((g) => g.round === round));
+        drawingOrder(rounds, rounds.length - 1, (g) => [g.awayFranchise, g.homeFranchise])
+            .forEach((round) => round.forEach((g, slot) => (g.slot = slot)));
     }
 };
 

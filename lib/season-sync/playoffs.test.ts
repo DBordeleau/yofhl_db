@@ -81,6 +81,22 @@ test('after the Semifinals and the Final, each round is stored, and the run afte
     assert.deepEqual((await league.read(() => getTeamAwardWinners('jagr-cup'))).map(winner => [winner.Year, winner.TeamID]), [[SEASON, 3], [2026, 1]], 'the Jagr Cup');
 });
 
+test("each round's games are stored beside the games that fed them, whatever order Fantrax lists them in", async t => {
+    const league = await playoffLeague(t);
+    playQuarterfinals(league);
+    await league.run(endOf(QUARTERFINALS) + 7 * HOUR);
+    // Fantrax lists the Semifinals bottom half first: 3 (the second Quarterfinal's winner) v 2, then 5 v 1
+    league.setPairings(SEMIFINALS, [[3, 2], [4, 6], [5, 1]]);
+    league.setScores(SEMIFINALS, [[3, 2, 333.3, 333.2], [4, 6, 500, 100], [5, 1, 380, 420.75]]);
+    await league.run(endOf(SEMIFINALS) + 7 * HOUR);
+    assert.deepEqual(await bracket(league), [
+        [1, 0, 5, 4, 410.5, 398.25, 5],
+        [1, 1, 6, 3, 350, 402.1, 3],
+        [2, 0, 5, 1, 380, 420.75, 1],
+        [2, 1, 3, 2, 333.3, 333.2, 3],
+    ]);
+});
+
 test('a saved bracket correction decides the stored winner, and a run leaves the correction and the awards alone', async t => {
     const league = await playoffLeague(t);
     await league.league.client.exec(`

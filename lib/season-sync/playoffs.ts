@@ -3,7 +3,8 @@
 //
 // A game is a championship game when both teams are still alive in the bracket: the playoff seeds in the first
 // round (the top seeds having a bye), then the previous round's winners plus the bye teams. Other games in those
-// weeks are ignored. A round whose pairings don't fit the bracket writes nothing, nor does any round after it; a
+// weeks are ignored. The first round is slotted in Fantrax's order and each later round beside the games that fed
+// it (lib/data/bracket-order.ts), so a round already frozen keeps its slots. A round whose pairings don't fit the bracket writes nothing, nor does any round after it; a
 // playoff schedule that isn't the league's three rounds writes no bracket. Both record a warning.
 //
 // The winner follows the shared matchup winner rule, so a saved bracket correction decides it. On level scores
@@ -12,6 +13,7 @@
 // after that it is never rewritten, and the stored game decides who is alive in the next round. The Final's
 // winner is the champion, which publishes the season through the season results view.
 import { sql } from 'drizzle-orm';
+import { drawingOrder } from '@/lib/data/bracket-order';
 import { rows } from '@/lib/data/db';
 import { matchupWinner } from '@/lib/data/matchup-winner';
 import { PLAYOFF_FORMAT } from '@/lib/fantrax/config';
@@ -23,7 +25,7 @@ import type { SyncWrite } from './write';
 /** a championship game as stored: its round and slot, both team seasons, both scores and the winning team season */
 export interface PlayoffGame {
     round: number;
-    /** top-to-bottom position in its round for drawing the bracket, from 0, in Fantrax's schedule order */
+    /** top-to-bottom position in its round for drawing the bracket, from 0 (lib/data/bracket-order.ts) */
     slot: number;
     away: number;
     home: number;
@@ -39,6 +41,16 @@ interface BracketCorrection {
     franchiseA: number;
     franchiseB: number;
     winner: number | null;
+}
+
+/** a championship game as the bracket plans it, by Fantrax team ID */
+interface BracketResult {
+    away: string;
+    home: string;
+    awayScore: number;
+    homeScore: number;
+    /** null while the game has no winner */
+    winner: string | null;
 }
 
 interface BracketInput {
@@ -66,7 +78,8 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
     const seeds = live.standings.rows.map(row => row.team.id).slice(0, live.standings.playoffTeams);
     const byes = seeds.slice(0, live.standings.byeTeams);
     let alive = seeds;
-    const games: PlayoffGame[] = [];
+    /** each round reached, in order, and whether it is written this run (else it is as stored) */
+    const played: { round: number; results: BracketResult[]; written: boolean }[] = [];
     const warnings: string[] = [];
 
     for (const [index, week] of rounds.entries()) {
@@ -75,13 +88,13 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
         const isFinal = index === rounds.length - 1;
         /** every round halves the bracket down to the champion */
         const advancing = 2 ** (rounds.length - 1 - index);
-        // [away, home, away score, home score, winner] as Fantrax team IDs
-        let results: [string, string, number, number, string | null][];
+        let results: BracketResult[];
+        const frozen = correctionWindowClosed(week.endDate, now);
 
-        if (correctionWindowClosed(week.endDate, now)) {
+        if (frozen) {
             const kept = stored.filter(game => game.round === round).sort((a, b) => a.slot - b.slot);
             const fantraxId = (teamSeasonId: number | null) => teamSeasonId === null ? null : byTeamSeason.get(teamSeasonId)?.fantraxTeamId ?? null;
-            results = kept.map(game => [fantraxId(game.away)!, fantraxId(game.home)!, game.awayScore, game.homeScore, fantraxId(game.winner)]);
+            results = kept.map(game => ({ away: fantraxId(game.away)!, home: fantraxId(game.home)!, awayScore: game.awayScore, homeScore: game.homeScore, winner: fantraxId(game.winner) }));
             if (!results.length) {
                 warnings.push(`The ${week.name} games weren't stored before their correction window closed, so the bracket stops there. Repair it with the season import.`);
                 break;
@@ -117,18 +130,22 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
                         ? `The Final between ${name(away)} and ${name(home)} ended level, so there is no champion yet. Set its winner in bracket review.`
                         : `The ${week.name} game between ${name(away)} and ${name(home)} ended level and Fantrax hasn't placed either in the ${next!.name} yet, so it has no winner.`);
                 }
-                return [away, home, scoreOf(away), scoreOf(home), winner];
+                return { away, home, awayScore: scoreOf(away), homeScore: scoreOf(home), winner };
             });
-            const teamSeason = (id: string) => byFantrax.get(id)!.teamSeasonId!;
-            games.push(...results.map(([away, home, awayScore, homeScore, winner], slot) => ({
-                round, slot, away: teamSeason(away), home: teamSeason(home), awayScore, homeScore, winner: winner === null ? null : teamSeason(winner),
-            })));
         }
 
-        const winners = results.map(result => result[4]);
+        played.push({ round, results, written: !frozen });
+        const winners = results.map(result => result.winner);
         if (winners.some(winner => winner === null)) break;
         alive = [...(index === 0 ? byes : []), ...winners as string[]];
     }
+
+    // The first round in the order Fantrax lists it (or as stored), and each later round beside the games that fed it.
+    const slotted = drawingOrder(played.map(({ results }) => results), 0, result => [result.away, result.home]);
+    const teamSeason = (id: string) => byFantrax.get(id)!.teamSeasonId!;
+    const games = played.flatMap(({ round, written }, index) => written ? slotted[index].map(({ away, home, awayScore, homeScore, winner }, slot) => ({
+        round, slot, away: teamSeason(away), home: teamSeason(home), awayScore, homeScore, winner: winner === null ? null : teamSeason(winner),
+    })) : []);
     return { games, warnings };
 }
 
