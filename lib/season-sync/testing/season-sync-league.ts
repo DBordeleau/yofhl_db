@@ -123,8 +123,16 @@ export function liveSeasonState(franchises = FRANCHISES): MemoryState {
 
 export async function seasonSyncLeague(t: TestContext, options: { opened?: boolean; teams?: number } = {}) {
     const franchises = Array.from({ length: options.teams ?? FRANCHISES.length }, (_, index) => index + 1);
-    // The live season reports the sections it cannot load (scores for a week a test hasn't scored); runs read only its playoffs.
-    t.mock.method(console, 'error', () => {});
+    // The live season reports the sections it cannot load (scores for a week a test hasn't scored), which runs don't
+    // read; a failed run's log is kept for the test to check. Anything else is logged as usual.
+    const failureLogs: string[] = [];
+    const log = console.error.bind(console);
+    t.mock.method(console, 'error', (...args: unknown[]) => {
+        const [message] = args;
+        if (typeof message === 'string' && message.startsWith('Live season ')) return;
+        if (typeof message === 'string' && message.startsWith('The season sync of ')) failureLogs.push(message);
+        else log(...args);
+    });
     const league = await disposableLeague(t, { app: true, nextCache: true, seed: seed(options.opened ?? true, franchises) });
     // Modules that touch Next load after the league stands in for it.
     const { createSeasonSync } = await import('../create-season-sync');
@@ -178,5 +186,5 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     };
     /** an admin marks week `week` final */
     const markFinal = (week: number) => { live.manualFinalWeeks[SEASON] = [...live.manualFinalWeeks[SEASON] ?? [], week]; };
-    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal, setRoster, refreshStopsAt };
+    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal, setRoster, refreshStopsAt, failureLogs };
 }

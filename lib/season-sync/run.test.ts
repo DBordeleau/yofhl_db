@@ -58,8 +58,7 @@ test("a second run follows Fantrax's corrected numbers, and a run that changes n
 });
 
 test('a failing or invalid standings read writes nothing and records the error, and the next run catches up', async t => {
-    t.mock.method(console, 'error', () => {});
-    const { fantrax, run, read, setStandings } = await seasonSyncLeague(t);
+    const { fantrax, run, read, setStandings, failureLogs } = await seasonSyncLeague(t);
     const { getSeasonDetail } = await import('@/lib/data/league');
     const { getSeasonSyncStatus } = await import('@/lib/admin/data');
     const wins = async () => (await read(() => getSeasonDetail(SEASON))).standings.map(row => [row.franchiseId, row.wins]);
@@ -88,6 +87,7 @@ test('a failing or invalid standings read writes nothing and records the error, 
         assert.equal(status.lastRunAt, new Date(MID_SEASON + (hour - 1) * 3600_000).toISOString(), what);
         assert.equal(status.changed.teamSeasons, 4, `${what}: the last success's changes`);
     }
+    assert.deepEqual(failureLogs, failures.map(() => `The season sync of ${SEASON} failed:`), 'each failure is logged');
 
     fantrax.leagueInfo.seasonYear = SEASON;
     setStandings(nextWeek);
@@ -100,14 +100,15 @@ test('a failing or invalid standings read writes nothing and records the error, 
 });
 
 test('with the live season not opened in the archive, a run writes nothing', async t => {
-    const { league, run, setStandings } = await seasonSyncLeague(t, { opened: false });
+    const { run, read, setStandings } = await seasonSyncLeague(t, { opened: false });
     const { getSeasonSyncStatus } = await import('@/lib/admin/data');
+    const { getFranchise } = await import('@/lib/data/league');
     setStandings([...STANDINGS]);
     const { result, revalidatedTags } = await run(MID_SEASON);
     assert.deepEqual(result, { outcome: 'not-opened', seasonYear: SEASON });
     assert.deepEqual(revalidatedTags, []);
     assert.equal(await getSeasonSyncStatus(), null);
-    assert.deepEqual((await league.client.query('select count(*)::int as n from league.team_seasons where season_year = 2027')).rows, [{ n: 0 }]);
+    assert.deepEqual((await read(() => getFranchise(1)))!.seasons.map(season => season.year), [2026], 'no team season is written for it');
 });
 
 test("seven days after the season's last week ends, a run writes nothing and records the freeze, and later runs leave the season alone", async t => {

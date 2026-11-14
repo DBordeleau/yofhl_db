@@ -106,13 +106,13 @@ test('a saved bracket correction decides the stored winner, and a run leaves the
         insert into league.players (id, name) values ('p1', 'Rookie One');
         insert into league.awards (season_year, award_type_id, player_id, team_season_id) select ${SEASON}, id, 'p1', 13 from league.award_types;
     `);
-    const curated = async () => (await league.league.client.query(`
-        select (select json_agg(o) from league.matchup_overrides o) as corrections, (select json_agg(a) from league.awards a) as awards`)).rows;
-    const before = await curated();
+    const { getSeasonAdmin } = await import('@/lib/admin/data');
     playQuarterfinals(league);
     await league.run(endOf(QUARTERFINALS) + 7 * HOUR);
     assert.deepEqual((await bracket(league))[0], [1, 0, 5, 4, 410.5, 398.25, 4], 'franchise 4 wins on the correction, despite the score');
-    assert.deepEqual(await curated(), before);
+    const admin = (await getSeasonAdmin(SEASON))!;
+    assert.deepEqual(admin.games.find(game => game.round === 1 && game.slot === 0)!.override?.note, 'Goalie start cap', 'bracket review still has the correction');
+    assert.deepEqual(admin.awards.map(award => [award.name, award.winner?.id]), [['Teemu Trophy', 'p1']]);
 });
 
 test('a level game goes to the team Fantrax placed in the next round', async t => {
