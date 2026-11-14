@@ -213,6 +213,23 @@ test('a score correction inside the seven-day window is stored, even one that ch
     ]);
 });
 
+test("a playoff round isn't written from a live season the evening refresh saved more than 36 hours ago: the run fails", async t => {
+    const league = await playoffLeague(t);
+    const { getSeasonSyncStatus } = await import('@/lib/admin/data');
+    playQuarterfinals(league);
+    league.refreshStopsAt(endOf(QUARTERFINALS) - 3 * DAY);
+    assert.equal((await league.run(endOf(QUARTERFINALS) - HOUR)).result.outcome, 'synced', 'with no round to write, the run goes ahead');
+
+    const stale = await league.run(endOf(QUARTERFINALS) + 7 * HOUR);
+    assert.equal(stale.result.outcome, 'failed');
+    assert.match((await getSeasonSyncStatus(SEASON))!.lastError!, /more than 36 hours ago, so the Quarterfinals can't be written/);
+    assert.deepEqual(await bracket(league), [], 'no game from stale scores');
+
+    league.refreshStopsAt(null);
+    const { result } = await league.run(endOf(QUARTERFINALS) + 31 * HOUR);
+    assert.equal(result.outcome === 'synced' && result.changed.playoffGames, 2);
+});
+
 test('a playoff week an admin marked final is written before it ends', async t => {
     const league = await playoffLeague(t);
     playQuarterfinals(league);

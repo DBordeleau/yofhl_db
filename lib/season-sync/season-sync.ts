@@ -1,6 +1,7 @@
-// The season sync wired to production: its Fantrax reads go to Fantrax over HTTP, fresh on every run (none of the
-// live season's caches or its saved snapshot). The playoff bracket comes from the live season module itself, so it
-// follows the evening refresh's snapshot of Fantrax's schedule, final weeks and scores.
+// The season sync wired to production: its own Fantrax reads go to Fantrax over HTTP on every run, past the live
+// season's caches and saved snapshot. The playoff bracket instead comes from the live season module, so it follows
+// the evening refresh's snapshot of Fantrax's schedule, final weeks and scores; a run fails while that snapshot is
+// more than 36 hours old.
 import { createFantraxClient, playerName } from '@/lib/fantrax/fantrax-client';
 import { getLiveSeason, getWeekScores } from '@/lib/fantrax/live-season';
 import { createSeasonSync } from './create-season-sync';

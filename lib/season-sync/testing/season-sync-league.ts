@@ -134,11 +134,19 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     let clock = Date.now();
     const liveSeason = createMemoryLiveSeason(live, { now: () => clock });
     const sync = createSeasonSync({ fantrax: createMemoryFantrax(fantrax), liveSeason });
+    /** when the evening refresh last saved the live season, or null for the evening before each run */
+    let refreshedAt: number | null = null;
     /** one run at `now`, as the cron route runs it, with the tags it expired */
     const run = (now: number) => {
         clock = now;
+        // the live season and its scores as the evening refresh saved them, at 11 p.m. Eastern unless it stopped
+        const fetchedAt = new Date(refreshedAt ?? now - 7 * 3600_000).toISOString();
+        live.fantrax.core.fetchedAt = fetchedAt;
+        for (const scores of Object.values(live.fantrax.scores)) scores.fetchedAt = fetchedAt;
         return league.runAsRoute('/api/cron/season-sync', () => sync.run({ now }));
     };
+    /** the evening refresh fails from `time` on (its last snapshot is `time`'s), or works again with null */
+    const refreshStopsAt = (time: number | null) => { refreshedAt = time; };
     /** a read through the site, as a page makes it */
     const read = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/', fn)).result;
     /** Fantrax's standings table now reads `rows` */
@@ -170,5 +178,5 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     };
     /** an admin marks week `week` final */
     const markFinal = (week: number) => { live.manualFinalWeeks[SEASON] = [...live.manualFinalWeeks[SEASON] ?? [], week]; };
-    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal, setRoster };
+    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal, setRoster, refreshStopsAt };
 }

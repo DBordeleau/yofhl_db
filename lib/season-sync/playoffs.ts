@@ -100,6 +100,9 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
                 break;
             }
         } else {
+            if (now - Date.parse(live.fetchedAt) > LIVE_SEASON_MAX_AGE) {
+                throw new Error(`The live season was saved at ${live.fetchedAt}, more than 36 hours ago, so the ${week.name} can't be written from it. Check the evening Fantrax refreshes.`);
+            }
             const playing = index === 0 ? alive.filter(id => !byes.includes(id)) : alive;
             const inBracket = week.matchups.flatMap(matchup => matchup.away.id && matchup.home.id && alive.includes(matchup.away.id) && alive.includes(matchup.home.id)
                 ? [[matchup.away.id, matchup.home.id] as const] : []);
@@ -174,6 +177,9 @@ function championOf(live: LiveSeason, season: OpenedSeason, planned: PlayoffGame
         weeks: rounds.filter((_, index) => gamesOf(index + 1).some(game => game.away === teamSeasonId || game.home === teamSeasonId)).map(week => week.number),
     };
 }
+
+/** the oldest live season the bracket is read from: a day and a half, so one missed evening of refreshes still syncs */
+const LIVE_SEASON_MAX_AGE = 36 * 3600_000;
 
 /** the live season, checked to be the opened season */
 async function liveSeasonOf(ports: SeasonSyncPorts, season: OpenedSeason, now: number): Promise<LiveSeason> {
