@@ -21,6 +21,22 @@ export const leagueTags = {
 
 export const teamIdentityTags = (id: number) => [leagueTags.franchise(id), leagueTags.franchiseCards, leagueTags.rivalries, leagueTags.records, leagueTags.discovery];
 
+// What a season sync run changed (lib/season-sync): each kind of change refreshes these views and expires these
+// tags, once per run whatever else it changed. A run that changes nothing has no effects.
+export type SeasonSyncChange = 'stats';
+export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: number): { views: MaterializedView[]; tags: string[] } {
+    const effects = changes.map(change => {
+        switch (change) {
+            case 'stats': return {
+                views: ['player_careers', 'franchise_records'] as MaterializedView[],
+                tags: [leagueTags.season(year), leagueTags.players, leagueTags.careerLeaderboard, leagueTags.seasonLeaderboard,
+                    leagueTags.franchiseCards, leagueTags.franchiseDetails, leagueTags.records, leagueTags.discovery],
+            };
+        }
+    });
+    return { views: [...new Set(effects.flatMap(effect => effect.views))], tags: [...new Set(effects.flatMap(effect => effect.tags))] };
+}
+
 export type CuratedEdit = 'roster' | 'awards' | 'matchup';
 export function curatedEditEffects(kind: CuratedEdit, year: number): { views: MaterializedView[]; tags: string[] } {
     switch (kind) {

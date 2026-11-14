@@ -20,10 +20,10 @@ module.exports = {
       },
     },
     {
-      files: ['lib/coachs-corner/production/**', 'db/schema.ts'],
+      files: ['lib/coachs-corner/production/**', 'db/schema.ts', 'lib/season-sync/season-sync.ts'],
       rules: {
         'import/no-restricted-paths': fantraxBoundary([...publicFantraxFiles, './fantrax-client.ts'],
-          `${boundaryMessage}; the Coach's Corner production code and the database schema may also import the Fantrax client.`),
+          `${boundaryMessage}; the Coach's Corner production code, the database schema and the season sync's production binding may also import the Fantrax client.`),
       },
     },
     {

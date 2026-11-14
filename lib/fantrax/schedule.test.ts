@@ -5,10 +5,11 @@ import { scheduledRefreshTime } from './schedule';
 
 test('six daily UTC jobs produce exactly four Eastern refreshes in summer, winter and after DST changes', () => {
     const config = JSON.parse(readFileSync('vercel.json', 'utf8'));
-    assert.equal(config.crons.length, 6);
+    const crons = config.crons.filter((cron: { path: string }) => cron.path.startsWith('/api/cron/fantrax?'));
+    assert.equal(crons.length, 6);
     for (const day of ['2026-10-19', '2026-11-02', '2027-01-20', '2027-03-15']) {
         for (const delay of [0, 59 * 60 * 1000]) {
-            const times = config.crons.flatMap((cron: { path: string; schedule: string }) => {
+            const times = crons.flatMap((cron: { path: string; schedule: string }) => {
                 const slot = new URL(cron.path, 'https://example.com').searchParams.get('slot')!;
                 const [hour, minute] = slot.split(':').map(Number);
                 assert.equal(cron.schedule, `${minute} ${hour} * * *`, 'each job runs once per day on Hobby');
