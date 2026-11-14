@@ -1,6 +1,8 @@
 // What the season sync reads from Fantrax. Production binds it to the Fantrax client in season-sync.ts; tests use
 // the in-memory binding in memory-fantrax.ts. Every read checks its own response's shape and rejects a failed or
-// malformed one; the season sync then checks the reads against the archive before it writes anything.
+// malformed one; the season sync then checks the reads against the archive before it writes anything. The bracket
+// comes from the live season module, which already has Fantrax's playoff weeks, pairings and final weeks.
+import type { getLiveSeason, getWeekScores } from '@/lib/fantrax/live-season';
 
 /** one Fantrax scoring period, its dates as ISO strings */
 export interface FantraxWeek {
@@ -35,4 +37,6 @@ export interface SeasonSyncFantrax {
 
 export interface SeasonSyncPorts {
     fantrax: SeasonSyncFantrax;
+    /** the live season module: the playoff weeks, their pairings, whether each is final, and their scores */
+    liveSeason: { getLiveSeason: typeof getLiveSeason; getWeekScores: typeof getWeekScores };
 }

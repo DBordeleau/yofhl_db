@@ -50,7 +50,7 @@ export function createRun(ports: SeasonSyncPorts) {
                 await rows(freezeQuery(year, now));
                 return { outcome: 'frozen', seasonYear: year, frozenAt: new Date(now).toISOString() };
             }
-            read = await readSeason(ports, season);
+            read = await readSeason(ports, season, now);
         } catch (error) {
             return failed(error);
         }
