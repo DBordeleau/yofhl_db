@@ -34,9 +34,17 @@ export async function setWeekFinal(week: number, final: boolean): Promise<{ mess
     }
 }
 
-// The same run as the season sync's morning cron.
+// The same run as the season sync's morning cron, after a Fantrax refresh: the sync reads the playoffs from the
+// saved snapshot, which can be a day old, so a playoff settings change made since the evening refresh counts.
 export async function syncSeasonStats(): Promise<{ message: string } | { error: string }> {
     await requireAdmin();
+    try {
+        await liveSeason.refreshLiveSeason();
+        revalidatePath('/');
+    } catch (error) {
+        console.error('Admin Fantrax refresh before the season sync failed:', error);
+        return { error: 'Could not refresh Fantrax, so the season sync did not run. Please try again.' };
+    }
     try {
         const result = await seasonSync.run({ now: Date.now() });
         revalidatePath('/admin');
