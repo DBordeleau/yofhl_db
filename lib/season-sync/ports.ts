@@ -11,8 +11,12 @@ export interface FantraxWeek {
     endDate: string;
 }
 
-/** one Fantrax daily roster period (a day's lineup, from one day's first game to the next's), its dates as ISO strings */
-export type FantraxRosterPeriod = FantraxWeek;
+/** one Fantrax roster period (GLOSSARY.md): a day's lineup, from one day's first game to the next's, its dates as ISO strings */
+export interface FantraxRosterPeriod {
+    number: number;
+    startDate: string;
+    endDate: string;
+}
 
 export interface FantraxLeagueInfo {
     /** the season year (Fantrax's start year is converted by the read) */
@@ -70,7 +74,7 @@ export interface SeasonSyncFantrax {
     /** every player who scored (a non-zero total, negative included) or is rostered, for the season year given */
     players(leagueId: string, seasonYear: number): Promise<FantraxPlayer[]>;
     /** every team's roster on one past (or the current) daily roster period */
-    dayRosters(leagueId: string, period: number): Promise<FantraxDayRosters>;
+    dayRosters(leagueId: string, rosterPeriod: number): Promise<FantraxDayRosters>;
     /** every NHL player Fantrax knows, by bare player ID */
     playerDirectory(): Promise<Record<string, FantraxDirectoryPlayer>>;
 }

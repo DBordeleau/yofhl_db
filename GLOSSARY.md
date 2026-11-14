@@ -63,6 +63,10 @@ _Avoid_: current season (when you mean what Fantrax has now)
 One Fantrax scoring period. "Lineup period" in the roster browser is Fantrax's own label, shown to owners as they see it on Fantrax, so that wording is not a breach of this term.
 _Avoid_: period, outside the Fantrax adapter
 
+**Roster period**:
+One of Fantrax's daily lineups: a day's rosters, from that day's first game to the next day's, so not midnight to midnight. A roster period belongs to the week it starts in. The season sync reads them for the automatic championship roster.
+_Avoid_: day, period (on its own)
+
 **Final week**:
 A week whose scores are settled, either automatically because the standings records add up or by hand in admin.
 

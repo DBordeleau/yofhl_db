@@ -13,7 +13,6 @@ import { createRun } from './run';
 
 export type { FantraxDayRosters, FantraxDirectoryPlayer, FantraxLeagueInfo, FantraxRosterPeriod, FantraxStanding, FantraxWeek, SeasonSyncFantrax, SeasonSyncPorts } from './ports';
 export type { RunInput, SeasonSyncResult } from './run';
-export type { SeasonSyncStatus, SyncCounts } from './status';
 
 export function createSeasonSync(ports: SeasonSyncPorts) {
     return { run: createRun(ports) };

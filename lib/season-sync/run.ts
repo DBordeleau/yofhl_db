@@ -10,7 +10,7 @@ import { seasonSyncEffects } from '@/lib/data/cache-tags';
 import { rows } from '@/lib/data/db';
 import { inRefreshOrder } from '@/lib/data/materialized-views';
 import { correctionWindowClosed } from '@/lib/fantrax/live-season';
-import { readOpenedSeason } from './opened-season';
+import { readCurrentSeason } from './current-season';
 import type { SeasonSyncPorts } from './ports';
 import { readLeagueInfo, readSeason } from './read-season';
 import { failedRunQuery, freezeQuery, type SyncCounts } from './status';
@@ -33,7 +33,7 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 
 export function createRun(ports: SeasonSyncPorts) {
     return async function run({ now }: RunInput): Promise<SeasonSyncResult> {
-        const { seasonYear, season } = await readOpenedSeason();
+        const { seasonYear, season } = await readCurrentSeason();
         if (!season) return { outcome: 'not-opened', seasonYear };
         const year = season.seasonYear;
         if (season.frozenAt) return { outcome: 'frozen', seasonYear: year, frozenAt: season.frozenAt };

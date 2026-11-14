@@ -10,7 +10,7 @@ export interface MemoryFantraxState {
     standings: FantraxStanding[];
     /** Fantrax's whole player stats table: every NHL player, scored or not */
     players: FantraxPlayer[];
-    /** each daily roster period's rosters, by period number */
+    /** each roster period's rosters, by roster period number */
     rosters: Record<number, FantraxDayRosters>;
     /** Fantrax's player directory, by player ID */
     directory: Record<string, FantraxDirectoryPlayer>;
@@ -31,9 +31,9 @@ export function createMemoryFantrax(state: MemoryFantraxState): SeasonSyncFantra
         players: (leagueId, seasonYear) => seasonYear === state.leagueInfo.seasonYear
             ? read('players', leagueId, () => state.players.filter(player => player.points !== 0 || player.teamId !== null))
             : Promise.reject(new Error('Fantrax returned the wrong scoring season')),
-        dayRosters: (leagueId, period) => state.rosters[period]
-            ? read('dayRosters', leagueId, () => state.rosters[period])
-            : Promise.reject(new Error(`Fantrax returned invalid rosters for roster period ${period}`)),
+        dayRosters: (leagueId, rosterPeriod) => state.rosters[rosterPeriod]
+            ? read('dayRosters', leagueId, () => state.rosters[rosterPeriod])
+            : Promise.reject(new Error(`Fantrax returned invalid rosters for roster period ${rosterPeriod}`)),
         playerDirectory: () => read('playerDirectory', state.leagueId, () => state.directory),
     };
 }

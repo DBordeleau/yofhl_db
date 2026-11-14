@@ -15,7 +15,7 @@
 // made again.
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
-import type { OpenedSeason } from './opened-season';
+import type { CurrentSeason } from './current-season';
 import type { Champion } from './playoffs';
 import type { FantraxDayRosters, FantraxLeagueInfo, SeasonSyncPorts } from './ports';
 import type { SyncWrite } from './write';
@@ -40,10 +40,10 @@ const rosterRecordQuery = (seasonYear: number) => sql`
     left join league.season_sync_status st on st.season_year = ${seasonYear}`;
 
 /** The championship roster to write in this run, if any, read from Fantrax and checked. `listed` are the players in Fantrax's player table this run. */
-export async function readChampionshipRoster(ports: SeasonSyncPorts, season: OpenedSeason, info: FantraxLeagueInfo,
+export async function readChampionshipRoster(ports: SeasonSyncPorts, season: CurrentSeason, info: FantraxLeagueInfo,
     champion: Champion | null, listed: ReadonlySet<string>): Promise<ChampionshipRosterRead> {
     if (!champion) return NOTHING;
-    const team = season.teams.find(mapped => mapped.teamSeasonId === champion.teamSeasonId);
+    const team = season.teamOf(champion.teamSeasonId);
     if (!team) throw new Error(`The champion, team season ${champion.teamSeasonId}, is not a ${season.seasonYear} team the league configuration maps.`);
     const [record] = await rows<{ players: number; autoRosterFranchiseId: number | null; savedRosterFranchiseId: number | null }>(rosterRecordQuery(season.seasonYear));
     const franchise = team.franchiseId;

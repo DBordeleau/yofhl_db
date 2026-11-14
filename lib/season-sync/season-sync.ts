@@ -13,7 +13,7 @@ export const seasonSync = createSeasonSync({
         leagueInfo: leagueId => client.leagueInfo(leagueId),
         standings: leagueId => client.standingsTable(leagueId),
         players: (leagueId, seasonYear) => client.playerTable(leagueId, seasonYear),
-        dayRosters: (leagueId, period) => client.dayRosters(leagueId, period),
+        dayRosters: (leagueId, rosterPeriod) => client.dayRosters(leagueId, rosterPeriod),
         playerDirectory: async () => Object.fromEntries(Object.entries(await client.playerDirectory()).map(([id, player]) =>
             [id, { name: playerName(player.name), positions: [player.position], nhlTeam: player.team ?? null }])),
     },

@@ -18,7 +18,7 @@ import { rows } from '@/lib/data/db';
 import { matchupWinner } from '@/lib/data/matchup-winner';
 import { PLAYOFF_FORMAT } from '@/lib/fantrax/config';
 import { correctionWindowClosed, type LiveSeason, type Week, type WeekScores } from '@/lib/fantrax/live-season';
-import type { OpenedSeason } from './opened-season';
+import type { CurrentSeason } from './current-season';
 import type { SeasonSyncPorts } from './ports';
 import type { SyncWrite } from './write';
 
@@ -54,7 +54,7 @@ interface BracketResult {
 }
 
 interface BracketInput {
-    season: OpenedSeason;
+    season: CurrentSeason;
     live: LiveSeason;
     /** a final playoff week's scores, read only for a round about to be written */
     scoresOf: (week: Week) => Promise<WeekScores>;
@@ -70,8 +70,6 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
     if (!playoffs.fitsFormat) {
         return { games: [], warnings: [`Fantrax's playoff schedule has ${rounds.length} round${rounds.length === 1 ? '' : 's'}, not the league's ${PLAYOFF_FORMAT.rounds.length}: no playoff bracket is written. Correct the playoff settings in Fantrax.`] };
     }
-    const byFantrax = new Map(season.teams.map(team => [team.fantraxTeamId, team]));
-    const byTeamSeason = new Map(season.teams.map(team => [team.teamSeasonId, team]));
     const name = (fantraxTeamId: string) => live.teams.find(team => team.id === fantraxTeamId)?.name ?? fantraxTeamId;
 
     // Seeds in standings order, as many as the standings' playoff line; the top seeds have the first round's byes.
@@ -93,7 +91,7 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
 
         if (frozen) {
             const kept = stored.filter(game => game.round === round).sort((a, b) => a.slot - b.slot);
-            const fantraxId = (teamSeasonId: number | null) => teamSeasonId === null ? null : byTeamSeason.get(teamSeasonId)?.fantraxTeamId ?? null;
+            const fantraxId = (teamSeasonId: number | null) => teamSeasonId === null ? null : season.teamOf(teamSeasonId)?.fantraxTeamId ?? null;
             results = kept.map(game => ({ away: fantraxId(game.away)!, home: fantraxId(game.home)!, awayScore: game.awayScore, homeScore: game.homeScore, winner: fantraxId(game.winner) }));
             if (!results.length) {
                 warnings.push(`The ${week.name} games weren't stored before their correction window closed, so the bracket stops there. Repair it with the season import.`);
@@ -109,7 +107,7 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
             const sides = inBracket.flat();
             const fits = playing.length > 0 && sides.length === playing.length && playing.every(id => sides.includes(id))
                 && (index === 0 ? byes.length : 0) + inBracket.length === advancing && (isFinal || inBracket.length > 1)
-                && sides.every(id => byFantrax.get(id)?.teamSeasonId);
+                && sides.every(id => season.team(id)?.teamSeasonId);
             if (!fits) {
                 warnings.push(`Fantrax's ${week.name} pairings don't fit the bracket, so none of the round's games are stored. Repair the bracket with the season import.`);
                 break;
@@ -119,7 +117,7 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
                 const result = weekScores.matchups.find(game => [game.away.teamId, game.home.teamId].sort().join() === [away, home].sort().join());
                 if (!result) throw new Error(`Fantrax's scores for week ${week.number} have no game between teams ${away} and ${home}.`);
                 const scoreOf = (id: string) => result.away.teamId === id ? result.away.score : result.home.score;
-                const [awayFranchise, homeFranchise] = [byFantrax.get(away)!.franchiseId, byFantrax.get(home)!.franchiseId];
+                const [awayFranchise, homeFranchise] = [season.team(away)!.franchiseId, season.team(home)!.franchiseId];
                 const correction = corrections.find(fix => fix.round === round
                     && fix.franchiseA === Math.min(awayFranchise, homeFranchise) && fix.franchiseB === Math.max(awayFranchise, homeFranchise));
                 const corrected = correction?.winner === awayFranchise ? away : correction?.winner === homeFranchise ? home : null;
@@ -145,7 +143,7 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
 
     // The first round in the order Fantrax lists it (or as stored), and each later round beside the games that fed it.
     const slotted = drawingOrder(played.map(({ results }) => results), 0, result => [result.away, result.home]);
-    const teamSeason = (id: string) => byFantrax.get(id)!.teamSeasonId!;
+    const teamSeason = (id: string) => season.team(id)!.teamSeasonId!;
     const games = played.flatMap(({ round, written }, index) => written ? slotted[index].map(({ away, home, awayScore, homeScore, winner }, slot) => ({
         round, slot, away: teamSeason(away), home: teamSeason(home), awayScore, homeScore, winner: winner === null ? null : teamSeason(winner),
     })) : []);
@@ -160,8 +158,13 @@ export interface Champion {
     weeks: number[];
 }
 
-/** The champion once this run's write lands: each round as planned this run, else as stored. */
-function championOf(live: LiveSeason, season: OpenedSeason, planned: PlayoffGame[], stored: PlayoffGame[]): Champion | null {
+/**
+ * The champion once this run's write lands: each round as planned this run, else as stored. The champion is the
+ * winner of the last round when it is a single game, the rule the season results view crowns by (migration 0024);
+ * it is worked out here because the view sees the bracket only after the write, and the championship roster is
+ * part of the same write. Change both together.
+ */
+function championOf(live: LiveSeason, season: CurrentSeason, planned: PlayoffGame[], stored: PlayoffGame[]): Champion | null {
     const { rounds } = live.playoffs;
     const gamesOf = (round: number) => {
         const games = planned.filter(game => game.round === round);
@@ -170,7 +173,7 @@ function championOf(live: LiveSeason, season: OpenedSeason, planned: PlayoffGame
     const final = gamesOf(rounds.length);
     if (!live.playoffs.fitsFormat || final.length !== 1 || final[0].winner === null) return null;
     const teamSeasonId = final[0].winner;
-    const fantraxTeamId = season.teams.find(team => team.teamSeasonId === teamSeasonId)?.fantraxTeamId;
+    const fantraxTeamId = season.teamOf(teamSeasonId)?.fantraxTeamId;
     return {
         teamSeasonId,
         name: live.teams.find(team => team.id === fantraxTeamId)?.name ?? `team season ${teamSeasonId}`,
@@ -181,8 +184,8 @@ function championOf(live: LiveSeason, season: OpenedSeason, planned: PlayoffGame
 /** the oldest live season the bracket is read from: a day and a half, so one missed evening of refreshes still syncs */
 const LIVE_SEASON_MAX_AGE = 36 * 3600_000;
 
-/** the live season, checked to be the opened season */
-async function liveSeasonOf(ports: SeasonSyncPorts, season: OpenedSeason, now: number): Promise<LiveSeason> {
+/** the live season, checked to be the current season */
+async function liveSeasonOf(ports: SeasonSyncPorts, season: CurrentSeason, now: number): Promise<LiveSeason> {
     const result = await ports.liveSeason.getLiveSeason({ now });
     if (result.status !== 'available') throw new Error('The live season is unavailable, so its playoff weeks could not be read.');
     const live = result.value;
@@ -204,7 +207,7 @@ const bracketCorrectionsQuery = (seasonYear: number) => sql`
     from league.matchup_overrides where season_year = ${seasonYear}`;
 
 /** Everything the bracket needs, checked, as its writes and warnings, and the champion once the writes land. */
-export async function readBracket(ports: SeasonSyncPorts, season: OpenedSeason, now: number): Promise<{ writes: SyncWrite[]; warnings: string[]; champion: Champion | null }> {
+export async function readBracket(ports: SeasonSyncPorts, season: CurrentSeason, now: number): Promise<{ writes: SyncWrite[]; warnings: string[]; champion: Champion | null }> {
     const [live, stored, corrections] = await Promise.all([
         liveSeasonOf(ports, season, now),
         rows<PlayoffGame>(playoffGamesQuery(season.seasonYear)),

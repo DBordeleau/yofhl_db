@@ -2,7 +2,7 @@
 // calculation here. Division is 1 and the division rank is the table's rank. A team season's name, owner, logo
 // and abbreviation belong to the league configuration and are never written by the season sync.
 import { sql } from 'drizzle-orm';
-import type { OpenedSeason } from './opened-season';
+import type { CurrentSeason } from './current-season';
 import type { FantraxStanding } from './ports';
 import type { SyncWrite } from './write';
 
@@ -17,16 +17,15 @@ export interface TeamSeasonStanding {
     fptsAgainst: number;
 }
 
-/** The opened season's team seasons from Fantrax's standings, or a rejection unless the table covers exactly its teams. */
-export function teamSeasonStandings(season: OpenedSeason, standings: FantraxStanding[]): TeamSeasonStanding[] {
-    const unmapped = standings.find(row => !season.teams.some(team => team.fantraxTeamId === row.teamId));
+/** The current season's team seasons from Fantrax's standings, or a rejection unless the table covers exactly its teams. */
+export function teamSeasonStandings(season: CurrentSeason, standings: FantraxStanding[]): TeamSeasonStanding[] {
+    const unmapped = standings.find(row => !season.team(row.teamId));
     if (unmapped) throw new Error(`Fantrax's standings have team ${unmapped.teamId}, which the league configuration does not map for ${season.seasonYear}.`);
     return season.teams.map(team => {
         const rows = standings.filter(row => row.teamId === team.fantraxTeamId);
         if (rows.length !== 1) throw new Error(`Fantrax's standings have team ${team.fantraxTeamId} ${rows.length} times.`);
-        if (team.teamSeasonId === null) throw new Error(`Franchise ${team.franchiseId} has no ${season.seasonYear} team season: run the season import to open it.`);
         const [row] = rows;
-        return { teamSeasonId: team.teamSeasonId, division: 1, divisionRank: row.rank, wins: row.wins, losses: row.losses, ties: row.ties,
+        return { teamSeasonId: season.teamSeasonId(team), division: 1, divisionRank: row.rank, wins: row.wins, losses: row.losses, ties: row.ties,
             fptsFor: row.pointsFor, fptsAgainst: row.pointsAgainst };
     });
 }

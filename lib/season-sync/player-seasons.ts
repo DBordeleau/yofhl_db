@@ -4,7 +4,7 @@
 // a player row (bare ID and name) and a player season with the fantasy team from the Fantrax team mapping (none
 // for a free agent), NHL team, positions, FPts and FP/G.
 import { sql } from 'drizzle-orm';
-import type { OpenedSeason } from './opened-season';
+import type { CurrentSeason } from './current-season';
 import type { FantraxPlayer } from './ports';
 import type { SyncWrite } from './write';
 
@@ -19,8 +19,8 @@ export interface PlayerSeasonRow {
     fpg: number;
 }
 
-/** The kept players' seasons from Fantrax's table, or a rejection when a player or fantasy team doesn't fit the opened season. */
-export function playerSeasonRows(season: OpenedSeason, players: FantraxPlayer[]): PlayerSeasonRow[] {
+/** The kept players' seasons from Fantrax's table, or a rejection when a player or fantasy team doesn't fit the current season. */
+export function playerSeasonRows(season: CurrentSeason, players: FantraxPlayer[]): PlayerSeasonRow[] {
     const seen = new Set<string>();
     return players.flatMap(player => {
         if (!player.id || player.id.includes('*') || !player.name) throw new Error(`Fantrax's player table has an invalid player (${JSON.stringify(player.id)}).`);
@@ -28,10 +28,9 @@ export function playerSeasonRows(season: OpenedSeason, players: FantraxPlayer[])
         seen.add(player.id);
         let teamSeasonId: number | null = null;
         if (player.teamId !== null) {
-            const team = season.teams.find(mapped => mapped.fantraxTeamId === player.teamId);
+            const team = season.team(player.teamId);
             if (!team) throw new Error(`Fantrax's player table has ${player.name} on team ${player.teamId}, which the league configuration does not map for ${season.seasonYear}.`);
-            if (team.teamSeasonId === null) throw new Error(`Franchise ${team.franchiseId} has no ${season.seasonYear} team season: run the season import to open it.`);
-            teamSeasonId = team.teamSeasonId;
+            teamSeasonId = season.teamSeasonId(team);
         }
         // A ring or award player Fantrax no longer lists is kept by the write, not here.
         if (player.points === 0 && teamSeasonId === null) return [];

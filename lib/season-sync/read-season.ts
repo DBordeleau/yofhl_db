@@ -1,20 +1,18 @@
-// Everything one run reads from Fantrax, checked against the opened season before anything is written. Each part
+// Everything one run reads from Fantrax, checked against the current season before anything is written. Each part
 // of the season (team seasons, player seasons, the playoff bracket and the championship roster, which follows the
 // bracket's champion) turns its validated reads into SyncWrites; a part that cannot be checked
 // throws, which fails the whole run before any write. A part that is fine but has something the league owner
 // should know adds a warning instead.
 import { readChampionshipRoster } from './championship-roster';
-import type { OpenedSeason } from './opened-season';
+import type { CurrentSeason } from './current-season';
 import { readBracket } from './playoffs';
 import type { FantraxLeagueInfo, SeasonSyncPorts } from './ports';
 import { playerSeasonRows, playerSeasonsWrites } from './player-seasons';
 import { teamSeasonStandings, teamSeasonsWrite } from './team-seasons';
 import type { SyncRunWrite } from './write';
 
-export type SeasonRead = SyncRunWrite;
-
-/** Fantrax's league info for the opened season (its weeks and daily roster periods), checked to be the same season */
-export async function readLeagueInfo(ports: SeasonSyncPorts, season: OpenedSeason): Promise<FantraxLeagueInfo> {
+/** Fantrax's league info for the current season (its weeks and daily roster periods), checked to be the same season */
+export async function readLeagueInfo(ports: SeasonSyncPorts, season: CurrentSeason): Promise<FantraxLeagueInfo> {
     const info = await ports.fantrax.leagueInfo(season.leagueId);
     if (info.seasonYear !== season.seasonYear) {
         throw new Error(`Fantrax league ${season.leagueId} is the ${info.seasonYear} season, not ${season.seasonYear}.`);
@@ -23,8 +21,8 @@ export async function readLeagueInfo(ports: SeasonSyncPorts, season: OpenedSeaso
     return info;
 }
 
-/** every other read, checked, as the writes that bring the archive up to date */
-export async function readSeason(ports: SeasonSyncPorts, season: OpenedSeason, info: FantraxLeagueInfo, now: number): Promise<SeasonRead> {
+/** every other read, checked, as the run's write: the writes that bring the archive up to date and their warnings */
+export async function readSeason(ports: SeasonSyncPorts, season: CurrentSeason, info: FantraxLeagueInfo, now: number): Promise<SyncRunWrite> {
     const [standings, players, bracket] = await Promise.all([
         ports.fantrax.standings(season.leagueId),
         ports.fantrax.players(season.leagueId, season.seasonYear),
