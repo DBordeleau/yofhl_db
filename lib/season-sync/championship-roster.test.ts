@@ -86,20 +86,17 @@ test("once the roster is written, later runs neither change it nor read the cham
     assert.deepEqual(await rings(league), written);
 });
 
-test('a season that already has a championship roster is left unchanged, with a warning to check it', async t => {
+test('a championship roster saved in admin before the Final is decided is left unchanged, with no warning', async t => {
     const league = await playoffLeague(t);
-    const { getSeasonSyncStatus } = await import('@/lib/admin/data');
+    const { saveRoster } = await import('@/lib/data/curated-edits');
     rosterOne(league);
     await playToTheFinal(league, [700, 799.9]);
-    await league.league.client.exec(`insert into league.players values ('chosen', 'Chosen One');
-        insert into league.championship_rosters values (${SEASON}, 'chosen')`);
+    await league.league.runAsRoute('/admin', () => saveRoster(SEASON, ['star']));
     league.fantrax.down.add('dayRosters');
 
     const { result } = await league.run(endOf(FINAL) + 7 * HOUR);
-    assert.equal(result.outcome === 'synced' && result.changed.championshipRoster, 0);
-    assert.deepEqual(await rings(league), { team: 'Club 1', players: [['chosen', 'Chosen One']] });
-    assert.deepEqual((await getSeasonSyncStatus(SEASON))!.warnings,
-        ['The championship roster was saved in admin before Club 1 won the Final, so the season sync left it alone. Check it in the roster editor.']);
+    assert.deepEqual(result.outcome === 'synced' && [result.changed.championshipRoster, result.warnings], [0, []]);
+    assert.deepEqual(await rings(league), { team: 'Club 1', players: [['star', 'Name star']] });
 });
 
 /** a stat correction three days after the Final ends flips it: 3 now beats 1 */

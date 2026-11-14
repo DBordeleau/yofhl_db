@@ -10,8 +10,9 @@
 // review, between runs). The roster is written when the season has none, unless the league owner saved it empty for
 // this champion; the status row then records the franchise it was written for, until the roster is saved in admin.
 // If the champion changes while that record stands (a stat correction flips the Final), the automatic roster is
-// replaced with the new champion's. A roster the league owner saved for another champion is left alone, with a
-// warning. Once written for the champion, the roster's daily reads are not made again.
+// replaced with the new champion's. A roster the league owner saved is left alone, with a warning if it was saved
+// for another champion (the Final flipped since). Once written for the champion, the roster's daily reads are not
+// made again.
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
 import type { OpenedSeason } from './opened-season';
@@ -34,7 +35,7 @@ const READS_AT_ONCE = 7;
 
 const rosterRecordQuery = (seasonYear: number) => sql`
     select (select count(*)::int from league.championship_rosters c where c.season_year = ${seasonYear}) as players,
-           st.auto_roster_franchise_id as auto, st.saved_roster_franchise_id as saved
+           st.auto_roster_franchise_id as "autoRosterFranchiseId", st.saved_roster_franchise_id as "savedRosterFranchiseId"
     from (select 1) one
     left join league.season_sync_status st on st.season_year = ${seasonYear}`;
 
@@ -44,11 +45,15 @@ export async function readChampionshipRoster(ports: SeasonSyncPorts, season: Ope
     if (!champion) return NOTHING;
     const team = season.teams.find(mapped => mapped.teamSeasonId === champion.teamSeasonId);
     if (!team) throw new Error(`The champion, team season ${champion.teamSeasonId}, is not a ${season.seasonYear} team the league configuration maps.`);
-    const [record] = await rows<{ players: number; auto: number | null; saved: number | null }>(rosterRecordQuery(season.seasonYear));
+    const [record] = await rows<{ players: number; autoRosterFranchiseId: number | null; savedRosterFranchiseId: number | null }>(rosterRecordQuery(season.seasonYear));
     const franchise = team.franchiseId;
-    const write = record.players === 0 ? record.saved !== franchise : record.auto !== null && record.auto !== franchise;
-    if (!write) {
-        return record.players > 0 && record.auto === null && record.saved !== franchise
+    const { autoRosterFranchiseId: auto, savedRosterFranchiseId: saved } = record;
+    // none yet (unless saved empty for this champion), or an automatic one written for another champion
+    const rosterDue = record.players === 0 ? saved !== franchise : auto !== null && auto !== franchise;
+    if (!rosterDue) {
+        // a roster saved for one champion when the Final has since flipped to another
+        const flipped = record.players > 0 && auto === null && saved !== null && saved !== franchise;
+        return flipped
             ? { ...NOTHING, warnings: [`The championship roster was saved in admin before ${champion.name} won the Final, so the season sync left it alone. Check it in the roster editor.`] }
             : NOTHING;
     }

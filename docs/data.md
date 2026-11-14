@@ -335,7 +335,7 @@ It syncs the live season (the latest season with a `fantrax` block) and does not
 - **Playoff games**: each round's championship games once its week is final (ended, or marked final in admin). A game is a championship game when both teams are still alive in the bracket: the standings' playoff seeds in the first round (the top seeds having byes), then the previous round's winners plus the bye teams. Other games in those weeks are ignored. Each round's games are slotted for drawing: the first round in Fantrax's schedule order, each later round beside the games that fed it (`lib/data/bracket-order.ts`, the rule the season import slots by, from the Final back). The winner follows the shared matchup winner rule, so a saved bracket correction applies; level scores go to the team Fantrax placed in the next round, and a level Final has no winner until it is set in bracket review. A game follows Fantrax's scores until its week's seven-day correction window closes and is never rewritten after. The Final's winner publishes the season through the season results view.
 - **Championship roster**: once the season has a champion and no roster. The champion's run is the playoff weeks it played a game in, so a first-round bye is not part of it. The roster is everyone on the champion's roster in any slot but the minors (injured reserve included) in any daily roster period that starts inside those weeks; a single day counts. That is one Fantrax read per roster period of the run (28 for 2027's 7, 7 and 14 days), made only in the run that writes the roster. A roster player with no player row or player season this year (dropped, with no points) is given both, named from Fantrax's player directory. The status row records the franchise the automatic roster was written for. Saving the roster in the roster editor clears that record, and from then on the season sync never changes it.
 
-If the Final flips inside its correction window, an automatic roster still on record is replaced with the new champion's. A roster saved in admin for a different champion (or before the Final was decided) is left alone, and every run warns about it until it is saved again.
+If the Final flips inside its correction window, an automatic roster still on record is replaced with the new champion's. A roster saved in admin is left alone. If it was saved for a different champion (the Final flipped after the save), every run warns about it until it is saved again; a roster saved before the Final was decided raises no warning.
 
 It never writes an award, a bracket correction, a saved championship roster or a team season's identity. The league configuration's `scoreOverrides` apply only to the season import.
 
@@ -350,7 +350,7 @@ Warnings don't fail the run. They name something the league owner should fix:
 - Fantrax's schedule from its first playoff week is not three rounds: no bracket is written.
 - A round's pairings don't fit the bracket: nothing is written for it or any later round. Repair it with the season import.
 - The Final ended level: no champion until its winner is set in bracket review.
-- The championship roster was saved in admin before another franchise won the Final: check it in the roster editor.
+- The championship roster was saved in admin for one champion and the Final has since flipped to another: check it in the roster editor.
 
 ### The admin panel
 
