@@ -55,6 +55,32 @@ test('does not present unassigned Fantrax playoff slots as games or team byes', 
     assert.deepEqual(await schedule([...placeholders, partial]), [partial]);
 });
 
+test('an unseeded first playoff round gives its seeding, and its seed and bye placeholders are not matchups', async () => {
+    // Recorded from the live league on 2026-11-14: regular season through week 21, byes for seeds 1 and 2, and a
+    // two-week Final in week 24.
+    const client = fantrax({ getLeagueInfo: () => recorded('getLeagueInfo-playoffs') });
+    const core = readCore(await client.league(LEAGUE), {});
+    assert.deepEqual([core.playoffs.firstPlayoffPeriod, core.playoffs.lastRegularSeasonPeriod, core.playoffs.numPlayoffTeams], [22, 21, 6]);
+    assert.deepEqual(core.playoffs.seeding, [{ away: null, home: 1 }, { away: 5, home: 4 }, { away: null, home: 2 }, { away: 6, home: 3 }]);
+    assert.deepEqual(core.schedule.filter(round => round.week >= 21).map(round => [round.week, round.matchups.length]), [[21, 5], [22, 0], [23, 0], [24, 0]]);
+    assert.deepEqual([core.weeks.at(-1)!.number, core.weeks.at(-1)!.startDate, core.weeks.at(-1)!.endDate],
+        [24, '2027-03-22T23:00:00.000Z', '2027-04-05T15:59:58.000Z']);
+});
+
+test('a seeded first playoff round gives no seeding', async () => {
+    const client = fantrax({ getLeagueInfo: () => {
+        const body = recorded('getLeagueInfo-playoffs');
+        body.matchups.find((round: { period: number }) => round.period === 22).matchupList = [
+            { away: { bye: true }, home: { id: '6pfjiq07mutybt24', name: 'Paddyville Lucifers' } },
+            { away: { id: 'a9lp9hbcmutybt24', name: 'Hooterville Honkers' }, home: { id: '7jmn4yymmutybt24', name: 'Varrock Dark Wizards' } },
+        ];
+        return body;
+    } });
+    const core = readCore(await client.league(LEAGUE), {});
+    assert.equal(core.playoffs.seeding, undefined);
+    assert.equal(core.schedule.find(round => round.week === 22)!.matchups.length, 2);
+});
+
 test('an incomplete league snapshot is rejected', async () => {
     const incomplete: Record<string, (body: RecordedBody) => unknown>[] = [
         { getLeagueInfo: body => ({ ...body, teamInfo: undefined }) },

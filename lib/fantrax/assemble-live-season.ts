@@ -1,27 +1,29 @@
 // The live season module: the current season as Fantrax has it now, already assembled. It only assembles; what
 // it reads comes through the live season source port, so this file is free of Next and of Fantrax's responses
 // (it borrows only the client's player name helper). Callers use the production binding in live-season.ts.
+import { roundName } from '../league';
 import { PLAYOFF_FORMAT } from './config';
 import { playerName } from './fantrax-client';
 import {
-    liveFantraxLeagueId, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
-    type SourceCore, type SourceWeek, type WeekScores,
+    liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
+    type SeedPairing, type SourceCore, type SourceWeek, type WeekScores,
 } from './live-season-source';
 
-export type { RosterStats, ScheduledMatchup, WeekScores } from './live-season-source';
-
-type PlayoffRound = (typeof PLAYOFF_FORMAT.rounds)[number];
+export type { RosterStats, ScheduledMatchup, SeedPairing, WeekScores } from './live-season-source';
 
 export interface Week {
     number: number;
     /** ISO timestamps */
     startDate: string;
     endDate: string;
-    /** "Week 5", or the playoff round: "Quarterfinals", "Semifinals", "Final" */
+    /** "Week 5", or the playoff round: "Quarterfinals", "Semifinals", "Final" ("Round N" before them when Fantrax has more rounds) */
     name: string;
     /** "Week 5", or "Jagr Cup Playoff Quarterfinals" and so on */
     fullName: string;
-    stage: 'regular' | PlayoffRound;
+    /** every week from Fantrax's first playoff week on is a playoff round, however many days it spans */
+    stage: 'regular' | 'playoff';
+    /** the playoff round, 1 for the first; null in the regular season */
+    round: number | null;
     /** final once the week's scores are settled (or its end date has passed); never before it starts */
     phase: 'upcoming' | 'active' | 'final';
     /** marked final by hand in admin */
@@ -90,7 +92,22 @@ interface ScoringLeader {
     inArchive: boolean;
 }
 
-type Availability<T> = { status: 'available'; value: T } | { status: 'unavailable' };
+/** the live season's playoffs as Fantrax has them; the season sync writes a bracket only when they fit the league's format */
+export interface LivePlayoffs {
+    /** Fantrax's first playoff week, or null when its settings give none */
+    firstWeek: number | null;
+    /** the playoff weeks, in order: one round each */
+    rounds: Week[];
+    /** Fantrax's schedule from its first playoff week on is exactly the league's three rounds */
+    fitsFormat: boolean;
+    /** how many teams make the playoffs, the top seeds among them with a first-round bye */
+    teams: number;
+    byes: number;
+    /** the first round's pairings by seed while Fantrax's schedule gives them (before it is seeded), else empty */
+    seeding: SeedPairing[];
+}
+
+type Availability<T> ={ status: 'available'; value: T } | { status: 'unavailable' };
 
 export interface LiveSeason {
     seasonYear: number;
@@ -103,6 +120,7 @@ export interface LiveSeason {
     /** in standings order */
     teams: LiveTeam[];
     standings: Standings;
+    playoffs: LivePlayoffs;
     /** the current week's scores; null while it hasn't started */
     scores: Availability<WeekScores | null>;
     leaders: Availability<{ fetchedAt: string; players: ScoringLeader[] }>;
@@ -116,12 +134,22 @@ type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { status: '
 export const fantraxLeagueIdOf = (result: LiveSeasonResult): string | null =>
     result.status === 'available' ? result.value.fantraxLeagueId : result.fantraxLeagueId;
 
-/** the playoff rounds are the last weeks of the season, in order; every earlier week is the regular season */
-function stages(weeks: SourceWeek[]) {
-    const numbers = weeks.map(week => week.number).sort((a, b) => a - b);
-    const firstRound = numbers.length - PLAYOFF_FORMAT.rounds.length;
-    const stage = new Map<number, Week['stage']>(numbers.map((number, index) => [number, index < firstRound ? 'regular' : PLAYOFF_FORMAT.rounds[index - firstRound]]));
-    return { stage, lastRegularWeek: numbers[firstRound - 1] ?? 0, firstPlayoffWeek: numbers[Math.max(firstRound, 0)] ?? 0 };
+/**
+ * Fantrax's first playoff week, or null when its settings give none. Each week from it on is one playoff round,
+ * however long the week; every earlier week is the regular season.
+ */
+function firstPlayoffWeekOf(core: Pick<SourceCore, 'weeks' | 'playoffs'>): number | null {
+    const { firstPlayoffPeriod, lastRegularSeasonPeriod } = core.playoffs;
+    const first = firstPlayoffPeriod ?? (lastRegularSeasonPeriod === undefined ? undefined : lastRegularSeasonPeriod + 1);
+    return first !== undefined && core.weeks.some(week => week.number >= first) ? first : null;
+}
+
+/** each week's playoff round (1 for the first), or null for a regular-season week */
+function playoffRounds(core: Pick<SourceCore, 'weeks' | 'playoffs'>) {
+    const first = firstPlayoffWeekOf(core);
+    const playoffWeeks = first === null ? [] : core.weeks.map(week => week.number).filter(number => number >= first).sort((a, b) => a - b);
+    const round = new Map(playoffWeeks.map((number, index) => [number, index + 1]));
+    return { first, round, count: playoffWeeks.length, lastRegularWeek: first === null ? Infinity : first - 1 };
 }
 
 /**
@@ -129,8 +157,8 @@ function stages(weeks: SourceWeek[]) {
  * before its next matchup week starts. They stop at the league's regular season: playoff weeks are only final by
  * date or by hand.
  */
-function automaticFinalWeeks(core: Pick<SourceCore, 'weeks' | 'schedule' | 'teams' | 'standings'>, now: number): number[] {
-    const { lastRegularWeek } = stages(core.weeks);
+function automaticFinalWeeks(core: Pick<SourceCore, 'weeks' | 'schedule' | 'teams' | 'standings' | 'playoffs'>, now: number): number[] {
+    const { lastRegularWeek } = playoffRounds(core);
     const standings = new Map(core.standings.map(standing => [standing.teamId, standing.record]));
     const results = new Map(core.teams.map(team => {
         const record = standings.get(team.id);
@@ -170,17 +198,18 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
     }
 
     function assembleWeeks(core: SourceCore, manual: number[], now: number): Week[] {
-        const { stage } = stages(core.weeks);
+        const rounds = playoffRounds(core);
         const final = new Set([...automaticFinalWeeks(core, now), ...manual]);
         return [...core.weeks].sort((a, b) => a.number - b.number).map(week => {
-            const weekStage = stage.get(week.number)!;
+            const round = rounds.round.get(week.number) ?? null;
+            const roundTitle = round === null ? null : roundName(round, rounds.count);
             const phase = now < Date.parse(week.startDate) ? 'upcoming'
                 : final.has(week.number) || now > Date.parse(week.endDate) ? 'final' : 'active';
             return {
                 number: week.number, startDate: week.startDate, endDate: week.endDate,
-                name: weekStage === 'regular' ? `Week ${week.number}` : weekStage,
-                fullName: weekStage === 'regular' ? `Week ${week.number}` : `Jagr Cup Playoff ${weekStage}`,
-                stage: weekStage, phase, manualFinal: manual.includes(week.number),
+                name: roundTitle ?? `Week ${week.number}`,
+                fullName: roundTitle ? `Jagr Cup Playoff ${roundTitle}` : `Week ${week.number}`,
+                stage: round === null ? 'regular' : 'playoff', round, phase, manualFinal: manual.includes(week.number),
                 matchups: core.schedule.find(round => round.week === week.number)?.matchups ?? [],
             };
         });
@@ -243,9 +272,10 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         const weeks = assembleWeeks(core, manual, now);
         const ranked = assembleStandingRows(core, mapping, franchises, archivedPlayerIds);
         const teams = ranked.map(row => row.team);
+        const playoffs = assemblePlayoffs(core, weeks);
         const rows = ranked.map((row, index) => ({
-            ...row, bye: index < PLAYOFF_FORMAT.byes,
-            playoffLineBelow: index === PLAYOFF_FORMAT.teams - 1 && index < ranked.length - 1,
+            ...row, bye: index < playoffs.byes,
+            playoffLineBelow: index === playoffs.teams - 1 && index < ranked.length - 1,
         }));
         // Fantrax's lineup and matchup calendars differ: the current week is the first matchup week not yet over.
         const currentWeek = weeks.find(week => now <= Date.parse(week.endDate)) ?? weeks.at(-1)!;
@@ -263,8 +293,8 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         ]);
         return { status: 'available', value: {
             seasonYear: core.seasonYear, fantraxLeagueId, fetchedAt: core.fetchedAt, weeks, currentWeek,
-            lineupWeek: core.lineupPeriod, teams, standings: { rows, playoffTeams: PLAYOFF_FORMAT.teams, byeTeams: PLAYOFF_FORMAT.byes },
-            scores, leaders, rosterStats,
+            lineupWeek: core.lineupPeriod, teams, standings: { rows, playoffTeams: playoffs.teams, byeTeams: playoffs.byes },
+            playoffs, scores, leaders, rosterStats,
         } };
     }
 
@@ -280,7 +310,6 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
     /** For the cron, /api/revalidate and the admin refresh. Publishes only if every Fantrax request succeeds. */
     async function refreshLiveSeason(): Promise<{ fetchedAt: string; seasonYear: number }> {
         const core = await source.capture();
-        warnOnPlayoffDrift(core);
         return { fetchedAt: core.fetchedAt, seasonYear: core.seasonYear };
     }
 
@@ -297,17 +326,29 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
     return { getLiveSeason, getWeekScores, refreshLiveSeason, setWeekFinal };
 }
 
-// Fantrax's playoff settings are wrong for this league until its support fixes them; say so once per capture.
-function warnOnPlayoffDrift(core: CapturedSeason) {
-    const { lastRegularWeek, firstPlayoffWeek } = stages(core.weeks);
-    const fantrax = core.playoffs;
-    const drift = [
-        fantrax.numPlayoffTeams !== undefined && fantrax.numPlayoffTeams !== PLAYOFF_FORMAT.teams
-            ? `${fantrax.numPlayoffTeams} playoff teams (the league has ${PLAYOFF_FORMAT.teams})` : null,
-        fantrax.lastRegularSeasonPeriod !== undefined && fantrax.lastRegularSeasonPeriod !== lastRegularWeek
-            ? `a regular season ending at week ${fantrax.lastRegularSeasonPeriod} (the league's ends at week ${lastRegularWeek})` : null,
-        fantrax.firstPlayoffPeriod !== undefined && fantrax.firstPlayoffPeriod !== firstPlayoffWeek
-            ? `playoffs starting at week ${fantrax.firstPlayoffPeriod} (the league's start at week ${firstPlayoffWeek})` : null,
-    ].filter(Boolean);
-    if (drift.length) console.warn(`Fantrax's playoff settings disagree with the league's playoff format: Fantrax has ${drift.join(', ')}.`);
+/**
+ * The playoffs as Fantrax's settings and schedule have them. The playoff teams and byes come from the first
+ * round's seeding while the schedule gives it, then from its pairings once seeded (a bye is a pairing with one
+ * side), and only failing both from Fantrax's playoff team setting.
+ */
+function assemblePlayoffs(core: SourceCore, weeks: Week[]): LivePlayoffs {
+    const rounds = weeks.filter(week => week.round !== null);
+    const seeding = core.playoffs.seeding ?? [];
+    const firstRound = rounds[0]?.matchups ?? [];
+    const oneSided = (pairing: { away: unknown; home: unknown }) => (pairing.away === null) !== (pairing.home === null);
+    let teams: number, byes: number;
+    if (seeding.length) {
+        teams = seeding.flatMap(pairing => [pairing.away, pairing.home]).filter(seed => seed !== null).length;
+        byes = seeding.filter(oneSided).length;
+    } else if (firstRound.length) {
+        teams = new Set(firstRound.flatMap(matchup => [matchup.away.id, matchup.home.id]).filter(Boolean)).size;
+        byes = firstRound.filter(matchup => oneSided({ away: matchup.away.id ?? null, home: matchup.home.id ?? null })).length;
+    } else {
+        teams = core.playoffs.numPlayoffTeams ?? 0;
+        byes = 0;
+    }
+    return {
+        firstWeek: playoffRounds(core).first, rounds, fitsFormat: rounds.length === PLAYOFF_FORMAT.rounds.length,
+        teams, byes, seeding,
+    };
 }

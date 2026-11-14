@@ -3,7 +3,7 @@
 import { fantraxApiUrl, readLeagueInfo } from './api';
 import { CORRECTION_WINDOW_MS } from './cache-policy';
 import { discoverScoringSeason, globalFetch, loadRosterStats, loadScoringLeaders, type Fetcher } from './leaders';
-import { type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
+import { type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SeedPairing, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
 
 export type { Fetcher } from './leaders';
 export type { SourceCore, SourceWeek } from './live-season-source';
@@ -15,8 +15,8 @@ interface LeagueInfo {
     /** Fantrax's scoring periods are the weeks */
     scoringPeriods: SourceWeek[];
     rosterPeriods: SourceWeek[];
-    matchups: { period: number; matchupList: ScheduledMatchup[] }[];
-    playoffs: FantraxPlayoffs;
+    matchups: { period: number; matchupList: RawMatchup[] }[];
+    playoffs: Omit<FantraxPlayoffs, 'seeding'>;
 }
 interface RosterResponse {
     period: number;
@@ -67,8 +67,22 @@ export function playerName(name: string): string {
     return first ? `${first} ${last}` : last;
 }
 
-// Future playoff slots contain { TBD: true } on both sides, not real teams or byes.
-const publishedMatchups = (matchups: ScheduledMatchup[]) => matchups.filter(matchup => matchup.away.id || matchup.home.id);
+// Future playoff slots contain { TBD: true } on both sides, and an unseeded first round { seed: N } or { bye: true }:
+// none of them are real teams or byes.
+const publishedMatchups = (matchups: RawMatchup[]): ScheduledMatchup[] => matchups.filter(matchup => matchup.away.id || matchup.home.id);
+
+type RawSide = ScheduledMatchup['away'] & { seed?: number; bye?: boolean };
+type RawMatchup = { away: RawSide; home: RawSide };
+
+/** the first playoff round's pairings by seed, while every side of it is still a seed or a bye */
+function seedingOf(info: LeagueInfo): SeedPairing[] | undefined {
+    const first = info.playoffs?.firstPlayoffPeriod;
+    const round = info.matchups?.find(item => item.period === first)?.matchupList ?? [];
+    const seed = (side: RawSide) => side.bye === true ? null : Number.isInteger(side.seed) ? side.seed! : undefined;
+    const pairings = round.map(matchup => ({ away: seed(matchup.away), home: seed(matchup.home) }));
+    return pairings.length && pairings.every(pairing => pairing.away !== undefined && pairing.home !== undefined)
+        ? pairings as SeedPairing[] : undefined;
+}
 
 export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     async function request<T>(endpoint: string, parameters: Record<string, string> = {}): Promise<T> {
@@ -148,6 +162,7 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
 export function readCore(league: FantraxLeague, players: PlayerDirectory): SourceCore {
     const { info, rosters, standings, fetchedAt } = league;
     const lineup = info.rosterPeriods?.find(period => period.number === rosters.period);
+    const seeding = seedingOf(info);
     return {
         fetchedAt, seasonYear: info.seasonYear,
         teams: Object.entries(info.teamInfo).map(([id, team]) => ({ id, name: team.name })),
@@ -157,7 +172,7 @@ export function readCore(league: FantraxLeague, players: PlayerDirectory): Sourc
         standings: standings.map(standing => ({ teamId: standing.teamId, rank: standing.rank ?? null, record: standing.points ?? null, points: standing.totalPointsFor ?? null })),
         rosters: Object.fromEntries(Object.entries(rosters.rosters).map(([id, roster]) => [id, roster.rosterItems ?? []])),
         players,
-        playoffs: info.playoffs ?? {},
+        playoffs: { ...info.playoffs, ...(seeding ? { seeding } : {}) },
     };
 }
 

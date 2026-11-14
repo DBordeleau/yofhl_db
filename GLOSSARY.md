@@ -66,7 +66,7 @@ _Avoid_: period, outside the Fantrax adapter
 A week whose scores are settled, either automatically because the standings records add up or by hand in admin.
 
 **Playoff round**:
-The Quarterfinals, Semifinals or Final, each one week.
+The Quarterfinals, Semifinals or Final, each one Fantrax week, which can be longer than seven days: the 2027 Final is a single two-week week. The rounds start at Fantrax's first playoff week; every earlier week is the regular season.
 
 ## Players
 
