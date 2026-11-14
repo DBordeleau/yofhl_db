@@ -21,6 +21,12 @@ import { eraFor, findByAbbreviation, findByName, suggestEra, type LeagueConfig, 
 // transaction (docs/adr/0004-season-import-is-one-transaction.md). Standings, player seasons and playoff
 // games are rebuilt; championship rosters and awards are never touched (the legacy seeds are loaded once
 // for seasons that have none).
+//
+// Opening the season being played: a season with a `fantrax` block in league.yml and no CSVs is opened
+// instead, with one team season per mapped franchise, its identity from the franchise's era and zeroed
+// standings, for the season sync to fill in. Opening again updates only the identity fields, so whatever
+// the season sync wrote (standings, player seasons, playoff games) is kept. Once the season's CSVs are in
+// the folder it is imported from them like any other.
 
 interface SeasonFiles {
     year: number;
@@ -248,6 +254,35 @@ const prepareSeason = (config: LeagueConfig, files: SeasonFiles, errors: string[
     };
 };
 
+/** A season opened from its Fantrax block, with no CSVs: the franchises mapped in the block, by franchise id. */
+interface OpeningSeason {
+    year: number;
+    teams: TeamMatch[];
+}
+
+/** A season the import opened, and how many team seasons it has. */
+export interface OpenedSeason {
+    year: number;
+    teams: number;
+}
+
+const prepareOpening = (config: LeagueConfig, year: number, errors: string[]): OpeningSeason => {
+    const teams: TeamMatch[] = [];
+    for (const [fantraxTeamId, franchiseId] of Object.entries(config.seasons[year]?.fantrax?.teams ?? {})) {
+        // a franchise missing from league.yml, or mapped twice, is reported with the Fantrax teams
+        const franchise = config.franchises.find((f) => f.id === franchiseId);
+        if (!franchise || teams.some((t) => t.franchise.id === franchiseId)) continue;
+        const era = eraFor(franchise, year);
+        if (!era) {
+            errors.push(`${seasonLabel(year)}: Fantrax team ${fantraxTeamId} is mapped to franchise ${franchiseId}, which has no era for this season in league.yml. Add one, or remove the team from the season's fantrax block.`);
+            continue;
+        }
+        teams.push({ franchise, era });
+    }
+    teams.sort((a, b) => a.franchise.id - b.franchise.id);
+    return { year, teams };
+};
+
 const chunk = <T,>(items: T[], size: number) =>
     Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size));
 
@@ -355,6 +390,27 @@ const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<str
     return { year: season.year, players: kept.length };
 };
 
+// identity is written every time; standings only when the team season is new, so opening again keeps
+// whatever the season sync has written since
+const writeOpening = async (db: Db, season: OpeningSeason): Promise<OpenedSeason> => {
+    const ownerIds = new Map((await db.select().from(schema.owners)).map((o) => [o.name, o.id]));
+    await db.insert(schema.seasons).values({ year: season.year, label: seasonLabel(season.year), playoffStatus: 'complete' }).onConflictDoNothing();
+    for (const [i, { franchise, era }] of season.teams.entries()) {
+        const identity = {
+            ownerId: era.owner ? ownerIds.get(era.owner) ?? null : null,
+            name: era.name,
+            fantraxName: era.name,
+            abbreviation: era.abbreviations[0],
+            logoUrl: era.logo ?? null,
+        };
+        await db
+            .insert(schema.teamSeasons)
+            .values({ ...identity, seasonYear: season.year, franchiseId: franchise.id, division: 1, divisionRank: i + 1, wins: 0, losses: 0, ties: 0, fptsFor: 0, fptsAgainst: 0 })
+            .onConflictDoUpdate({ target: [schema.teamSeasons.seasonYear, schema.teamSeasons.franchiseId], set: identity });
+    }
+    return { year: season.year, teams: season.teams.length };
+};
+
 export interface LegacyAward { season: number; award: string; playerId: string; player: string; team: string }
 export interface LegacyRosterPlayer { playerId: string; player: string }
 
@@ -425,7 +481,10 @@ export interface SeasonImportInput {
     config: LeagueConfig;
     /** The folder holding the season CSVs, with transactions/ and drafts/ inside it. */
     dataDir: string;
-    /** Season years to import; empty imports every season found in `dataDir`. */
+    /**
+     * Season years to import; empty imports every season found in `dataDir` and opens every season with a
+     * `fantrax` block and no CSVs.
+     */
     seasons: number[];
     legacy: LegacySeeds;
     /** Looks up a draft pick's NHL facts. Defaults to the NHL's public API; tests pass a stand-in. */
@@ -438,14 +497,19 @@ export type SeasonImportResult =
     /**
      * Each imported season and how many player seasons it kept, in import order; every season's status
      * (the admin season checklist's numbers, newest first), read after the import's writes; and the legacy award notes.
+     * `opened` is each season opened from its Fantrax block, with no CSVs.
      */
-    | { ok: true; seasons: ImportedSeason[]; statuses: SeasonStatus[]; legacyNotes: string[] };
+    | { ok: true; seasons: ImportedSeason[]; opened: OpenedSeason[]; statuses: SeasonStatus[]; legacyNotes: string[] };
 
 export const importSeasons = async ({ db, config, dataDir, seasons, legacy, loadDraftFacts }: SeasonImportInput): Promise<SeasonImportResult> => {
     const available = findSeasonFiles(dataDir);
-    const years = seasons.length ? seasons : Array.from(available.keys()).sort();
+    const openable = (year: number) => !available.has(year) && !!config.seasons[year]?.fantrax;
+    const years = seasons.length
+        ? seasons
+        : Array.from(new Set([...available.keys(), ...Object.keys(config.seasons).map(Number).filter(openable)])).sort((a, b) => a - b);
     if (!years.length) return { ok: false, errors: [`No Fantrax CSVs found in ${dataDir}/`] };
-    const history = prepareHistory(dataDir, config, years);
+    // an opened season has no exports of its own, so history is read for the CSV seasons only
+    const history = prepareHistory(dataDir, config, years.filter((year) => available.has(year)));
 
     // the admin panel's bracket corrections are validated with the CSVs, and the curated rings and awards with the player exports
     const matchupOverrides = await db.select().from(schema.matchupOverrides);
@@ -465,8 +529,13 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
     // validate everything before writing any league data
     const errors: string[] = [];
     const prepared: PreparedSeason[] = [];
+    const opening: OpeningSeason[] = [];
     for (const year of years) {
         const files = available.get(year);
+        if (!files && openable(year)) {
+            opening.push(prepareOpening(config, year, errors));
+            continue;
+        }
         if (!files) {
             errors.push(`${seasonLabel(year)}: no CSVs in ${dataDir}/ for this season`);
             continue;
@@ -504,18 +573,20 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
 
     // One transaction: a failure anywhere below leaves the database as it was. The helpers' own
     // transactions nest inside it as savepoints. See docs/adr/0004-season-import-is-one-transaction.md.
-    const { imported, legacyNotes } = await db.transaction(async (tx) => {
+    const { imported, opened, legacyNotes } = await db.transaction(async (tx) => {
         await writeLeague(tx, config);
         await writeFantraxTeams(tx, fantraxTeams.rows);
         const imported: ImportedSeason[] = [];
         for (const season of prepared) imported.push(await writeSeason(tx, season, keep.get(season.year)));
+        const opened: OpenedSeason[] = [];
+        for (const season of opening) opened.push(await writeOpening(tx, season));
         const legacyNotes = await seedLegacy(tx, config, legacy, new Set(prepared.map((s) => s.year)));
         await writeHistory(tx, history);
         await refreshViews(tx);
-        return { imported, legacyNotes };
+        return { imported, opened, legacyNotes };
     });
 
     // read after the transaction commits, so the statuses are what the admin season checklist will show
     const statuses = await queryRows<SeasonStatus>(db, SEASON_STATUS_QUERY);
-    return { ok: true, seasons: imported, statuses, legacyNotes };
+    return { ok: true, seasons: imported, opened, statuses, legacyNotes };
 };

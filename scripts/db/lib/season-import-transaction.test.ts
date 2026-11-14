@@ -144,14 +144,17 @@ test('validation: a player ID Fantrax did not wrap in asterisks stops the import
     assert.deepEqual(await everyRow(), before);
 });
 
-test('validation: a data folder with no season CSVs is reported and nothing is written', async (t) => {
+test('validation: a data folder with no season CSVs and no Fantrax block to open is reported and nothing is written', async (t) => {
     const { run, everyRow } = await emptyLeague(t);
     const before = await everyRow();
     const empty = dataCopy(t, (dir) => {
         for (const file of ['Player Stats', 'Team Stats', 'Playoffs']) rmSync(path.join(dir, `2025-2026 ${file}.csv`));
     });
+    // with its Fantrax block the season would be opened instead (season-import-open.test.ts)
+    const noFantrax = fixtureConfig();
+    delete noFantrax.seasons[2026].fantrax;
 
-    assert.deepEqual(await run({ dataDir: empty }), { ok: false, errors: [`No Fantrax CSVs found in ${empty}/`] });
+    assert.deepEqual(await run({ config: noFantrax, dataDir: empty }), { ok: false, errors: [`No Fantrax CSVs found in ${empty}/`] });
     assert.deepEqual(await everyRow(), before);
 });
 
