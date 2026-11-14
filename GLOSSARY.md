@@ -45,7 +45,7 @@ _Avoid_: completed season, archived season
 The newest published season.
 
 **Current season**:
-The newest season in the database that is not yet published, or none. It is not derived from Fantrax; what Fantrax has now is the live season.
+The newest season in the database that is not yet published, or none. While a season is being played it is that season, once the season import has opened it. It is not derived from Fantrax; what Fantrax has now is the live season.
 _Avoid_: active season
 
 **Cancelled season**:
@@ -56,7 +56,8 @@ The calendar year a draft or lottery is held in: the season year minus one. "202
 _Avoid_: draft season
 
 **Live season**:
-The current season as Fantrax has it now. The archive holds finished seasons. Read it through the live season module (`lib/fantrax/live-season.ts`).
+The season being played, as Fantrax has it now. Once the season import has opened it, the archive holds it too, as the current season, and the season sync keeps it current. Read Fantrax's view through the live season module (`lib/fantrax/live-season.ts`).
+_Avoid_: current season (when you mean what Fantrax has now)
 
 **Week**:
 One Fantrax scoring period. "Lineup period" in the roster browser is Fantrax's own label, shown to owners as they see it on Fantrax, so that wording is not a breach of this term.
@@ -77,12 +78,16 @@ _Avoid_: archive ID, Fantrax ID (as if they were different things), slug
 ## Importing
 
 **Season import**:
-Replacing whole seasons' imported data (standings, player seasons, playoff games and their history files) from a folder of Fantrax CSVs, after syncing the league configuration. It never overwrites championship rosters or awards, and reapplies saved bracket corrections. It is one call in the season import module (`scripts/db/lib/season-import.ts`); `npm run db:import` only parses arguments, migrates, runs it and prints the result.
+Replacing whole seasons' imported data (standings, player seasons, playoff games and their history files) from a folder of Fantrax CSVs, after syncing the league configuration. It also opens the live season in the archive, with its teams from the league configuration, before it has any CSVs. For the season being played it is the repair path, not the normal one. It never overwrites championship rosters or awards, and reapplies saved bracket corrections. It is one call in the season import module (`scripts/db/lib/season-import.ts`); `npm run db:import` only parses arguments, migrates, runs it and prints the result.
 _Avoid_: sync, load, the importer (when you mean the rules rather than the command)
 
 **Season sync**:
-The daily write of the live season into the archive: each team season's record and points straight from Fantrax, once the season import has opened the season. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
+The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season straight from Fantrax, each playoff round's games once the round is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
 _Avoid_: import (for this), refresh (that is the evening Fantrax refresh)
+
+**Automatic championship roster**:
+The championship roster the season sync writes when the season first has a champion: everyone on the champion's roster outside the minors on any day of the playoff weeks it played. It is the season sync's until the league owner saves it in the roster editor, and is replaced if the champion changes before then.
+_Avoid_: default roster, generated rings
 
 **Season status**:
 What a season has so far: teams, players, games, champion, ring roster, distinct awards against those expected, and bracket corrections. One query (`lib/data/season-status.ts`) feeds both the admin season checklist and the season import's printed summary.
