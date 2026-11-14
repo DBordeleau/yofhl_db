@@ -9,7 +9,6 @@ import periods from './periods.json';
 import playerCategories from './player-category-history.json';
 import playerPortraits from './player-portraits.json';
 import type { PlayerStat } from './player-stats';
-import { isPublished } from '../seasons';
 import { buildChases, buildRecords, matchupFormats, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
 
 // Keep checked-in history outside the data cache. Combining it with all player
@@ -31,9 +30,9 @@ const getRecordArchive = cached(async () => {
 const categories = new Map(playerCategories.players.map(p => [`${p.id}:${p.year}`, p]));
 const games = regularSeason.games.map(g => ({ ...g, stage: 'regular' as const }));
 export async function getRecordSource(): Promise<RecordSource> {
+    // Only the season archive decides which seasons are published (lib/seasons.ts).
     const [archive, seasons] = await Promise.all([getRecordArchive(), getSeasonArchive()]);
-    // Only the season archive decides which seasons are published (lib/seasons.ts); it is oldest first.
-    const published = seasons.seasons.filter(season => isPublished(seasons, season.year));
+    const published = [...seasons.published].reverse(); // oldest first
     return { ...archive, published: published.map(season => season.year),
         competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: categories.get(`${p.id}:${p.year}`) })), games, periods };
 }

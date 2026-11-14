@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
-import { getSeasonArchive } from './league';
-import { isPublished } from '../seasons';
+import { publishedOnly } from './league';
 import { leagueTags } from './cache-tags';
 import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
@@ -35,8 +34,8 @@ const getFranchiseHonorRows = cached(async (id: number): Promise<FranchiseHonors
 
 /** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
 export async function getFranchiseHonors(id: number): Promise<FranchiseHonors> {
-    const [honors, archive] = await Promise.all([getFranchiseHonorRows(id), getSeasonArchive()]);
-    return { ...honors, primeMinisters: honors.primeMinisters.filter(win => isPublished(archive, win.year)) };
+    const honors = getFranchiseHonorRows(id);
+    return { ...await honors, primeMinisters: await publishedOnly(honors.then(({ primeMinisters }) => primeMinisters), win => win.year) };
 }
 
 export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`

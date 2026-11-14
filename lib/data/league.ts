@@ -175,6 +175,12 @@ export const getBannerSeasons = cached(
 /** every season, sorted into published, latest and current (see lib/seasons.ts); no query of its own */
 export const getSeasonArchive = async () => seasonArchive(await getBannerSeasons());
 
+/** `items` less those of a season still being played: only a published season (GLOSSARY.md) counts */
+export async function publishedOnly<T>(items: T[] | Promise<T[]>, yearOf: (item: T) => number): Promise<T[]> {
+    const [list, archive] = await Promise.all([items, getSeasonArchive()]);
+    return list.filter(item => isPublished(archive, yearOf(item)));
+}
+
 export const getAwardTypes = cached(
     () => rows<AwardType>(sql`select name, label, description from league.award_types order by sort_order`),
     'award-types',
@@ -418,8 +424,7 @@ const getTeamAwardRows = cached(async (award: 'jagr-cup' | 'prime-minister') => 
 
 /** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
 export async function getTeamAwardWinners(award: 'jagr-cup' | 'prime-minister'): Promise<AwardWinner[]> {
-    const [winners, archive] = await Promise.all([getTeamAwardRows(award), getSeasonArchive()]);
-    return winners.filter(winner => isPublished(archive, winner.Year));
+    return publishedOnly(getTeamAwardRows(award), winner => winner.Year);
 }
 
 export const searchPlayers = cached(
