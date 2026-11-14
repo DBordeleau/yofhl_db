@@ -15,6 +15,8 @@ export const leagueTags = {
     rivalries: 'league:rivalries',
     records: 'league:records',
     discovery: 'league:discovery',
+    /** each season's points leader, the Prime Minister's Trophy winner once the season is published */
+    pointsLeaders: 'league:points-leaders',
     /** draft classes' FPts and FP/G */
     draft: 'league:draft',
     season: (year: number) => `league:season:${year}`,
@@ -33,7 +35,8 @@ export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: nu
             case 'stats': return {
                 views: ['player_careers', 'franchise_records'] as MaterializedView[],
                 tags: [leagueTags.season(year), leagueTags.players, leagueTags.careerLeaderboard, leagueTags.seasonLeaderboard,
-                    leagueTags.franchiseCards, leagueTags.franchiseDetails, leagueTags.records, leagueTags.discovery, leagueTags.draft],
+                    leagueTags.franchiseCards, leagueTags.franchiseDetails, leagueTags.records, leagueTags.discovery, leagueTags.draft,
+                    leagueTags.pointsLeaders, leagueTags.rivalries],
             };
             case 'playoffs': return curatedEditEffects('matchup', year);
             case 'roster': return curatedEditEffects('roster', year);

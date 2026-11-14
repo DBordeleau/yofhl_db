@@ -180,3 +180,40 @@ test("a champion set in bracket review after a level Final gets its roster from 
     assert.equal(result.outcome === 'synced' && result.changed.championshipRoster, 2);
     assert.deepEqual(await rings(league), { team: 'Club 1', players: [['star', 'Name star'], ['hurt', 'Name hurt']] });
 });
+
+test("the points leader cached while the season was played is the Prime Minister's Trophy winner once the Final publishes the season", async t => {
+    const league = await playoffLeague(t);
+    const { getTeamAwardWinners } = await import('@/lib/data/league');
+    const { getFranchiseHonors } = await import('@/lib/data/history');
+    const winners = async () => (await league.read(() => getTeamAwardWinners('prime-minister'))).map(winner => winner.Year);
+    const trophies = async () => (await league.read(() => getFranchiseHonors(3))).primeMinisters.map(win => win.year);
+    rosterOne(league);
+    // read, and so cached, while the opened season has no points
+    assert.deepEqual([await winners(), await trophies()], [[], []]);
+    league.setStandings([1, 2, 3, 4, 5, 6, 7, 8].map(team => [team, team, 10, 5, 0, team === 3 ? 5000 : 4000 - team, 3000]));
+    await playToTheFinal(league, [700, 799.9]);
+    assert.deepEqual([await winners(), await trophies()], [[], []], 'no trophy while the season is being played');
+
+    await league.run(endOf(FINAL) + 7 * HOUR);
+    assert.deepEqual([await winners(), await trophies()], [[SEASON], [SEASON]]);
+});
+
+test('on the team page a season being played is pending, and in the team comparison its Quarterfinal games are not Finals', async t => {
+    const league = await playoffLeague(t);
+    const { getFranchise } = await import('@/lib/data/league');
+    const { getRivalryData } = await import('@/lib/data/rivalries');
+    const { roundLabel } = await import('@/lib/rivalries/model');
+    const season = async (id: number) => (await league.read(() => getFranchise(id)))!.seasons.find(row => row.year === SEASON)!;
+    const rounds = async () => (await league.read(() => getRivalryData())).games.filter(game => game.year === SEASON && game.stage === 'playoff').map(roundLabel);
+    rosterOne(league);
+    league.setPairings(QUARTERFINALS, [[null, 1], [5, 4], [null, 2], [6, 3]]);
+    league.setScores(QUARTERFINALS, [[5, 4, 410.5, 398.25], [6, 3, 350, 402.1]]);
+    await league.run(endOf(QUARTERFINALS) + 7 * HOUR);
+    assert.deepEqual([(await season(5)).playoffStatus, (await season(1)).playoffStatus], ['pending', 'pending'], 'a Quarterfinal winner and a bye team alike');
+    assert.deepEqual(await rounds(), ['Quarterfinals', 'Quarterfinals']);
+
+    await playToTheFinal(league, [700, 799.9]);
+    await league.run(endOf(FINAL) + 7 * HOUR);
+    assert.deepEqual([(await season(1)).playoffStatus, (await season(1)).playoffRound, (await season(1)).finalRound], ['complete', 3, 3]);
+    assert.deepEqual(await rounds(), ['Final', 'Semifinals', 'Semifinals', 'Quarterfinals', 'Quarterfinals']);
+});

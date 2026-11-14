@@ -30,7 +30,7 @@ const getFranchiseHonorRows = cached(async (id: number): Promise<FranchiseHonors
             order by a.season_year desc, at.sort_order, p.name`),
     ]);
     return { primeMinisters, awards };
-}, 'franchise-honors', [leagueTags.awards]);
+}, 'franchise-honors-v2', [leagueTags.awards, leagueTags.pointsLeaders]);
 
 /** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
 export async function getFranchiseHonors(id: number): Promise<FranchiseHonors> {

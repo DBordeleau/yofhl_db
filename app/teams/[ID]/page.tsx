@@ -43,8 +43,8 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
     const leadingPlayer = team.leaders[0];
     const cups = team.championships.length;
     const differential = team.fptsFor - team.fptsAgainst;
-    const playoffSeasons = team.seasons.filter((s) => s.playoffStatus !== 'cancelled' && s.playoffRound !== null).length;
-    const eligibleSeasons = team.seasons.filter((s) => s.playoffStatus !== 'cancelled').length;
+    const playoffSeasons = team.seasons.filter((s) => s.playoffStatus === 'complete' && s.playoffRound !== null).length;
+    const eligibleSeasons = team.seasons.filter((s) => s.playoffStatus === 'complete').length;
     const sections = [
         { id: 'trophy-case', label: 'Trophy case' },
         { id: 'season-history', label: 'Seasons' },

@@ -128,7 +128,8 @@ export interface FranchiseSeason {
     ties: number;
     fptsFor: number;
     fptsAgainst: number;
-    playoffStatus: 'complete' | 'cancelled';
+    /** 'pending' while the season is unpublished (GLOSSARY.md): its playoffs are not decided, so the rounds stored so far say nothing final */
+    playoffStatus: 'complete' | 'cancelled' | 'pending';
     playoffRound: number | null;
     finalRound: number | null;
 }
@@ -336,7 +337,7 @@ export const getFranchiseCards = cached(
     [leagueTags.franchiseCards],
 );
 
-export const getFranchise = cached(async (id: number): Promise<FranchiseDetail | null> => {
+const getFranchiseRows = cached(async (id: number): Promise<FranchiseDetail | null> => {
     const [franchise] = await rows<Omit<FranchiseDetail, 'leaders' | 'seasons'>>(sql`
         select c.id, c.name, c.abbreviation, c.logo,
                o.name as owner, f.first_season as "firstSeason", f.folded_after_season as "foldedAfterSeason",
@@ -387,6 +388,13 @@ export const getFranchise = cached(async (id: number): Promise<FranchiseDetail |
     return { ...franchise, leaders, seasons };
 }, 'franchise', id => [leagueTags.franchiseDetails, leagueTags.franchise(id)]);
 
+/** A franchise with its seasons. A season still being played is 'pending': it has a record but no playoff result yet. */
+export async function getFranchise(id: number): Promise<FranchiseDetail | null> {
+    const [franchise, archive] = await Promise.all([getFranchiseRows(id), getSeasonArchive()]);
+    return franchise && { ...franchise, seasons: franchise.seasons.map(season =>
+        isPublished(archive, season.year) ? season : { ...season, playoffStatus: 'pending' as const }) };
+}
+
 export const getAwardWinners = cached(async (name: string) => {
     const [award] = await rows<AwardType>(sql`select name, label, description from league.award_types where name = ${name}`);
     if (!award) return null;
@@ -420,7 +428,7 @@ const getTeamAwardRows = cached(async (award: 'jagr-cup' | 'prime-minister') => 
         left join league.owners o on o.id = t.owner_id
         where ${criterion}
         order by t.season_year desc`);
-}, 'team-award-winners-v2', award => award === 'jagr-cup' ? [leagueTags.cups] : []);
+}, 'team-award-winners-v3', award => [award === 'jagr-cup' ? leagueTags.cups : leagueTags.pointsLeaders]);
 
 /** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
 export async function getTeamAwardWinners(award: 'jagr-cup' | 'prime-minister'): Promise<AwardWinner[]> {

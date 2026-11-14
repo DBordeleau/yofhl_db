@@ -341,7 +341,7 @@ It never writes an award, a bracket correction, a saved championship roster or a
 
 ### Writes, failures and warnings
 
-A run reads and checks everything first, then writes every part in one statement together with the status row. A row changes only when a value differs, and a run that changes nothing refreshes no view and expires no tag. Changed stats refresh `player_careers` and `franchise_records` and expire the season, players, both leaderboards, franchise, records, discovery and draft tags; changed playoff games and rosters expire what a bracket or roster edit does.
+A run reads and checks everything first, then writes every part in one statement together with the status row. A row changes only when a value differs, and a run that changes nothing refreshes no view and expires no tag. Changed stats refresh `player_careers` and `franchise_records` and expire the season, players, both leaderboards, franchise, records, discovery, draft, points leader and team comparison tags; changed playoff games and rosters expire what a bracket or roster edit does.
 
 A failed Fantrax read, a check that fails (Fantrax on another season, an unmapped fantasy team, an incomplete or out-of-order table, a champion with nobody on its roster outside the minors, a playoff round due to be written from a live season snapshot more than 36 hours old), or a failed write leaves every row as it was. Only the status row's last run and last error change, the cron returns 503 with the error, and the server logs `The season sync of <year> failed:`. The next run catches up. There is no alert beyond the admin panel and Vercel's cron logs. A failed read of the champion's daily rosters fails the whole run, Final included, and is retried the next morning.
 

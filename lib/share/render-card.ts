@@ -333,7 +333,7 @@ async function drawTeam(kit: Kit, card: TeamShareCard) {
         ctx.strokeStyle = cup ? 'rgba(243,217,149,.65)' : 'rgba(255,255,255,.1)'; ctx.lineWidth = 2; ctx.stroke();
         text(kit, `'${String(season.year).slice(2)}`, cx, y + 50, { size: 26, weight: 800, colour: cup ? GOLD : '#b9c8da', align: 'center' });
         text(kit, season.record, cx, y + 108, { size: 32, weight: 800, stretch: 86, spacing: -.02, colour: '#fff', align: 'center', max: tile - 12, min: 16 });
-        const tag = cup ? 'Cup' : final ? 'Final' : season.result === 'out' ? 'Out' : season.result === 'cancelled' ? '—' : `R${season.result}`;
+        const tag = cup ? 'Cup' : final ? 'Final' : season.result === 'out' ? 'Out' : season.result === 'cancelled' || season.result === 'pending' ? '—' : `R${season.result}`;
         const tagStyle = { size: 19, weight: 850, spacing: .08, upper: true };
         const tagWidth = Math.min(tile - 14, Math.max(70, measure(kit, tag, tagStyle) + 22));
         ctx.fillStyle = cup ? vertical(ctx, y + 138, y + 176, [[0, '#f3d995'], [1, '#c99a3e']]) : final ? RED : round ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.07)';

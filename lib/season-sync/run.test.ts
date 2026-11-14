@@ -25,7 +25,7 @@ test("after a run, each team season of the opened live season has Fantrax's reco
     const franchise = (await read(() => getFranchise(1)))!;
     assert.deepEqual(franchise.seasons.find(season => season.year === SEASON),
         { year: SEASON, name: 'Club 1', owner: 'Owner 1', wins: 3, losses: 1, ties: 0, fptsFor: 1031.55, fptsAgainst: 985.6,
-            playoffStatus: 'complete', playoffRound: null, finalRound: null });
+            playoffStatus: 'pending', playoffRound: null, finalRound: null });
     assert.deepEqual([franchise.wins, franchise.losses, franchise.ties, franchise.fptsFor, franchise.fptsAgainst], [13, 6, 1, 2032.05, 1885.85],
         'the all-time record includes the season being played');
     assert.deepEqual((await read(() => getFranchiseCards())).find(card => card.ID === 3)!.Wins, 14);
