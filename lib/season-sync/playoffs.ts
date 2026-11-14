@@ -62,11 +62,9 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
     const byTeamSeason = new Map(season.teams.map(team => [team.teamSeasonId, team]));
     const name = (fantraxTeamId: string) => live.teams.find(team => team.id === fantraxTeamId)?.name ?? fantraxTeamId;
 
-    // Seeds in standings order; the top seeds have the first round's byes. Each round halves the bracket, so the
-    // byes give the number of seeds. (Fantrax's own count of playoff teams, once the first round is seeded, takes
-    // in every team with a game that week, in the bracket or not.)
-    const seeds = live.standings.rows.map(row => row.team.id).slice(0, 2 ** rounds.length - playoffs.byes);
-    const byes = seeds.slice(0, playoffs.byes);
+    // Seeds in standings order, as many as the standings' playoff line; the top seeds have the first round's byes.
+    const seeds = live.standings.rows.map(row => row.team.id).slice(0, live.standings.playoffTeams);
+    const byes = seeds.slice(0, live.standings.byeTeams);
     let alive = seeds;
     const games: PlayoffGame[] = [];
     const warnings: string[] = [];

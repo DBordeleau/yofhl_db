@@ -6,10 +6,10 @@ import { PLAYOFF_FORMAT } from './config';
 import { playerName } from './fantrax-client';
 import {
     liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
-    type SeedPairing, type SourceCore, type SourceWeek, type WeekScores,
+    type SourceCore, type SourceWeek, type WeekScores,
 } from './live-season-source';
 
-export type { RosterStats, ScheduledMatchup, SeedPairing, WeekScores } from './live-season-source';
+export type { RosterStats, ScheduledMatchup, WeekScores } from './live-season-source';
 
 export interface Week {
     number: number;
@@ -74,6 +74,7 @@ interface StandingsRow {
 
 interface Standings {
     rows: StandingsRow[];
+    /** how many teams make the playoffs (the seeds, top seed first), the top `byeTeams` of them with a first-round bye */
     playoffTeams: number;
     byeTeams: number;
 }
@@ -94,17 +95,10 @@ interface ScoringLeader {
 
 /** the live season's playoffs as Fantrax has them; the season sync writes a bracket only when they fit the league's format */
 export interface LivePlayoffs {
-    /** Fantrax's first playoff week, or null when its settings give none */
-    firstWeek: number | null;
     /** the playoff weeks, in order: one round each */
     rounds: Week[];
     /** Fantrax's schedule from its first playoff week on is exactly the league's three rounds */
     fitsFormat: boolean;
-    /** how many teams make the playoffs, the top seeds among them with a first-round bye */
-    teams: number;
-    byes: number;
-    /** the first round's pairings by seed while Fantrax's schedule gives them (before it is seeded), else empty */
-    seeding: SeedPairing[];
 }
 
 type Availability<T> ={ status: 'available'; value: T } | { status: 'unavailable' };
@@ -149,7 +143,7 @@ function playoffRounds(core: Pick<SourceCore, 'weeks' | 'playoffs'>) {
     const first = firstPlayoffWeekOf(core);
     const playoffWeeks = first === null ? [] : core.weeks.map(week => week.number).filter(number => number >= first).sort((a, b) => a - b);
     const round = new Map(playoffWeeks.map((number, index) => [number, index + 1]));
-    return { first, round, count: playoffWeeks.length, lastRegularWeek: first === null ? Infinity : first - 1 };
+    return { round, count: playoffWeeks.length, lastRegularWeek: first === null ? Infinity : first - 1 };
 }
 
 /**
@@ -272,10 +266,10 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         const weeks = assembleWeeks(core, manual, now);
         const ranked = assembleStandingRows(core, mapping, franchises, archivedPlayerIds);
         const teams = ranked.map(row => row.team);
-        const playoffs = assemblePlayoffs(core, weeks);
+        const { playoffs, playoffTeams, byeTeams } = assemblePlayoffs(core, weeks);
         const rows = ranked.map((row, index) => ({
-            ...row, bye: index < playoffs.byes,
-            playoffLineBelow: index === playoffs.teams - 1 && index < ranked.length - 1,
+            ...row, bye: index < byeTeams,
+            playoffLineBelow: index === playoffTeams - 1 && index < ranked.length - 1,
         }));
         // Fantrax's lineup and matchup calendars differ: the current week is the first matchup week not yet over.
         const currentWeek = weeks.find(week => now <= Date.parse(week.endDate)) ?? weeks.at(-1)!;
@@ -293,7 +287,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         ]);
         return { status: 'available', value: {
             seasonYear: core.seasonYear, fantraxLeagueId, fetchedAt: core.fetchedAt, weeks, currentWeek,
-            lineupWeek: core.lineupPeriod, teams, standings: { rows, playoffTeams: playoffs.teams, byeTeams: playoffs.byes },
+            lineupWeek: core.lineupPeriod, teams, standings: { rows, playoffTeams, byeTeams },
             playoffs, scores, leaders, rosterStats,
         } };
     }
@@ -327,11 +321,11 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
 }
 
 /**
- * The playoffs as Fantrax's settings and schedule have them. The playoff teams and byes come from the first
- * round's seeding while the schedule gives it, then from its pairings once seeded (a bye is a pairing with one
- * side), and only failing both from Fantrax's playoff team setting.
+ * The playoffs as Fantrax's settings and schedule have them, with the standings' playoff team and bye counts. They
+ * come from the first round's seeding while the schedule gives it, then from its byes once seeded (a bye is a
+ * pairing with one side), and only failing both from Fantrax's playoff team setting.
  */
-function assemblePlayoffs(core: SourceCore, weeks: Week[]): LivePlayoffs {
+function assemblePlayoffs(core: SourceCore, weeks: Week[]): { playoffs: LivePlayoffs; playoffTeams: number; byeTeams: number } {
     const rounds = weeks.filter(week => week.round !== null);
     const seeding = core.playoffs.seeding ?? [];
     const firstRound = rounds[0]?.matchups ?? [];
@@ -341,14 +335,13 @@ function assemblePlayoffs(core: SourceCore, weeks: Week[]): LivePlayoffs {
         teams = seeding.flatMap(pairing => [pairing.away, pairing.home]).filter(seed => seed !== null).length;
         byes = seeding.filter(oneSided).length;
     } else if (firstRound.length) {
-        teams = new Set(firstRound.flatMap(matchup => [matchup.away.id, matchup.home.id]).filter(Boolean)).size;
+        // Every team has a game in the seeded first round, consolation games included, so only the byes count:
+        // each round halves the bracket, and the byes fill its first round.
         byes = firstRound.filter(matchup => oneSided({ away: matchup.away.id ?? null, home: matchup.home.id ?? null })).length;
+        teams = 2 ** rounds.length - byes;
     } else {
         teams = core.playoffs.numPlayoffTeams ?? 0;
         byes = 0;
     }
-    return {
-        firstWeek: playoffRounds(core).first, rounds, fitsFormat: rounds.length === PLAYOFF_FORMAT.rounds.length,
-        teams, byes, seeding,
-    };
+    return { playoffs: { rounds, fitsFormat: rounds.length === PLAYOFF_FORMAT.rounds.length }, playoffTeams: teams, byeTeams: byes };
 }
