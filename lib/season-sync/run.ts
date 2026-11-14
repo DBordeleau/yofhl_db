@@ -62,7 +62,7 @@ export function createRun(ports: SeasonSyncPorts) {
             return failed(error);
         }
 
-        const { views, tags } = seasonSyncEffects(read.writes.filter(write => changed[write.count] > 0).map(write => write.change), year);
+        const { views, tags } = seasonSyncEffects(read.writes.filter(write => write.count !== null && changed[write.count] > 0).map(write => write.change), year);
         try {
             // The write has committed, so a refresh failure still expires the pages before it is recorded.
             try {

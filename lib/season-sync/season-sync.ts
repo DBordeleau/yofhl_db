@@ -6,5 +6,9 @@ import { createSeasonSync } from './create-season-sync';
 const client = createFantraxClient();
 
 export const seasonSync = createSeasonSync({
-    fantrax: { leagueInfo: leagueId => client.leagueInfo(leagueId), standings: leagueId => client.standingsTable(leagueId) },
+    fantrax: {
+        leagueInfo: leagueId => client.leagueInfo(leagueId),
+        standings: leagueId => client.standingsTable(leagueId),
+        players: (leagueId, seasonYear) => client.playerTable(leagueId, seasonYear),
+    },
 });

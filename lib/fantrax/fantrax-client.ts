@@ -3,10 +3,12 @@
 import { fantraxApiUrl, readLeagueInfo } from './api';
 import { CORRECTION_WINDOW_MS } from './cache-policy';
 import { discoverScoringSeason, globalFetch, loadRosterStats, loadScoringLeaders, type Fetcher } from './leaders';
+import { loadPlayerTable } from './player-table';
 import { loadStandingsTable } from './standings-table';
 import { type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SeedPairing, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
 
 export type { Fetcher } from './leaders';
+export type { TablePlayer } from './player-table';
 export type { TableStanding } from './standings-table';
 export type { SourceCore, SourceWeek } from './live-season-source';
 
@@ -115,6 +117,8 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
 
     /** the website standings table: rank, W/L/T and points for and against, season to date */
     const standingsTable = (leagueId: string) => loadStandingsTable(leagueId, fetcher);
+    /** every player who scored (either sign) or is rostered, season to date; the season sync's read */
+    const playerTable = (leagueId: string, seasonYear: number) => loadPlayerTable(leagueId, seasonYear, fetcher);
 
     async function playerDirectory(): Promise<PlayerDirectory> {
         const players = await request<PlayerDirectory>('getPlayerIds', { sport: 'NHL' });
@@ -167,7 +171,7 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         return { source, leaders, rosterStats: stats, scores: Object.fromEntries(scores.map(score => [score.period, score])) };
     }
 
-    return { league, leagueInfo, standingsTable, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
+    return { league, leagueInfo, standingsTable, playerTable, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
 }
 
 /** The port's core snapshot from raw responses, fresh or saved: Fantrax's periods become weeks. */

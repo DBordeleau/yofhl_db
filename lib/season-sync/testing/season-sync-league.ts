@@ -4,7 +4,7 @@
 import type { TestContext } from 'node:test';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
-import type { FantraxWeek } from '../ports';
+import type { FantraxPlayer, FantraxWeek } from '../ports';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -25,6 +25,8 @@ export const FREEZES_AT = Date.parse('2027-04-05T15:59:58Z') + 7 * DAY;
 // Franchises 1–4, owned by Owner 1–4. In 2025–26 (published: franchise 1 beat franchise 2 in the Final) franchise
 // N went 10-5-1 with 1000.5 points for and 900.25 against. The opened 2026–27 season names franchise N "Club N"
 // (CN, /logos/cN.png), all zeros, as the season import opens it. Fantrax team fxN is franchise N.
+// Players: p1 scored 100 (10 FP/G) for franchise 1 in 2025–26 and was franchise 1's first pick in the
+// 2026–27 draft; p2 scored 120 (12 FP/G) for franchise 2. Awards MVP and Rookie exist.
 const seed = (opened: boolean) => `
     insert into league.seasons values (2026, '2025–26', 'complete') ${opened ? `, (${SEASON}, '2026–27', 'complete')` : ''};
     insert into league.franchises (id, display_name, first_season) values ${FRANCHISES.map(id => `(${id}, 'Franchise ${id}', 2020)`).join(', ')};
@@ -36,6 +38,12 @@ const seed = (opened: boolean) => `
         values (2026, 'playoff', 3, 'championship', 1, 1, 2, 300, 250, 1);
     insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id)
         values ${FRANCHISES.map(id => `(${SEASON}, '${LEAGUE_ID}', 'fx${id}', ${id})`).join(', ')};
+    insert into league.players (id, name) values ('p1', 'Name p1'), ('p2', 'Name p2');
+    insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
+        values ('p1', 2026, 1, 'EDM', '{C}', 100, 10), ('p2', 2026, 2, 'TOR', '{LW,RW}', 120, 12);
+    insert into league.award_types (id, name, label, description, sort_order) values (1, 'mvp', 'MVP', 'MVP', 1), (2, 'rookie', 'Rookie', 'Rookie', 2);
+    ${opened ? `insert into league.draft_picks (season_year, overall, round, pick, franchise_id, team_name, player_id, player_name, positions, drafted_on, source_time, source_file)
+        values (${SEASON}, 1, 1, 1, 1, 'Club 1', 'p1', 'Name p1', 'C', '2026-10-01', '8:00', 'draft.csv');` : ''}
 `;
 
 /** a standings row: [Fantrax team number, rank, wins, losses, ties, points for, points against] */
@@ -43,11 +51,18 @@ export type StandingRow = [number, number, number, number, number, number, numbe
 const standingsOf = (rows: StandingRow[]) => rows.map(([team, rank, wins, losses, ties, pointsFor, pointsAgainst]) =>
     ({ teamId: `fx${team}`, rank, wins, losses, ties, pointsFor, pointsAgainst }));
 
+/** a player in Fantrax's player stats table: [player ID, FPts, FP/G, Fantrax team number or null for a free agent] */
+export type PlayerRow = [string, number, number | null, number | null];
+/** each player as Fantrax lists them: named "Name <id>", a centre for Edmonton unless the test says otherwise */
+const playersOf = (rows: PlayerRow[]): FantraxPlayer[] => rows.map(([id, points, perGame, team]) =>
+    ({ id, name: `Name ${id}`, positions: ['C'], nhlTeam: 'EDM', teamId: team === null ? null : `fx${team}`, points, perGame }));
+
 export function fantraxState(): MemoryFantraxState {
     return {
         leagueId: LEAGUE_ID,
         leagueInfo: { seasonYear: SEASON, weeks: structuredClone(WEEKS) },
         standings: standingsOf(FRANCHISES.map(id => [id, id, 0, 0, 0, 0, 0])),
+        players: [],
         down: new Set(),
     };
 }
@@ -64,5 +79,7 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     const read = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/', fn)).result;
     /** Fantrax's standings table now reads `rows` */
     const setStandings = (rows: StandingRow[]) => { fantrax.standings = standingsOf(rows); };
-    return { league, fantrax, sync, run, read, setStandings };
+    /** Fantrax's player stats table now lists `rows` (every NHL player, scored or not) */
+    const setPlayers = (rows: PlayerRow[]) => { fantrax.players = playersOf(rows); };
+    return { league, fantrax, sync, run, read, setStandings, setPlayers };
 }
