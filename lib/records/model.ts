@@ -13,6 +13,9 @@ export interface Award { player: string; name: string; award: string; year: numb
 export interface PeriodInfo { year: number; period: number; days: number; era: number; start: string; end: string }
 export interface RecordSource {
     teams: FranchiseCard[]; players: PlayerSeason[]; seasons: TeamSeason[]; awards: Award[];
+    /** published season years (GLOSSARY.md); a season still being played earns no trophy and sets no "lowest" record */
+    published: number[];
+    /** published seasons whose playoffs were played: the calendar cup and finals streaks run against */
     competitions: number[]; games: RivalryGame[]; periods: PeriodInfo[];
 }
 export interface Entry {
@@ -113,8 +116,10 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
         const run = longestRun(t.finals, source.competitions);
         return teamEntry(t, run.length, yearList(run));
     }));
+    const published = new Set(source.published);
+    const finished = source.seasons.filter(s => published.has(s.year));
     const scoringTitles = teams.map(t => {
-        const years = source.seasons.filter(s => s.team === t.ID && !source.seasons.some(other => other.year === s.year && other.team !== t.ID && other.points >= s.points)).map(s => s.year);
+        const years = finished.filter(s => s.team === t.ID && !finished.some(other => other.year === s.year && other.team !== t.ID && other.points >= s.points)).map(s => s.year);
         return teamEntry(t, years.length, yearList(years));
     }).filter(t => t.value > 0);
     add('scoring-titles', 'honours', "Prime Minister’s Trophies", 'trophies', scoringTitles);
