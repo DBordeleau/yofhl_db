@@ -1,8 +1,9 @@
 // Everything one run reads from Fantrax, checked against the opened season before anything is written. Each part
-// of the season (team seasons, player seasons) turns its validated reads into one SyncWrite; a part that cannot be checked
+// of the season (team seasons, player seasons, the playoff bracket) turns its validated reads into SyncWrites; a part that cannot be checked
 // throws, which fails the whole run before any write. A part that is fine but has something the league owner
 // should know adds a warning instead.
 import type { OpenedSeason } from './opened-season';
+import { readBracket } from './playoffs';
 import type { FantraxWeek, SeasonSyncPorts } from './ports';
 import { playerSeasonRows, playerSeasonsWrites } from './player-seasons';
 import { teamSeasonStandings, teamSeasonsWrite } from './team-seasons';
@@ -24,16 +25,18 @@ export async function readWeeks(ports: SeasonSyncPorts, season: OpenedSeason): P
 }
 
 /** every other read, checked, as the writes that bring the archive up to date */
-export async function readSeason(ports: SeasonSyncPorts, season: OpenedSeason): Promise<SeasonRead> {
-    const [standings, players] = await Promise.all([
+export async function readSeason(ports: SeasonSyncPorts, season: OpenedSeason, now: number): Promise<SeasonRead> {
+    const [standings, players, bracket] = await Promise.all([
         ports.fantrax.standings(season.leagueId),
         ports.fantrax.players(season.leagueId, season.seasonYear),
+        readBracket(ports, season, now),
     ]);
     return {
         writes: [
             teamSeasonsWrite(season.seasonYear, teamSeasonStandings(season, standings)),
             ...playerSeasonsWrites(season.seasonYear, playerSeasonRows(season, players)),
+            ...bracket.writes,
         ],
-        warnings: [],
+        warnings: [...bracket.warnings],
     };
 }
