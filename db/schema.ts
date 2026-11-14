@@ -82,6 +82,27 @@ export const seasons = league.table('seasons', {
     playoffStatus: text('playoff_status', { enum: ['complete', 'cancelled'] }).notNull(),
 });
 
+// What the season sync (lib/season-sync) last did to a season: one row per season year, written by every run that
+// finds the season opened. The counts and warnings are the last successful run's; the last error is cleared by
+// the next success. Once frozen_at is set the season sync leaves the season alone.
+// auto_roster_franchise_id is the champion the season sync wrote an automatic championship roster for, cleared
+// when the league owner saves the roster in admin, which records the champion it was saved for in
+// saved_roster_franchise_id; an automatic roster is replaced only while auto_roster_franchise_id is set.
+export const seasonSyncStatus = league.table('season_sync_status', {
+    seasonYear: integer('season_year').primaryKey().references(() => seasons.year),
+    lastRunAt: timestamp('last_run_at', { withTimezone: true, mode: 'string' }).notNull(),
+    lastSuccessAt: timestamp('last_success_at', { withTimezone: true, mode: 'string' }),
+    lastError: text('last_error'),
+    changedPlayerSeasons: integer('changed_player_seasons').notNull().default(0),
+    changedTeamSeasons: integer('changed_team_seasons').notNull().default(0),
+    changedPlayoffGames: integer('changed_playoff_games').notNull().default(0),
+    changedChampionshipRoster: integer('changed_championship_roster').notNull().default(0),
+    warnings: jsonb('warnings').$type<string[]>().notNull().default([]),
+    frozenAt: timestamp('frozen_at', { withTimezone: true, mode: 'string' }),
+    autoRosterFranchiseId: integer('auto_roster_franchise_id').references(() => franchises.id),
+    savedRosterFranchiseId: integer('saved_roster_franchise_id').references(() => franchises.id),
+});
+
 export const owners = league.table('owners', {
     id: serial('id').primaryKey(),
     name: text('name').notNull().unique(),

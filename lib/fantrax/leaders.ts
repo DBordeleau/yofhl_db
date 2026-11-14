@@ -15,33 +15,49 @@ interface StatsPage {
     paginatedResultSet: { pageNumber: number; totalNumResults: number };
     tableHeader: { cells: { key?: string }[] };
     statsTable: {
-        scorer: { scorerId: string; name: string; posShortNames: string };
+        scorer: { scorerId: string; name: string; posShortNames: string; teamShortName?: string };
         cells: { content?: string; teamId?: string }[];
     }[];
 }
 
+/** one page of the table, sorted by fantasy points descending: every NHL player (ALL) or every rostered one (ALL_TAKEN) */
+export interface StatsTableRequest {
+    filter: 'ALL' | 'ALL_TAKEN';
+    /** 1-based */
+    page: number;
+    limit: number;
+    /** the page must be the whole table */
+    whole?: boolean;
+}
+
+const LEADERS: StatsTableRequest = { filter: 'ALL', page: 1, limit: 10 };
+// shortcut: one page covers this league; add pagination if rosters ever exceed 1,000 players.
+export const ROSTERED: StatsTableRequest = { filter: 'ALL_TAKEN', page: 1, limit: 1000, whole: true };
+
+/** one call to Fantrax's website API (`/fxpa/req`): the data of its one response; `what` names the call in a failure */
+export async function websiteRequest(leagueId: string, method: string, data: object, what: string, fetcher: Fetcher): Promise<unknown> {
+    const response = await fetcher(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(12000),
+        body: JSON.stringify({ msgs: [{ method, data }] }),
+    });
+    if (!response.ok) throw new Error(`Fantrax ${what} returned ${response.status}`);
+    return (await response.json()).responses?.[0]?.data;
+}
+
 // shortcut: Fantrax's website stats endpoint is undocumented; replace it when a supported player-stats API is available.
-async function loadStatsTable(leagueId: string, seasonYear: number, roster = false, seasonCode?: string, fetcher = globalFetch) {
-    const filter = roster ? 'ALL_TAKEN' : 'ALL';
-    // shortcut: one page covers this league; add pagination if rosters ever exceed 1,000 players.
-    const limit = roster ? 1000 : 10;
+export async function loadStatsTable(leagueId: string, seasonYear: number, { filter, page, limit, whole = false }: StatsTableRequest, seasonCode?: string, fetcher = globalFetch) {
     async function request(season?: string): Promise<StatsPage> {
-        const response = await fetcher(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(12000),
-            body: JSON.stringify({ msgs: [{ method: 'getPlayerStats', data: {
-                leagueId, view: 'STATS', statusOrTeamFilter: filter, positionOrGroup: 'ALL', sortType: 'SCORE', sortReversed: false,
-                scoringCategoryType: '5', pageNumber: '1', maxResultsPerPage: String(limit), miscDisplayType: '1',
-                ...(season ? { seasonOrProjection: season } : {}),
-            } }] }),
-        });
-        if (!response.ok) throw new Error(`Fantrax player stats returned ${response.status}`);
-        const data = (await response.json()).responses?.[0]?.data as StatsPage | undefined;
+        const data = await websiteRequest(leagueId, 'getPlayerStats', {
+            leagueId, view: 'STATS', statusOrTeamFilter: filter, positionOrGroup: 'ALL', sortType: 'SCORE', sortReversed: false,
+            scoringCategoryType: '5', pageNumber: String(page), maxResultsPerPage: String(limit), miscDisplayType: '1',
+            ...(season ? { seasonOrProjection: season } : {}),
+        }, 'player stats', fetcher) as StatsPage | undefined;
         if (!Array.isArray(data?.statsTable) || !Array.isArray(data.tableHeader?.cells) || !Array.isArray(data.seasonOrProjections) ||
             data.displayedStatusOrTeam !== filter || data.displayedPosOrGroup !== 'ALL' || data.displayedSortType !== 'SCORE' || data.displayedSortReversed !== false ||
             data.displayedView !== 'STATS' || data.displayedScoringCategoryType !== '5' ||
-            data.paginatedResultSet?.pageNumber !== 1 || !Number.isInteger(data.paginatedResultSet.totalNumResults) || data.paginatedResultSet.totalNumResults < 0 ||
-            data.statsTable.length !== Math.min(limit, data.paginatedResultSet.totalNumResults) ||
-            (roster && data.paginatedResultSet.totalNumResults > limit)) throw new Error('Fantrax returned an incomplete or unexpected player stats table');
+            data.paginatedResultSet?.pageNumber !== page || !Number.isInteger(data.paginatedResultSet.totalNumResults) || data.paginatedResultSet.totalNumResults < 0 ||
+            data.statsTable.length !== Math.max(0, Math.min(limit, data.paginatedResultSet.totalNumResults - (page - 1) * limit)) ||
+            (whole && data.paginatedResultSet.totalNumResults > limit)) throw new Error('Fantrax returned an incomplete or unexpected player stats table');
         return data;
     }
 
@@ -57,7 +73,7 @@ async function loadStatsTable(leagueId: string, seasonYear: number, roster = fal
     return data;
 }
 
-function numericStat(value: string | undefined) {
+export function numericStat(value: string | undefined) {
     if (typeof value !== 'string') throw new Error('Fantrax scoring stat is missing');
     if (/^(?:-|—|N\/A)?$/.test(value.trim())) return null;
     const number = Number(value.replace(/,/g, ''));
@@ -66,11 +82,11 @@ function numericStat(value: string | undefined) {
 }
 
 export async function discoverScoringSeason(leagueId: string, seasonYear: number, fetcher = globalFetch) {
-    return (await loadStatsTable(leagueId, seasonYear, false, undefined, fetcher)).displayedSeasonOrProjection.code;
+    return (await loadStatsTable(leagueId, seasonYear, LEADERS, undefined, fetcher)).displayedSeasonOrProjection.code;
 }
 
 export async function loadScoringLeaders(leagueId: string, seasonYear: number, seasonCode?: string, fetcher = globalFetch) {
-    const data = await loadStatsTable(leagueId, seasonYear, false, seasonCode, fetcher);
+    const data = await loadStatsTable(leagueId, seasonYear, LEADERS, seasonCode, fetcher);
     const pointsColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fpts');
     const perGameColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fptsPerGame');
     const teamColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'status');
@@ -92,7 +108,7 @@ export async function loadScoringLeaders(leagueId: string, seasonYear: number, s
 }
 
 export async function loadRosterStats(leagueId: string, seasonYear: number, seasonCode?: string, fetcher = globalFetch) {
-    const data = await loadStatsTable(leagueId, seasonYear, true, seasonCode, fetcher);
+    const data = await loadStatsTable(leagueId, seasonYear, ROSTERED, seasonCode, fetcher);
     const pointsColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fpts');
     const perGameColumn = data.tableHeader.cells.findIndex(cell => cell.key === 'fptsPerGame');
     if (pointsColumn < 0 || perGameColumn < 0) throw new Error('Fantrax roster scoring columns are missing');

@@ -11,11 +11,9 @@ export function fantraxMatchupUrl(leagueId: string, week: number, awayId?: strin
     return `https://www.fantrax.com/fantasy/league/${leagueId}/livescoring;period=${week};viewType=2?${query}`;
 }
 
-// The league's playoff format: the top 6 make it, the top 2 seeds get first-round byes, and the playoff rounds
-// are the last three weeks of the season, one week each. Everything before them is the regular season.
-// Fantrax's own playoff settings are ignored; refreshLiveSeason() only warns when they disagree with this.
+// The league's playoff format: three rounds, named by their distance from the Final. Which weeks they are, how
+// many teams make it and who has a bye come from Fantrax's playoff settings and schedule (the live season's
+// `playoffs`), which report whether Fantrax's schedule fits these three rounds.
 export const PLAYOFF_FORMAT = {
-    teams: 6,
-    byes: 2,
     rounds: ['Quarterfinals', 'Semifinals', 'Final'],
 } as const;

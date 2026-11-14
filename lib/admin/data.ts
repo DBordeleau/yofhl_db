@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
 import { PLAYOFF_AWARD, SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
+import { SEASON_SYNC_STATUS_QUERY, toSeasonSyncStatus, type SeasonSyncStatus, type SeasonSyncStatusRow } from '@/lib/season-sync/status';
 
 // Admin reads. Never cached: the panel must show exactly what's in the database.
 
@@ -47,6 +48,12 @@ const playerColumns = sql`
     coalesce(ps.fpts, 0)::float8 as fpts, coalesce(t.abbreviation, 'FA') as team`;
 
 export const getSeasonStatuses = () => rows<SeasonStatus>(SEASON_STATUS_QUERY);
+
+/** what the season sync last did to a season, or null before its first run (the newest season when no year is given) */
+export const getSeasonSyncStatus = async (year?: number): Promise<SeasonSyncStatus | null> => {
+    const statuses = (await rows<SeasonSyncStatusRow>(SEASON_SYNC_STATUS_QUERY)).map(toSeasonSyncStatus);
+    return (year === undefined ? statuses[0] : statuses.find(status => status.seasonYear === year)) ?? null;
+};
 
 export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> => {
     const [season] = await rows<{ year: number; label: string; playoffStatus: 'complete' | 'cancelled'; champion_id: number | null; champion_name: string | null; champion_abbr: string | null }>(sql`

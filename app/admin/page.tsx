@@ -2,10 +2,11 @@ import Link from 'next/link';
 import AdminHeader from '@/components/admin/admin-header';
 import LoginForm from '@/components/admin/login-form';
 import { adminConfigured, isAdmin } from '@/lib/admin/auth';
-import { getSeasonStatuses } from '@/lib/admin/data';
+import { getSeasonStatuses, getSeasonSyncStatus } from '@/lib/admin/data';
 import Arrow from '@/components/arrow';
 import { KEEPERS_ENABLED } from '@/lib/keepers/model';
 import FantraxControls from '@/components/admin/fantrax-controls';
+import SeasonSyncControls from '@/components/admin/season-sync-controls';
 import { getLiveSeason } from '@/lib/fantrax/live-season';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ const Check = ({ ok, children }: { ok: boolean; children: React.ReactNode }) => 
 // season checklist at /admin
 export default async function AdminHome() {
     if (!(await isAdmin())) return <LoginForm next="/admin" configured={adminConfigured()} />;
-    const [seasons, live] = await Promise.all([getSeasonStatuses(), getLiveSeason({ now: Date.now() })]);
+    const [seasons, live, sync] = await Promise.all([getSeasonStatuses(), getLiveSeason({ now: Date.now() }), getSeasonSyncStatus()]);
     const season = live.status === 'available'
         ? { fetchedAt: live.value.fetchedAt, weeks: live.value.weeks.map(({ number, startDate, endDate, fullName, phase, manualFinal }) => ({ number, startDate, endDate, fullName, phase, manualFinal })), currentWeek: live.value.currentWeek.number }
         : null;
@@ -32,6 +33,7 @@ export default async function AdminHome() {
         <>
             <AdminHeader title="Seasons" />
             <FantraxControls season={season} />
+            <SeasonSyncControls status={sync} />
             {KEEPERS_ENABLED && <Link href="/admin/keepers" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice"><div><p className="font-wide text-lg font-extrabold">Keeper submissions</p><p className="mt-1 text-sm text-ink-soft">Review each team’s keeps, rookie eligibility, and players to drop.</p></div><Arrow className="text-2xl" /></Link>}
             <Link href="/admin/teams" className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-5 shadow-card hover:bg-ice">
                 <div><p className="font-wide text-lg font-extrabold">Teams & owners</p><p className="mt-1 text-sm text-ink-soft">Edit team names and logos, and generate owner invitation codes.</p></div>

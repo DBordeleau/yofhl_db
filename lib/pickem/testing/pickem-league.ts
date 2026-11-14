@@ -67,7 +67,8 @@ export function liveSeasonState(weeks: SourceWeek[] = weeksAroundNow(), seasonYe
         standings: teams.map((team, index) => ({ teamId: team.id, rank: index + 1, record: '0-0-0', points: 0 })),
         rosters: {},
         players: {},
-        playoffs: {},
+        // the last three weeks are Fantrax's playoff rounds
+        playoffs: { lastRegularSeasonPeriod: regularWeeks.length, firstPlayoffPeriod: regularWeeks.length + 1 },
     };
     return {
         fantraxTeams: FRANCHISES.map(id => ({ seasonYear, fantraxLeagueId: `league${seasonYear % 100}`, fantraxTeamId: `fx${id}`, franchiseId: id })),

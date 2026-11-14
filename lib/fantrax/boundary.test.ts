@@ -33,11 +33,13 @@ test('outside the live season module, its public files may be imported', async (
     ].join('\n') + '\n'), []);
 });
 
-test("the Fantrax client may be imported only from the Coach's Corner production code and the database schema", async () => {
+test("the Fantrax client may be imported only from the Coach's Corner production code, the database schema and the season sync's production binding", async () => {
     const client = "export { readCore } from '@/lib/fantrax/fantrax-client';\n";
     assert.deepEqual(await boundaryErrors('lib/coachs-corner/production/sample.ts', client), []);
     assert.deepEqual(await boundaryErrors('db/schema.ts', client), []);
+    assert.deepEqual(await boundaryErrors('lib/season-sync/season-sync.ts', client), []);
     assert.equal((await boundaryErrors('lib/coachs-corner/sample.ts', client)).length, 1);
+    assert.equal((await boundaryErrors('lib/season-sync/run.ts', client)).length, 1);
     assert.equal((await boundaryErrors('lib/coachs-corner/production/sample.ts', "export { fantraxSource } from '@/lib/fantrax/fantrax-source';\n")).length, 1);
 });
 

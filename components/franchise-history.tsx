@@ -8,6 +8,7 @@ import styles from './franchise.module.css';
 
 const seasonResult = (season: FranchiseSeason, team: FranchiseDetail) => {
     if (season.playoffStatus === 'cancelled') return 'Playoffs cancelled';
+    if (season.playoffStatus === 'pending') return 'In progress';
     if (team.championships.includes(season.year)) return 'Jagr Cup champion';
     if (team.finals.includes(season.year)) return 'Finalist';
     if (season.playoffRound === null) return 'Missed playoffs';
@@ -19,7 +20,8 @@ const GRID_DETAIL = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 ga
 const GRID = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 md:grid-cols-[minmax(96px,1fr)_76px_92px_118px_80px_150px] md:gap-y-0';
 
 export default function FranchiseHistory({ team }: { team: FranchiseDetail }) {
-    const played = team.seasons.filter((s) => s.wins + s.losses + s.ties > 0);
+    // a season still being played has a record so far, not a season record
+    const played = team.seasons.filter((s) => s.playoffStatus !== 'pending' && s.wins + s.losses + s.ties > 0);
     const bestRecord = [...played].sort((a, b) => winPercentage(b) - winPercentage(a) || b.wins - a.wins)[0]?.year;
     const bestScoring = [...team.seasons].sort((a, b) => b.fptsFor - a.fptsFor)[0]?.year;
     const showDetail = new Set(team.seasons.map((s) => s.owner)).size > 1 || team.seasons.some((s) => s.name !== team.name);
@@ -37,11 +39,11 @@ export default function FranchiseHistory({ team }: { team: FranchiseDetail }) {
                     <ol>
                         {team.seasons.map((season) => {
                             const champion = team.championships.includes(season.year);
-                            const made = season.playoffStatus !== 'cancelled' && season.playoffRound !== null;
+                            const made = season.playoffStatus === 'complete' && season.playoffRound !== null;
                             const renamed = season.name !== team.name;
                             return (
                                 <li key={season.year} className="border-b border-line-soft last:border-0">
-                                    <Link href={teamSeasonHref(season.year, team.id, season.playoffStatus === 'cancelled' ? null : season.playoffRound)}
+                                    <Link href={teamSeasonHref(season.year, team.id, season.playoffStatus === 'complete' ? season.playoffRound : null)}
                                         className={`group ${grid} row-hover min-h-[52px] px-4 py-2.5 md:px-5 md:py-1.5 ${champion ? 'bg-gold-tint/50' : ''}`}>
                                         <span className="flex items-center gap-1.5 whitespace-nowrap font-extrabold tabular group-hover:text-rink-blue group-hover:underline">
                                             {seasonLabel(season.year)}{champion && <JagrCupIcon className="h-6 w-6" />}

@@ -8,11 +8,12 @@ Seasons use the year they end in. `2026` means the 2025–26 season. Franchise I
 
 | Data | Source | How it changes |
 | --- | --- | --- |
-| Standings, player seasons, playoff games | Fantrax season CSVs | A season import replaces that season's imported data |
+| Standings, player seasons, playoff games and the championship roster of the season being played | Fantrax, through the [season sync](#season-sync) | Written every morning until the season freezes; the season import from CSVs is the repair path. The sync writes a championship roster only while the season has none, or replaces its own untouched one |
+| Standings, player seasons, playoff games of earlier seasons | Fantrax season CSVs | A season import replaces that season's imported data |
 | Franchises, identity eras, owners, logos, individual award definitions, playoff fixes, each season's Fantrax league and team IDs | [league.yml](../league/league.yml) | Every season import syncs the league configuration |
 | Current team name/logo overrides, account claims and invitation codes | `/owner` and `/admin/teams` | Stored in `team_management`; preserved by imports and logo sync. See [team management](owners.md). |
-| Championship rosters and individual award winners | `/admin/seasons/<end year>` | Admin edits; legacy seeds fill historical seasons with no entries |
-| Bracket corrections | Admin bracket review | Saved corrections are reapplied during imports |
+| Championship rosters and individual award winners | `/admin/seasons/<end year>` | Admin edits; legacy seeds fill historical seasons with no entries. A saved roster is never overwritten by an import or the season sync |
+| Bracket corrections | Admin bracket review | Saved corrections are reapplied during imports and decide the winner of a game the season sync writes |
 | Trades, free-agent moves, and draft selections | Fantrax history CSVs | History imports replace supplied files or draft seasons |
 | Draft lottery schedule, order, odds, and winner | `/admin/lottery` and the draw service | Stored separately from season imports; see the [lottery guide](lottery.md) |
 | Trophy labels, descriptions, artwork, and stored-name aliases | [lib/awards.ts](../lib/awards.ts) | Code changes, separate from award winner records |
@@ -32,7 +33,7 @@ Next.js reads local environment files during development. The database npm scrip
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | The accepted admin sign-in; both are required to enable it |
 | `ADMIN_SESSION_SECRET` | Signs the 12-hour admin cookie; falls back to `ADMIN_PASSWORD` when unset |
 | `REVALIDATE_SECRET` | Authorizes `POST /api/revalidate` with a bearer token |
-| `CRON_SECRET` | Authorizes Vercel's scheduled current-season Fantrax refreshes |
+| `CRON_SECRET` | Authorizes Vercel's scheduled jobs: the evening Fantrax refreshes and the morning season sync |
 | `SITE_URL` | Site whose cache import and logo-sync scripts refresh, when `REVALIDATE_SECRET` is also set |
 | `YOFHL_DATA_DIR` | Optional CSV directory override; defaults to `data` |
 | `YOFHL_LEAGUE_CONFIG` | Optional league configuration path; defaults to `league/league.yml` |
@@ -46,20 +47,42 @@ Admin sessions use an HttpOnly cookie scoped to `/admin`, with a 12-hour expiry.
 
 ## Adding a new season
 
-1. Put the Fantrax exports in `data/`, following the existing naming convention. For the season ending in 2027, use `2026-2027 Player Stats.csv`, `2026-2027 Team Stats.csv`, and `2026-2027 Playoffs.csv`. A cancelled playoff season is recorded in `league.yml` and does not need a playoff file.
-2. Update the league configuration for new franchises, renamed teams, ownership changes, abbreviations, and logos. Close the previous era with `to` and add the new era with `from`. Both values are inclusive end years.
+A season enters the archive when it starts on Fantrax, not when it ends. The season import opens it, the [season sync](#season-sync) writes it every morning while it is played, and the league owner finishes it in admin.
 
-   When the season starts on Fantrax, before it has any CSV exports, add its `fantrax` block under `seasons.<end year>`: the Fantrax league ID and each Fantrax team ID's franchise ID. Then run `npm run db:import` so `league.fantrax_teams` picks it up. The live season is the latest season with a `fantrax` block. The Coach's Corner fact export reads the same block straight from league.yml, without the database. A database migrated to 0016 (`fantrax_teams`) needs this import once, production included, or the live season is unavailable until it runs.
-3. Review the database connection, then run the import:
+At the start of the season:
+
+1. Update the league configuration for new franchises, renamed teams, ownership changes, abbreviations, and logos. Close the previous era with `to` and add the new era with `from`. Both values are inclusive end years. The new season's team names, owners, logos and abbreviations come from these eras; neither Fantrax nor the season sync changes them.
+2. Add the season's `fantrax` block under `seasons.<end year>`: the Fantrax league ID and each Fantrax team ID's franchise ID. The live season is the latest season with a `fantrax` block. The Coach's Corner fact export reads the same block straight from league.yml, without the database.
+3. Review the database connection, then run the import for the season:
 
    ```sh
    npm run db:import -- 2027
    ```
 
-   Without season arguments, the command imports every season found in the data directory. Multiple end years are accepted. The normal importer also processes supplied history files for those seasons.
-4. Resolve reported CSV/configuration mismatches before rerunning. Use `scoreOverrides` for known Fantrax playoff rescoring errors. An override with `verified: true` uses a reconstructed score and clears the public adjustment label; keep its evidence in [league/playoff-goalie-audit.json](../league/playoff-goalie-audit.json). Other overrides remain flagged placeholders. Saved admin bracket corrections are included when validating the bracket.
-5. Open `/admin`, sign in, and select the imported season. Set the championship roster, enter award winners, and review the bracket. The roster editor can start from the champion's end-of-season players, then add players dropped before the export.
-6. Check the import summary and the public season page. If importing into a hosted database, confirm the site cache was refreshed.
+   With no CSVs for the season, the import opens it: it loads `league.fantrax_teams` from the block, creates the season and one team season per franchise mapped in the block, with the name, owner, logo and abbreviation of the franchise's era for that year and zeroed standings. Every mapped franchise needs an era for the season, or the import stops. The opened season has no champion, so it stays unpublished (no season page, banner, picker entry or search result) and is the current season. Running the import again with no CSVs updates only those identity fields, never the standings, player seasons or playoff games the season sync has written. Without season arguments the command imports every season found in the data directory and opens every season with a `fantrax` block and no CSVs. A database migrated to 0016 (`fantrax_teams`) needs this import once, production included, or the live season is unavailable until it runs.
+4. Open `/admin` and press **Sync season stats**, or wait for the next morning's run. The Season sync panel should show a successful run.
+
+During the season there is nothing to do. The season sync writes standings and player seasons daily, then each playoff round's games, and on the night the Final ends the champion (which publishes the season) and the championship roster.
+
+At the end of the season, open `/admin`, sign in, and select the season:
+
+1. Enter the individual award winners.
+2. Review the bracket. A level Final has no champion until its winner is set here.
+3. Review the championship roster. The automatic roster includes everyone on the champion's roster outside the minors on any day of its playoff run, so remove short-stint pickups who shouldn't get a ring. Saving it makes it the league owner's: the season sync never changes it again.
+
+Seven days after the Final ends, the season sync freezes the season and stops writing it.
+
+### Repairing or importing a season from CSVs
+
+The season import from Fantrax's CSV exports is the repair path for a season the season sync got wrong, and the way to load past seasons into a new database. There is no CSV step in a normal season.
+
+1. Put the Fantrax exports in `data/`, following the existing naming convention. For the season ending in 2027, use `2026-2027 Player Stats.csv`, `2026-2027 Team Stats.csv`, and `2026-2027 Playoffs.csv`. A cancelled playoff season is recorded in `league.yml` and does not need a playoff file.
+2. Review the database connection, then run `npm run db:import -- 2027`. Multiple end years are accepted. The normal importer also processes supplied history files for those seasons.
+3. Resolve reported CSV/configuration mismatches before rerunning. Use `scoreOverrides` for known Fantrax playoff rescoring errors. An override with `verified: true` uses a reconstructed score and clears the public adjustment label; keep its evidence in [league/playoff-goalie-audit.json](../league/playoff-goalie-audit.json). Other overrides remain flagged placeholders. Saved admin bracket corrections are included when validating the bracket.
+4. In `/admin`, check the championship roster, award winners and bracket for the season. The roster editor can start from the champion's end-of-season players, then add players dropped before the export.
+5. Check the import summary and the public season page. If importing into a hosted database, confirm the site cache was refreshed.
+
+Until a season freezes, the season sync keeps writing it from Fantrax each morning, so an import of the season being played lasts only where it agrees with Fantrax (playoff games whose correction window has closed are never rewritten). Score overrides apply only to the import.
 
 The season import command applies migrations before it validates season data, because it reads saved bracket corrections and existing championship rosters and awards. Every validation problem is reported in one list before anything is written, including a ring or award player missing from the season's player export. The import is all or nothing ([ADR 0004](adr/0004-season-import-is-one-transaction.md)): league configuration, Fantrax teams, every season, legacy seeding, history replacement, and the materialized view refreshes are one transaction, so a failure at any point leaves the database as it was. Three things run outside it: before it, migrations (which stay applied if the import then fails) and the NHL draft-facts fetch (which writes nothing itself); after it commits, the site cache clear. This is not a dry-run command.
 
@@ -122,7 +145,7 @@ Transactions have no player IDs. The importer matches normalized exact names aga
 
 Transaction timestamps use the explicit EDT/EST label in the export. Draft timestamps lack AM/PM, so only the calendar date and original text are stored. Empty draft slots remain in the archive, including the two 2019–20 slots without a recorded team. The supplied history has no 2018–19 draft export.
 
-Draft tables show the player's full-season FPts and FP/G, not only points earned for the drafting team. Missing stats display a dash. The exports have no games-played field, and the app does not estimate it. Career FP/G is the mean of the stored FP/G values for seasons with positive FPts, rather than a games-weighted average.
+Draft tables show the player's full-season FPts and FP/G (to date, for the season being played), not only points earned for the drafting team. Missing stats display a dash. The exports have no games-played field, and the app does not estimate it. Career FP/G is the mean of the stored FP/G values for seasons with positive FPts, rather than a games-weighted average.
 
 Team transaction feeds start on Trades. Player feeds include all history kinds. Each page contains ten events. Matching trades include every asset; a player's free-agent history includes only that player's claim or drop. Team pages also have a separate searchable and sortable draft section.
 
@@ -146,7 +169,7 @@ See the [draft lottery guide](lottery.md) for scheduling, preview controls, reve
 
 Most public league and history queries have no timed expiry in production. They all carry the `league` tag for full imports, with additional tags for interactive edits. Development bypasses this query cache. Invalidating a tag makes its readers fetch fresh data on their next request.
 
-Roster, award, and matchup edits invalidate the edited season and their affected cross-season summaries. Other seasons' query results, draft classes, and transaction histories stay cached. Team name/logo edits invalidate that franchise and the collections that include its current identity. Colour edits invalidate only the branding query. Account claims do not invalidate public league data. The dependencies are defined in `lib/data/cache-tags.ts`; add tags to both readers and edit handlers when introducing a new cached aggregate.
+The [season sync](#season-sync) expires the tags its changes affect and none on a run that changes nothing. Roster, award, and matchup edits invalidate the edited season and their affected cross-season summaries. Other seasons' query results, draft classes, and transaction histories stay cached. Team name/logo edits invalidate that franchise and the collections that include its current identity. Colour edits invalidate only the branding query. Account claims do not invalidate public league data. The dependencies are defined in `lib/data/cache-tags.ts`; add tags to both readers and edit handlers when introducing a new cached aggregate.
 
 `POST /api/revalidate` requires `Authorization: Bearer <REVALIDATE_SECRET>`. It clears the league cache; it does not import data or refresh materialized views. Import and logo-sync scripts call it only when both `SITE_URL` and `REVALIDATE_SECRET` are set.
 
@@ -158,7 +181,7 @@ The full season importer refreshes all three materialized views before invalidat
 | `player_careers` | Career totals, FP/G, positions, championships, awards, and all-time rank |
 | `franchise_records` | Regular-season record, points, championship seasons, and finals appearances |
 
-Roster and award edits refresh only `player_careers`. Matchup edits refresh `season_results` and `franchise_records`. Every refresh runs in the order listed in `lib/data/materialized-views.ts`. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
+Roster and award edits refresh only `player_careers`. Matchup edits refresh `season_results` and `franchise_records`. A season sync run refreshes the views its changes affect, after its write commits. Every refresh runs in the order listed in `lib/data/materialized-views.ts`. History-only imports and logo sync do not recompute these views. Direct SQL changes to source stats or curated results need the appropriate view refresh as well as cache invalidation.
 
 Pick'em's cached reads carry their own tags, defined in [lib/pickem](../lib/pickem/) rather than `lib/data/cache-tags.ts` because only the Pick'em module reads and expires them: `pickemSeasonTag(year)` (a season's recorded weeks, locked-week Pick'em picks and the Pick'em leaderboard; settle expires it after recording, freezing or completing), `PICKEM_SEASONS_TAG` (the list of Pick'em seasons; settle expires it after recording a week or completing a season) and `pickemWhosInTag(year, week)` (a week's who's-in list; a save or clear that changes which matchups an entry has picked expires it). Who's in and past seasons' entries also carry the franchise-cards tag, so a team's branding edit reaches them.
 
@@ -179,7 +202,7 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 
 | Tables | Contents |
 | --- | --- |
-| `seasons`, `team_seasons`, `players`, `player_seasons`, `matchups` | Imported season data and playoff brackets |
+| `seasons`, `team_seasons`, `players`, `player_seasons`, `matchups` | Season data and playoff brackets, from the season import or, for the season being played, the season sync |
 | `franchises`, `owners`, `award_types` | Identities and definitions synced from league configuration |
 | `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections |
 | `transaction_events`, `transaction_assets`, `draft_picks` | Historical moves and draft slots with source references |
@@ -187,8 +210,11 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | `pickem_picks` | Each Pick'em entry's Pick'em pick per week and matchup (migration 0018) |
 | `pickem_weeks`, `pickem_pairings` | Pick'em's record of each locked week: its lock, its pairings in order and, once frozen, each pairing's result (0019) and its two scores (0021) |
 | `pickem_completed_seasons` | Seasons whose Pick'em is complete, so their winner stands once Fantrax moves on (0020) |
+| `season_sync_status` | One row per season year: the season sync's last run, last success, last error, what the last success changed and its warnings, the franchise an automatic championship roster was written for, the champion the roster was last saved for, and the freeze time (0023, 0025) |
 
-Player seasons are retained when the player scored, was rostered, or is needed by an award or championship roster. Team trophy cases derive Prime Minister's Trophies from a strict league-wide regular-season FPts lead; tied leaders do not receive an inferred winner. Individual awards use their recorded `awards.team_season_id` association, not the player's current team.
+Player seasons are retained when the player scored, was rostered, or is needed by an award or championship roster. Team trophy cases derive Prime Minister's Trophies from a strict league-wide regular-season FPts lead, for published seasons only; tied leaders do not receive an inferred winner.
+
+The season being played counts wherever a published season does: career totals, FP/G and rank, franchise records and season lists, both leaderboards, draft class stats, and the record book's season totals. It gets no Prime Minister's Trophy, no best season record (win percentage), no season page, banner, picker entry or search result, and the record book leaves it out of the calendar its cup streaks are measured against. A future "lowest" or "fewest" single-season record must use published seasons only. Individual awards use their recorded `awards.team_season_id` association, not the player's current team.
 
 ## HTTP API
 
@@ -245,8 +271,8 @@ Leave out `nextCache` for the app's reads without a cache, or both options for a
 | Command | Behavior |
 | --- | --- |
 | `npm test` | Run every test in the repo |
-| `npm run db:import -- 2026` | Apply migrations, sync configuration, import the selected season and its supplied history, seed empty legacy records, refresh views and cache |
-| `npm run db:import` | Import every season found in the data directory |
+| `npm run db:import -- 2026` | Apply migrations, sync configuration, import the selected season and its supplied history (or open it when it has a `fantrax` block and no CSVs), seed empty legacy records, refresh views and cache |
+| `npm run db:import` | Import every season found in the data directory and open every season with a `fantrax` block and no CSVs |
 | `npm run db:import:history -- --dry-run` | Parse and validate history without opening a database connection |
 | `npm run db:import:history` | Apply migrations and replace supplied history in an existing league database |
 | `npm run db:sync:logos` | Sync configured franchise and era logos; no stats import or status sync |
@@ -257,15 +283,18 @@ Leave out `nextCache` for the app's reads without a cache, or both options for a
 | `npm run test:data` | Verify cache reuse, edit invalidation, and materialized-view updates against in-memory Postgres |
 | `npm run test:history` | Run parser, identity, grouping, repeat-import, and rollback tests |
 | `npm run test:pickem` | Run the Pick'em module's tests through its operations against in-memory Postgres and the in-memory live season |
+| `npm run test:season-sync` | Run the season sync's tests through its run operation against in-memory Postgres and its in-memory Fantrax reads |
 | `npm run db:verify` | Legacy migration comparison against old-site API shapes; not current-site verification |
 
 `db:verify` still calls `/api/stats/...`, `/api/teams/stats`, and `/api/player/...`, which the current app does not implement. Its default target is the current production API, so it will encounter missing routes. It also reports data differences without making those differences a failing exit status. Use it only with a compatible legacy endpoint via `YOFHL_LIVE_API`; use the current API and page checks for present-day verification.
 
 ## Fantrax refreshes and final weeks
 
+Two kinds of scheduled job read Fantrax. The four evening refreshes save the home page's current-season snapshot and write nothing into the archive. The morning [season sync](#season-sync) writes the live season into the archive. Both are Vercel crons in `vercel.json`, authorized by `CRON_SECRET` (Vercel sends it as an Authorization bearer token), and run only on production deployments. Set a strong production `CRON_SECRET`.
+
 Apply migrations before deploying the Fantrax controls. `league.fantrax_snapshots` holds the last successful current-season snapshot, independently of historical imports. `league.fantrax_final_weeks` holds manual final flags keyed by Fantrax league, season and period.
 
-The four daily refresh targets are 8, 9, 10 and 11:30 p.m. in `America/Toronto`. `vercel.json` defines six once-daily UTC jobs covering both Eastern offsets. The authenticated handler evaluates each job's scheduled time and skips the two slots that do not apply at the current offset. This supports Vercel Hobby and its possible 59-minute scheduling delay, including an 11:30 p.m. job arriving after local midnight. Set a strong production `CRON_SECRET`; Vercel sends it as an Authorization bearer token. Jobs run only on production deployments.
+The four daily refresh targets are 8, 9, 10 and 11:30 p.m. in `America/Toronto`. `vercel.json` defines six once-daily UTC jobs covering both Eastern offsets. The authenticated handler evaluates each job's scheduled time and skips the two slots that do not apply at the current offset. This supports Vercel Hobby and its possible 59-minute scheduling delay, including an 11:30 p.m. job arriving after local midnight.
 
 A refresh fetches league information, rosters, standings, scoring leaders, roster statistics and started matchup periods within the seven-day correction window. It saves the complete result only after all requests succeed, then invalidates only the current-season cache tag. Weekly player references, the scoring-season selector, archive queries and older final scores remain cached. Overlapping refreshes cannot replace a newer snapshot with an older one. If no recent saved snapshot exists, the existing 24-hour API caches provide a fallback.
 
@@ -275,4 +304,58 @@ Signed-in admins can use **Refresh Fantrax** on `/admin`. **Mark week final** fi
 
 Regular-season Final detection compares each scheduled team's cumulative W-L-T total with its number of paired matchups through that week. It handles ties and byes, rejects missing or malformed standings and schedule history, and does not infer playoff completion from regular-season records. Both matchup cards and the ticker use the same final-period list. A Final flag does not advance the current week or stop stat corrections; the next week still becomes current at Fantrax's supplied boundary. Existing open browser tabs need reloading to receive a new snapshot.
 
+Playoff weeks come from Fantrax. The live season treats every week from Fantrax's first playoff week (`firstPlayoffPeriod` in its playoff settings) as one playoff round, however long the week, and every earlier week as the regular season, which is all Pick'em and automatic Final detection cover. The playoff line and first-round byes follow the first round's seeding on Fantrax's schedule, then its byes once seeded (each round halves the bracket, so the byes give the playoff team count; consolation games that week don't move the line), and only failing both Fantrax's playoff team setting. The season sync seeds its bracket from the same line. The league plays three rounds; when Fantrax's schedule from its first playoff week has any other number, the home page still shows what Fantrax has and the live season reports `playoffs.fitsFormat: false`.
+
 The broader `POST /api/revalidate?external=1` remains available for historical corrections. It refreshes the saved current-season snapshot and clears all Fantrax and league caches; use the admin button for routine current-season refreshes.
+
+## Season sync
+
+The season sync (`lib/season-sync/`) writes the live season into the archive. The rules behind its writes are in [ADR 0008](adr/0008-season-sync-write-rules.md). Tests: `npm run test:season-sync`.
+
+### Before deploying
+
+Apply these migrations (`npm run db:migrate`) before deploying the code that reads them:
+
+| Migration | Why |
+| --- | --- |
+| `0023_season_sync_status` | Adds `league.season_sync_status`, which the cron route, the admin action and the admin page read |
+| `0024_season_results_need_the_final` | The season results view crowns a champion only when a season's last stored championship round is a single game (the Final), so a season with only its Quarterfinals or Semifinals stored stays unpublished. Imported seasons are unchanged |
+| `0025_season_sync_championship_roster` | Adds `changed_championship_roster`, `auto_roster_franchise_id` and `saved_roster_franchise_id` to the status table, which the sync's write, the roster editor's save and the admin page read |
+
+### When it runs
+
+`vercel.json`'s `/api/cron/season-sync` job runs at 11:00 UTC every day (6 a.m. Eastern in winter, 7 a.m. after the March clock change; Vercel Hobby may fire it up to an hour late). **Sync season stats** on `/admin` runs the same operation straight away, after checking the admin session; use it after a scoring correction or to check a newly opened season.
+
+It syncs the live season (the latest season with a `fantrax` block) and does nothing until the season import has opened that season. Each run reads Fantrax fresh: league info (weeks and daily roster periods), the website standings table, the website player stats table, and the live season's playoff weeks, pairings and scores, which follow the evening refresh's saved snapshot and manual final weeks. A playoff round is never written from a snapshot more than 36 hours old: the run fails instead, so a broken evening refresh shows up in admin rather than as stale bracket scores. The player stats table takes three requests: the leaders down to the first zero total, the last page for negative totals, and the rostered players. Signed out, Fantrax ignores a reversed sort, so negative totals are read from the end of the descending table. The standings and player tables are undocumented website calls; if Fantrax changes them the run fails safely and the season import remains available.
+
+### What it writes
+
+- **Team seasons**: W/L/T, points for and against straight from the standings table, division 1 and the table's rank. Never the name, owner, logo or abbreviation.
+- **Player seasons**: under the season import's keep rule. A player who scored (a non-zero total), is on a franchise's roster, or is on the season's championship roster or an award list gets a player row (bare ID and name) and a player season with the fantasy team from the Fantrax team mapping, NHL team, positions, and FPts and FP/G to date. A player season that no longer qualifies is removed.
+- **Playoff games**: each round's championship games once its week is final (ended, or marked final in admin). A game is a championship game when both teams are still alive in the bracket: the standings' playoff seeds in the first round (the top seeds having byes), then the previous round's winners plus the bye teams. Other games in those weeks are ignored. Each round's games are slotted for drawing: the first round in Fantrax's schedule order, each later round beside the games that fed it (`lib/data/bracket-order.ts`, the rule the season import slots by, from the Final back). The winner follows the shared matchup winner rule, so a saved bracket correction applies; level scores go to the team Fantrax placed in the next round, and a level Final has no winner until it is set in bracket review. A game follows Fantrax's scores until its week's seven-day correction window closes and is never rewritten after. The Final's winner publishes the season through the season results view.
+- **Championship roster**: once the season has a champion and no roster. The champion's run is the playoff weeks it played a game in, so a first-round bye is not part of it. The roster is everyone on the champion's roster in any slot but the minors (injured reserve included) in any daily roster period that starts inside those weeks; a single day counts. That is one Fantrax read per roster period of the run (28 for 2027's 7, 7 and 14 days), made only in the run that writes the roster. A roster player with no player row or player season this year (dropped, with no points) is given both, named from Fantrax's player directory. The status row records the franchise the automatic roster was written for. Saving the roster in the roster editor clears that record, and from then on the season sync never changes it.
+
+If the Final flips inside its correction window, an automatic roster still on record is replaced with the new champion's. A roster saved in admin is left alone. If it was saved for a different champion (the Final flipped after the save), every run warns about it until it is saved again; a roster saved before the Final was decided raises no warning.
+
+It never writes an award, a bracket correction, a saved championship roster or a team season's identity. The league configuration's `scoreOverrides` apply only to the season import.
+
+### Writes, failures and warnings
+
+A run reads and checks everything first, then writes every part in one statement together with the status row. A row changes only when a value differs, and a run that changes nothing refreshes no view and expires no tag. Changed stats refresh `player_careers` and `franchise_records` and expire the season, players, both leaderboards, franchise, records, discovery, draft, points leader and team comparison tags; changed playoff games and rosters expire what a bracket or roster edit does.
+
+A failed Fantrax read, a check that fails (Fantrax on another season, an unmapped fantasy team, an incomplete or out-of-order table, a champion with nobody on its roster outside the minors, a playoff round due to be written from a live season snapshot more than 36 hours old), or a failed write leaves every row as it was. Only the status row's last run and last error change, the cron returns 503 with the error, and the server logs `The season sync of <year> failed:`. The next run catches up. There is no alert beyond the admin panel and Vercel's cron logs. A failed read of the champion's daily rosters fails the whole run, Final included, and is retried the next morning.
+
+Warnings don't fail the run. They name something the league owner should fix:
+
+- Fantrax's schedule from its first playoff week is not three rounds: no bracket is written.
+- A round's pairings don't fit the bracket: nothing is written for it or any later round. Repair it with the season import.
+- The Final ended level: no champion until its winner is set in bracket review.
+- The championship roster was saved in admin for one champion and the Final has since flipped to another: check it in the roster editor.
+
+### The admin panel
+
+The Season sync panel on `/admin` shows the last run, the last success, what the last successful run changed (player seasons, team seasons, playoff games and championship roster players, or "nothing"), the last error, the last successful run's warnings, a line while an automatic roster has not been saved in the roster editor, and the freeze time. "Not run yet" means the season isn't opened or no run has reached it.
+
+### The freeze
+
+Seven days after the season's last week ends, the next run records the freeze time and writes nothing, and every later run leaves the season alone. For 2027 that is April 12, 2027. After the freeze the season changes only through admin edits and the season import, like every other archived season.

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
+import { publishedOnly } from './league';
 import { leagueTags } from './cache-tags';
 import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
@@ -10,7 +11,7 @@ import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/dev
 const seasonTeamJson = (season: string, franchise: string, recorded: string) => sql.raw(`jsonb_build_object('id', ${franchise},
     'name', coalesce(${season}.name, ${recorded}), 'abbreviation', ${season}.abbreviation, 'logo', ${season}.logo)`);
 
-export const getFranchiseHonors = cached(async (id: number): Promise<FranchiseHonors> => {
+const getFranchiseHonorRows = cached(async (id: number): Promise<FranchiseHonors> => {
     const [primeMinisters, awards] = await Promise.all([
         rows<FranchiseHonors['primeMinisters'][number]>(sql`
             select t.season_year as year, t.fpts_for::float8 as points
@@ -29,7 +30,13 @@ export const getFranchiseHonors = cached(async (id: number): Promise<FranchiseHo
             order by a.season_year desc, at.sort_order, p.name`),
     ]);
     return { primeMinisters, awards };
-}, 'franchise-honors', [leagueTags.awards]);
+}, 'franchise-honors-v2', [leagueTags.awards, leagueTags.pointsLeaders]);
+
+/** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
+export async function getFranchiseHonors(id: number): Promise<FranchiseHonors> {
+    const honors = getFranchiseHonorRows(id);
+    return { ...await honors, primeMinisters: await publishedOnly(honors.then(({ primeMinisters }) => primeMinisters), win => win.year) };
+}
 
 export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`
     select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",
@@ -39,7 +46,7 @@ export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql
     left join league.players p on p.id = d.player_id
     left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
     where d.franchise_id = ${id}
-    order by d.season_year desc, d.overall`), 'franchise-draft');
+    order by d.season_year desc, d.overall`), 'franchise-draft-v2', [leagueTags.draft]);
 
 type SeasonDraftRow = Omit<SeasonDraftSelection, 'regretEligible'> & { draftedOn: string; developmentFacts: DraftDevelopmentFacts | null };
 const getSeasonDraftRows = cached((year: number) => rows<SeasonDraftRow>(sql`
@@ -53,7 +60,7 @@ const getSeasonDraftRows = cached((year: number) => rows<SeasonDraftRow>(sql`
     left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
     left join league.season_teams st on st.franchise_id = d.franchise_id and st.season_year = d.season_year
     where d.season_year = ${year}
-    order by d.overall`), 'season-draft-v3-development');
+    order by d.overall`), 'season-draft-v4-development', [leagueTags.draft]);
 
 export async function getSeasonDraft(year: number): Promise<SeasonDraftSelection[]> {
     return (await getSeasonDraftRows(year)).map(({ draftedOn, developmentFacts, ...pick }) => ({

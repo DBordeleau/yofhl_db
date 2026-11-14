@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import { getFranchiseCards } from './league';
+import { PLAYOFF_FORMAT } from '@/lib/fantrax/config';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
 import type { RivalryGame, RivalrySeason, RivalryTrade } from '@/lib/rivalries/model';
 import regularSeason from '@/lib/rivalries/regular-season-history.json';
@@ -11,7 +12,9 @@ export const getRivalryData = cached(async () => {
         getFranchiseCards(),
         rows<RivalryGame>(sql`
             select m.id, m.season_year as year, m.stage, m.round,
-                   max(m.round) over (partition by m.season_year) as "finalRound",
+                   -- until a season's Final is stored its last stored round is not the Final: the league's format gives the round count
+                   case when r.final_matchup_id is null then greatest(max(m.round) over (partition by m.season_year), ${PLAYOFF_FORMAT.rounds.length}::int)
+                        else max(m.round) over (partition by m.season_year) end as "finalRound",
                    a.franchise_id as away, h.franchise_id as home, a.name as "awayName", h.name as "homeName",
                    m.away_score::float8 as "awayScore", m.home_score::float8 as "homeScore", w.franchise_id as winner,
                    m.score_adjusted as adjusted, nullif(concat_ws(' · ', m.note, o.note), '') as note
@@ -19,6 +22,7 @@ export const getRivalryData = cached(async () => {
             join league.season_teams a on a.team_season_id = m.away_team_season_id
             join league.season_teams h on h.team_season_id = m.home_team_season_id
             left join league.team_seasons w on w.id = m.winner_team_season_id
+            left join league.season_results r on r.season_year = m.season_year
             left join league.matchup_overrides o on o.season_year = m.season_year and o.round = m.round
                 and o.franchise_a = least(a.franchise_id, h.franchise_id) and o.franchise_b = greatest(a.franchise_id, h.franchise_id)
             where m.stage = 'playoff' and m.bracket = 'championship' and m.season_year <> 2020
@@ -35,4 +39,4 @@ export const getRivalryData = cached(async () => {
     // Regular-season snapshot, verified against every team's archived record and points.
     const regularGames: RivalryGame[] = regularSeason.games.map(game => ({ ...game, stage: 'regular' }));
     return { teams, games: [...games, ...regularGames], seasons, trades };
-}, 'rivalry-history-v2', [leagueTags.rivalries]);
+}, 'rivalry-history-v3', [leagueTags.rivalries]);

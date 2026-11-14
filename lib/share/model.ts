@@ -13,7 +13,8 @@ export const SHARE_SITE = 'yofhl.com';
 
 export interface ShareTeam { id: number | null; name: string; abbreviation: string; logo: string | null }
 /** 'cup' champion, 'final' lost final, 'out' missed playoffs, 'cancelled' no playoffs, otherwise the round reached. */
-export type SeasonResult = 'cup' | 'final' | 'out' | 'cancelled' | number;
+/** 'pending' is a season still being played: no playoff result yet */
+export type SeasonResult = 'cup' | 'final' | 'out' | 'cancelled' | 'pending' | number;
 
 interface CardBase { href: string; title: string; summary: string }
 export interface PlayerShareCard extends CardBase {
@@ -82,7 +83,7 @@ export function playerShareCard(player: PlayerProfile): PlayerShareCard {
 }
 
 export function seasonResult(season: FranchiseDetail['seasons'][number], champion: boolean): SeasonResult {
-    if (season.playoffStatus === 'cancelled') return 'cancelled';
+    if (season.playoffStatus !== 'complete') return season.playoffStatus;
     if (champion) return 'cup';
     if (season.playoffRound === null) return 'out';
     return season.playoffRound === season.finalRound ? 'final' : season.playoffRound;

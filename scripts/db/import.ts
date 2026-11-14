@@ -37,7 +37,8 @@ const main = async () => {
             return;
         }
         const notes = result.legacyNotes;
-        console.log(`Importing ${result.seasons.map((s) => seasonLabel(s.year)).join(', ')} into ${label}`);
+        if (result.seasons.length) console.log(`Importing ${result.seasons.map((s) => seasonLabel(s.year)).join(', ')} into ${label}`);
+        if (result.opened.length) console.log(`Opening ${result.opened.map((s) => seasonLabel(s.year)).join(', ')} in ${label} from league.yml's fantrax block, for the season sync`);
 
         // oldest first, as the summary has always printed
         const statuses = [...result.statuses].sort((a, b) => a.year - b.year);

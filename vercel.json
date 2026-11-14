@@ -13,6 +13,7 @@
     { "path": "/api/cron/fantrax?slot=02:00", "schedule": "0 2 * * *" },
     { "path": "/api/cron/fantrax?slot=03:00", "schedule": "0 3 * * *" },
     { "path": "/api/cron/fantrax?slot=03:30", "schedule": "30 3 * * *" },
-    { "path": "/api/cron/fantrax?slot=04:30", "schedule": "30 4 * * *" }
+    { "path": "/api/cron/fantrax?slot=04:30", "schedule": "30 4 * * *" },
+    { "path": "/api/cron/season-sync", "schedule": "0 11 * * *" }
   ]
 }

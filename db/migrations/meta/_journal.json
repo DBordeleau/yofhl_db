@@ -162,6 +162,27 @@
       "when": 1794453116115,
       "tag": "0022_bare_player_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794687520823,
+      "tag": "0023_season_sync_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794688783947,
+      "tag": "0024_season_results_need_the_final",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794690618836,
+      "tag": "0025_season_sync_championship_roster",
+      "breakpoints": true
     }
   ]
 }

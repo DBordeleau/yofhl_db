@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import PageContents from '@/components/page-contents';
 import contentsStyles from '@/components/page-contents.module.css';
 import styles from '@/components/season-page.module.css';
@@ -41,6 +41,8 @@ export default async function SeasonPage({ params }: {
     const seasonYear = Number(year);
     const archive = await getSeasonArchive();
     const season = archive.published.find((s) => s.year === seasonYear);
+    // The season being played has no season page until it is published: its links lead to the live season on the home page.
+    if (!season && archive.seasons.some((s) => s.year === seasonYear)) redirect('/');
     if (!season) notFound();
     const cancelled = season.playoffStatus === 'cancelled';
     const [detail, leaders, draft, champ] = await Promise.all([

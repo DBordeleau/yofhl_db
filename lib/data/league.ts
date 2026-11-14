@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import type { SeasonIdentity } from '../team-identity';
-import { seasonArchive } from '../seasons';
+import { isPublished, seasonArchive } from '../seasons';
 
 // Every query the site makes. Each is cached until the next import or admin edit (see ./db).
 // Field names in PascalCase match what the existing table components already expect.
@@ -128,7 +128,8 @@ export interface FranchiseSeason {
     ties: number;
     fptsFor: number;
     fptsAgainst: number;
-    playoffStatus: 'complete' | 'cancelled';
+    /** 'pending' while the season is unpublished (GLOSSARY.md): its playoffs are not decided, so the rounds stored so far say nothing final */
+    playoffStatus: 'complete' | 'cancelled' | 'pending';
     playoffRound: number | null;
     finalRound: number | null;
 }
@@ -174,6 +175,12 @@ export const getBannerSeasons = cached(
 
 /** every season, sorted into published, latest and current (see lib/seasons.ts); no query of its own */
 export const getSeasonArchive = async () => seasonArchive(await getBannerSeasons());
+
+/** `items` less those of a season still being played: only a published season (GLOSSARY.md) counts */
+export async function publishedOnly<T>(items: T[] | Promise<T[]>, yearOf: (item: T) => number): Promise<T[]> {
+    const [list, archive] = await Promise.all([items, getSeasonArchive()]);
+    return list.filter(item => isPublished(archive, yearOf(item)));
+}
 
 export const getAwardTypes = cached(
     () => rows<AwardType>(sql`select name, label, description from league.award_types order by sort_order`),
@@ -290,7 +297,8 @@ export const getTopPlayerIds = cached(
 // The archive's player IDs: a current Fantrax player with one of these has a player page.
 export const getArchivedPlayerIds = cached(
     () => rows<{ id: string }>(sql`select player_id as id from league.player_careers`),
-    'archived-player-ids',
+    'archived-player-ids-v2',
+    [leagueTags.players],
 );
 
 export const getChampionRoster = cached(async (year: number): Promise<ChampionRoster | null> => {
@@ -329,7 +337,7 @@ export const getFranchiseCards = cached(
     [leagueTags.franchiseCards],
 );
 
-export const getFranchise = cached(async (id: number): Promise<FranchiseDetail | null> => {
+const getFranchiseRows = cached(async (id: number): Promise<FranchiseDetail | null> => {
     const [franchise] = await rows<Omit<FranchiseDetail, 'leaders' | 'seasons'>>(sql`
         select c.id, c.name, c.abbreviation, c.logo,
                o.name as owner, f.first_season as "firstSeason", f.folded_after_season as "foldedAfterSeason",
@@ -380,6 +388,13 @@ export const getFranchise = cached(async (id: number): Promise<FranchiseDetail |
     return { ...franchise, leaders, seasons };
 }, 'franchise', id => [leagueTags.franchiseDetails, leagueTags.franchise(id)]);
 
+/** A franchise with its seasons. A season still being played is 'pending': it has a record but no playoff result yet. */
+export async function getFranchise(id: number): Promise<FranchiseDetail | null> {
+    const [franchise, archive] = await Promise.all([getFranchiseRows(id), getSeasonArchive()]);
+    return franchise && { ...franchise, seasons: franchise.seasons.map(season =>
+        isPublished(archive, season.year) ? season : { ...season, playoffStatus: 'pending' as const }) };
+}
+
 export const getAwardWinners = cached(async (name: string) => {
     const [award] = await rows<AwardType>(sql`select name, label, description from league.award_types where name = ${name}`);
     if (!award) return null;
@@ -397,7 +412,7 @@ export const getAwardWinners = cached(async (name: string) => {
 }, 'award-winners-v2', [leagueTags.awards]);
 
 // Team honours use the same championship and scoring records as franchise trophy cases.
-export const getTeamAwardWinners = cached(async (award: 'jagr-cup' | 'prime-minister') => {
+const getTeamAwardRows = cached(async (award: 'jagr-cup' | 'prime-minister') => {
     const criterion = award === 'jagr-cup'
         ? sql`exists (select 1 from league.season_results r where r.champion_team_season_id = t.id)`
         : sql`not exists (select 1 from league.team_seasons other
@@ -413,7 +428,12 @@ export const getTeamAwardWinners = cached(async (award: 'jagr-cup' | 'prime-mini
         left join league.owners o on o.id = t.owner_id
         where ${criterion}
         order by t.season_year desc`);
-}, 'team-award-winners-v2', award => award === 'jagr-cup' ? [leagueTags.cups] : []);
+}, 'team-award-winners-v3', award => [award === 'jagr-cup' ? leagueTags.cups : leagueTags.pointsLeaders]);
+
+/** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
+export async function getTeamAwardWinners(award: 'jagr-cup' | 'prime-minister'): Promise<AwardWinner[]> {
+    return publishedOnly(getTeamAwardRows(award), winner => winner.Year);
+}
 
 export const searchPlayers = cached(
     (q: string) =>

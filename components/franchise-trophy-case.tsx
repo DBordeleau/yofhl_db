@@ -13,7 +13,7 @@ import css from './franchise-trophy-case.module.css';
 // Deepest playoff run for a franchise without a title, with every season it happened.
 const FINISHES = ['Finalist', 'Semifinalist', 'Quarterfinalist'];
 function bestFinish(seasons: FranchiseSeason[]) {
-    const runs = seasons.flatMap((s) => s.playoffStatus === 'cancelled' || s.playoffRound === null ? [] : [{ year: s.year, depth: (s.finalRound ?? s.playoffRound) - s.playoffRound, round: s.playoffRound }]);
+    const runs = seasons.flatMap((s) => s.playoffStatus !== 'complete' || s.playoffRound === null ? [] : [{ year: s.year, depth: (s.finalRound ?? s.playoffRound) - s.playoffRound, round: s.playoffRound }]);
     if (!runs.length) return null;
     const depth = Math.min(...runs.map((r) => r.depth));
     const best = runs.filter((r) => r.depth === depth).sort((a, b) => a.year - b.year);

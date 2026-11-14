@@ -3,9 +3,13 @@
 import { fantraxApiUrl, readLeagueInfo } from './api';
 import { CORRECTION_WINDOW_MS } from './cache-policy';
 import { discoverScoringSeason, globalFetch, loadRosterStats, loadScoringLeaders, type Fetcher } from './leaders';
-import { type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
+import { loadPlayerTable } from './player-table';
+import { loadStandingsTable } from './standings-table';
+import { type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SeedPairing, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
 
 export type { Fetcher } from './leaders';
+export type { TablePlayer } from './player-table';
+export type { TableStanding } from './standings-table';
 export type { SourceCore, SourceWeek } from './live-season-source';
 
 interface LeagueInfo {
@@ -15,13 +19,18 @@ interface LeagueInfo {
     /** Fantrax's scoring periods are the weeks */
     scoringPeriods: SourceWeek[];
     rosterPeriods: SourceWeek[];
-    matchups: { period: number; matchupList: ScheduledMatchup[] }[];
-    playoffs: FantraxPlayoffs;
+    matchups: { period: number; matchupList: RawMatchup[] }[];
+    playoffs: Omit<FantraxPlayoffs, 'seeding'>;
 }
 interface RosterResponse {
     period: number;
     rosters: Record<string, { rosterItems: { id: string; position: string; status: string }[] }>;
 }
+/** a player's slot on a roster for the day */
+export type RosterSlot = 'ACTIVE' | 'RESERVE' | 'INJURED_RESERVE' | 'MINORS';
+const ROSTER_SLOTS: readonly string[] = ['ACTIVE', 'RESERVE', 'INJURED_RESERVE', 'MINORS'] satisfies RosterSlot[];
+/** each Fantrax team's players on one daily roster period, with the slot each was in */
+export type DayRosters = Record<string, { id: string; status: RosterSlot }[]>;
 interface Standing {
     teamId: string;
     rank: number;
@@ -67,8 +76,22 @@ export function playerName(name: string): string {
     return first ? `${first} ${last}` : last;
 }
 
-// Future playoff slots contain { TBD: true } on both sides, not real teams or byes.
-const publishedMatchups = (matchups: ScheduledMatchup[]) => matchups.filter(matchup => matchup.away.id || matchup.home.id);
+// Future playoff slots contain { TBD: true } on both sides, and an unseeded first round { seed: N } or { bye: true }:
+// none of them are real teams or byes.
+const publishedMatchups = (matchups: RawMatchup[]): ScheduledMatchup[] => matchups.filter(matchup => matchup.away.id || matchup.home.id);
+
+type RawSide = ScheduledMatchup['away'] & { seed?: number; bye?: boolean };
+type RawMatchup = { away: RawSide; home: RawSide };
+
+/** the first playoff round's pairings by seed, while every side of it is still a seed or a bye */
+function seedingOf(info: LeagueInfo): SeedPairing[] | undefined {
+    const first = info.playoffs?.firstPlayoffPeriod;
+    const round = info.matchups?.find(item => item.period === first)?.matchupList ?? [];
+    const seed = (side: RawSide) => side.bye === true ? null : Number.isInteger(side.seed) ? side.seed! : undefined;
+    const pairings = round.map(matchup => ({ away: seed(matchup.away), home: seed(matchup.home) }));
+    return pairings.length && pairings.every(pairing => pairing.away !== undefined && pairing.home !== undefined)
+        ? pairings as SeedPairing[] : undefined;
+}
 
 export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     async function request<T>(endpoint: string, parameters: Record<string, string> = {}): Promise<T> {
@@ -89,6 +112,31 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         }
         return { info: readLeagueInfo(info), rosters, standings, fetchedAt };
     }
+
+    /** league info alone: the season year, its weeks and its daily roster periods, each in order */
+    async function leagueInfo(leagueId: string): Promise<{ seasonYear: number; weeks: SourceWeek[]; rosterPeriods: SourceWeek[] }> {
+        const info = await request<LeagueInfo>('getLeagueInfo', { leagueId, excludePlayerInfo: 'true' });
+        if (!Number.isInteger(info?.seasonYear) || !info.scoringPeriods?.length || !Array.isArray(info.rosterPeriods)) throw new Error('Fantrax returned incomplete league info');
+        const inOrder = (periods: SourceWeek[]) => periods.map(normalizePeriod).sort((a, b) => a.number - b.number);
+        return { seasonYear: readLeagueInfo(info).seasonYear, weeks: inOrder(info.scoringPeriods), rosterPeriods: inOrder(info.rosterPeriods) };
+    }
+
+    /** every team's roster on a past (or the current) daily roster period, each player with their slot that day */
+    async function dayRosters(leagueId: string, period: number): Promise<DayRosters> {
+        const response = await request<RosterResponse>('getTeamRosters', { leagueId, period: String(period) });
+        // Fantrax answers a period outside the season with the nearest one, so the period must be the one asked for.
+        const teams = response?.period === period && response.rosters && typeof response.rosters === 'object' ? Object.entries(response.rosters) : [];
+        if (!teams.length || !teams.every(([, roster]) => Array.isArray(roster?.rosterItems) && roster.rosterItems.every(item =>
+            typeof item?.id === 'string' && !!item.id && ROSTER_SLOTS.includes(item.status)))) {
+            throw new Error(`Fantrax returned invalid rosters for roster period ${period}`);
+        }
+        return Object.fromEntries(teams.map(([id, roster]) => [id, roster.rosterItems.map(item => ({ id: item.id, status: item.status as RosterSlot }))]));
+    }
+
+    /** the website standings table: rank, W/L/T and points for and against, season to date */
+    const standingsTable = (leagueId: string) => loadStandingsTable(leagueId, fetcher);
+    /** every player who scored (either sign) or is rostered, season to date; the season sync's read */
+    const playerTable = (leagueId: string, seasonYear: number) => loadPlayerTable(leagueId, seasonYear, fetcher);
 
     async function playerDirectory(): Promise<PlayerDirectory> {
         const players = await request<PlayerDirectory>('getPlayerIds', { sport: 'NHL' });
@@ -141,13 +189,14 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         return { source, leaders, rosterStats: stats, scores: Object.fromEntries(scores.map(score => [score.period, score])) };
     }
 
-    return { league, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
+    return { league, leagueInfo, dayRosters, standingsTable, playerTable, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
 }
 
 /** The port's core snapshot from raw responses, fresh or saved: Fantrax's periods become weeks. */
 export function readCore(league: FantraxLeague, players: PlayerDirectory): SourceCore {
     const { info, rosters, standings, fetchedAt } = league;
     const lineup = info.rosterPeriods?.find(period => period.number === rosters.period);
+    const seeding = seedingOf(info);
     return {
         fetchedAt, seasonYear: info.seasonYear,
         teams: Object.entries(info.teamInfo).map(([id, team]) => ({ id, name: team.name })),
@@ -157,7 +206,7 @@ export function readCore(league: FantraxLeague, players: PlayerDirectory): Sourc
         standings: standings.map(standing => ({ teamId: standing.teamId, rank: standing.rank ?? null, record: standing.points ?? null, points: standing.totalPointsFor ?? null })),
         rosters: Object.fromEntries(Object.entries(rosters.rosters).map(([id, roster]) => [id, roster.rosterItems ?? []])),
         players,
-        playoffs: info.playoffs ?? {},
+        playoffs: { ...info.playoffs, ...(seeding ? { seeding } : {}) },
     };
 }
 
