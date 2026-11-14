@@ -47,15 +47,23 @@ export async function saveRoster(year: number, playerIds: string[], options: Edi
     if (season.playoff_status !== 'complete') return { ok: false, reason: 'no-playoffs' };
     const ids = Array.from(new Set(playerIds.map(String)));
     if (!await allPlayedIn(year, ids)) return { ok: false, reason: 'unknown-player' };
-    // The delete and insert touch disjoint rows, so their order inside the statement doesn't matter.
+    // The roster is now the league owner's: the season sync's record of an automatic roster is cleared, and the
+    // champion it was saved for is recorded, so the season sync never replaces it (lib/season-sync/championship-roster.ts).
+    const saved = sql`saved as (update league.season_sync_status
+        set auto_roster_franchise_id = null,
+            saved_roster_franchise_id = (select t.franchise_id from league.season_results r
+                                         join league.team_seasons t on t.id = r.champion_team_season_id where r.season_year = ${year})
+        where season_year = ${year})`;
+    // The delete, insert and status update touch disjoint rows, so their order inside the statement doesn't matter.
     await writeAndRefresh('roster', year, ids.length
         ? sql`with kept (player_id) as (values ${valueRows(ids.map(id => sql`(${id}::text)`))}),
                    removed as (delete from league.championship_rosters
-                               where season_year = ${year} and player_id not in (select player_id from kept))
+                               where season_year = ${year} and player_id not in (select player_id from kept)),
+                   ${saved}
               insert into league.championship_rosters (season_year, player_id)
               select ${year}::int, player_id from kept
               on conflict do nothing`
-        : sql`delete from league.championship_rosters where season_year = ${year}`, options);
+        : sql`with ${saved} delete from league.championship_rosters where season_year = ${year}`, options);
     return { ok: true, saved: ids.length };
 }
 

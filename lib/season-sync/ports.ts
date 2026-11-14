@@ -11,11 +11,30 @@ export interface FantraxWeek {
     endDate: string;
 }
 
+/** one Fantrax daily roster period (a day's lineup, from one day's first game to the next's), its dates as ISO strings */
+export type FantraxRosterPeriod = FantraxWeek;
+
 export interface FantraxLeagueInfo {
     /** the season year (Fantrax's start year is converted by the read) */
     seasonYear: number;
     /** the season's weeks, in order */
     weeks: FantraxWeek[];
+    /** the season's daily roster periods, in order */
+    rosterPeriods: FantraxRosterPeriod[];
+}
+
+/** a player's slot on a fantasy roster for the day */
+export type FantraxRosterSlot = 'ACTIVE' | 'RESERVE' | 'INJURED_RESERVE' | 'MINORS';
+
+/** every Fantrax team's players on one daily roster period, keyed by Fantrax team ID, with each player's slot */
+export type FantraxDayRosters = Record<string, { id: string; status: FantraxRosterSlot }[]>;
+
+/** a player in Fantrax's player directory (every NHL player), by bare player ID */
+export interface FantraxDirectoryPlayer {
+    /** "First Last" */
+    name: string;
+    positions: string[];
+    nhlTeam: string | null;
 }
 
 /** one row of Fantrax's website standings table, season to date */
@@ -50,6 +69,10 @@ export interface SeasonSyncFantrax {
     standings(leagueId: string): Promise<FantraxStanding[]>;
     /** every player who scored (a non-zero total, negative included) or is rostered, for the season year given */
     players(leagueId: string, seasonYear: number): Promise<FantraxPlayer[]>;
+    /** every team's roster on one past (or the current) daily roster period */
+    dayRosters(leagueId: string, period: number): Promise<FantraxDayRosters>;
+    /** every NHL player Fantrax knows, by bare player ID */
+    playerDirectory(): Promise<Record<string, FantraxDirectoryPlayer>>;
 }
 
 export interface SeasonSyncPorts {

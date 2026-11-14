@@ -12,7 +12,7 @@ import { inRefreshOrder } from '@/lib/data/materialized-views';
 import { correctionWindowClosed } from '@/lib/fantrax/live-season';
 import { readOpenedSeason } from './opened-season';
 import type { SeasonSyncPorts } from './ports';
-import { readSeason, readWeeks } from './read-season';
+import { readLeagueInfo, readSeason } from './read-season';
 import { failedRunQuery, freezeQuery, type SyncCounts } from './status';
 import { syncWriteQuery } from './write';
 
@@ -45,19 +45,19 @@ export function createRun(ports: SeasonSyncPorts) {
 
         let read;
         try {
-            const weeks = await readWeeks(ports, season);
-            if (correctionWindowClosed(weeks.at(-1)!.endDate, now)) {
+            const info = await readLeagueInfo(ports, season);
+            if (correctionWindowClosed(info.weeks.at(-1)!.endDate, now)) {
                 await rows(freezeQuery(year, now));
                 return { outcome: 'frozen', seasonYear: year, frozenAt: new Date(now).toISOString() };
             }
-            read = await readSeason(ports, season, now);
+            read = await readSeason(ports, season, info, now);
         } catch (error) {
             return failed(error);
         }
 
         let changed: SyncCounts;
         try {
-            [changed] = await rows<SyncCounts>(syncWriteQuery(year, now, read.writes, read.warnings));
+            [changed] = await rows<SyncCounts>(syncWriteQuery(year, now, read));
         } catch (error) {
             return failed(error);
         }

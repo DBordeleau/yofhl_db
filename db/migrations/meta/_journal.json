@@ -176,6 +176,13 @@
       "when": 1794688783947,
       "tag": "0024_season_results_need_the_final",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794690618836,
+      "tag": "0025_season_sync_championship_roster",
+      "breakpoints": true
     }
   ]
 }

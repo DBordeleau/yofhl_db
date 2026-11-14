@@ -1,6 +1,6 @@
 // The season sync's Fantrax reads, in memory. A test changes what Fantrax says by changing `state`, and makes a
 // read fail by adding its name to `down`. Reads of any other league fail, as Fantrax's would.
-import type { FantraxLeagueInfo, FantraxPlayer, FantraxStanding, SeasonSyncFantrax } from './ports';
+import type { FantraxDayRosters, FantraxDirectoryPlayer, FantraxLeagueInfo, FantraxPlayer, FantraxStanding, SeasonSyncFantrax } from './ports';
 
 export type MemoryFantraxRead = keyof SeasonSyncFantrax;
 
@@ -10,6 +10,10 @@ export interface MemoryFantraxState {
     standings: FantraxStanding[];
     /** Fantrax's whole player stats table: every NHL player, scored or not */
     players: FantraxPlayer[];
+    /** each daily roster period's rosters, by period number */
+    rosters: Record<number, FantraxDayRosters>;
+    /** Fantrax's player directory, by player ID */
+    directory: Record<string, FantraxDirectoryPlayer>;
     /** reads that fail */
     down: Set<MemoryFantraxRead>;
 }
@@ -27,5 +31,9 @@ export function createMemoryFantrax(state: MemoryFantraxState): SeasonSyncFantra
         players: (leagueId, seasonYear) => seasonYear === state.leagueInfo.seasonYear
             ? read('players', leagueId, () => state.players.filter(player => player.points !== 0 || player.teamId !== null))
             : Promise.reject(new Error('Fantrax returned the wrong scoring season')),
+        dayRosters: (leagueId, period) => state.rosters[period]
+            ? read('dayRosters', leagueId, () => state.rosters[period])
+            : Promise.reject(new Error(`Fantrax returned invalid rosters for roster period ${period}`)),
+        playerDirectory: () => read('playerDirectory', state.leagueId, () => state.directory),
     };
 }

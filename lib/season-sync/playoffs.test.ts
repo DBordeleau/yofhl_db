@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
-import { endOf, SEASON, seasonSyncLeague } from './testing/season-sync-league';
+import { daysOf, endOf, SEASON, seasonSyncLeague } from './testing/season-sync-league';
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
 const QUARTERFINALS = 22;
 const SEMIFINALS = 23;
 const FINAL = 24;
+/** every roster period of the playoffs */
+const PLAYOFF_DAYS = [...daysOf(QUARTERFINALS), ...daysOf(SEMIFINALS), ...daysOf(FINAL)];
 
 /** an eight-team league: fxN is franchise N, ranked N, so seeds 1–6 make the playoffs and 7 and 8 miss them */
 const playoffLeague = (t: TestContext) => seasonSyncLeague(t, { teams: 8 });
@@ -48,6 +50,8 @@ test('once the Quarterfinals week is final, its two games are stored in bracket 
 test('after the Semifinals and the Final, each round is stored, and the run after the Final gives the season its champion and publishes it', async t => {
     const league = await playoffLeague(t);
     const { getBannerSeasons, getSeasonArchive, getTeamAwardWinners } = await import('@/lib/data/league');
+    league.setPlayers([['p3', 10, 1, 3]]);
+    league.setRoster(3, PLAYOFF_DAYS, [['p3', 'ACTIVE']]);
     playQuarterfinals(league);
     await league.run(endOf(QUARTERFINALS) + 7 * HOUR);
     // the bye teams meet the winners; 4 v 6, both eliminated, play outside the bracket
@@ -63,7 +67,7 @@ test('after the Semifinals and the Final, each round is stored, and the run afte
     assert.equal((await league.read(() => getSeasonArchive())).latest?.year, 2026);
 
     const { result } = await league.run(endOf(FINAL) + 7 * HOUR);
-    assert.deepEqual(result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 1 }, warnings: [] });
+    assert.deepEqual(result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 1, championshipRoster: 1 }, warnings: [] });
     assert.deepEqual(await bracket(league), [
         [1, 0, 5, 4, 410.5, 398.25, 5],
         [1, 1, 6, 3, 350, 402.1, 3],
@@ -123,6 +127,8 @@ test('a level Final has no champion and records a warning, and setting its winne
     const league = await playoffLeague(t);
     const { getSeasonArchive, getSeasonDetail } = await import('@/lib/data/league');
     const { getSeasonSyncStatus } = await import('@/lib/admin/data');
+    league.setPlayers([['p1', 10, 1, 1]]);
+    league.setRoster(1, PLAYOFF_DAYS, [['p1', 'ACTIVE']]);
     await playToTheFinal(league);
     league.setScores(FINAL, [[3, 1, 800, 800]]);
     await league.run(endOf(FINAL) + 7 * HOUR);
@@ -137,8 +143,8 @@ test('a level Final has no champion and records a warning, and setting its winne
     assert.equal((await league.read(() => getSeasonArchive())).latest?.team, 'Club 1');
 
     const after = await league.run(endOf(FINAL) + 31 * HOUR);
-    assert.deepEqual(after.result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0 }, warnings: [] },
-        'the next run keeps the winner set in bracket review');
+    assert.deepEqual(after.result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 1 }, warnings: [] },
+        'the next run keeps the winner set in bracket review, and writes the championship roster');
     assert.equal((await league.read(() => getSeasonArchive())).latest?.team, 'Club 1');
 });
 

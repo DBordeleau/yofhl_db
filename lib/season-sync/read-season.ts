@@ -1,42 +1,45 @@
 // Everything one run reads from Fantrax, checked against the opened season before anything is written. Each part
-// of the season (team seasons, player seasons, the playoff bracket) turns its validated reads into SyncWrites; a part that cannot be checked
+// of the season (team seasons, player seasons, the playoff bracket and the championship roster, which follows the
+// bracket's champion) turns its validated reads into SyncWrites; a part that cannot be checked
 // throws, which fails the whole run before any write. A part that is fine but has something the league owner
 // should know adds a warning instead.
+import { readChampionshipRoster } from './championship-roster';
 import type { OpenedSeason } from './opened-season';
 import { readBracket } from './playoffs';
-import type { FantraxWeek, SeasonSyncPorts } from './ports';
+import type { FantraxLeagueInfo, SeasonSyncPorts } from './ports';
 import { playerSeasonRows, playerSeasonsWrites } from './player-seasons';
 import { teamSeasonStandings, teamSeasonsWrite } from './team-seasons';
-import type { SyncWrite } from './write';
+import type { SyncRunWrite } from './write';
 
-export interface SeasonRead {
-    writes: SyncWrite[];
-    warnings: string[];
-}
+export type SeasonRead = SyncRunWrite;
 
-/** Fantrax's weeks for the opened season, checked to be the same season */
-export async function readWeeks(ports: SeasonSyncPorts, season: OpenedSeason): Promise<FantraxWeek[]> {
+/** Fantrax's league info for the opened season (its weeks and daily roster periods), checked to be the same season */
+export async function readLeagueInfo(ports: SeasonSyncPorts, season: OpenedSeason): Promise<FantraxLeagueInfo> {
     const info = await ports.fantrax.leagueInfo(season.leagueId);
     if (info.seasonYear !== season.seasonYear) {
         throw new Error(`Fantrax league ${season.leagueId} is the ${info.seasonYear} season, not ${season.seasonYear}.`);
     }
     if (!info.weeks.length) throw new Error(`Fantrax league ${season.leagueId} has no weeks.`);
-    return info.weeks;
+    return info;
 }
 
 /** every other read, checked, as the writes that bring the archive up to date */
-export async function readSeason(ports: SeasonSyncPorts, season: OpenedSeason, now: number): Promise<SeasonRead> {
+export async function readSeason(ports: SeasonSyncPorts, season: OpenedSeason, info: FantraxLeagueInfo, now: number): Promise<SeasonRead> {
     const [standings, players, bracket] = await Promise.all([
         ports.fantrax.standings(season.leagueId),
         ports.fantrax.players(season.leagueId, season.seasonYear),
         readBracket(ports, season, now),
     ]);
+    const playerSeasons = playerSeasonRows(season, players);
+    const roster = await readChampionshipRoster(ports, season, info, bracket.champion, new Set(playerSeasons.map(row => row.id)));
     return {
         writes: [
             teamSeasonsWrite(season.seasonYear, teamSeasonStandings(season, standings)),
-            ...playerSeasonsWrites(season.seasonYear, playerSeasonRows(season, players)),
+            ...playerSeasonsWrites(season.seasonYear, playerSeasons, roster.players),
             ...bracket.writes,
+            ...roster.writes,
         ],
-        warnings: [...bracket.warnings],
+        warnings: [...bracket.warnings, ...roster.warnings],
+        autoRosterFranchiseId: roster.autoRosterFranchiseId,
     };
 }

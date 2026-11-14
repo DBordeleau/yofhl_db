@@ -19,10 +19,18 @@ const COUNT_COLUMNS: Record<keyof SyncCounts, string> = {
     playerSeasons: 'changed_player_seasons',
     teamSeasons: 'changed_team_seasons',
     playoffGames: 'changed_playoff_games',
+    championshipRoster: 'changed_championship_roster',
 };
 
+export interface SyncRunWrite {
+    writes: SyncWrite[];
+    warnings: string[];
+    /** the champion an automatic championship roster is written for in this run, recorded on the status row */
+    autoRosterFranchiseId?: number;
+}
+
 /** the writes and the run's status row as one statement, returning the counts it recorded */
-export function syncWriteQuery(seasonYear: number, now: number, writes: SyncWrite[], warnings: string[]): SQL {
+export function syncWriteQuery(seasonYear: number, now: number, { writes, warnings, autoRosterFranchiseId }: SyncRunWrite): SQL {
     const at = new Date(now).toISOString();
     const part = (index: number) => sql.identifier(`part_${index}`);
     const parts = writes.map((write, index) => sql`${part(index)} as (${write.statement})`);
@@ -31,13 +39,16 @@ export function syncWriteQuery(seasonYear: number, now: number, writes: SyncWrit
         return sums.length ? sql`(${sql.join(sums, sql` + `)})::int` : sql`0`;
     });
     const columns = sql.join(Object.values(COUNT_COLUMNS).map(column => sql.identifier(column)), sql`, `);
+    // a run that writes no automatic roster leaves the record as it was
+    const autoRoster = autoRosterFranchiseId === undefined ? sql`league.season_sync_status.auto_roster_franchise_id` : sql`excluded.auto_roster_franchise_id`;
     return sql`
         with ${sql.join([...parts, sql`status as (
-            insert into league.season_sync_status (season_year, last_run_at, last_success_at, last_error, ${columns}, warnings)
-            values (${seasonYear}, ${at}::timestamptz, ${at}::timestamptz, null, ${sql.join(counts, sql`, `)}, ${JSON.stringify(warnings)}::jsonb)
+            insert into league.season_sync_status (season_year, last_run_at, last_success_at, last_error, ${columns}, warnings, auto_roster_franchise_id)
+            values (${seasonYear}, ${at}::timestamptz, ${at}::timestamptz, null, ${sql.join(counts, sql`, `)}, ${JSON.stringify(warnings)}::jsonb, ${autoRosterFranchiseId ?? null}::int)
             on conflict (season_year) do update set last_run_at = excluded.last_run_at, last_success_at = excluded.last_success_at,
                 last_error = null, ${sql.join(Object.values(COUNT_COLUMNS).map(column => sql`${sql.identifier(column)} = excluded.${sql.identifier(column)}`), sql`, `)},
-                warnings = excluded.warnings
-            returning changed_player_seasons as "playerSeasons", changed_team_seasons as "teamSeasons", changed_playoff_games as "playoffGames")`], sql`, `)}
+                warnings = excluded.warnings, auto_roster_franchise_id = ${autoRoster}
+            returning changed_player_seasons as "playerSeasons", changed_team_seasons as "teamSeasons", changed_playoff_games as "playoffGames",
+                changed_championship_roster as "championshipRoster")`], sql`, `)}
         select * from status`;
 }
