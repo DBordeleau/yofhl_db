@@ -82,6 +82,21 @@ export const seasons = league.table('seasons', {
     playoffStatus: text('playoff_status', { enum: ['complete', 'cancelled'] }).notNull(),
 });
 
+// What the season sync (lib/season-sync) last did to a season: one row per season year, written by every run that
+// finds the season opened. The counts and warnings are the last successful run's; the last error is cleared by
+// the next success. Once frozen_at is set the season sync leaves the season alone.
+export const seasonSyncStatus = league.table('season_sync_status', {
+    seasonYear: integer('season_year').primaryKey().references(() => seasons.year),
+    lastRunAt: timestamp('last_run_at', { withTimezone: true, mode: 'string' }).notNull(),
+    lastSuccessAt: timestamp('last_success_at', { withTimezone: true, mode: 'string' }),
+    lastError: text('last_error'),
+    changedPlayerSeasons: integer('changed_player_seasons').notNull().default(0),
+    changedTeamSeasons: integer('changed_team_seasons').notNull().default(0),
+    changedPlayoffGames: integer('changed_playoff_games').notNull().default(0),
+    warnings: jsonb('warnings').$type<string[]>().notNull().default([]),
+    frozenAt: timestamp('frozen_at', { withTimezone: true, mode: 'string' }),
+});
+
 export const owners = league.table('owners', {
     id: serial('id').primaryKey(),
     name: text('name').notNull().unique(),

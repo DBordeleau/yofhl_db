@@ -14,11 +14,15 @@ function fantrax(edit: Record<string, (body: RecordedBody) => unknown> = {}) {
         const endpoint = url.pathname.split('/').pop()!;
         let body;
         if (endpoint === 'req') {
-            // The player stats table echoes the filter it was asked for.
-            const request = JSON.parse(String(init?.body)).msgs[0].data;
-            body = recorded('getPlayerStats');
-            body.responses[0].data.displayedStatusOrTeam = request.statusOrTeamFilter;
-            body = (edit.getPlayerStats ?? (value => value))(body);
+            const { method, data: request } = JSON.parse(String(init?.body)).msgs[0];
+            if (method === 'getStandings') {
+                body = (edit.getStandingsTable ?? (value => value))(recorded('getStandingsTable'));
+            } else {
+                // The player stats table echoes the filter it was asked for.
+                body = recorded('getPlayerStats');
+                body.responses[0].data.displayedStatusOrTeam = request.statusOrTeamFilter;
+                body = (edit.getPlayerStats ?? (value => value))(body);
+            }
         } else {
             const name = endpoint === 'getMatchupScores' ? `getMatchupScores-${url.searchParams.get('period')}` : endpoint;
             body = (edit[endpoint] ?? (value => value))(recorded(name));
@@ -117,4 +121,31 @@ test('a capture is rejected unless its scores cover every scheduled matchup', as
     assert.deepEqual(data.leaders.players.map(player => player.name), ['Connor McDavid', 'Igor Shesterkin']);
     assert.ok(data.leaders.players.every(player => !('archiveId' in player)), 'archive membership is worked out on read, never saved');
     assert.equal(data.rosterStats.players['04ab9'].points, 30.5);
+});
+
+// Fantrax's website standings table, the one the Team Stats CSV comes from (recorded from the live league on
+// 2026-11-14, after week 4).
+type RecordedTable = { responses: { data: { displayedSelections: Record<string, unknown>; tableList: { caption: string; rows: { cells: { content: string }[]; fixedCells: { content?: string; teamId?: string }[] }[] }[] } }[] };
+const standingsTable = (body: RecordedBody) => (body as unknown as RecordedTable).responses[0].data;
+
+test('the standings table gives each team its rank, record and points for and against', async () => {
+    const standings = await fantrax().standingsTable('rf5o9cu2mutybszr');
+    assert.equal(standings.length, 10);
+    assert.deepEqual(standings[0], { teamId: '7jmn4yymmutybt24', rank: 1, wins: 4, losses: 0, ties: 0, pointsFor: 1262.15, pointsAgainst: 929.9 });
+    assert.deepEqual(standings[9], { teamId: '1cbgg930mutybt24', rank: 10, wins: 0, losses: 4, ties: 0, pointsFor: 664.75, pointsAgainst: 909.75 });
+});
+
+test('a standings table that is not the season-to-date table of every team is rejected', async () => {
+    const invalid: ((body: RecordedBody) => unknown)[] = [
+        () => ({ responses: [{ data: {} }] }),
+        body => { standingsTable(body).displayedSelections.timeframeType = 'GO_BACK_DAYS'; return body; },
+        body => { standingsTable(body).displayedSelections.view = 'SCHEDULE'; return body; },
+        body => { standingsTable(body).tableList = standingsTable(body).tableList.slice(1); return body; },
+        body => { standingsTable(body).tableList[0].rows.pop(); return body; },
+        body => { standingsTable(body).tableList[0].rows[1].fixedCells[0].content = '1'; return body; },
+        body => { standingsTable(body).tableList[0].rows[2].fixedCells[1].teamId = undefined; return body; },
+        body => { standingsTable(body).tableList[0].rows[0].cells[0].content = 'four'; return body; },
+        body => { standingsTable(body).tableList[0].rows[0].cells[7].content = ''; return body; },
+    ];
+    for (const edit of invalid) await assert.rejects(fantrax({ getStandingsTable: edit }).standingsTable('rf5o9cu2mutybszr'), /unexpected standings table/);
 });

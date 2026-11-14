@@ -3,9 +3,11 @@
 import { fantraxApiUrl, readLeagueInfo } from './api';
 import { CORRECTION_WINDOW_MS } from './cache-policy';
 import { discoverScoringSeason, globalFetch, loadRosterStats, loadScoringLeaders, type Fetcher } from './leaders';
+import { loadStandingsTable } from './standings-table';
 import { type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SeedPairing, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
 
 export type { Fetcher } from './leaders';
+export type { TableStanding } from './standings-table';
 export type { SourceCore, SourceWeek } from './live-season-source';
 
 interface LeagueInfo {
@@ -104,6 +106,16 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         return { info: readLeagueInfo(info), rosters, standings, fetchedAt };
     }
 
+    /** league info alone: the season year and its weeks, in order */
+    async function leagueInfo(leagueId: string): Promise<{ seasonYear: number; weeks: SourceWeek[] }> {
+        const info = await request<LeagueInfo>('getLeagueInfo', { leagueId, excludePlayerInfo: 'true' });
+        if (!Number.isInteger(info?.seasonYear) || !info.scoringPeriods?.length) throw new Error('Fantrax returned incomplete league info');
+        return { seasonYear: readLeagueInfo(info).seasonYear, weeks: info.scoringPeriods.map(normalizePeriod).sort((a, b) => a.number - b.number) };
+    }
+
+    /** the website standings table: rank, W/L/T and points for and against, season to date */
+    const standingsTable = (leagueId: string) => loadStandingsTable(leagueId, fetcher);
+
     async function playerDirectory(): Promise<PlayerDirectory> {
         const players = await request<PlayerDirectory>('getPlayerIds', { sport: 'NHL' });
         if (!players || !Object.keys(players).length || !Object.values(players).every(player =>
@@ -155,7 +167,7 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         return { source, leaders, rosterStats: stats, scores: Object.fromEntries(scores.map(score => [score.period, score])) };
     }
 
-    return { league, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
+    return { league, leagueInfo, standingsTable, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
 }
 
 /** The port's core snapshot from raw responses, fresh or saved: Fantrax's periods become weeks. */

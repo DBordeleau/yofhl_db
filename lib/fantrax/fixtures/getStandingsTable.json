@@ -1,0 +1,1201 @@
+{
+  "data": {
+    "sDate": 1794687249305
+  },
+  "roles": [
+    "03"
+  ],
+  "responses": [
+    {
+      "data": {
+        "goBackDays": [
+          1,
+          7,
+          14,
+          30,
+          60
+        ],
+        "fantasyTeamInfo": {
+          "p4zire2bmutybt24": {
+            "name": "Jagrtown Ice Fellas",
+            "logoUrl512": "https://fantraximg.com/logos/4xp/tmLogo_4xpk5ghhjmv3ug93_512.jpg",
+            "shortName": "JAGR"
+          },
+          "ewlj8cwqmutybt24": {
+            "name": "Skellige Sirens",
+            "logoUrl512": "https://fantraximg.com/logos/om0/tmLogo_om0v9j9ika45b61h_512.jpg",
+            "shortName": "SKGS"
+          },
+          "6pfjiq07mutybt24": {
+            "name": "Paddyville Lucifers",
+            "logoUrl512": "https://fantraximg.com/logos/kll/tmLogo_kll9x2q8ku861h0p_512.jpg",
+            "shortName": "PVLS"
+          },
+          "4num7i90mutybt24": {
+            "name": "New Purrsey Devils",
+            "logoUrl512": "https://fantraximg.com/logos/t5e/tmLogo_t5eri1lvjmux73uu_512.jpg",
+            "shortName": "NPD"
+          },
+          "1cbgg930mutybt24": {
+            "name": "West Texas Torteehaws",
+            "logoUrl512": "https://fantraximg.com/logos/qbs/tmLogo_qbs9cqs5kmkifqw7_512.jpg",
+            "shortName": "TEEHAW"
+          },
+          "ru2wvs6mmutybt24": {
+            "name": "The Lalibirdies",
+            "logoUrl512": "https://fantraximg.com/logos/m0g/tmLogo_m0g4lcvllnsxuz39_512.jpg",
+            "shortName": "Lali"
+          },
+          "7jmn4yymmutybt24": {
+            "name": "Varrock Dark Wizards",
+            "logoUrl512": "https://fantraximg.com/logos/jlo/tmLogo_jlofomjxjzrl0wbn_512.jpg",
+            "shortName": "VWIZ"
+          },
+          "a9lp9hbcmutybt24": {
+            "name": "Hooterville Honkers",
+            "logoUrl512": "https://fantraximg.com/logos/crg/tmLogo_crgwuhlgmgczecfs_512.webp",
+            "shortName": "HH"
+          },
+          "e3alkww9mutybt24": {
+            "name": "Carolina Reapers",
+            "logoUrl512": "https://fantraximg.com/logos/yuj/tmLogo_yujf9mppkmjyqn2o_512.jpg",
+            "shortName": "Reapers"
+          },
+          "kr34cpssmutybt24": {
+            "name": "The Hamhung Hall Monitors",
+            "logoUrl512": "https://fantraximg.com/logos/sr8/tmLogo_sr8tadjwku35jx6a_512.jpg",
+            "shortName": "HUNG"
+          }
+        },
+        "displayedSelections": {
+          "projectionsAvailable": true,
+          "period": 1,
+          "timeStartType": "PERIOD_ONLY",
+          "view": "ALL",
+          "optimal": false,
+          "showTabs": true,
+          "hideGoBackDays": true,
+          "timeframeType": "YEAR_TO_DATE",
+          "proj": false,
+          "displayedStartDate": 1790654400000,
+          "showOptimal": true,
+          "displayedEndDate": 1794632400000
+        },
+        "miscData": {
+          "displayedMinDate": 1790654400000,
+          "showLogos": true,
+          "heading": "2026 Ye Olde Fantasy Hockey League",
+          "displayedMaxDate": 1807415999000
+        },
+        "tableList": [
+          {
+            "fixedRows": true,
+            "tableType": "H2hPointsBased1",
+            "fixedHeader": {
+              "cells": [
+                {
+                  "sortDirection": 1,
+                  "name": "Rank",
+                  "shortName": "Rk",
+                  "key": "rank"
+                },
+                {
+                  "align": "LEFT",
+                  "sortDirection": 1,
+                  "name": "Team",
+                  "shortName": "Team",
+                  "key": "team"
+                }
+              ]
+            },
+            "caption": "Standings",
+            "subCaption": "YOFHL",
+            "header": {
+              "cells": [
+                {
+                  "sortDirection": 1,
+                  "name": "Win",
+                  "shortName": "W",
+                  "key": "win"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Loss",
+                  "shortName": "L",
+                  "key": "loss"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Tie",
+                  "shortName": "T",
+                  "key": "tie"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Points",
+                  "shortName": "Points",
+                  "key": "points"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Win Percentage",
+                  "shortName": "Win%",
+                  "key": "winpc"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Games Back",
+                  "shortName": "GB",
+                  "key": "gamesback"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Waiver Wire Claim Order",
+                  "shortName": "WW",
+                  "key": "wwOrder"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Total season fantasy points for",
+                  "shortName": "FPtsF",
+                  "key": "pointsFor"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Total season fantasy points against",
+                  "shortName": "FPtsA",
+                  "key": "pointsAgainst"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Streak",
+                  "shortName": "Streak",
+                  "key": "streak"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "Chance of making the playoffs, from simulating the rest of the regular season. Each team's expected weekly score blends its finished weekly scores with its Fantrax projected points for the current period, weighted as 3 games",
+                  "shortName": "% Playoffs",
+                  "key": "playoffOdds"
+                }
+              ]
+            },
+            "rows": [
+              {
+                "cells": [
+                  {
+                    "content": "4",
+                    "toolTip": "4"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "8",
+                    "toolTip": "8"
+                  },
+                  {
+                    "content": "1.000"
+                  },
+                  {
+                    "content": "0"
+                  },
+                  {
+                    "content": "10"
+                  },
+                  {
+                    "content": "1,262.15",
+                    "toolTip": "1,262.15"
+                  },
+                  {
+                    "content": "929.9",
+                    "toolTip": "929.9"
+                  },
+                  {
+                    "content": "4 (W)"
+                  },
+                  {
+                    "content": "100%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "1"
+                  },
+                  {
+                    "content": "Varrock Dark Wizards",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "7jmn4yymmutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "3",
+                    "toolTip": "3"
+                  },
+                  {
+                    "content": "1",
+                    "toolTip": "1"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "6",
+                    "toolTip": "6"
+                  },
+                  {
+                    "content": ".750"
+                  },
+                  {
+                    "content": "1"
+                  },
+                  {
+                    "content": "7"
+                  },
+                  {
+                    "content": "1,031.55",
+                    "toolTip": "1,031.55"
+                  },
+                  {
+                    "content": "985.6",
+                    "toolTip": "985.6"
+                  },
+                  {
+                    "content": "1 (W)"
+                  },
+                  {
+                    "content": "93%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "2"
+                  },
+                  {
+                    "content": "Hooterville Honkers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "a9lp9hbcmutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "3",
+                    "toolTip": "3"
+                  },
+                  {
+                    "content": "1",
+                    "toolTip": "1"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "6",
+                    "toolTip": "6"
+                  },
+                  {
+                    "content": ".750"
+                  },
+                  {
+                    "content": "1"
+                  },
+                  {
+                    "content": "1"
+                  },
+                  {
+                    "content": "973.4",
+                    "toolTip": "973.4"
+                  },
+                  {
+                    "content": "852.8",
+                    "toolTip": "852.8"
+                  },
+                  {
+                    "content": "3 (W)"
+                  },
+                  {
+                    "content": "41%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "3"
+                  },
+                  {
+                    "content": "New Purrsey Devils",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "4num7i90mutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "3",
+                    "toolTip": "3"
+                  },
+                  {
+                    "content": "1",
+                    "toolTip": "1"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "6",
+                    "toolTip": "6"
+                  },
+                  {
+                    "content": ".750"
+                  },
+                  {
+                    "content": "1"
+                  },
+                  {
+                    "content": "6"
+                  },
+                  {
+                    "content": "947.8",
+                    "toolTip": "947.8"
+                  },
+                  {
+                    "content": "999.15",
+                    "toolTip": "999.15"
+                  },
+                  {
+                    "content": "3 (W)"
+                  },
+                  {
+                    "content": "91%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "4"
+                  },
+                  {
+                    "content": "Paddyville Lucifers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "6pfjiq07mutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "2",
+                    "toolTip": "2"
+                  },
+                  {
+                    "content": "2",
+                    "toolTip": "2"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "4",
+                    "toolTip": "4"
+                  },
+                  {
+                    "content": ".500"
+                  },
+                  {
+                    "content": "2"
+                  },
+                  {
+                    "content": "3"
+                  },
+                  {
+                    "content": "1,151.5",
+                    "toolTip": "1,151.5"
+                  },
+                  {
+                    "content": "988.05",
+                    "toolTip": "988.05"
+                  },
+                  {
+                    "content": "2 (W)"
+                  },
+                  {
+                    "content": "100%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "5"
+                  },
+                  {
+                    "content": "Jagrtown Ice Fellas",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "p4zire2bmutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "2",
+                    "toolTip": "2"
+                  },
+                  {
+                    "content": "2",
+                    "toolTip": "2"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "4",
+                    "toolTip": "4"
+                  },
+                  {
+                    "content": ".500"
+                  },
+                  {
+                    "content": "2"
+                  },
+                  {
+                    "content": "5"
+                  },
+                  {
+                    "content": "1,007.1",
+                    "toolTip": "1,007.1"
+                  },
+                  {
+                    "content": "1,047.85",
+                    "toolTip": "1,047.85"
+                  },
+                  {
+                    "content": "2 (L)"
+                  },
+                  {
+                    "content": "67%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "6"
+                  },
+                  {
+                    "content": "The Hamhung Hall Monitors",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "kr34cpssmutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "2",
+                    "toolTip": "2"
+                  },
+                  {
+                    "content": "2",
+                    "toolTip": "2"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "4",
+                    "toolTip": "4"
+                  },
+                  {
+                    "content": ".500"
+                  },
+                  {
+                    "content": "2"
+                  },
+                  {
+                    "content": "2"
+                  },
+                  {
+                    "content": "974.7",
+                    "toolTip": "974.7"
+                  },
+                  {
+                    "content": "971.65",
+                    "toolTip": "971.65"
+                  },
+                  {
+                    "content": "1 (L)"
+                  },
+                  {
+                    "content": "57%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "7"
+                  },
+                  {
+                    "content": "Skellige Sirens",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "ewlj8cwqmutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "1",
+                    "toolTip": "1"
+                  },
+                  {
+                    "content": "3",
+                    "toolTip": "3"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "2",
+                    "toolTip": "2"
+                  },
+                  {
+                    "content": ".250"
+                  },
+                  {
+                    "content": "3"
+                  },
+                  {
+                    "content": "9"
+                  },
+                  {
+                    "content": "905.6",
+                    "toolTip": "905.6"
+                  },
+                  {
+                    "content": "953.8",
+                    "toolTip": "953.8"
+                  },
+                  {
+                    "content": "3 (L)"
+                  },
+                  {
+                    "content": "47%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "8"
+                  },
+                  {
+                    "content": "Carolina Reapers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "e3alkww9mutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "4",
+                    "toolTip": "4"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": ".000"
+                  },
+                  {
+                    "content": "4"
+                  },
+                  {
+                    "content": "4"
+                  },
+                  {
+                    "content": "845.25",
+                    "toolTip": "845.25"
+                  },
+                  {
+                    "content": "1,125.25",
+                    "toolTip": "1,125.25"
+                  },
+                  {
+                    "content": "4 (L)"
+                  },
+                  {
+                    "content": "5%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "9"
+                  },
+                  {
+                    "content": "The Lalibirdies",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "ru2wvs6mmutybt24"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "4",
+                    "toolTip": "4"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": "0",
+                    "toolTip": "0"
+                  },
+                  {
+                    "content": ".000"
+                  },
+                  {
+                    "content": "4"
+                  },
+                  {
+                    "content": "8"
+                  },
+                  {
+                    "content": "664.75",
+                    "toolTip": "664.75"
+                  },
+                  {
+                    "content": "909.75",
+                    "toolTip": "909.75"
+                  },
+                  {
+                    "content": "4 (L)"
+                  },
+                  {
+                    "content": "0%"
+                  }
+                ],
+                "fixedCells": [
+                  {
+                    "content": "10"
+                  },
+                  {
+                    "content": "West Texas Torteehaws",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "1cbgg930mutybt24"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "fixedRows": false,
+            "tableType": "H2hPointsBased2",
+            "caption": "Scoring Period 5",
+            "subCaption": "(Mon Nov 9, 2026 - Sun Nov 15, 2026)",
+            "header": {
+              "cells": [
+                {
+                  "align": "LEFT",
+                  "sortDirection": 1,
+                  "name": "Away",
+                  "shortName": "Away",
+                  "key": "away"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "FPts",
+                  "shortName": "FPts",
+                  "key": "fpts"
+                },
+                {
+                  "align": "LEFT",
+                  "sortDirection": 1,
+                  "name": "Home",
+                  "shortName": "Home",
+                  "key": "home"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "FPts",
+                  "shortName": "FPts",
+                  "key": "fpts"
+                }
+              ]
+            },
+            "rows": [
+              {
+                "cells": [
+                  {
+                    "content": "Skellige Sirens",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "ewlj8cwqmutybt24"
+                  },
+                  {
+                    "content": "97.45"
+                  },
+                  {
+                    "content": "West Texas Torteehaws",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "1cbgg930mutybt24"
+                  },
+                  {
+                    "content": "79.75"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "Jagrtown Ice Fellas",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "p4zire2bmutybt24"
+                  },
+                  {
+                    "content": "165.8"
+                  },
+                  {
+                    "content": "New Purrsey Devils",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "4num7i90mutybt24"
+                  },
+                  {
+                    "content": "92.2"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "Hooterville Honkers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "a9lp9hbcmutybt24"
+                  },
+                  {
+                    "content": "120.8"
+                  },
+                  {
+                    "content": "Paddyville Lucifers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "6pfjiq07mutybt24"
+                  },
+                  {
+                    "content": "122.85"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "Varrock Dark Wizards",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "7jmn4yymmutybt24"
+                  },
+                  {
+                    "content": "143.8"
+                  },
+                  {
+                    "content": "The Hamhung Hall Monitors",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "kr34cpssmutybt24"
+                  },
+                  {
+                    "content": "115.95"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "The Lalibirdies",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "ru2wvs6mmutybt24"
+                  },
+                  {
+                    "content": "135.75"
+                  },
+                  {
+                    "content": "Carolina Reapers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "e3alkww9mutybt24"
+                  },
+                  {
+                    "content": "150"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "fixedRows": false,
+            "tableType": "H2hPointsBased2",
+            "caption": "Scoring Period 4",
+            "subCaption": "(Mon Nov 2, 2026 - Sun Nov 8, 2026)",
+            "header": {
+              "cells": [
+                {
+                  "align": "LEFT",
+                  "sortDirection": 1,
+                  "name": "Away",
+                  "shortName": "Away",
+                  "key": "away"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "FPts",
+                  "shortName": "FPts",
+                  "key": "fpts"
+                },
+                {
+                  "align": "LEFT",
+                  "sortDirection": 1,
+                  "name": "Home",
+                  "shortName": "Home",
+                  "key": "home"
+                },
+                {
+                  "sortDirection": 1,
+                  "name": "FPts",
+                  "shortName": "FPts",
+                  "key": "fpts"
+                }
+              ]
+            },
+            "rows": [
+              {
+                "cells": [
+                  {
+                    "content": "West Texas Torteehaws",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "1cbgg930mutybt24"
+                  },
+                  {
+                    "content": "120.05"
+                  },
+                  {
+                    "content": "New Purrsey Devils",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "4num7i90mutybt24"
+                  },
+                  {
+                    "content": "198.65"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "Paddyville Lucifers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "6pfjiq07mutybt24"
+                  },
+                  {
+                    "content": "255"
+                  },
+                  {
+                    "content": "Skellige Sirens",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "ewlj8cwqmutybt24"
+                  },
+                  {
+                    "content": "231.1"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "The Hamhung Hall Monitors",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "kr34cpssmutybt24"
+                  },
+                  {
+                    "content": "247.2"
+                  },
+                  {
+                    "content": "Jagrtown Ice Fellas",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "p4zire2bmutybt24"
+                  },
+                  {
+                    "content": "311.45"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "Carolina Reapers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "e3alkww9mutybt24"
+                  },
+                  {
+                    "content": "196.9"
+                  },
+                  {
+                    "content": "Hooterville Honkers",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "a9lp9hbcmutybt24"
+                  },
+                  {
+                    "content": "226"
+                  }
+                ]
+              },
+              {
+                "cells": [
+                  {
+                    "content": "The Lalibirdies",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "ru2wvs6mmutybt24"
+                  },
+                  {
+                    "content": "185.4"
+                  },
+                  {
+                    "content": "Varrock Dark Wizards",
+                    "leagueId": "rf5o9cu2mutybszr",
+                    "id": "rf5o9cu2mutybszr",
+                    "teamId": "7jmn4yymmutybt24"
+                  },
+                  {
+                    "content": "287.95"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "displayedLists": {
+          "goBackDays": [
+            1,
+            7,
+            14,
+            30,
+            60
+          ],
+          "pagination": {
+            "startPageNum": 0,
+            "numTeamsPerPage": 25,
+            "endPageNum": 0,
+            "pageNum": 1
+          },
+          "tabs": [
+            {
+              "name": "YOFHL",
+              "id": "_hfaaq35wmutybt0h"
+            },
+            {
+              "name": "All",
+              "id": "ALL"
+            },
+            {
+              "name": "Combined",
+              "id": "COMBINED"
+            },
+            {
+              "name": "Results",
+              "id": "SCHEDULE"
+            },
+            {
+              "name": "Season Stats",
+              "id": "SEASON_STATS"
+            },
+            {
+              "name": "Playoffs",
+              "id": "PLAYOFFS"
+            }
+          ],
+          "periods": [
+            {
+              "object2": "1 (Oct 12 - Oct 18)",
+              "object1": 1
+            },
+            {
+              "object2": "2 (Oct 19 - Oct 25)",
+              "object1": 2
+            },
+            {
+              "object2": "3 (Oct 26 - Nov 1)",
+              "object1": 3
+            },
+            {
+              "object2": "4 (Nov 2 - Nov 8)",
+              "object1": 4
+            },
+            {
+              "object2": "5 (Nov 9 - Nov 15)",
+              "object1": 5
+            },
+            {
+              "object2": "6 (Nov 16 - Nov 22)",
+              "object1": 6
+            },
+            {
+              "object2": "7 (Nov 23 - Nov 29)",
+              "object1": 7
+            },
+            {
+              "object2": "8 (Nov 30 - Dec 6)",
+              "object1": 8
+            },
+            {
+              "object2": "9 (Dec 7 - Dec 13)",
+              "object1": 9
+            },
+            {
+              "object2": "10 (Dec 14 - Dec 20)",
+              "object1": 10
+            },
+            {
+              "object2": "11 (Dec 21 - Dec 27)",
+              "object1": 11
+            },
+            {
+              "object2": "12 (Dec 28 - Jan 3)",
+              "object1": 12
+            },
+            {
+              "object2": "13 (Jan 4 - Jan 10)",
+              "object1": 13
+            },
+            {
+              "object2": "14 (Jan 11 - Jan 17)",
+              "object1": 14
+            },
+            {
+              "object2": "15 (Jan 18 - Jan 24)",
+              "object1": 15
+            },
+            {
+              "object2": "16 (Jan 25 - Jan 31)",
+              "object1": 16
+            },
+            {
+              "object2": "17 (Feb 1 - Feb 7)",
+              "object1": 17
+            },
+            {
+              "object2": "18 (Feb 8 - Feb 14)",
+              "object1": 18
+            },
+            {
+              "object2": "19 (Feb 15 - Feb 21)",
+              "object1": 19
+            },
+            {
+              "object2": "20 (Feb 22 - Feb 28)",
+              "object1": 20
+            },
+            {
+              "object2": "21 (Mar 1 - Mar 7)",
+              "object1": 21
+            },
+            {
+              "object2": "22 (Mar 8 - Mar 14)",
+              "object1": 22
+            },
+            {
+              "object2": "23 (Mar 15 - Mar 21)",
+              "object1": 23
+            },
+            {
+              "object2": "24 (Mar 22 - Apr 4)",
+              "object1": 24
+            }
+          ],
+          "timeframeTypes": [
+            {
+              "name": "YTD",
+              "id": "YEAR_TO_DATE"
+            },
+            {
+              "name": "By Period",
+              "id": "BY_PERIOD"
+            }
+          ],
+          "timeStartTypes": [
+            {
+              "object2": "Period Only",
+              "object1": "PERIOD_ONLY"
+            },
+            {
+              "object2": "From Start Of Season",
+              "object1": "FROM_SEASON_START"
+            }
+          ]
+        },
+        "labels": {
+          "word.All": "All",
+          "standings.label.csv": "CSV",
+          "word.From": "From",
+          "page.title.fantasy.standings.newui": "Standings",
+          "type.statisticsTimeframeType.goBackNumDays.shortName": "Days Back",
+          "word.Team": "Team",
+          "standings.label.projected": "Projected",
+          "help.popup.teamRoster.statTimeframe.title": "Stat Timeframe",
+          "standings.label.optimal": "Optimal",
+          "standings.label.timeframe": "Timeframe",
+          "label.downloadAllAsCsv": "Download all as CSV",
+          "word.Period": "Period",
+          "standings.label.enlargeTeamLogo": "Enlarge team logo",
+          "word.To": "To"
+        }
+      }
+    }
+  ]
+}

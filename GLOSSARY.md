@@ -80,6 +80,10 @@ _Avoid_: archive ID, Fantrax ID (as if they were different things), slug
 Replacing whole seasons' imported data (standings, player seasons, playoff games and their history files) from a folder of Fantrax CSVs, after syncing the league configuration. It never overwrites championship rosters or awards, and reapplies saved bracket corrections. It is one call in the season import module (`scripts/db/lib/season-import.ts`); `npm run db:import` only parses arguments, migrates, runs it and prints the result.
 _Avoid_: sync, load, the importer (when you mean the rules rather than the command)
 
+**Season sync**:
+The daily write of the live season into the archive: each team season's record and points straight from Fantrax, once the season import has opened the season. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
+_Avoid_: import (for this), refresh (that is the evening Fantrax refresh)
+
 **Season status**:
 What a season has so far: teams, players, games, champion, ring roster, distinct awards against those expected, and bracket corrections. One query (`lib/data/season-status.ts`) feeds both the admin season checklist and the season import's printed summary.
 
