@@ -1,7 +1,9 @@
-// A league to exercise the season sync through its run operation: a disposable league for the database and the
-// in-memory binding of its Fantrax reads. Tests arrange what Fantrax says by changing `fantrax`, pass the current
-// time to each run, and read the result through the site's own readers.
+// A league to exercise the season sync through its run operation: a disposable league for the database, the
+// in-memory binding of its Fantrax reads and the live season on its in-memory source. Tests arrange what Fantrax
+// says by changing `fantrax` (and `live`, the live season's weeks, playoffs and scores), pass the current time to
+// each run, and read the result through the site's own readers.
 import type { TestContext } from 'node:test';
+import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
 import type { FantraxWeek } from '../ports';
@@ -9,6 +11,8 @@ import type { FantraxWeek } from '../ports';
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
 export const FRANCHISES = [1, 2, 3, 4];
+/** Fantrax's first playoff week: the Quarterfinals, then the Semifinals (23) and the two-week Final (24) */
+export const FIRST_PLAYOFF_WEEK = 22;
 const DAY = 86400 * 1000;
 
 /** The season's 24 weeks: weekly from October 12, then a two-week Final ending April 5, 2027. */
@@ -21,21 +25,24 @@ export const WEEKS: FantraxWeek[] = Array.from({ length: 24 }, (_, index) => {
 export const MID_SEASON = Date.parse('2026-11-14T11:00:00Z');
 /** the moment the last week's seven-day correction window closes */
 export const FREEZES_AT = Date.parse('2027-04-05T15:59:58Z') + 7 * DAY;
+/** the moment week `week` ends */
+export const endOf = (week: number) => Date.parse(WEEKS[week - 1].endDate);
 
-// Franchises 1–4, owned by Owner 1–4. In 2025–26 (published: franchise 1 beat franchise 2 in the Final) franchise
-// N went 10-5-1 with 1000.5 points for and 900.25 against. The opened 2026–27 season names franchise N "Club N"
-// (CN, /logos/cN.png), all zeros, as the season import opens it. Fantrax team fxN is franchise N.
-const seed = (opened: boolean) => `
+// Franchises 1–4 (1–N in a league of N teams), owned by Owner 1–4. In 2025–26 (published: franchise 1 beat
+// franchise 2 in the Final) franchise N went 10-5-1 with 1000.5 points for and 900.25 against. The opened 2026–27
+// season names franchise N "Club N" (CN, /logos/cN.png) in team season 10 + N, all zeros, as the season import
+// opens it. Fantrax team fxN is franchise N.
+const seed = (opened: boolean, franchises: number[]) => `
     insert into league.seasons values (2026, '2025–26', 'complete') ${opened ? `, (${SEASON}, '2026–27', 'complete')` : ''};
-    insert into league.franchises (id, display_name, first_season) values ${FRANCHISES.map(id => `(${id}, 'Franchise ${id}', 2020)`).join(', ')};
-    insert into league.owners (id, name) values ${FRANCHISES.map(id => `(${id}, 'Owner ${id}')`).join(', ')};
+    insert into league.franchises (id, display_name, first_season) values ${franchises.map(id => `(${id}, 'Franchise ${id}', 2020)`).join(', ')};
+    insert into league.owners (id, name) values ${franchises.map(id => `(${id}, 'Owner ${id}')`).join(', ')};
     insert into league.team_seasons (id, season_year, franchise_id, owner_id, name, fantrax_name, abbreviation, division, division_rank, wins, losses, ties, fpts_for, fpts_against, logo_url)
-        values ${FRANCHISES.map(id => `(${id}, 2026, ${id}, ${id}, 'Old ${id}', 'Old ${id}', 'O${id}', 1, ${id}, 10, 5, 1, 1000.5, 900.25, '/logos/o${id}.png')`).join(', ')}
-        ${opened ? `, ${FRANCHISES.map(id => `(${10 + id}, ${SEASON}, ${id}, ${id}, 'Club ${id}', 'Club ${id}', 'C${id}', 1, ${id}, 0, 0, 0, 0, 0, '/logos/c${id}.png')`).join(', ')}` : ''};
+        values ${franchises.map(id => `(${id}, 2026, ${id}, ${id}, 'Old ${id}', 'Old ${id}', 'O${id}', 1, ${id}, 10, 5, 1, 1000.5, 900.25, '/logos/o${id}.png')`).join(', ')}
+        ${opened ? `, ${franchises.map(id => `(${10 + id}, ${SEASON}, ${id}, ${id}, 'Club ${id}', 'Club ${id}', 'C${id}', 1, ${id}, 0, 0, 0, 0, 0, '/logos/c${id}.png')`).join(', ')}` : ''};
     insert into league.matchups (season_year, stage, round, bracket, slot, away_team_season_id, home_team_season_id, away_score, home_score, winner_team_season_id)
         values (2026, 'playoff', 3, 'championship', 1, 1, 2, 300, 250, 1);
     insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id)
-        values ${FRANCHISES.map(id => `(${SEASON}, '${LEAGUE_ID}', 'fx${id}', ${id})`).join(', ')};
+        values ${franchises.map(id => `(${SEASON}, '${LEAGUE_ID}', 'fx${id}', ${id})`).join(', ')};
 `;
 
 /** a standings row: [Fantrax team number, rank, wins, losses, ties, points for, points against] */
@@ -43,26 +50,94 @@ export type StandingRow = [number, number, number, number, number, number, numbe
 const standingsOf = (rows: StandingRow[]) => rows.map(([team, rank, wins, losses, ties, pointsFor, pointsAgainst]) =>
     ({ teamId: `fx${team}`, rank, wins, losses, ties, pointsFor, pointsAgainst }));
 
-export function fantraxState(): MemoryFantraxState {
+export function fantraxState(franchises = FRANCHISES): MemoryFantraxState {
     return {
         leagueId: LEAGUE_ID,
         leagueInfo: { seasonYear: SEASON, weeks: structuredClone(WEEKS) },
-        standings: standingsOf(FRANCHISES.map(id => [id, id, 0, 0, 0, 0, 0])),
+        standings: standingsOf(franchises.map(id => [id, id, 0, 0, 0, 0, 0])),
         down: new Set(),
     };
 }
 
-export async function seasonSyncLeague(t: TestContext, options: { opened?: boolean } = {}) {
-    const league = await disposableLeague(t, { app: true, nextCache: true, seed: seed(options.opened ?? true) });
+/** a pairing of Fantrax team numbers, away then home; null is the bye opposite a top seed */
+export type Pairing = [number | null, number | null];
+/** a game's scores: [away team, home team, away score, home score] */
+export type GameScore = [number, number, number, number];
+
+/**
+ * The live season as Fantrax has it: the same weeks, team fxN ranked N, and the playoffs from week 22, its
+ * schedule giving the league's seeding for six teams until the Quarterfinals are seeded (byes for seeds 1 and 2,
+ * 5 v 4 and 6 v 3).
+ */
+export function liveSeasonState(franchises = FRANCHISES): MemoryState {
+    const teams = franchises.map(id => ({ id: `fx${id}`, name: `Fantrax ${id}` }));
+    const fetchedAt = WEEKS[0].startDate;
+    return {
+        fantraxTeams: franchises.map(id => ({ seasonYear: SEASON, fantraxLeagueId: LEAGUE_ID, fantraxTeamId: `fx${id}`, franchiseId: id })),
+        franchises: franchises.map(id => ({ id, name: `Club ${id}`, abbreviation: `C${id}`, logo: `/logos/c${id}.png`, owner: `Owner ${id}` })),
+        archivedPlayerIds: [],
+        fantrax: {
+            core: {
+                fetchedAt, seasonYear: SEASON, teams, weeks: structuredClone(WEEKS), lineupPeriod: null, schedule: [],
+                standings: teams.map((team, index) => ({ teamId: team.id, rank: index + 1, record: '0-0-0', points: 0 })),
+                rosters: {}, players: {},
+                playoffs: {
+                    lastRegularSeasonPeriod: FIRST_PLAYOFF_WEEK - 1, firstPlayoffPeriod: FIRST_PLAYOFF_WEEK, numPlayoffTeams: 6,
+                    seeding: [{ away: null, home: 1 }, { away: 5, home: 4 }, { away: null, home: 2 }, { away: 6, home: 3 }],
+                },
+            },
+            scores: {},
+            leaders: { fetchedAt, players: [] },
+            rosterStats: { fetchedAt, players: {} },
+        },
+        saved: null,
+        manualFinalWeeks: {},
+        down: new Set(),
+    };
+}
+
+export async function seasonSyncLeague(t: TestContext, options: { opened?: boolean; teams?: number } = {}) {
+    const franchises = Array.from({ length: options.teams ?? FRANCHISES.length }, (_, index) => index + 1);
+    // The live season reports the sections it cannot load (scores for a week a test hasn't scored); runs read only its playoffs.
+    t.mock.method(console, 'error', () => {});
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: seed(options.opened ?? true, franchises) });
     // Modules that touch Next load after the league stands in for it.
     const { createSeasonSync } = await import('../create-season-sync');
-    const fantrax = fantraxState();
-    const sync = createSeasonSync({ fantrax: createMemoryFantrax(fantrax) });
+    const fantrax = fantraxState(franchises);
+    const live = liveSeasonState(franchises);
+    // The live season's clock is the run's: it serves a week's scores only once the week has started.
+    let clock = Date.now();
+    const liveSeason = createMemoryLiveSeason(live, { now: () => clock });
+    const sync = createSeasonSync({ fantrax: createMemoryFantrax(fantrax), liveSeason });
     /** one run at `now`, as the cron route runs it, with the tags it expired */
-    const run = (now: number) => league.runAsRoute('/api/cron/season-sync', () => sync.run({ now }));
+    const run = (now: number) => {
+        clock = now;
+        return league.runAsRoute('/api/cron/season-sync', () => sync.run({ now }));
+    };
     /** a read through the site, as a page makes it */
     const read = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/', fn)).result;
     /** Fantrax's standings table now reads `rows` */
     const setStandings = (rows: StandingRow[]) => { fantrax.standings = standingsOf(rows); };
-    return { league, fantrax, sync, run, read, setStandings };
+    const core = live.fantrax.core;
+    /**
+     * Fantrax publishes week `week`'s pairings, in its schedule's order. Publishing the first playoff week's
+     * pairings replaces its seeding, as Fantrax's schedule does once the round is seeded.
+     */
+    const setPairings = (week: number, pairings: Pairing[]) => {
+        core.schedule = [...core.schedule.filter(round => round.week !== week), {
+            week, matchups: pairings.map(([away, home]) => ({ away: away === null ? {} : { id: `fx${away}` }, home: home === null ? {} : { id: `fx${home}` } })),
+        }];
+        if (week === core.playoffs.firstPlayoffPeriod) delete core.playoffs.seeding;
+    };
+    /** Fantrax's scores for week `week` (a stat correction, once the week has been scored) */
+    const setScores = (week: number, games: GameScore[]) => {
+        live.fantrax.scores[week] = {
+            fetchedAt: core.fetchedAt, week, matchups: games.map(([away, home, awayScore, homeScore]) => ({
+                away: { teamId: `fx${away}`, score: awayScore, gamesPlayed: 0 }, home: { teamId: `fx${home}`, score: homeScore, gamesPlayed: 0 },
+            })),
+        };
+    };
+    /** an admin marks week `week` final */
+    const markFinal = (week: number) => { live.manualFinalWeeks[SEASON] = [...live.manualFinalWeeks[SEASON] ?? [], week]; };
+    return { league, fantrax, live, sync, run, read, setStandings, setPairings, setScores, markFinal };
 }

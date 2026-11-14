@@ -22,8 +22,9 @@ export const leagueTags = {
 export const teamIdentityTags = (id: number) => [leagueTags.franchise(id), leagueTags.franchiseCards, leagueTags.rivalries, leagueTags.records, leagueTags.discovery];
 
 // What a season sync run changed (lib/season-sync): each kind of change refreshes these views and expires these
-// tags, once per run whatever else it changed. A run that changes nothing has no effects.
-export type SeasonSyncChange = 'stats';
+// tags, once per run whatever else it changed. A run that changes nothing has no effects. A playoff game decides
+// the champion, so it expires what a bracket correction does (the 'matchup' curated edit).
+export type SeasonSyncChange = 'stats' | 'playoffs';
 export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: number): { views: MaterializedView[]; tags: string[] } {
     const effects = changes.map(change => {
         switch (change) {
@@ -32,6 +33,7 @@ export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: nu
                 tags: [leagueTags.season(year), leagueTags.players, leagueTags.careerLeaderboard, leagueTags.seasonLeaderboard,
                     leagueTags.franchiseCards, leagueTags.franchiseDetails, leagueTags.records, leagueTags.discovery],
             };
+            case 'playoffs': return curatedEditEffects('matchup', year);
         }
     });
     return { views: [...new Set(effects.flatMap(effect => effect.views))], tags: [...new Set(effects.flatMap(effect => effect.tags))] };

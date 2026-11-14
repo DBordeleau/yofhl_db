@@ -169,6 +169,13 @@
       "when": 1794687520823,
       "tag": "0023_season_sync_status",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794688783947,
+      "tag": "0024_season_results_need_the_final",
+      "breakpoints": true
     }
   ]
 }
