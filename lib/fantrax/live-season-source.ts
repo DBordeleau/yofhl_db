@@ -22,11 +22,19 @@ export interface SourceWeek {
     endDate: string;
 }
 
-/** Fantrax's own playoff settings. The league's format is config; these are only checked against it. */
+/** a first-round pairing by playoff seed; null is the bye opposite a top seed */
+export interface SeedPairing {
+    away: number | null;
+    home: number | null;
+}
+
+/** Fantrax's playoff settings, and its first round's seeding from the schedule. The live season's playoff weeks come from these. */
 export interface FantraxPlayoffs {
     numPlayoffTeams?: number;
     lastRegularSeasonPeriod?: number;
     firstPlayoffPeriod?: number;
+    /** the first playoff week's pairings by seed, while Fantrax's schedule gives them (before the round is seeded) */
+    seeding?: SeedPairing[];
 }
 
 /** The core snapshot: if it can't be loaded, the whole live season is unavailable. */

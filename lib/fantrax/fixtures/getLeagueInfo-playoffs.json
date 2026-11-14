@@ -1,0 +1,1623 @@
+{
+  "seasonYear": 2026,
+  "teamInfo": {
+    "p4zire2bmutybt24": {
+      "division": "YOFHL",
+      "name": "Jagrtown Ice Fellas",
+      "id": "p4zire2bmutybt24"
+    },
+    "ewlj8cwqmutybt24": {
+      "division": "YOFHL",
+      "name": "Skellige Sirens",
+      "id": "ewlj8cwqmutybt24"
+    },
+    "6pfjiq07mutybt24": {
+      "division": "YOFHL",
+      "name": "Paddyville Lucifers",
+      "id": "6pfjiq07mutybt24"
+    },
+    "4num7i90mutybt24": {
+      "division": "YOFHL",
+      "name": "New Purrsey Devils",
+      "id": "4num7i90mutybt24"
+    },
+    "1cbgg930mutybt24": {
+      "division": "YOFHL",
+      "name": "West Texas Torteehaws",
+      "id": "1cbgg930mutybt24"
+    },
+    "ru2wvs6mmutybt24": {
+      "division": "YOFHL",
+      "name": "The Lalibirdies",
+      "id": "ru2wvs6mmutybt24"
+    },
+    "7jmn4yymmutybt24": {
+      "division": "YOFHL",
+      "name": "Varrock Dark Wizards",
+      "id": "7jmn4yymmutybt24"
+    },
+    "a9lp9hbcmutybt24": {
+      "division": "YOFHL",
+      "name": "Hooterville Honkers",
+      "id": "a9lp9hbcmutybt24"
+    },
+    "e3alkww9mutybt24": {
+      "division": "YOFHL",
+      "name": "Carolina Reapers",
+      "id": "e3alkww9mutybt24"
+    },
+    "kr34cpssmutybt24": {
+      "division": "YOFHL",
+      "name": "The Hamhung Hall Monitors",
+      "id": "kr34cpssmutybt24"
+    }
+  },
+  "scoringPeriods": [
+    {
+      "number": 1,
+      "endDate": "2026-10-19T18:59:59.0-0400",
+      "startDate": "2026-10-12T13:00:00.0-0400"
+    },
+    {
+      "number": 2,
+      "endDate": "2026-10-26T18:59:59.0-0400",
+      "startDate": "2026-10-19T19:00:00.0-0400"
+    },
+    {
+      "number": 3,
+      "endDate": "2026-11-02T18:59:59.0-0500",
+      "startDate": "2026-10-26T19:00:00.0-0400"
+    },
+    {
+      "number": 4,
+      "endDate": "2026-11-09T19:59:59.0-0500",
+      "startDate": "2026-11-02T19:00:00.0-0500"
+    },
+    {
+      "number": 5,
+      "endDate": "2026-11-16T19:29:59.0-0500",
+      "startDate": "2026-11-09T20:00:00.0-0500"
+    },
+    {
+      "number": 6,
+      "endDate": "2026-11-23T18:59:59.0-0500",
+      "startDate": "2026-11-16T19:30:00.0-0500"
+    },
+    {
+      "number": 7,
+      "endDate": "2026-11-30T12:59:59.0-0500",
+      "startDate": "2026-11-23T19:00:00.0-0500"
+    },
+    {
+      "number": 8,
+      "endDate": "2026-12-07T12:59:59.0-0500",
+      "startDate": "2026-11-30T13:00:00.0-0500"
+    },
+    {
+      "number": 9,
+      "endDate": "2026-12-14T13:59:59.0-0500",
+      "startDate": "2026-12-07T13:00:00.0-0500"
+    },
+    {
+      "number": 10,
+      "endDate": "2026-12-21T13:59:59.0-0500",
+      "startDate": "2026-12-14T14:00:00.0-0500"
+    },
+    {
+      "number": 11,
+      "endDate": "2026-12-28T13:59:59.0-0500",
+      "startDate": "2026-12-21T14:00:00.0-0500"
+    },
+    {
+      "number": 12,
+      "endDate": "2027-01-04T19:29:59.0-0500",
+      "startDate": "2026-12-28T14:00:00.0-0500"
+    },
+    {
+      "number": 13,
+      "endDate": "2027-01-11T19:29:59.0-0500",
+      "startDate": "2027-01-04T19:30:00.0-0500"
+    },
+    {
+      "number": 14,
+      "endDate": "2027-01-18T13:29:59.0-0500",
+      "startDate": "2027-01-11T19:30:00.0-0500"
+    },
+    {
+      "number": 15,
+      "endDate": "2027-01-25T18:59:59.0-0500",
+      "startDate": "2027-01-18T13:30:00.0-0500"
+    },
+    {
+      "number": 16,
+      "endDate": "2027-02-01T13:59:59.0-0500",
+      "startDate": "2027-01-25T19:00:00.0-0500"
+    },
+    {
+      "number": 17,
+      "endDate": "2027-02-08T19:29:59.0-0500",
+      "startDate": "2027-02-01T14:00:00.0-0500"
+    },
+    {
+      "number": 18,
+      "endDate": "2027-02-15T13:59:59.0-0500",
+      "startDate": "2027-02-08T19:30:00.0-0500"
+    },
+    {
+      "number": 19,
+      "endDate": "2027-02-22T13:59:59.0-0500",
+      "startDate": "2027-02-15T14:00:00.0-0500"
+    },
+    {
+      "number": 20,
+      "endDate": "2027-03-01T18:59:59.0-0500",
+      "startDate": "2027-02-22T14:00:00.0-0500"
+    },
+    {
+      "number": 21,
+      "endDate": "2027-03-08T18:59:59.0-0500",
+      "startDate": "2027-03-01T19:00:00.0-0500"
+    },
+    {
+      "number": 22,
+      "endDate": "2027-03-15T14:59:59.0-0400",
+      "startDate": "2027-03-08T19:00:00.0-0500"
+    },
+    {
+      "number": 23,
+      "endDate": "2027-03-22T18:59:59.0-0400",
+      "startDate": "2027-03-15T15:00:00.0-0400"
+    },
+    {
+      "number": 24,
+      "endDate": "2027-04-05T11:59:58.0-0400",
+      "startDate": "2027-03-22T19:00:00.0-0400"
+    }
+  ],
+  "rosterPeriods": [],
+  "matchups": [
+    {
+      "period": 1,
+      "matchupList": [
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        }
+      ]
+    },
+    {
+      "period": 2,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        }
+      ]
+    },
+    {
+      "period": 3,
+      "matchupList": [
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        }
+      ]
+    },
+    {
+      "period": 4,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        }
+      ]
+    },
+    {
+      "period": 5,
+      "matchupList": [
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        }
+      ]
+    },
+    {
+      "period": 6,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        }
+      ]
+    },
+    {
+      "period": 7,
+      "matchupList": [
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        }
+      ]
+    },
+    {
+      "period": 8,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        }
+      ]
+    },
+    {
+      "period": 9,
+      "matchupList": [
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        }
+      ]
+    },
+    {
+      "period": 10,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        }
+      ]
+    },
+    {
+      "period": 11,
+      "matchupList": [
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        }
+      ]
+    },
+    {
+      "period": 12,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        }
+      ]
+    },
+    {
+      "period": 13,
+      "matchupList": [
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        }
+      ]
+    },
+    {
+      "period": 14,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        }
+      ]
+    },
+    {
+      "period": 15,
+      "matchupList": [
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        }
+      ]
+    },
+    {
+      "period": 16,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        }
+      ]
+    },
+    {
+      "period": 17,
+      "matchupList": [
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        }
+      ]
+    },
+    {
+      "period": 18,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        }
+      ]
+    },
+    {
+      "period": 19,
+      "matchupList": [
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        }
+      ]
+    },
+    {
+      "period": 20,
+      "matchupList": [
+        {
+          "away": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          },
+          "home": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          }
+        },
+        {
+          "away": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          },
+          "home": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          }
+        },
+        {
+          "away": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          },
+          "home": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          }
+        }
+      ]
+    },
+    {
+      "period": 21,
+      "matchupList": [
+        {
+          "away": {
+            "name": "Paddyville Lucifers",
+            "id": "6pfjiq07mutybt24",
+            "shortName": "PVLS"
+          },
+          "home": {
+            "name": "West Texas Torteehaws",
+            "id": "1cbgg930mutybt24",
+            "shortName": "TEEHAW"
+          }
+        },
+        {
+          "away": {
+            "name": "New Purrsey Devils",
+            "id": "4num7i90mutybt24",
+            "shortName": "NPD"
+          },
+          "home": {
+            "name": "The Hamhung Hall Monitors",
+            "id": "kr34cpssmutybt24",
+            "shortName": "HUNG"
+          }
+        },
+        {
+          "away": {
+            "name": "Skellige Sirens",
+            "id": "ewlj8cwqmutybt24",
+            "shortName": "SKGS"
+          },
+          "home": {
+            "name": "Carolina Reapers",
+            "id": "e3alkww9mutybt24",
+            "shortName": "Reapers"
+          }
+        },
+        {
+          "away": {
+            "name": "Jagrtown Ice Fellas",
+            "id": "p4zire2bmutybt24",
+            "shortName": "JAGR"
+          },
+          "home": {
+            "name": "The Lalibirdies",
+            "id": "ru2wvs6mmutybt24",
+            "shortName": "Lali"
+          }
+        },
+        {
+          "away": {
+            "name": "Hooterville Honkers",
+            "id": "a9lp9hbcmutybt24",
+            "shortName": "HH"
+          },
+          "home": {
+            "name": "Varrock Dark Wizards",
+            "id": "7jmn4yymmutybt24",
+            "shortName": "VWIZ"
+          }
+        }
+      ]
+    },
+    {
+      "period": 22,
+      "matchupList": [
+        {
+          "away": {
+            "bye": true
+          },
+          "home": {
+            "seed": 1
+          }
+        },
+        {
+          "away": {
+            "seed": 5
+          },
+          "home": {
+            "seed": 4
+          }
+        },
+        {
+          "away": {
+            "bye": true
+          },
+          "home": {
+            "seed": 2
+          }
+        },
+        {
+          "away": {
+            "seed": 6
+          },
+          "home": {
+            "seed": 3
+          }
+        }
+      ]
+    },
+    {
+      "period": 23,
+      "matchupList": [
+        {
+          "away": {
+            "TBD": true
+          },
+          "home": {
+            "TBD": true
+          }
+        },
+        {
+          "away": {
+            "TBD": true
+          },
+          "home": {
+            "TBD": true
+          }
+        }
+      ]
+    },
+    {
+      "period": 24,
+      "matchupList": [
+        {
+          "away": {
+            "TBD": true
+          },
+          "home": {
+            "TBD": true
+          }
+        }
+      ]
+    }
+  ],
+  "playoffs": {
+    "lastRegularSeasonPeriod": 21,
+    "numPlayoffTeams": 6,
+    "firstPlayoffPeriod": 22,
+    "mergePlayoffPeriods": false,
+    "used": true
+  }
+}

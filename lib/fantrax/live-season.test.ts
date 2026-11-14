@@ -29,7 +29,9 @@ function league(options: { played?: number } = {}): MemoryState {
         standings: TEAMS.map((teamId, index) => ({ teamId, rank: index + 1, record: `${played}-0-0`, points: 1000 - index })),
         rosters: { fx1: [{ id: 'p1', position: 'C', status: 'ACTIVE' }, { id: 'p9', position: 'G', status: 'RESERVE' }] },
         players: { p1: { name: 'McDavid, Connor', position: 'C', team: 'EDM' }, p9: { name: 'Rookie, Goalie', position: 'G' } },
-        playoffs: { numPlayoffTeams: 6, lastRegularSeasonPeriod: 23, firstPlayoffPeriod: 24 },
+        // Fantrax's first round before it is seeded: byes for seeds 1 and 2, 5 at 4 and 6 at 3.
+        playoffs: { numPlayoffTeams: 6, lastRegularSeasonPeriod: 23, firstPlayoffPeriod: 24,
+            seeding: [{ away: null, home: 1 }, { away: 5, home: 4 }, { away: null, home: 2 }, { away: 6, home: 3 }] },
     };
     return {
         fantraxTeams: TEAMS.slice(0, 7).map((fantraxTeamId, index) => ({ seasonYear: 2027, fantraxLeagueId: 'league27', fantraxTeamId, franchiseId: index + 1 })),
@@ -71,16 +73,50 @@ const weekView = (season: LiveSeason, number: number) => {
     return { name: week.name, fullName: week.fullName, stage: week.stage, phase: week.phase };
 };
 
-test('week 23 is a regular-season week and the last three weeks are the playoff rounds', async t => {
-    const { season } = setup(t);
-    const live = await season({ now: during(5) });
-    assert.deepEqual(weekView(live, 1), { name: 'Week 1', fullName: 'Week 1', stage: 'regular', phase: 'final' });
-    assert.deepEqual(weekView(live, 23), { name: 'Week 23', fullName: 'Week 23', stage: 'regular', phase: 'upcoming' });
-    assert.deepEqual(weekView(live, 24), { name: 'Quarterfinals', fullName: 'Jagr Cup Playoff Quarterfinals', stage: 'Quarterfinals', phase: 'upcoming' });
-    assert.deepEqual(weekView(live, 25), { name: 'Semifinals', fullName: 'Jagr Cup Playoff Semifinals', stage: 'Semifinals', phase: 'upcoming' });
-    assert.deepEqual(weekView(live, 26), { name: 'Final', fullName: 'Jagr Cup Playoff Final', stage: 'Final', phase: 'upcoming' });
+/** this season's shape: 24 weeks, Fantrax's playoffs from `firstPlayoffPeriod`, and a single two-week Final in week 24 */
+function twentyFourWeeks(firstPlayoffPeriod = 22): MemoryState {
+    const state = league();
+    const weeks = WEEKS.slice(0, 24);
+    weeks[23] = { ...weeks[23], endDate: iso(Date.parse(weeks[23].endDate) + 7 * DAY) };
+    state.fantrax.core.weeks = weeks;
+    state.fantrax.core.schedule = state.fantrax.core.schedule.filter(round => round.week < firstPlayoffPeriod);
+    state.fantrax.core.playoffs = { numPlayoffTeams: 6, lastRegularSeasonPeriod: firstPlayoffPeriod - 1, firstPlayoffPeriod };
+    return state;
+}
+
+test('the playoff rounds start at Fantrax\'s first playoff week, and a two-week Final is one round', async t => {
+    const live = await setup(t, twentyFourWeeks()).season();
+    assert.deepEqual(weekView(live, 21), { name: 'Week 21', fullName: 'Week 21', stage: 'regular', phase: 'upcoming' });
+    assert.deepEqual(weekView(live, 22), { name: 'Quarterfinals', fullName: 'Jagr Cup Playoff Quarterfinals', stage: 'playoff', phase: 'upcoming' });
+    assert.deepEqual(weekView(live, 23), { name: 'Semifinals', fullName: 'Jagr Cup Playoff Semifinals', stage: 'playoff', phase: 'upcoming' });
+    assert.deepEqual(weekView(live, 24), { name: 'Final', fullName: 'Jagr Cup Playoff Final', stage: 'playoff', phase: 'upcoming' });
+    assert.deepEqual(live.weeks.map(week => week.round), [...Array(21).fill(null), 1, 2, 3]);
+    assert.deepEqual([live.playoffs.firstWeek, live.playoffs.fitsFormat], [22, true]);
+    assert.deepEqual(live.playoffs.rounds.map(week => week.number), [22, 23, 24]);
+    const final = await setup(t, twentyFourWeeks()).season({ now: during(24, 10) });
+    assert.deepEqual([final.currentWeek.name, final.currentWeek.phase], ['Final', 'active'], 'the Final\'s second week is still the Final');
+});
+
+test('moving Fantrax\'s first playoff week moves the round names with it', async t => {
+    const live = await setup(t).season();
+    assert.deepEqual(live.weeks.slice(21).map(week => [week.name, week.stage]),
+        [['Week 22', 'regular'], ['Week 23', 'regular'], ['Quarterfinals', 'playoff'], ['Semifinals', 'playoff'], ['Final', 'playoff']]);
+    assert.deepEqual([live.playoffs.firstWeek, live.playoffs.fitsFormat], [24, true]);
     assert.equal(live.seasonYear, 2027);
-    assert.equal(live.weeks.length, 26);
+});
+
+test('a playoff schedule that isn\'t three rounds is shown as Fantrax has it and reported as not fitting', async t => {
+    const four = await setup(t, twentyFourWeeks(21)).season();
+    assert.deepEqual(four.weeks.slice(19).map(week => week.name), ['Week 20', 'Round 1', 'Quarterfinals', 'Semifinals', 'Final']);
+    assert.deepEqual([four.playoffs.firstWeek, four.playoffs.fitsFormat, four.playoffs.rounds.length], [21, false, 4]);
+    const two = await setup(t, twentyFourWeeks(23)).season();
+    assert.deepEqual(two.weeks.slice(21).map(week => week.name), ['Week 22', 'Semifinals', 'Final']);
+    assert.equal(two.playoffs.fitsFormat, false);
+    const none = league();
+    none.fantrax.core.playoffs = {};
+    const unset = await setup(t, none).season();
+    assert.ok(unset.weeks.every(week => week.stage === 'regular'), 'no playoff week without Fantrax\'s playoff settings');
+    assert.deepEqual([unset.playoffs.firstWeek, unset.playoffs.fitsFormat, unset.playoffs.rounds], [null, false, []]);
 });
 
 test('the current week is week 1 before the season, the week in play during it and the Final after it', async t => {
@@ -100,10 +136,12 @@ test('a week turns final as soon as the standings count its results, through wee
     const early = setup(t, league({ played: 5 }));
     assert.equal(weekView(await early.season({ now: during(5, 6) }), 5).phase, 'final');
     assert.equal(weekView(await setup(t, league({ played: 4 })).season({ now: during(5, 6) }), 5).phase, 'active', 'results still to come');
-    // Fantrax says its regular season ends at week 22; the league's ends at week 23, which still finalizes itself.
-    const state = league({ played: 23 });
-    state.fantrax.core.playoffs = { numPlayoffTeams: 4, lastRegularSeasonPeriod: 22 };
-    assert.equal(weekView(await setup(t, state).season({ now: during(23, 6) }), 23).phase, 'final');
+    // The last regular-season week finalizes itself; with Fantrax's playoffs moved up to week 23, week 23 is a playoff round and no longer does.
+    assert.equal(weekView(await setup(t, league({ played: 23 })).season({ now: during(23, 6) }), 23).phase, 'final');
+    const moved = league({ played: 23 });
+    moved.fantrax.core.playoffs = { numPlayoffTeams: 6, lastRegularSeasonPeriod: 22, firstPlayoffPeriod: 23 };
+    const movedLive = await setup(t, moved).season({ now: during(23, 6) });
+    assert.deepEqual([weekView(movedLive, 22).phase, weekView(movedLive, 23).name, weekView(movedLive, 23).phase], ['final', 'Round 1', 'active']);
     // Even if the standings counted a playoff week, the Quarterfinals stay live until they end.
     const playoffs = league({ played: 24 });
     playoffs.fantrax.core.schedule.push({ week: 24, matchups: [{ away: { id: 'fx3' }, home: { id: 'fx6' } }, { away: { id: 'fx4' }, home: { id: 'fx5' } }] });
@@ -252,6 +290,30 @@ test('the standings draw the playoff line under 6th and give the top 2 seeds bye
     assert.deepEqual([standings.playoffTeams, standings.byeTeams], [6, 2]);
 });
 
+test('the playoff line and byes follow Fantrax\'s first-round seeding, before and after it is seeded', async t => {
+    const marks = (live: LiveSeason) => live.standings.rows.map(row => (row.bye ? 'B' : '') + (row.playoffLineBelow ? '_' : '') || '.').join(' ');
+    const four = league();
+    four.fantrax.core.playoffs.seeding = [{ away: 4, home: 1 }, { away: 3, home: 2 }];
+    const fourTeams = await setup(t, four).season();
+    assert.deepEqual([fourTeams.standings.playoffTeams, fourTeams.standings.byeTeams, fourTeams.playoffs.teams, fourTeams.playoffs.byes], [4, 0, 4, 0]);
+    assert.equal(marks(fourTeams), '. . . _ . . . .');
+    assert.deepEqual(fourTeams.playoffs.seeding, [{ away: 4, home: 1 }, { away: 3, home: 2 }]);
+    // Once seeded, Fantrax names the teams: a bye is a pairing with one side.
+    const seeded = league();
+    delete seeded.fantrax.core.playoffs.seeding;
+    seeded.fantrax.core.schedule.push({ week: 24, matchups: [
+        { away: {}, home: { id: 'fx1' } }, { away: { id: 'fx4' }, home: { id: 'fx5' } }, { away: { id: 'fx2' }, home: {} },
+        { away: { id: 'fx3' }, home: { id: 'fx8' } }, { away: { id: 'fx6' }, home: { id: 'fx7' } },
+    ] });
+    const eight = await setup(t, seeded).season();
+    assert.deepEqual([eight.playoffs.teams, eight.playoffs.byes], [8, 2]);
+    assert.equal(marks(eight), 'B B . . . . . .');
+    // With neither, Fantrax's playoff team setting draws the line and no one has a bye.
+    const unseeded = league();
+    delete unseeded.fantrax.core.playoffs.seeding;
+    assert.equal(marks(await setup(t, unseeded).season()), '. . . . . _ . .');
+});
+
 test('a scores, scoring leaders or roster stats outage hides only that section', async t => {
     for (const outage of ['scores', 'leaders', 'rosterStats'] as const) {
         const state = league();
@@ -297,22 +359,11 @@ test('week scores: an unknown week is a RangeError and a week that has not start
     assert.deepEqual((await live.getWeekScores(2))?.matchups[0].away.score, 12);
 });
 
-test('refresh warns once when Fantrax\'s playoff settings disagree with the league, and page reads never do', async t => {
-    const state = league();
-    state.fantrax.core.playoffs = { numPlayoffTeams: 4, lastRegularSeasonPeriod: 22, firstPlayoffPeriod: 23 };
-    const { live, season, warnings } = setup(t, state);
-    const drift = () => warnings.filter(message => /playoff settings/.test(message));
-    await season();
-    await season({ fresh: true });
-    assert.equal(drift().length, 0);
+test('a refresh logs nothing about a playoff schedule that isn\'t three rounds; the live season reports it', async t => {
+    const { live, season, warnings } = setup(t, twentyFourWeeks(21));
     await live.refreshLiveSeason();
-    assert.equal(drift().length, 1);
-    assert.match(drift()[0], /4 playoff teams.*week 22/);
-    await season();
-    assert.equal(drift().length, 1);
-    state.fantrax.core.playoffs = { numPlayoffTeams: 6, lastRegularSeasonPeriod: 23, firstPlayoffPeriod: 24 };
-    await live.refreshLiveSeason();
-    assert.equal(drift().length, 1, 'no warning once Fantrax agrees');
+    assert.deepEqual(warnings.filter(message => /playoff/i.test(message)), []);
+    assert.equal((await season()).playoffs.fitsFormat, false);
 });
 
 test('a failed refresh publishes nothing', async t => {
