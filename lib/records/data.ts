@@ -9,7 +9,7 @@ import periods from './periods.json';
 import playerCategories from './player-category-history.json';
 import playerPortraits from './player-portraits.json';
 import type { PlayerStat } from './player-stats';
-import { buildChases, buildRecords, matchupFormats, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
+import { buildChases, buildRecords, matchupFormats, defaultMatchupFormat, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
 
 // Keep checked-in history outside the data cache. Combining it with all player
 // rows exceeds Next's 2 MB entry limit and silently repeats the database reads.
@@ -43,7 +43,7 @@ export async function getRecordBook(filter: { team?: number; position?: string; 
     const stats = live?.rosterStats.status === 'available' ? live.rosterStats.value : null;
     const formats = matchupFormats(source);
     const requestedFormat = filter.format?.startsWith('2019:') ? 'weekly' : filter.format;
-    const format = formats.find(f => f.id === requestedFormat)?.id ?? formats[0]?.id;
+    const format = formats.find(f => f.id === requestedFormat)?.id ?? defaultMatchupFormat(source);
     const portraits: Record<string, string> = playerPortraits;
     const records = buildRecords(source, { ...filter, format }).map(record => ({ ...record, entries: record.entries.map(entry => ({
         ...entry, portrait: entry.href.startsWith('/player/') ? portraits[entry.href.slice('/player/'.length)] : undefined,
