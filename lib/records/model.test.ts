@@ -40,7 +40,7 @@ test('cancelled playoffs do not break title runs and consecutive championships r
     assert.equal(records.find(r => r.id === 'scoring-titles')!.entries.length, 0, 'a tied points lead cannot invent a trophy winner');
 });
 
-test('a season still being played earns no scoring title but counts toward the highest single-season totals', () => {
+test('a season still being played earns no scoring title or best season record but counts toward the highest single-season totals', () => {
     const data = source();
     data.seasons.push({ year: 2023, team: 2, name: 'Team 2', wins: 12, losses: 1, ties: 0, points: 5000 }, { year: 2023, team: 1, name: 'Team 1', wins: 1, losses: 12, ties: 0, points: 10 });
     data.players = [{ id: 'a', name: 'A', year: 2022, points: 300, positions: ['C'] }, { id: 'b', name: 'B', year: 2023, points: 900, positions: ['C'] }];
@@ -49,9 +49,12 @@ test('a season still being played earns no scoring title but counts toward the h
     assert.deepEqual(records.find(r => r.id === 'scoring-titles')!.entries.map(e => [e.team, e.value, e.detail]), [[1, 1, '2021–22']]);
     assert.equal(records.find(r => r.id === 'season-points')!.entries[0].id, '2:2023');
     assert.equal(records.find(r => r.id === 'player-season')!.entries[0].id, 'b:2023');
+    assert.ok(!records.find(r => r.id === 'win-percentage')!.entries.some(e => e.id.endsWith(':2023')), 'a 12–1 start is not a season record');
 
     data.published.push(2023);
-    assert.deepEqual(buildRecords(data).find(r => r.id === 'scoring-titles')!.entries.map(e => [e.team, e.value]), [[1, 1], [2, 1]], 'a published season counts like any other');
+    const published = buildRecords(data);
+    assert.deepEqual(published.find(r => r.id === 'scoring-titles')!.entries.map(e => [e.team, e.value]), [[1, 1], [2, 1]], 'a published season counts like any other');
+    assert.equal(published.find(r => r.id === 'win-percentage')!.entries[0].id, '2:2023');
 });
 
 test('player season streaks cannot skip a missed scoring season', () => {
