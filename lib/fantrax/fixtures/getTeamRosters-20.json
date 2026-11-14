@@ -1,0 +1,17 @@
+{
+  "period": 20,
+  "rosters": {
+    "4num7i90mutybt24": { "teamName": "New Purrsey Devils", "rosterItems": [
+      { "id": "059e0", "position": "D", "status": "ACTIVE" },
+      { "id": "02azf", "position": "D", "status": "RESERVE" },
+      { "id": "05lu8", "position": "D", "status": "INJURED_RESERVE" },
+      { "id": "06hcq", "position": "D", "status": "MINORS" }
+    ] },
+    "1cbgg930mutybt24": { "teamName": "West Texas Torteehaws", "rosterItems": [
+      { "id": "051v4", "position": "G", "status": "ACTIVE" },
+      { "id": "023wa", "position": "D", "status": "RESERVE" },
+      { "id": "03as7", "position": "G", "status": "INJURED_RESERVE" },
+      { "id": "074v8", "position": "D", "status": "MINORS" }
+    ] }
+  }
+}

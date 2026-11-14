@@ -24,7 +24,9 @@ function fantrax(edit: Record<string, (body: RecordedBody) => unknown> = {}) {
                 body = (edit.getPlayerStats ?? (value => value))(body);
             }
         } else {
-            const name = endpoint === 'getMatchupScores' ? `getMatchupScores-${url.searchParams.get('period')}` : endpoint;
+            // a past day's rosters are one recorded day (period 20), whichever day is asked for
+            const name = endpoint === 'getMatchupScores' ? `getMatchupScores-${url.searchParams.get('period')}`
+                : endpoint === 'getTeamRosters' && url.searchParams.has('period') ? 'getTeamRosters-20' : endpoint;
             body = (edit[endpoint] ?? (value => value))(recorded(name));
         }
         return Response.json(body);
@@ -104,6 +106,40 @@ test('invalid matchup scores are rejected', async () => {
     ];
     for (const edit of invalid) await assert.rejects(fantrax({ getMatchupScores: edit }).weekScores(LEAGUE, 2), /invalid matchup scores/);
     assert.equal((await fantrax().weekScores(LEAGUE, 2)).matchups[1].away.score, 120);
+});
+
+test("league info alone gives the season year, its weeks and its daily roster periods in order", async () => {
+    const info = await fantrax().leagueInfo(LEAGUE);
+    assert.equal(info.seasonYear, 2027);
+    assert.deepEqual(info.weeks.map(week => week.number), [1, 2, 3]);
+    assert.deepEqual(info.rosterPeriods, [
+        { number: 14, startDate: '2026-10-20T04:00:00.000Z', endDate: '2026-10-21T03:59:59.000Z' },
+        { number: 15, startDate: '2026-10-21T04:00:00.000Z', endDate: '2026-10-22T03:59:59.000Z' },
+    ]);
+});
+
+// A past day's rosters (recorded from the live league on 2026-11-14, roster period 20, trimmed to two teams).
+test("a past day's rosters give each team's players with the slot each was in that day", async () => {
+    const rosters = await fantrax().dayRosters('rf5o9cu2mutybszr', 20);
+    assert.deepEqual(rosters['4num7i90mutybt24'], [
+        { id: '059e0', status: 'ACTIVE' }, { id: '02azf', status: 'RESERVE' },
+        { id: '05lu8', status: 'INJURED_RESERVE' }, { id: '06hcq', status: 'MINORS' },
+    ]);
+    assert.deepEqual(Object.keys(rosters), ['4num7i90mutybt24', '1cbgg930mutybt24']);
+});
+
+test("a past day's rosters are rejected unless they are that day's, with every player's id and slot", async () => {
+    type RecordedRosters = { rosters: Record<string, { rosterItems: Record<string, unknown>[] }> };
+    const item = (body: RecordedBody) => (body as unknown as RecordedRosters).rosters['4num7i90mutybt24'].rosterItems[0];
+    const invalid: ((body: RecordedBody) => unknown)[] = [
+        // Fantrax answers a day outside the season with the nearest one
+        body => ({ ...body, period: 175 }),
+        () => ({ error: { code: 'INVALID_LEAGUE_ID', message: 'Missing or invalid league ID.' } }),
+        body => { (body as unknown as RecordedRosters).rosters['4num7i90mutybt24'].rosterItems = undefined as never; return body; },
+        body => { item(body).id = ''; return body; },
+        body => { item(body).status = 'TAXI'; return body; },
+    ];
+    for (const edit of invalid) await assert.rejects(fantrax({ getTeamRosters: edit }).dayRosters(LEAGUE, 20), /invalid rosters for roster period 20/);
 });
 
 test('an invalid player directory is rejected', async () => {

@@ -6,7 +6,7 @@ import type { TestContext } from 'node:test';
 import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
-import type { FantraxPlayer, FantraxWeek } from '../ports';
+import type { FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxWeek } from '../ports';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -21,6 +21,14 @@ export const WEEKS: FantraxWeek[] = Array.from({ length: 24 }, (_, index) => {
     const end = index === 23 ? Date.parse('2027-04-05T15:59:58Z') : start + 7 * DAY - 1000;
     return { number: index + 1, startDate: new Date(start).toISOString(), endDate: new Date(end).toISOString() };
 });
+/** Fantrax's daily roster periods, numbered from 1: midnight to midnight Eastern (standard time), from the first week's start to the Final's last day */
+export const ROSTER_PERIODS: FantraxRosterPeriod[] = Array.from({ length: 176 }, (_, index) => {
+    const start = Date.parse(WEEKS[0].startDate) + index * DAY;
+    return { number: index + 1, startDate: new Date(start).toISOString(), endDate: new Date(start + DAY - 1000).toISOString() };
+}).filter(period => Date.parse(period.startDate) <= Date.parse(WEEKS.at(-1)!.endDate));
+/** the roster periods of week `week`: those starting inside it */
+export const daysOf = (week: number) => ROSTER_PERIODS.filter(period =>
+    Date.parse(period.startDate) >= Date.parse(WEEKS[week - 1].startDate) && Date.parse(period.startDate) <= Date.parse(WEEKS[week - 1].endDate)).map(period => period.number);
 /** a morning in week 5 */
 export const MID_SEASON = Date.parse('2026-11-14T11:00:00Z');
 /** the moment the last week's seven-day correction window closes */
@@ -66,9 +74,12 @@ const playersOf = (rows: PlayerRow[]): FantraxPlayer[] => rows.map(([id, points,
 export function fantraxState(franchises = FRANCHISES): MemoryFantraxState {
     return {
         leagueId: LEAGUE_ID,
-        leagueInfo: { seasonYear: SEASON, weeks: structuredClone(WEEKS) },
+        leagueInfo: { seasonYear: SEASON, weeks: structuredClone(WEEKS), rosterPeriods: structuredClone(ROSTER_PERIODS) },
         standings: standingsOf(franchises.map(id => [id, id, 0, 0, 0, 0, 0])),
         players: [],
+        // every team's roster is empty every day until a test fills it
+        rosters: Object.fromEntries(ROSTER_PERIODS.map(period => [period.number, Object.fromEntries(franchises.map(id => [`fx${id}`, []]))])),
+        directory: {},
         down: new Set(),
     };
 }
@@ -153,7 +164,11 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
             })),
         };
     };
+    /** team fx`team` has `players` (each with its slot) on its roster on each of `days`, roster period numbers, and no one else */
+    const setRoster = (team: number, days: number[], players: [string, FantraxRosterSlot][]) => {
+        for (const day of days) fantrax.rosters[day][`fx${team}`] = players.map(([id, status]) => ({ id, status }));
+    };
     /** an admin marks week `week` final */
     const markFinal = (week: number) => { live.manualFinalWeeks[SEASON] = [...live.manualFinalWeeks[SEASON] ?? [], week]; };
-    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal };
+    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal, setRoster };
 }

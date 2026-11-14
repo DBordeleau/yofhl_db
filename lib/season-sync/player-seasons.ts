@@ -44,13 +44,17 @@ export function playerSeasonRows(season: OpenedSeason, players: FantraxPlayer[])
  * The writes that bring the season's players up to date, each changing a row only where a value differs. Every part
  * touches its own rows: new players, renamed players, kept player seasons, player seasons no longer kept, and ring or
  * award players Fantrax no longer lists (kept with no points and no roster spot).
+ *
+ * `ringed` is the championship roster this run writes: every part of the run's statement sees the roster as it was
+ * before the statement, so its players are kept as ring players here.
  */
-export function playerSeasonsWrites(seasonYear: number, rows: PlayerSeasonRow[]): SyncWrite[] {
+export function playerSeasonsWrites(seasonYear: number, rows: PlayerSeasonRow[], ringed: string[] = []): SyncWrite[] {
     const payload = JSON.stringify(rows);
     const kept = sql`(select k.id from jsonb_to_recordset(${payload}::jsonb) as k(id text))`;
-    // on the season's championship roster or an award list
+    // on the season's championship roster (or the one this run writes) or an award list
     const listed = sql`(
         exists (select 1 from league.championship_rosters c where c.season_year = ${seasonYear} and c.player_id = ps.player_id)
+        or ps.player_id in (select jsonb_array_elements_text(${JSON.stringify(ringed)}::jsonb))
         or exists (select 1 from league.awards a where a.season_year = ${seasonYear} and a.player_id = ps.player_id))`;
     return [
         {

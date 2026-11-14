@@ -8,11 +8,12 @@ import type { SeasonSyncStatus } from '@/lib/season-sync/status';
 const time = (value: string) => `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))} ET`;
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 
-function changes({ teamSeasons, playerSeasons, playoffGames }: SeasonSyncStatus['changed']) {
+function changes({ teamSeasons, playerSeasons, playoffGames, championshipRoster }: SeasonSyncStatus['changed']) {
     const parts = [
         playerSeasons && plural(playerSeasons, 'player season'),
         teamSeasons && plural(teamSeasons, 'team season'),
         playoffGames && plural(playoffGames, 'playoff game'),
+        championshipRoster && plural(championshipRoster, 'championship roster player'),
     ].filter(Boolean);
     return parts.length ? parts.join(', ') : 'nothing';
 }
@@ -42,6 +43,7 @@ export default function SeasonSyncControls({ status }: { status: SeasonSyncStatu
             <dt className="font-bold">Last run</dt><dd>{time(status.lastRunAt)}</dd>
             <dt className="font-bold">Last success</dt><dd>{status.lastSuccessAt ? time(status.lastSuccessAt) : 'Never'}</dd>
             {status.lastSuccessAt && <><dt className="font-bold">Changed</dt><dd>{changes(status.changed)}</dd></>}
+            {status.autoRosterFranchiseId !== null && <><dt className="font-bold">Championship roster</dt><dd>Written automatically, not yet saved in the roster editor</dd></>}
             {status.frozenAt && <><dt className="font-bold">Frozen</dt><dd>{time(status.frozenAt)}</dd></>}
         </dl> : <p className="mt-3 text-sm text-ink-soft">Not run yet.</p>}
         {status?.lastError && <p role="alert" className="mt-3 text-sm text-rink-red">Last error: {status.lastError}</p>}

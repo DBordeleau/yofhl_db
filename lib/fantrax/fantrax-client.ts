@@ -26,6 +26,11 @@ interface RosterResponse {
     period: number;
     rosters: Record<string, { rosterItems: { id: string; position: string; status: string }[] }>;
 }
+/** a player's slot on a roster for the day */
+export type RosterSlot = 'ACTIVE' | 'RESERVE' | 'INJURED_RESERVE' | 'MINORS';
+const ROSTER_SLOTS: readonly string[] = ['ACTIVE', 'RESERVE', 'INJURED_RESERVE', 'MINORS'] satisfies RosterSlot[];
+/** each Fantrax team's players on one daily roster period, with the slot each was in */
+export type DayRosters = Record<string, { id: string; status: RosterSlot }[]>;
 interface Standing {
     teamId: string;
     rank: number;
@@ -108,11 +113,24 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         return { info: readLeagueInfo(info), rosters, standings, fetchedAt };
     }
 
-    /** league info alone: the season year and its weeks, in order */
-    async function leagueInfo(leagueId: string): Promise<{ seasonYear: number; weeks: SourceWeek[] }> {
+    /** league info alone: the season year, its weeks and its daily roster periods, each in order */
+    async function leagueInfo(leagueId: string): Promise<{ seasonYear: number; weeks: SourceWeek[]; rosterPeriods: SourceWeek[] }> {
         const info = await request<LeagueInfo>('getLeagueInfo', { leagueId, excludePlayerInfo: 'true' });
-        if (!Number.isInteger(info?.seasonYear) || !info.scoringPeriods?.length) throw new Error('Fantrax returned incomplete league info');
-        return { seasonYear: readLeagueInfo(info).seasonYear, weeks: info.scoringPeriods.map(normalizePeriod).sort((a, b) => a.number - b.number) };
+        if (!Number.isInteger(info?.seasonYear) || !info.scoringPeriods?.length || !Array.isArray(info.rosterPeriods)) throw new Error('Fantrax returned incomplete league info');
+        const inOrder = (periods: SourceWeek[]) => periods.map(normalizePeriod).sort((a, b) => a.number - b.number);
+        return { seasonYear: readLeagueInfo(info).seasonYear, weeks: inOrder(info.scoringPeriods), rosterPeriods: inOrder(info.rosterPeriods) };
+    }
+
+    /** every team's roster on a past (or the current) daily roster period, each player with their slot that day */
+    async function dayRosters(leagueId: string, period: number): Promise<DayRosters> {
+        const response = await request<RosterResponse>('getTeamRosters', { leagueId, period: String(period) });
+        // Fantrax answers a period outside the season with the nearest one, so the period must be the one asked for.
+        const teams = response?.period === period && response.rosters && typeof response.rosters === 'object' ? Object.entries(response.rosters) : [];
+        if (!teams.length || !teams.every(([, roster]) => Array.isArray(roster?.rosterItems) && roster.rosterItems.every(item =>
+            typeof item?.id === 'string' && !!item.id && ROSTER_SLOTS.includes(item.status)))) {
+            throw new Error(`Fantrax returned invalid rosters for roster period ${period}`);
+        }
+        return Object.fromEntries(teams.map(([id, roster]) => [id, roster.rosterItems.map(item => ({ id: item.id, status: item.status as RosterSlot }))]));
     }
 
     /** the website standings table: rank, W/L/T and points for and against, season to date */
@@ -171,7 +189,7 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         return { source, leaders, rosterStats: stats, scores: Object.fromEntries(scores.map(score => [score.period, score])) };
     }
 
-    return { league, leagueInfo, standingsTable, playerTable, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
+    return { league, leagueInfo, dayRosters, standingsTable, playerTable, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
 }
 
 /** The port's core snapshot from raw responses, fresh or saved: Fantrax's periods become weeks. */

@@ -1,0 +1,5 @@
+ALTER TABLE "league"."season_sync_status" ADD COLUMN "changed_championship_roster" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "league"."season_sync_status" ADD COLUMN "auto_roster_franchise_id" integer;--> statement-breakpoint
+ALTER TABLE "league"."season_sync_status" ADD COLUMN "saved_roster_franchise_id" integer;--> statement-breakpoint
+ALTER TABLE "league"."season_sync_status" ADD CONSTRAINT "season_sync_status_auto_roster_franchise_id_franchises_id_fk" FOREIGN KEY ("auto_roster_franchise_id") REFERENCES "league"."franchises"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "league"."season_sync_status" ADD CONSTRAINT "season_sync_status_saved_roster_franchise_id_franchises_id_fk" FOREIGN KEY ("saved_roster_franchise_id") REFERENCES "league"."franchises"("id") ON DELETE no action ON UPDATE no action;

@@ -134,6 +134,32 @@ async function planBracket({ season, live, scoresOf, stored, corrections, now }:
     return { games, warnings };
 }
 
+/** the season's champion, once its Final has a winner: its team season and name, and the weeks it played a playoff game */
+export interface Champion {
+    teamSeasonId: number;
+    name: string;
+    /** the Fantrax weeks of the playoff rounds it played a game in (a bye week is not one) */
+    weeks: number[];
+}
+
+/** The champion once this run's write lands: each round as planned this run, else as stored. */
+function championOf(live: LiveSeason, season: OpenedSeason, planned: PlayoffGame[], stored: PlayoffGame[]): Champion | null {
+    const { rounds } = live.playoffs;
+    const gamesOf = (round: number) => {
+        const games = planned.filter(game => game.round === round);
+        return games.length ? games : stored.filter(game => game.round === round);
+    };
+    const final = gamesOf(rounds.length);
+    if (!live.playoffs.fitsFormat || final.length !== 1 || final[0].winner === null) return null;
+    const teamSeasonId = final[0].winner;
+    const fantraxTeamId = season.teams.find(team => team.teamSeasonId === teamSeasonId)?.fantraxTeamId;
+    return {
+        teamSeasonId,
+        name: live.teams.find(team => team.id === fantraxTeamId)?.name ?? `team season ${teamSeasonId}`,
+        weeks: rounds.filter((_, index) => gamesOf(index + 1).some(game => game.away === teamSeasonId || game.home === teamSeasonId)).map(week => week.number),
+    };
+}
+
 /** the live season, checked to be the opened season */
 async function liveSeasonOf(ports: SeasonSyncPorts, season: OpenedSeason, now: number): Promise<LiveSeason> {
     const result = await ports.liveSeason.getLiveSeason({ now });
@@ -156,8 +182,8 @@ const bracketCorrectionsQuery = (seasonYear: number) => sql`
     select round, franchise_a as "franchiseA", franchise_b as "franchiseB", winner_franchise_id as winner
     from league.matchup_overrides where season_year = ${seasonYear}`;
 
-/** Everything the bracket needs, checked, as its writes and warnings. */
-export async function readBracket(ports: SeasonSyncPorts, season: OpenedSeason, now: number): Promise<{ writes: SyncWrite[]; warnings: string[] }> {
+/** Everything the bracket needs, checked, as its writes and warnings, and the champion once the writes land. */
+export async function readBracket(ports: SeasonSyncPorts, season: OpenedSeason, now: number): Promise<{ writes: SyncWrite[]; warnings: string[]; champion: Champion | null }> {
     const [live, stored, corrections] = await Promise.all([
         liveSeasonOf(ports, season, now),
         rows<PlayoffGame>(playoffGamesQuery(season.seasonYear)),
@@ -169,7 +195,7 @@ export async function readBracket(ports: SeasonSyncPorts, season: OpenedSeason, 
         return scores;
     };
     const { games, warnings } = await planBracket({ season, live, scoresOf, stored, corrections, now });
-    return { writes: games.length ? playoffGamesWrites(season.seasonYear, games) : [], warnings };
+    return { writes: games.length ? playoffGamesWrites(season.seasonYear, games) : [], warnings, champion: championOf(live, season, games, stored) };
 }
 
 const gamesPayload = (games: PlayoffGame[]) => sql`jsonb_to_recordset(${JSON.stringify(games)}::jsonb)
