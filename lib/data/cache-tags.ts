@@ -15,6 +15,8 @@ export const leagueTags = {
     rivalries: 'league:rivalries',
     records: 'league:records',
     discovery: 'league:discovery',
+    /** draft classes' FPts and FP/G */
+    draft: 'league:draft',
     season: (year: number) => `league:season:${year}`,
     franchise: (id: number) => `league:franchise:${id}`,
 };
@@ -30,7 +32,7 @@ export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: nu
             case 'stats': return {
                 views: ['player_careers', 'franchise_records'] as MaterializedView[],
                 tags: [leagueTags.season(year), leagueTags.players, leagueTags.careerLeaderboard, leagueTags.seasonLeaderboard,
-                    leagueTags.franchiseCards, leagueTags.franchiseDetails, leagueTags.records, leagueTags.discovery],
+                    leagueTags.franchiseCards, leagueTags.franchiseDetails, leagueTags.records, leagueTags.discovery, leagueTags.draft],
             };
         }
     });
