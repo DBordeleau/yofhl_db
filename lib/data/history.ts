@@ -1,5 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
+import { getSeasonArchive } from './league';
+import { isPublished } from '../seasons';
 import { leagueTags } from './cache-tags';
 import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
@@ -10,7 +12,7 @@ import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/dev
 const seasonTeamJson = (season: string, franchise: string, recorded: string) => sql.raw(`jsonb_build_object('id', ${franchise},
     'name', coalesce(${season}.name, ${recorded}), 'abbreviation', ${season}.abbreviation, 'logo', ${season}.logo)`);
 
-export const getFranchiseHonors = cached(async (id: number): Promise<FranchiseHonors> => {
+const getFranchiseHonorRows = cached(async (id: number): Promise<FranchiseHonors> => {
     const [primeMinisters, awards] = await Promise.all([
         rows<FranchiseHonors['primeMinisters'][number]>(sql`
             select t.season_year as year, t.fpts_for::float8 as points
@@ -30,6 +32,12 @@ export const getFranchiseHonors = cached(async (id: number): Promise<FranchiseHo
     ]);
     return { primeMinisters, awards };
 }, 'franchise-honors', [leagueTags.awards]);
+
+/** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
+export async function getFranchiseHonors(id: number): Promise<FranchiseHonors> {
+    const [honors, archive] = await Promise.all([getFranchiseHonorRows(id), getSeasonArchive()]);
+    return { ...honors, primeMinisters: honors.primeMinisters.filter(win => isPublished(archive, win.year)) };
+}
 
 export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`
     select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",
