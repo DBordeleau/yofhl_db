@@ -6,7 +6,7 @@ import type { TestContext } from 'node:test';
 import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
-import type { FantraxWeek } from '../ports';
+import type { FantraxPlayer, FantraxWeek } from '../ports';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -32,6 +32,8 @@ export const endOf = (week: number) => Date.parse(WEEKS[week - 1].endDate);
 // franchise 2 in the Final) franchise N went 10-5-1 with 1000.5 points for and 900.25 against. The opened 2026–27
 // season names franchise N "Club N" (CN, /logos/cN.png) in team season 10 + N, all zeros, as the season import
 // opens it. Fantrax team fxN is franchise N.
+// Players: v1 scored 100 (10 FP/G) for franchise 1 in 2025–26 and was franchise 1's first pick in the
+// 2026–27 draft; v2 scored 120 (12 FP/G) for franchise 2.
 const seed = (opened: boolean, franchises: number[]) => `
     insert into league.seasons values (2026, '2025–26', 'complete') ${opened ? `, (${SEASON}, '2026–27', 'complete')` : ''};
     insert into league.franchises (id, display_name, first_season) values ${franchises.map(id => `(${id}, 'Franchise ${id}', 2020)`).join(', ')};
@@ -43,6 +45,11 @@ const seed = (opened: boolean, franchises: number[]) => `
         values (2026, 'playoff', 3, 'championship', 1, 1, 2, 300, 250, 1);
     insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id)
         values ${franchises.map(id => `(${SEASON}, '${LEAGUE_ID}', 'fx${id}', ${id})`).join(', ')};
+    insert into league.players (id, name) values ('v1', 'Name v1'), ('v2', 'Name v2');
+    insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
+        values ('v1', 2026, 1, 'EDM', '{C}', 100, 10), ('v2', 2026, 2, 'TOR', '{LW,RW}', 120, 12);
+    ${opened ? `insert into league.draft_picks (season_year, overall, round, pick, franchise_id, team_name, player_id, player_name, positions, drafted_on, source_time, source_file)
+        values (${SEASON}, 1, 1, 1, 1, 'Club 1', 'v1', 'Name v1', 'C', '2026-10-01', '8:00', 'draft.csv');` : ''}
 `;
 
 /** a standings row: [Fantrax team number, rank, wins, losses, ties, points for, points against] */
@@ -50,11 +57,18 @@ export type StandingRow = [number, number, number, number, number, number, numbe
 const standingsOf = (rows: StandingRow[]) => rows.map(([team, rank, wins, losses, ties, pointsFor, pointsAgainst]) =>
     ({ teamId: `fx${team}`, rank, wins, losses, ties, pointsFor, pointsAgainst }));
 
+/** a player in Fantrax's player stats table: [player ID, FPts, FP/G, Fantrax team number or null for a free agent] */
+export type PlayerRow = [string, number, number | null, number | null];
+/** each player as Fantrax lists them: named "Name <id>", a centre for Edmonton unless the test says otherwise */
+const playersOf = (rows: PlayerRow[]): FantraxPlayer[] => rows.map(([id, points, perGame, team]) =>
+    ({ id, name: `Name ${id}`, positions: ['C'], nhlTeam: 'EDM', teamId: team === null ? null : `fx${team}`, points, perGame }));
+
 export function fantraxState(franchises = FRANCHISES): MemoryFantraxState {
     return {
         leagueId: LEAGUE_ID,
         leagueInfo: { seasonYear: SEASON, weeks: structuredClone(WEEKS) },
         standings: standingsOf(franchises.map(id => [id, id, 0, 0, 0, 0, 0])),
+        players: [],
         down: new Set(),
     };
 }
@@ -118,6 +132,8 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     const read = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/', fn)).result;
     /** Fantrax's standings table now reads `rows` */
     const setStandings = (rows: StandingRow[]) => { fantrax.standings = standingsOf(rows); };
+    /** Fantrax's player stats table now lists `rows` (every NHL player, scored or not) */
+    const setPlayers = (rows: PlayerRow[]) => { fantrax.players = playersOf(rows); };
     const core = live.fantrax.core;
     /**
      * Fantrax publishes week `week`'s pairings, in its schedule's order. Publishing the first playoff week's
@@ -139,5 +155,5 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     };
     /** an admin marks week `week` final */
     const markFinal = (week: number) => { live.manualFinalWeeks[SEASON] = [...live.manualFinalWeeks[SEASON] ?? [], week]; };
-    return { league, fantrax, live, sync, run, read, setStandings, setPairings, setScores, markFinal };
+    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal };
 }

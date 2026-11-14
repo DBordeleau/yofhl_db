@@ -30,9 +30,26 @@ export interface FantraxStanding {
     pointsAgainst: number;
 }
 
+/** one player in Fantrax's website player stats table for the league's scoring, season to date */
+export interface FantraxPlayer {
+    /** bare Fantrax player ID */
+    id: string;
+    name: string;
+    positions: string[];
+    /** null when Fantrax lists no NHL team */
+    nhlTeam: string | null;
+    /** the Fantrax team the player is rostered on, or null for a free agent */
+    teamId: string | null;
+    points: number;
+    /** null when Fantrax shows no FP/G */
+    perGame: number | null;
+}
+
 export interface SeasonSyncFantrax {
     leagueInfo(leagueId: string): Promise<FantraxLeagueInfo>;
     standings(leagueId: string): Promise<FantraxStanding[]>;
+    /** every player who scored (a non-zero total, negative included) or is rostered, for the season year given */
+    players(leagueId: string, seasonYear: number): Promise<FantraxPlayer[]>;
 }
 
 export interface SeasonSyncPorts {

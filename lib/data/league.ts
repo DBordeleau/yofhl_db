@@ -290,7 +290,8 @@ export const getTopPlayerIds = cached(
 // The archive's player IDs: a current Fantrax player with one of these has a player page.
 export const getArchivedPlayerIds = cached(
     () => rows<{ id: string }>(sql`select player_id as id from league.player_careers`),
-    'archived-player-ids',
+    'archived-player-ids-v2',
+    [leagueTags.players],
 );
 
 export const getChampionRoster = cached(async (year: number): Promise<ChampionRoster | null> => {

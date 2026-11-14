@@ -47,7 +47,7 @@ export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql
     left join league.players p on p.id = d.player_id
     left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
     where d.franchise_id = ${id}
-    order by d.season_year desc, d.overall`), 'franchise-draft');
+    order by d.season_year desc, d.overall`), 'franchise-draft-v2', [leagueTags.draft]);
 
 type SeasonDraftRow = Omit<SeasonDraftSelection, 'regretEligible'> & { draftedOn: string; developmentFacts: DraftDevelopmentFacts | null };
 const getSeasonDraftRows = cached((year: number) => rows<SeasonDraftRow>(sql`
@@ -61,7 +61,7 @@ const getSeasonDraftRows = cached((year: number) => rows<SeasonDraftRow>(sql`
     left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
     left join league.season_teams st on st.franchise_id = d.franchise_id and st.season_year = d.season_year
     where d.season_year = ${year}
-    order by d.overall`), 'season-draft-v3-development');
+    order by d.overall`), 'season-draft-v4-development', [leagueTags.draft]);
 
 export async function getSeasonDraft(year: number): Promise<SeasonDraftSelection[]> {
     return (await getSeasonDraftRows(year)).map(({ draftedOn, developmentFacts, ...pick }) => ({

@@ -149,3 +149,81 @@ test('a standings table that is not the season-to-date table of every team is re
     ];
     for (const edit of invalid) await assert.rejects(fantrax({ getStandingsTable: edit }).standingsTable('rf5o9cu2mutybszr'), /unexpected standings table/);
 });
+
+// Fantrax's website player stats table for the league's scoring, season to date (recorded from the live league on
+// 2026-11-14 in pages of 1,000, trimmed): the first page from the top scorers through the first zeros, the last page's
+// final rows ending in the one negative total, and the rostered players. Fantrax ignores sortReversed when signed out,
+// so the table only sorts by fantasy points descending, with negative totals last. Every NHL player between them has
+// no points.
+type RecordedRow = { scorer: { scorerId: string; name: string }; cells: { content?: string; teamId?: string }[] };
+type RecordedStats = { responses: { data: { displayedSortReversed: boolean; displayedStatusOrTeam: string; displayedSeasonOrProjection: { name: string };
+    paginatedResultSet: { pageNumber: number; maxResultsPerPage: number; totalNumResults: number; totalNumPages: number }; statsTable: RecordedRow[] } }[] };
+type TableEdits = { rows?: (rows: RecordedRow[]) => RecordedRow[]; page?: (body: RecordedStats, page: number) => unknown; taken?: (body: RecordedStats) => unknown };
+const LIVE = 'rf5o9cu2mutybszr';
+function playerTable(edit: TableEdits = {}) {
+    const requests: { statusOrTeamFilter: string; pageNumber: string }[] = [];
+    const first = recorded('getPlayerStats-first') as RecordedStats;
+    const last = recorded('getPlayerStats-last') as RecordedStats;
+    const total = first.responses[0].data.paginatedResultSet.totalNumResults;
+    const [top, tail] = [first.responses[0].data.statsTable, last.responses[0].data.statsTable];
+    const nobody = top.at(-1)!;
+    const filler = Array.from({ length: total - top.length - tail.length }, (_, index) =>
+        ({ ...structuredClone(nobody), scorer: { ...nobody.scorer, scorerId: `zero${index}`, name: `Zero ${index}` } }));
+    const rows = (edit.rows ?? (value => value))([...top, ...filler, ...tail]);
+    const client = createFantraxClient(async (_input, init) => {
+        const { data: request } = JSON.parse(String(init?.body)).msgs[0];
+        requests.push(request);
+        if (request.statusOrTeamFilter === 'ALL_TAKEN') return Response.json((edit.taken ?? (value => value))(recorded('getPlayerStats-taken')));
+        const page = Number(request.pageNumber);
+        const limit = Number(request.maxResultsPerPage);
+        const body = structuredClone(first);
+        const data = body.responses[0].data;
+        data.paginatedResultSet = { pageNumber: page, maxResultsPerPage: limit, totalNumResults: rows.length, totalNumPages: Math.ceil(rows.length / limit) };
+        data.statsTable = rows.slice((page - 1) * limit, page * limit);
+        return Response.json((edit.page ?? (value => value))(body, page));
+    });
+    return { client, requests };
+}
+
+test("the player table gives every scorer, negative totals included, and every rostered player, without reading every NHL player's page", async () => {
+    const { client, requests } = playerTable();
+    const players = await client.playerTable(LIVE, 2027);
+    assert.deepEqual(players.map(player => [player.name, player.points]), [
+        ['Connor McDavid', 214.5], ['Evan Bouchard', 194.5], ['Cutter Gauthier', 145.5], ['Scott Wedgewood', 24.7], ['Ben McCartney', 0.25],
+        ['James Reimer', -1.5],
+        ['Aleksander Barkov', 1.75], ['Brock Faber', 0],
+    ]);
+    assert.deepEqual(players[0], { id: '02un4', name: 'Connor McDavid', positions: ['C'], nhlTeam: 'EDM', teamId: '7jmn4yymmutybt24', points: 214.5, perGame: 10.72 });
+    assert.deepEqual(players[2].positions, ['LW', 'RW']);
+    assert.equal(players[3].teamId, null, 'a player on waivers is a free agent');
+    assert.deepEqual(players[5], { id: '0055l', name: 'James Reimer', positions: ['G'], nhlTeam: null, teamId: null, points: -1.5, perGame: -1.5 });
+    assert.deepEqual(players[7], { id: '05ltj', name: 'Brock Faber', positions: ['D'], nhlTeam: 'MIN', teamId: 'ru2wvs6mmutybt24', points: 0, perGame: 0 });
+    assert.equal(requests.length, 3, 'the first page, the last page and the rostered players');
+});
+
+test('scorers past the first page are read until the first zero', async () => {
+    // 1,500 scorers: the first zero is on the second page
+    const scorer = (index: number): RecordedRow => ({ scorer: { scorerId: `s${index}`, name: `Scorer ${index}`, posShortNames: 'C', teamShortName: 'EDM' } as RecordedRow['scorer'],
+        cells: [{ content: '1' }, { content: 'FA' }, { content: '30' }, { content: '' }, { content: '25' }, { content: '0.5' }] });
+    const { client } = playerTable({ rows: rows => [...rows.slice(0, 3), ...Array.from({ length: 1500 }, (_, index) => scorer(index)), ...rows.slice(3)] });
+    const players = await client.playerTable(LIVE, 2027);
+    assert.equal(players.filter(player => player.id.startsWith('s')).length, 1500);
+    assert.ok(players.some(player => player.name === 'Ben McCartney'), "the second page's last scorer");
+    assert.equal(players.find(player => player.points < 0)!.name, 'James Reimer');
+});
+
+test('a player table that is not the requested, complete, season-to-date table in fantasy points order is rejected', async () => {
+    const invalid: [string, TableEdits, RegExp][] = [
+        ['another filter', { page: body => { body.responses[0].data.displayedStatusOrTeam = 'ALL_AVAILABLE'; return body; } }, /unexpected player stats table/],
+        ['reversed', { page: body => { body.responses[0].data.displayedSortReversed = true; return body; } }, /unexpected player stats table/],
+        ['another page', { page: (body, page) => { body.responses[0].data.paginatedResultSet.pageNumber = page + 1; return body; } }, /unexpected player stats table/],
+        ['a short page', { page: body => { body.responses[0].data.statsTable.pop(); return body; } }, /unexpected player stats table/],
+        ['a total that moves between pages', { page: (body, page) => { if (page > 1) body.responses[0].data.paginatedResultSet.totalNumResults += 1; return body; } }, /unexpected player stats table/],
+        ['out of order', { rows: rows => [rows[1], rows[0], ...rows.slice(2)] }, /out of fantasy points order/],
+        ['an empty table', { rows: () => [] }, /unexpected player stats table/],
+        ['another season', { page: body => { body.responses[0].data.displayedSeasonOrProjection.name = '2025-26 Reg Season - YTD'; return body; } }, /wrong scoring season/],
+        ['a rostered player with no team', { taken: body => { delete body.responses[0].data.statsTable[0].cells[1].teamId; return body; } }, /player is invalid/],
+        ['an invalid total', { rows: rows => { rows[0].cells[4].content = 'lots'; return rows; } }, /scoring stat is invalid/],
+    ];
+    for (const [what, edit, error] of invalid) await assert.rejects(playerTable(edit).client.playerTable(LIVE, 2027), error, what);
+});

@@ -7,8 +7,8 @@ import type { SeasonSyncChange } from '@/lib/data/cache-tags';
 import type { SyncCounts } from './status';
 
 export interface SyncWrite {
-    /** the status count its changed rows add to */
-    count: keyof SyncCounts;
+    /** the status count its changed rows add to; null for rows that always change with rows another part counts */
+    count: keyof SyncCounts | null;
     /** the kind of change, for the views to refresh and tags to expire when it changes a row */
     change: SeasonSyncChange;
     /** a data-modifying statement returning one row per row it changed */
