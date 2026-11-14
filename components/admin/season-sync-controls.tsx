@@ -1,11 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { syncSeasonStats } from '@/app/admin/fantrax-actions';
 import type { SeasonSyncStatus } from '@/lib/season-sync/status';
-
-const time = (value: string) => `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))} ET`;
+import { ADMIN_BUTTON, AdminActionStatus, easternTime as time, useAdminAction } from './admin-action';
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 
 function changes({ teamSeasons, playerSeasons, playoffGames, championshipRoster }: SeasonSyncStatus['changed']) {
@@ -20,25 +17,12 @@ function changes({ teamSeasons, playerSeasons, playoffGames, championshipRoster 
 
 // The season sync's status and its "Sync season stats" button, beside the Fantrax controls.
 export default function SeasonSyncControls({ status }: { status: SeasonSyncStatus | null }) {
-    const router = useRouter();
-    const [pending, startTransition] = useTransition();
-    const [result, setResult] = useState<{ message: string } | { error: string } | null>(null);
-    const run = () => {
-        setResult(null);
-        startTransition(async () => {
-            try {
-                const value = await syncSeasonStats();
-                setResult(value);
-                router.refresh();
-            } catch {
-                setResult({ error: 'The request failed. Reload the page and try again.' });
-            }
-        });
-    };
+    // a failed run is recorded on the status row, so the panel refreshes either way
+    const { pending, result, run } = useAdminAction({ refreshAfterError: true });
 
     return <section aria-labelledby="season-sync-heading" aria-busy={pending} className="mb-6 rounded-3xl border border-line bg-white p-5 shadow-card">
         <h2 id="season-sync-heading" className="font-wide text-xl font-extrabold">Season sync</h2>
-        <p className="mt-2 text-sm text-ink-soft">Writes the live season into the archive every morning at 11:00 UTC.</p>
+        <p className="mt-2 text-sm text-ink-soft">Writes the live season into the archive daily at 6 a.m. Eastern (7 a.m. in daylight time).</p>
         {status ? <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
             <dt className="font-bold">Last run</dt><dd>{time(status.lastRunAt)}</dd>
             <dt className="font-bold">Last success</dt><dd>{status.lastSuccessAt ? time(status.lastSuccessAt) : 'Never'}</dd>
@@ -50,7 +34,7 @@ export default function SeasonSyncControls({ status }: { status: SeasonSyncStatu
         {!!status?.warnings.length && <ul className="mt-3 list-disc space-y-1 pl-5 text-sm font-semibold text-gold-deep">
             {status.warnings.map(warning => <li key={warning}>{warning}</li>)}
         </ul>}
-        <button type="button" className="mt-4 min-h-11 rounded-xl bg-ink px-4 text-sm font-bold text-white hover:bg-[#232C4A] disabled:cursor-wait disabled:opacity-50" disabled={pending} onClick={run}>Sync season stats</button>
-        <div className="mt-3 text-sm" aria-live="polite">{pending ? 'Syncing…' : result && ('error' in result ? <p role="alert" className="text-rink-red">{result.error}</p> : <p>{result.message}</p>)}</div>
+        <button type="button" className={`${ADMIN_BUTTON} mt-4`} disabled={pending} onClick={() => run(syncSeasonStats)}>Sync season stats</button>
+        <AdminActionStatus pending={pending} pendingText="Syncing…" result={result} />
     </section>;
 }
