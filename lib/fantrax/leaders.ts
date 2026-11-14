@@ -32,21 +32,26 @@ export interface StatsTableRequest {
 
 const LEADERS: StatsTableRequest = { filter: 'ALL', page: 1, limit: 10 };
 // shortcut: one page covers this league; add pagination if rosters ever exceed 1,000 players.
-const ROSTERED: StatsTableRequest = { filter: 'ALL_TAKEN', page: 1, limit: 1000, whole: true };
+export const ROSTERED: StatsTableRequest = { filter: 'ALL_TAKEN', page: 1, limit: 1000, whole: true };
+
+/** one call to Fantrax's website API (`/fxpa/req`): the data of its one response; `what` names the call in a failure */
+export async function websiteRequest(leagueId: string, method: string, data: object, what: string, fetcher: Fetcher): Promise<unknown> {
+    const response = await fetcher(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(12000),
+        body: JSON.stringify({ msgs: [{ method, data }] }),
+    });
+    if (!response.ok) throw new Error(`Fantrax ${what} returned ${response.status}`);
+    return (await response.json()).responses?.[0]?.data;
+}
 
 // shortcut: Fantrax's website stats endpoint is undocumented; replace it when a supported player-stats API is available.
 export async function loadStatsTable(leagueId: string, seasonYear: number, { filter, page, limit, whole = false }: StatsTableRequest, seasonCode?: string, fetcher = globalFetch) {
     async function request(season?: string): Promise<StatsPage> {
-        const response = await fetcher(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(12000),
-            body: JSON.stringify({ msgs: [{ method: 'getPlayerStats', data: {
-                leagueId, view: 'STATS', statusOrTeamFilter: filter, positionOrGroup: 'ALL', sortType: 'SCORE', sortReversed: false,
-                scoringCategoryType: '5', pageNumber: String(page), maxResultsPerPage: String(limit), miscDisplayType: '1',
-                ...(season ? { seasonOrProjection: season } : {}),
-            } }] }),
-        });
-        if (!response.ok) throw new Error(`Fantrax player stats returned ${response.status}`);
-        const data = (await response.json()).responses?.[0]?.data as StatsPage | undefined;
+        const data = await websiteRequest(leagueId, 'getPlayerStats', {
+            leagueId, view: 'STATS', statusOrTeamFilter: filter, positionOrGroup: 'ALL', sortType: 'SCORE', sortReversed: false,
+            scoringCategoryType: '5', pageNumber: String(page), maxResultsPerPage: String(limit), miscDisplayType: '1',
+            ...(season ? { seasonOrProjection: season } : {}),
+        }, 'player stats', fetcher) as StatsPage | undefined;
         if (!Array.isArray(data?.statsTable) || !Array.isArray(data.tableHeader?.cells) || !Array.isArray(data.seasonOrProjections) ||
             data.displayedStatusOrTeam !== filter || data.displayedPosOrGroup !== 'ALL' || data.displayedSortType !== 'SCORE' || data.displayedSortReversed !== false ||
             data.displayedView !== 'STATS' || data.displayedScoringCategoryType !== '5' ||

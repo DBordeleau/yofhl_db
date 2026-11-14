@@ -1,6 +1,6 @@
 // Fantrax's website standings table: the season-to-date table the Team Stats CSV is exported from, with each
 // team's rank, W/L/T and points for and against. The public API's standings have no points against.
-import { globalFetch } from './leaders';
+import { globalFetch, websiteRequest } from './leaders';
 
 export interface TableStanding {
     /** the Fantrax team */
@@ -39,12 +39,7 @@ function points(value: string | undefined) {
 
 // shortcut: Fantrax's website standings endpoint is undocumented; replace it when the public API gives points against.
 export async function loadStandingsTable(leagueId: string, fetcher = globalFetch): Promise<TableStanding[]> {
-    const response = await fetcher(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(12000),
-        body: JSON.stringify({ msgs: [{ method: 'getStandings', data: { leagueId, view: 'ALL' } }] }),
-    });
-    if (!response.ok) throw new Error(`Fantrax standings returned ${response.status}`);
-    const data = (await response.json()).responses?.[0]?.data as StandingsPage | undefined;
+    const data = await websiteRequest(leagueId, 'getStandings', { leagueId, view: 'ALL' }, 'standings', fetcher) as StandingsPage | undefined;
     if (data?.displayedSelections?.view !== 'ALL' || data.displayedSelections.timeframeType !== 'YEAR_TO_DATE' ||
         !data.fantasyTeamInfo || !Array.isArray(data.tableList)) throw invalid();
     const keys = (cells?: { key?: string }[]) => (cells ?? []).map(cell => cell.key);

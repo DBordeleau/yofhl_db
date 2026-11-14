@@ -4,7 +4,7 @@
 // descending with negative totals last, so three reads cover the kept set: the table from the top until the
 // first total that isn't positive, the table from the bottom until the first that isn't negative, and every
 // rostered player.
-import { globalFetch, loadStatsTable, numericStat, type StatsTableRequest } from './leaders';
+import { globalFetch, loadStatsTable, numericStat, ROSTERED, type StatsTableRequest } from './leaders';
 
 export interface TablePlayer {
     /** bare Fantrax player ID */
@@ -54,8 +54,7 @@ const leading = <T>(items: T[], keep: (item: T) => boolean) => {
 // shortcut: Fantrax's website stats endpoint is undocumented; replace it when a supported player-stats API is available.
 export async function loadPlayerTable(leagueId: string, seasonYear: number, fetcher = globalFetch): Promise<TablePlayer[]> {
     const read = (request: StatsTableRequest, seasonCode?: string) => loadStatsTable(leagueId, seasonYear, request, seasonCode, fetcher);
-    // shortcut: one page covers this league's rosters; add pagination if they ever exceed 1,000 players.
-    const rostered = await read({ filter: 'ALL_TAKEN', page: 1, limit: PAGE, whole: true });
+    const rostered = await read(ROSTERED);
     const seasonCode = rostered.displayedSeasonOrProjection.code;
 
     const pages = new Map<number, TablePlayer[]>();
