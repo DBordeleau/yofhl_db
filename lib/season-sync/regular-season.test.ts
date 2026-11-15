@@ -6,7 +6,7 @@ const HOUR = 3600_000;
 const DAY = 24 * HOUR;
 type League = Awaited<ReturnType<typeof seasonSyncLeague>>;
 
-// The archive has no reader of regular-season games or weeks yet, so these read the tables the run writes.
+// The run's own rules are checked against the tables it writes; the last tests read through the record book and Compare.
 /** the season's stored regular-season games: [week, away franchise, home franchise, away score, home score, winning franchise] */
 async function games({ league }: League) {
     const { rows } = await league.client.query<{ week: number; away: number; home: number; awayScore: number; homeScore: number; winner: number | null }>(`
@@ -164,4 +164,33 @@ test('a frozen season has its weeks and regular-season games left alone', async 
     league.setScores(4, [[4, 3, 1, 2], [1, 2, 3, 4]]);
     assert.equal((await league.run(FREEZES_AT + HOUR)).result.outcome, 'frozen');
     assert.deepEqual([await games(league), await weeks(league)], settled);
+});
+
+/** franchise 2 wins weeks 1–4, scoring 410.25 against franchise 4 in week 3 */
+function franchiseTwoWinsTheMonth(league: League) {
+    league.setScores(1, [[1, 2, 99, 150.5], [3, 4, 80, 120]]);
+    league.setScores(2, [[2, 3, 120, 100], [4, 1, 110, 100]]);
+    league.setScores(3, [[4, 2, 90, 410.25], [1, 3, 77, 66]]);
+    league.setScores(4, [[1, 2, 100, 101], [4, 3, 105, 104]]);
+}
+
+test("the record book's Weekly matchup records and winning streaks run through the stored games once a run stores them", async t => {
+    const league = await seasonSyncLeague(t);
+    const { getRecordBook } = await import('@/lib/records/data');
+    const book = async () => {
+        const { records } = await league.read(() => getRecordBook({ format: 'weekly' }));
+        const list = (id: string) => records.find(record => record.id === id)!.entries;
+        return { score: list('matchup-score')[0], margin: list('winning-margin')[0], streak: list('win-streak').find(entry => entry.id === '2')! };
+    };
+    // the checked-in history: 306 in 2019 is the Weekly high, and franchise 2 won its last seven games of 2025–26
+    const before = await book();
+    assert.deepEqual([before.score.value, before.score.detail.endsWith('2018–19 · P15')], [306, true]);
+    assert.equal(before.streak.value, 7);
+
+    franchiseTwoWinsTheMonth(league);
+    await league.run(MID_SEASON);
+    const after = await book();
+    assert.deepEqual([after.score.id.endsWith(':2'), after.score.value, after.score.detail], [true, 410.25, '410.25–90 vs Club 4 · 2026–27 · P3']);
+    assert.deepEqual([after.margin.value, after.margin.detail], [320.25, '410.25–90 vs Club 4 · 2026–27 · P3']);
+    assert.deepEqual([after.streak.value, after.streak.detail], [11, '2025–26 P42 → 2026–27 P4']);
 });
