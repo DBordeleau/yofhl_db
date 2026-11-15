@@ -19,7 +19,8 @@ const fixtureLegacy = () => readLegacySeeds(path.join(FIXTURE, 'legacy-awards.js
 const draftFacts: DraftFactsLoader = async (pick) => ({ nhlId: 9000 + pick.overall, birthDate: '2004-06-01', draftedOn: pick.draftedOn, priorNhlGames: null });
 
 async function importFixture(t: TestContext, { league = {}, legacy = fixtureLegacy() }: { league?: LeagueOptions; legacy?: LegacySeeds } = {}) {
-    const db = drizzle((await disposableLeague(t, league)).client, { schema });
+    const { client } = await disposableLeague(t, league);
+    const db = drizzle(client, { schema });
     const result = await importSeasons({
         db: db as unknown as Db,
         config: loadLeagueConfig(path.join(FIXTURE, 'league.yml')),
@@ -29,7 +30,7 @@ async function importFixture(t: TestContext, { league = {}, legacy = fixtureLega
         loadDraftFacts: draftFacts,
     });
     if (!result.ok) throw new Error(`The fixture import failed: ${result.errors.join('; ')}`);
-    return result;
+    return { ...result, client };
 }
 
 test('a clean import returns each season\'s status', async (t) => {
@@ -63,4 +64,14 @@ test('the admin season checklist reads the same statuses the import returns', as
     const { getSeasonStatuses } = await import('@/lib/admin/data');
 
     assert.deepEqual(await getSeasonStatuses(), statuses);
+});
+
+test('the season status game count ignores regular-season games', async (t) => {
+    const { client } = await importFixture(t, { league: { app: true } });
+    await client.exec(`
+        insert into league.matchups (season_year, stage, round, bracket, slot, away_team_season_id, home_team_season_id, away_score, home_score)
+        select 2026, 'regular', 1, 'championship', 1, min(id), max(id), 50, 60 from league.team_seasons where season_year = 2026`);
+    const { getSeasonStatuses } = await import('@/lib/admin/data');
+
+    assert.equal((await getSeasonStatuses())[0].games, 4);
 });

@@ -10,6 +10,7 @@ export interface SeasonStatus {
     playoffStatus: 'complete' | 'cancelled';
     teams: number;
     players: number;
+    /** Playoff games only. */
     games: number;
     champion: string | null;
     roster: number;
@@ -26,7 +27,7 @@ export const SEASON_STATUS_QUERY = sql`
     select s.year, s.label, s.playoff_status as "playoffStatus",
            (select count(*)::int from league.team_seasons t where t.season_year = s.year) as teams,
            (select count(*)::int from league.player_seasons ps where ps.season_year = s.year) as players,
-           (select count(*)::int from league.matchups m where m.season_year = s.year) as games,
+           (select count(*)::int from league.matchups m where m.season_year = s.year and m.stage = 'playoff') as games,
            (select t.name from league.team_seasons t where t.id = r.champion_team_season_id) as champion,
            (select count(*)::int from league.championship_rosters c where c.season_year = s.year) as roster,
            (select count(distinct a.award_type_id)::int from league.awards a where a.season_year = s.year) as awards,
