@@ -172,7 +172,7 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     const setSkaters = (rows: SkaterRow[]) => { fantrax.skaters = skatersOf(rows); };
     /**
      * Each player season's stored goals, assists, shots, hits and blocks in `year`, by player ID, or null where none
-     * are stored. Read from the table, as no site reader shows them yet.
+     * are stored. Read from the table, as the record book shows only the ranked ones.
      */
     const skaterCategories = async (year: number) => {
         const { rows } = await league.client.query<{ id: string; goals: number | null; assists: number | null; shots: number | null; hits: number | null; blocks: number | null }>(
