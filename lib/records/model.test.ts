@@ -85,6 +85,15 @@ test('matchup records combine split-week periods across scoring rules and exclud
     assert.equal(matchupFormat({ ...period, year: 2023 }), null);
 });
 
+test("a seven-day week after the checked-in history is Weekly, a shorter one Bi-weekly and a longer one has no format", () => {
+    const week = { year: 2027, period: 1, days: 7, era: 2027, start: '2026-10-12', end: '2026-10-18' };
+    assert.equal(matchupFormat(week), 'weekly');
+    assert.equal(matchupFormat({ ...week, days: 4 }), 'biweekly');
+    assert.equal(matchupFormat({ ...week, days: 8 }), null);
+    assert.equal(matchupFormat({ ...week, days: 14 }), null);
+    assert.equal(matchupFormat({ ...week, year: 2026 }), null, "the history's own seven-day weeks stay out, so its records hold");
+});
+
 test('all archived games have period evidence and only valid comparable formats are offered', () => {
     const data = { ...source(), games: history.games.map(g => ({ ...g, stage: 'regular' as const })), periods };
     assert(data.games.every(g => data.periods.some(p => p.year === g.year && p.period === g.round)));

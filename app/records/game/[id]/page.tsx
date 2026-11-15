@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import TeamBadge from '@/components/team-badge';
-import { getRecordSource } from '@/lib/records/data';
-import { matchupFormat } from '@/lib/records/model';
+import { getRecordGame } from '@/lib/records/data';
 import { formatFpts, seasonLabel, teamSeasonHref } from '@/lib/league';
 import styles from '@/components/records/records.module.css';
 import ExploreNext from '@/components/explore-next';
@@ -15,12 +14,9 @@ export const metadata = { title: 'Matchup record · YOFHL', robots: { index: fal
 export default async function RecordGame({ params }: { params: Promise<{ id: string }> }) {
 
     const { id } = await params;
-    const source = await getRecordSource();
-    const game = source.games.find(g => String(g.id) === id);
-    if (!game) notFound();
-    const period = source.periods.find(p => p.year === game.year && p.period === game.round);
-    const format = period ? matchupFormat(period) : null;
-    if (game.stage !== 'regular' || !format) notFound();
+    const found = await getRecordGame(id);
+    if (!found) notFound();
+    const { source, game, period, format } = found;
     const season = (await getSeasonArchive()).published.find(row => row.year === game.year);
     const sides = [{ id: game.away, name: game.awayName, points: game.awayScore }, { id: game.home, name: game.homeName, points: game.homeScore }];
     const scores = source.games.filter(g => g.year === game.year && g.round === game.round).flatMap(g => [{ id: g.away, name: g.awayName, points: g.awayScore }, { id: g.home, name: g.homeName, points: g.homeScore }]).sort((a, b) => b.points - a.points);

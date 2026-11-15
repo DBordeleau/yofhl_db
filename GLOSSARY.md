@@ -74,6 +74,9 @@ A week whose scores are settled, either automatically because the standings reco
 One pairing in a week before Fantrax's first playoff week. From 2027 the season sync stores each one once its week is final, as a game with the regular stage and its week number as its round; earlier seasons' are in `lib/rivalries/regular-season-history.json`.
 _Avoid_: matchup (on its own, when the stage matters)
 
+**Matchup format**:
+The kind of week a regular-season game was played over, which decides which games the record book compares. Weekly is any week of up to seven days in 2019, or a seven-day week from 2027. Bi-weekly is a week shorter than seven days after 2019. A week longer than seven days has no format, and neither do the few seven-day weeks of 2020–2026, so the checked-in history's records hold.
+
 **Playoff round**:
 The Quarterfinals, Semifinals or Final, each one Fantrax week, which can be longer than seven days: the 2027 Final is a single two-week week. The rounds start at Fantrax's first playoff week; every earlier week is the regular season.
 
