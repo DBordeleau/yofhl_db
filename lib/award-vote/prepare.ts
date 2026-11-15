@@ -11,7 +11,7 @@
 import { sql } from 'drizzle-orm';
 import type { AwardVoteState, PrepareProgress } from './model';
 import type { AwardVotePorts } from './ports';
-import { FantraxFailure, NhlFailure, prepareSteps } from './prepare-steps';
+import { prepareSteps, ReadFailure } from './prepare-steps';
 import { awardVoteKind } from './rehearsal';
 
 export interface PrepareInput {
@@ -68,9 +68,9 @@ export function createPrepare(ports: AwardVotePorts) {
                 if (!next) break;
                 progress = next;
             } catch (error) {
-                if (!(error instanceof FantraxFailure || error instanceof NhlFailure)) throw error;
+                if (!(error instanceof ReadFailure)) throw error;
                 console.error(`Preparing the ${seasonYear} award vote stopped at ${step.name}:`, error.cause);
-                return { ok: false, reason: error instanceof NhlFailure ? 'nhl-failed' : 'fantrax-failed', message: error.message };
+                return { ok: false, reason: error.reason, message: error.message };
             }
         }
         return { ok: true, done: progress.done.length === steps.length, stepsDone: progress.done.length, steps: steps.length };

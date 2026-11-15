@@ -16,16 +16,9 @@ import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, 
 import { seasonDates, type SeasonDates } from './season-dates';
 import { PLAYER_AWARD_RULES, STAT_SETS, type SnapshotPlayer } from './voted-awards';
 
-/** a failed or unexpected Fantrax read, which the admin is told about and can retry */
-export class FantraxFailure extends Error {
-    constructor(error: unknown) {
-        super(error instanceof Error ? error.message : String(error), { cause: error });
-    }
-}
-
-/** a failed NHL lookup, which the admin is told about and can retry */
-export class NhlFailure extends Error {
-    constructor(error: unknown) {
+/** a failed or unexpected Fantrax read or NHL lookup, which the admin is told about (by `reason`) and can retry */
+export class ReadFailure extends Error {
+    constructor(readonly reason: 'fantrax-failed' | 'nhl-failed', error: unknown) {
         super(error instanceof Error ? error.message : String(error), { cause: error });
     }
 }
@@ -55,7 +48,7 @@ const goalieLine = (player: RangedGoalie): GoalieLine => ({
 const positionsOf = (positions: string) => positions.split(',').map(position => position.trim()).filter(Boolean);
 
 export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seasonYear, leagueId }: { seasonYear: number; leagueId: string }): PrepareStep[] {
-    const read = <T>(fn: () => Promise<T>) => fn().catch(error => { throw new FantraxFailure(error); });
+    const read = <T>(fn: () => Promise<T>) => fn().catch(error => { throw new ReadFailure('fantrax-failed', error); });
 
     /**
      * move `progress` on to `next`, running `writes` (CTE bodies that may use `claim`) only if it is still the
@@ -136,7 +129,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                 .filter(player => !(player.id in looked) && mightBeCalderEligible(player.age, seasonYear, today));
             const batch = young.slice(0, NHL_LOOKUPS_AT_ONCE);
             const found = await Promise.all(batch.map(async ({ id, name, positions, nhlTeam }) => {
-                const record = await nhl.lookup({ id, name, positions, nhlTeam }).catch(error => { throw new NhlFailure(error); });
+                const record = await nhl.lookup({ id, name, positions, nhlTeam }).catch(error => { throw new ReadFailure('nhl-failed', error); });
                 return [id, record && { nhlId: record.nhlId, eligible: calderEligible(record, seasonYear) }] as const;
             }));
             const next: PrepareProgress = { ...progress, rookies: { ...looked, ...Object.fromEntries(found) } };
