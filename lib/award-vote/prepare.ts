@@ -5,23 +5,23 @@
 // the snapshot. Nothing runs unless the admin asks.
 //
 // The steps (prepare-steps.ts): the season's dates from its own Fantrax league info, then each stat set's Fantrax
-// reads, then each award's candidates from the stored stats and the archive.
+// reads, then the young players' NHL lookups, then each award's candidates from the stored stats and the archive.
 import { sql } from 'drizzle-orm';
 import { FIRST_AWARD_VOTE_SEASON, type AwardVoteState, type PrepareProgress } from './model';
 import type { AwardVotePorts } from './ports';
-import { FantraxFailure, prepareSteps } from './prepare-steps';
+import { FantraxFailure, NhlFailure, prepareSteps } from './prepare-steps';
 
 export interface PrepareInput {
     seasonYear: number;
 }
 
-export type PrepareRejection = 'before-award-votes' | 'no-champion' | 'no-fantrax-league' | 'not-prepared' | 'fantrax-failed';
+export type PrepareRejection = 'before-award-votes' | 'no-champion' | 'no-fantrax-league' | 'not-prepared' | 'fantrax-failed' | 'nhl-failed';
 
 export type PrepareResult =
     | { ok: true; done: boolean; stepsDone: number; steps: number }
-    | { ok: false; reason: Exclude<PrepareRejection, 'fantrax-failed'> }
-    /** a Fantrax read failed; the steps before it are kept and the next call retries it */
-    | { ok: false; reason: 'fantrax-failed'; message: string };
+    | { ok: false; reason: Exclude<PrepareRejection, 'fantrax-failed' | 'nhl-failed'> }
+    /** a Fantrax read or an NHL lookup failed; the work before it is kept and the next call retries it */
+    | { ok: false; reason: 'fantrax-failed' | 'nhl-failed'; message: string };
 
 /**
  * A call starts no new step once this much of it has passed. Each step is at most a few Fantrax requests (each with
@@ -64,9 +64,9 @@ export function createPrepare(ports: AwardVotePorts) {
                 if (!next) break;
                 progress = next;
             } catch (error) {
-                if (!(error instanceof FantraxFailure)) throw error;
+                if (!(error instanceof FantraxFailure || error instanceof NhlFailure)) throw error;
                 console.error(`Preparing the ${seasonYear} award vote stopped at ${step.name}:`, error.cause);
-                return { ok: false, reason: 'fantrax-failed', message: error.message };
+                return { ok: false, reason: error instanceof NhlFailure ? 'nhl-failed' : 'fantrax-failed', message: error.message };
             }
         }
         return { ok: true, done: progress.done.length === steps.length, stepsDone: progress.done.length, steps: steps.length };

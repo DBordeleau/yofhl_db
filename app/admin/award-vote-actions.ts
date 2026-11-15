@@ -7,7 +7,7 @@ import type { PrepareResult } from '@/lib/award-vote/create-award-vote';
 /** a prepare call's outcome; `more` while preparing has steps left, so the panel calls again */
 export type PrepareActionResult = { message: string; more: boolean } | { error: string };
 
-const REFUSALS: Record<Exclude<Extract<PrepareResult, { ok: false }>['reason'], 'fantrax-failed'>, string> = {
+const REFUSALS: Record<Exclude<Extract<PrepareResult, { ok: false }>['reason'], 'fantrax-failed' | 'nhl-failed'>, string> = {
     'before-award-votes': 'Award votes start with the 2026–27 season.',
     'no-champion': 'This season has no champion yet. Sync or import the Final first.',
     'no-fantrax-league': 'This season has no Fantrax league. Add its fantrax block to league/league.yml and run the season import.',
@@ -24,6 +24,7 @@ export async function prepareAwardVote(seasonYear: number): Promise<PrepareActio
             ? { message: 'Ballot prepared.', more: false }
             : { message: `Preparing… ${result.stepsDone} of ${result.steps} steps done.`, more: true };
         if (result.reason === 'fantrax-failed') return { error: `Fantrax failed: ${result.message}. Prepare again to carry on from where it stopped.` };
+        if (result.reason === 'nhl-failed') return { error: `The NHL player lookup failed: ${result.message}. Prepare again to carry on from where it stopped.` };
         return { error: REFUSALS[result.reason] };
     } catch (error) {
         console.error(`Preparing the ${seasonYear} award vote failed:`, error);
