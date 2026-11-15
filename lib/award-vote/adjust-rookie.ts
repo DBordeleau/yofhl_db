@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import type { AwardVoteState, PrepareProgress, RookieAdjustments } from './model';
 import type { AwardVotePorts } from './ports';
 import { createPrepare } from './prepare';
+import { PREPARE_STEPS } from './prepare-steps';
 
 export interface AdjustRookieInput {
     seasonYear: number;
@@ -40,11 +41,13 @@ export function createAdjustRookie(ports: AwardVotePorts) {
         if (!vote || vote.state !== 'prepared') return { ok: false, reason: 'not-prepared' };
         if (!vote.known) return { ok: false, reason: 'unknown-player' };
 
-        const others = (ids: string[]) => ids.filter(id => id !== playerId);
+        const withoutPlayer = (ids: string[]) => ids.filter(id => id !== playerId);
         const adjustments: RookieAdjustments = change === 'add'
-            ? { added: [...others(vote.adjustments.added), playerId], removed: others(vote.adjustments.removed) }
-            : { added: others(vote.adjustments.added), removed: [...others(vote.adjustments.removed), playerId] };
-        const progress: PrepareProgress = vote.finished ? { ...vote.progress, done: vote.progress.done.filter(step => step !== 'candidates') } : vote.progress;
+            ? { added: [...withoutPlayer(vote.adjustments.added), playerId], removed: withoutPlayer(vote.adjustments.removed) }
+            : { added: withoutPlayer(vote.adjustments.added), removed: [...withoutPlayer(vote.adjustments.removed), playerId] };
+        const progress: PrepareProgress = vote.finished
+            ? { ...vote.progress, done: vote.progress.done.filter(step => step !== PREPARE_STEPS.candidates) }
+            : vote.progress;
         const [{ changed }] = await db.rows<{ changed: number }>(sql`
             with claim as (
                 update league.award_votes

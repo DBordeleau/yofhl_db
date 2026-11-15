@@ -5,6 +5,7 @@
 import { sql } from 'drizzle-orm';
 import type { AwardVoteState, PrepareProgress, RookieAdjustments, RookieLookup } from './model';
 import type { AwardVotePorts } from './ports';
+import { ROOKIE_AWARD, ROOKIE_STAT_SET } from './voted-awards';
 
 export interface ReadRookieReviewInput {
     seasonYear: number;
@@ -50,9 +51,9 @@ export function createReadRookieReview({ db }: AwardVotePorts) {
         const players = await db.rows<PlayerRow>(sql`
             select p.player_id as "playerId", p.name, p.positions, p.nhl_team as "nhlTeam", p.age,
                    exists (select 1 from league.award_vote_candidates c
-                           where c.season_year = p.season_year and c.player_id = p.player_id and c.award = 'teemu-selanne') as candidate
+                           where c.season_year = p.season_year and c.player_id = p.player_id and c.award = ${ROOKIE_AWARD}) as candidate
             from league.award_vote_players p
-            left join league.award_vote_stats s on s.season_year = p.season_year and s.player_id = p.player_id and s.stat_set = 'regularSeason'
+            left join league.award_vote_stats s on s.season_year = p.season_year and s.player_id = p.player_id and s.stat_set = ${ROOKIE_STAT_SET}
             where p.season_year = ${seasonYear} and p.player_id in (select jsonb_array_elements_text(${JSON.stringify(reviewed)}::jsonb))
             order by (s.line ->> 'points')::numeric desc nulls last, p.name, p.player_id`);
         const review: RookieReview = { adjustable: vote.state === 'prepared', rookies: [], unmatched: [], ineligible: [] };

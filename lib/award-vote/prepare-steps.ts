@@ -14,7 +14,7 @@ import { calderEligible, mightBeCalderEligible } from './calder';
 import type { GoalieLine, PrepareProgress, RookieAdjustments, SkaterLine, StatSetName } from './model';
 import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, RangedSkater } from './ports';
 import { seasonDates, type SeasonDates } from './season-dates';
-import { PLAYER_AWARD_RULES, STAT_SETS, type SnapshotPlayer } from './voted-awards';
+import { PLAYER_AWARD_RULES, ROOKIE_STAT_SET, STAT_SETS, type SnapshotPlayer } from './voted-awards';
 
 /** a failed or unexpected Fantrax read or NHL lookup, which the admin is told about (by `reason`) and can retry */
 export class ReadFailure extends Error {
@@ -22,6 +22,12 @@ export class ReadFailure extends Error {
         super(error instanceof Error ? error.message : String(error), { cause: error });
     }
 }
+
+/** the ids of the hand-written steps, as `PrepareProgress.done` records them */
+export const PREPARE_STEPS = { dates: 'dates', finalRosters: 'final rosters', rookies: 'rookies', candidates: 'candidates' } as const;
+
+/** the id of a stat set's read for one position group, e.g. `regularSeason skaters` */
+export const statSetStep = (statSet: StatSetName, group: Group) => `${statSet} ${group}s`;
 
 /** how many young players one run of the rookies step looks up, all at once */
 export const NHL_LOOKUPS_AT_ONCE = 8;
@@ -76,19 +82,19 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
     }
 
     const dates: PrepareStep = {
-        name: 'dates',
+        name: PREPARE_STEPS.dates,
         run: async progress => {
             const info = await read(() => fantrax.leagueInfo(leagueId));
             const found = await read(async () => {
                 if (info.seasonYear !== seasonYear) throw new Error(`Fantrax league ${leagueId} is the ${info.seasonYear} season, not ${seasonYear}`);
                 return seasonDates(info);
             });
-            return markDone(progress, 'dates', { dates: found });
+            return markDone(progress, PREPARE_STEPS.dates, { dates: found });
         },
     };
 
     const statSetRead = (statSet: StatSetName, group: Group): PrepareStep => ({
-        name: `${statSet} ${group}s`,
+        name: statSetStep(statSet, group),
         run: async progress => {
             const range = { leagueId, seasonYear, ...STAT_SETS[statSet].range(progress.dates!) };
             const lines = group === 'skater'
@@ -98,7 +104,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
             const payload = JSON.stringify(lines.filter(({ player, line }) => line.points !== 0 || player.id in rostered).map(({ player, line }) => ({
                 playerId: player.id, name: player.name, positions: positionsOf(player.positions), nhlTeam: player.nhlTeam, age: player.age, line,
             })));
-            return markDone(progress, `${statSet} ${group}s`, {}, [
+            return markDone(progress, statSetStep(statSet, group), {}, [
                 sql`insert into league.award_vote_players (season_year, player_id, name, positions, nhl_team, age)
                     select ${seasonYear}, p."playerId", p.name, p.positions, p."nhlTeam", p.age
                     from jsonb_to_recordset(${payload}::jsonb) as p("playerId" text, name text, positions text[], "nhlTeam" text, age smallint)
@@ -115,7 +121,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
     });
 
     const rookies: PrepareStep = {
-        name: 'rookies',
+        name: PREPARE_STEPS.rookies,
         run: async progress => {
             const looked = progress.rookies ?? {};
             const today = new Date(clock.now()).toISOString().slice(0, 10);
@@ -123,7 +129,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
             const young = (await db.rows<NhlLookupPlayer & { age: number | null }>(sql`
                 select p.player_id as id, p.name, p.positions, p.nhl_team as "nhlTeam", p.age
                 from league.award_vote_players p
-                join league.award_vote_stats s on s.season_year = p.season_year and s.player_id = p.player_id and s.stat_set = ${'regularSeason' satisfies StatSetName}
+                join league.award_vote_stats s on s.season_year = p.season_year and s.player_id = p.player_id and s.stat_set = ${ROOKIE_STAT_SET}
                 where p.season_year = ${seasonYear}
                 order by p.player_id`))
                 .filter(player => !(player.id in looked) && mightBeCalderEligible(player.age, seasonYear, today));
@@ -133,12 +139,12 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                 return [id, record && { nhlId: record.nhlId, eligible: calderEligible(record, seasonYear) }] as const;
             }));
             const next: PrepareProgress = { ...progress, rookies: { ...looked, ...Object.fromEntries(found) } };
-            return advance(progress, young.length > batch.length ? next : { ...next, done: [...next.done, 'rookies'] });
+            return advance(progress, young.length > batch.length ? next : { ...next, done: [...next.done, PREPARE_STEPS.rookies] });
         },
     };
 
     const candidates: PrepareStep = {
-        name: 'candidates',
+        name: PREPARE_STEPS.candidates,
         run: async progress => {
             // the Calder-eligible rookies, with the admin's changes
             const [{ adjustments }] = await db.rows<{ adjustments: RookieAdjustments }>(sql`
@@ -159,7 +165,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                 }))));
             // the admin's changes can't move while the candidates are written from them
             const guard = sql`rookie_adjustments = ${JSON.stringify(adjustments)}::jsonb`;
-            return markDone(progress, 'candidates', { preparedAt: new Date(clock.now()).toISOString(), guard }, [
+            return markDone(progress, PREPARE_STEPS.candidates, { preparedAt: new Date(clock.now()).toISOString(), guard }, [
                 // The franchise credited with a player is the award's own (the Danny Briere Award's finalist), or else
                 // the last to roster them that season: the one with them at the end of it, or else the one the
                 // player's last move left them with (the receiving franchise of a claim or trade, the dropping one of
@@ -185,7 +191,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
     };
 
     const finalRosters: PrepareStep = {
-        name: 'final rosters',
+        name: PREPARE_STEPS.finalRosters,
         run: async progress => {
             const finalists = await db.rows<{ teamSeasonId: number; name: string; fantraxTeamId: string | null }>(sql`
                 select t.id as "teamSeasonId", t.name,
@@ -214,7 +220,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                 });
                 return byPlayer;
             });
-            return markDone(progress, 'final rosters', { finalRosters: credited });
+            return markDone(progress, PREPARE_STEPS.finalRosters, { finalRosters: credited });
         },
     };
 

@@ -48,6 +48,11 @@ export const STAT_SETS: Record<StatSetName, { label: string; range(dates: Season
 /** the ballot's default list length */
 export const SHOWN_CANDIDATES = 50;
 
+/** the rookie award, the Teemu Trophy, whose candidates the rookie review covers */
+export const ROOKIE_AWARD: PlayerAwardId = 'teemu-selanne';
+/** the stat set a rookie must score in to be a Teemu Trophy candidate, which also ranks the rookie review */
+export const ROOKIE_STAT_SET: StatSetName = 'regularSeason';
+
 /** a player with fantasy points in the fantasy regular season (the snapshot stores only those) */
 const scoredInRegularSeason = (player: SnapshotPlayer) => player.stats.regularSeason !== undefined && player.stats.regularSeason.points !== 0;
 
@@ -57,8 +62,9 @@ export const PLAYER_AWARD_RULES: readonly PlayerAwardRule[] = [
     { award: 'bobby-orr', statSets: ['regularSeason'], shown: SHOWN_CANDIDATES, eligible: player => scoredInRegularSeason(player) && player.positions.includes('D') },
     { award: 'hasek', statSets: ['regularSeason'], shown: SHOWN_CANDIDATES, eligible: player => scoredInRegularSeason(player) && player.positions.includes('G') },
     // every rookie, so a goalie with few games isn't hidden below the top 50
-    { award: 'teemu-selanne', statSets: ['regularSeason'], shown: null, eligible: (player, { rookies }) => scoredInRegularSeason(player) && rookies.has(player.playerId) },
-    // Everyone on a finalist's roster during the Final, credited to the finalist they played for.
+    { award: ROOKIE_AWARD, statSets: [ROOKIE_STAT_SET], shown: null, eligible: (player, { rookies }) => scoredInRegularSeason(player) && rookies.has(player.playerId) },
+    // Everyone on a finalist's roster during the Final, credited to the finalist they played for: for a player on
+    // both finalists' rosters during the Final, the one that had them last (the final rosters step, prepare-steps.ts).
     {
         award: 'danny-briere', statSets: ['playoffRounds', 'final'], shown: SHOWN_CANDIDATES,
         eligible: (player, { finalRosters }) => player.playerId in finalRosters,
