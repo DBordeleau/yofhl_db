@@ -7,7 +7,7 @@ import type { WeekScores } from '@/lib/fantrax/live-season';
 import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
-import type { FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxWeek } from '../ports';
+import type { FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxSkater, FantraxWeek } from '../ports';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -72,6 +72,12 @@ export type PlayerRow = [string, number, number | null, number | null];
 const playersOf = (rows: PlayerRow[]): FantraxPlayer[] => rows.map(([id, points, perGame, team]) =>
     ({ id, name: `Name ${id}`, positions: ['C'], nhlTeam: 'EDM', teamId: team === null ? null : `fx${team}`, points, perGame }));
 
+/** a skater in Fantrax's skater table: [player ID, goals, assists, shots, hits, blocks], or [player ID, null] for one with no games played */
+export type SkaterRow = [string, number, number, number, number, number] | [string, null];
+const skatersOf = (rows: SkaterRow[]): FantraxSkater[] => rows.map(row => row[1] === null
+    ? { id: row[0], categories: null }
+    : { id: row[0], categories: { goals: row[1], assists: row[2], shots: row[3], hits: row[4], blocks: row[5] } });
+
 /** Fantrax's scores for `games` in week `week`: [away team, home team, away score, home score] each */
 const weekScoresOf = (week: number, games: GameScore[], fetchedAt: string): WeekScores => ({
     fetchedAt, week, matchups: games.map(([away, home, awayScore, homeScore]) => ({
@@ -87,6 +93,7 @@ export function fantraxState(franchises = FRANCHISES): MemoryFantraxState {
         leagueInfo: { seasonYear: SEASON, weeks: structuredClone(WEEKS), rosterPeriods: structuredClone(ROSTER_PERIODS) },
         standings: standingsOf(franchises.map(id => [id, id, 0, 0, 0, 0, 0])),
         players: [],
+        skaters: [],
         // every team's roster is empty every day until a test fills it
         rosters: Object.fromEntries(ROSTER_PERIODS.map(period => [period.number, Object.fromEntries(franchises.map(id => [`fx${id}`, []]))])),
         directory: {},
@@ -172,6 +179,17 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     const setStandings = (rows: StandingRow[]) => { fantrax.standings = standingsOf(rows); };
     /** Fantrax's player stats table now lists `rows` (every NHL player, scored or not) */
     const setPlayers = (rows: PlayerRow[]) => { fantrax.players = playersOf(rows); };
+    /** Fantrax's skater table now lists `rows` (every NHL skater, played or not) */
+    const setSkaters = (rows: SkaterRow[]) => { fantrax.skaters = skatersOf(rows); };
+    /**
+     * Each player season's stored goals, assists, shots, hits and blocks in `year`, by player ID, or null where none
+     * are stored. Read from the table, as no site reader shows them yet.
+     */
+    const skaterCategories = async (year: number) => {
+        const { rows } = await league.client.query<{ id: string; goals: number | null; assists: number | null; shots: number | null; hits: number | null; blocks: number | null }>(
+            'select player_id as id, goals, assists, shots, hits, blocks from league.player_seasons where season_year = $1 order by player_id', [year]);
+        return Object.fromEntries(rows.map(({ id, ...totals }) => [id, Object.values(totals).every(value => value === null) ? null : totals]));
+    };
     const core = live.fantrax.core;
     /**
      * Fantrax publishes week `week`'s pairings, in its schedule's order. Publishing the first playoff week's
@@ -197,5 +215,5 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     };
     /** an admin marks week `week` final */
     const markFinal = (week: number) => { live.manualFinalWeeks[SEASON] = [...live.manualFinalWeeks[SEASON] ?? [], week]; };
-    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal, setRoster, refreshStopsAt, failureLogs };
+    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setSkaters, skaterCategories, setPairings, setScores, markFinal, setRoster, refreshStopsAt, failureLogs };
 }

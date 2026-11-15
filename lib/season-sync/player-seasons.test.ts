@@ -80,7 +80,7 @@ test("a scoring correction on Fantrax shows after the next run, and a run with n
 
     league.failNextQuery('refresh materialized view', new Error('no refresh expected'));
     const quiet = await run(MID_SEASON + 7200_000);
-    assert.deepEqual(quiet.result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 0, regularSeasonGames: 0, weeks: 0 }, warnings: [] });
+    assert.deepEqual(quiet.result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 0, skaterCategories: 0, regularSeasonGames: 0, weeks: 0 }, warnings: [] });
     assert.deepEqual(quiet.revalidatedTags, []);
 });
 

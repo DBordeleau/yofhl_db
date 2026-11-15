@@ -1,7 +1,7 @@
 // Everything one run reads from Fantrax, checked against the current season before anything is written. Each part
-// of the season (team seasons, player seasons, the weeks and regular-season games, the playoff bracket and the
-// championship roster, which follows the bracket's champion) turns its validated reads into SyncWrites; a part that cannot be checked
-// throws, which fails the whole run before any write. A part that is fine but has something the league owner
+// of the season (team seasons, player seasons with their skater categories, the weeks and regular-season games,
+// the playoff bracket and the championship roster, which follows the bracket's champion) turns its validated reads
+// into SyncWrites; a part that cannot be checked throws, which fails the whole run before any write. A part that is fine but has something the league owner
 // should know adds a warning instead.
 import type { LiveSeason } from '@/lib/fantrax/live-season';
 import { readChampionshipRoster } from './championship-roster';
@@ -9,6 +9,7 @@ import type { CurrentSeason } from './current-season';
 import { readBracket } from './playoffs';
 import type { FantraxLeagueInfo, SeasonSyncPorts } from './ports';
 import { playerSeasonRows, playerSeasonsWrites } from './player-seasons';
+import { withSkaterCategories } from './skater-categories';
 import { readRegularSeason } from './regular-season';
 import { teamSeasonStandings, teamSeasonsWrite } from './team-seasons';
 import type { SyncRunWrite } from './write';
@@ -37,13 +38,14 @@ async function liveSeasonOf(ports: SeasonSyncPorts, season: CurrentSeason, now: 
 /** every other read, checked, as the run's write: the writes that bring the archive up to date and their warnings */
 export async function readSeason(ports: SeasonSyncPorts, season: CurrentSeason, info: FantraxLeagueInfo, now: number): Promise<SyncRunWrite> {
     const live = await liveSeasonOf(ports, season, now);
-    const [standings, players, regularSeason, bracket] = await Promise.all([
+    const [standings, players, skaters, regularSeason, bracket] = await Promise.all([
         ports.fantrax.standings(season.leagueId),
         ports.fantrax.players(season.leagueId, season.seasonYear),
+        ports.fantrax.skaters(season.leagueId, season.seasonYear),
         readRegularSeason(ports, season, info, live, now),
         readBracket(ports, season, live, now),
     ]);
-    const playerSeasons = playerSeasonRows(season, players);
+    const playerSeasons = withSkaterCategories(playerSeasonRows(season, players), skaters);
     const roster = await readChampionshipRoster(ports, season, info, bracket.champion, new Set(playerSeasons.map(row => row.id)));
     return {
         writes: [

@@ -1,5 +1,5 @@
 {
-  "id": "8aeaa13d-208a-47f4-87ab-d223aeca9f8d",
+  "id": "eaafc25c-e857-457a-8b22-79cd8369445a",
   "prevId": "ebae5ecd-5907-44fb-b608-2b34118104cb",
   "version": "7",
   "dialect": "postgresql",
@@ -1196,19 +1196,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "matchups_one_game_per_pairing": {
-          "name": "matchups_one_game_per_pairing",
-          "nullsNotDistinct": false,
-          "columns": [
-            "season_year",
-            "stage",
-            "round",
-            "away_team_season_id",
-            "home_team_season_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1671,6 +1659,36 @@
           "type": "numeric(6, 2)",
           "primaryKey": false,
           "notNull": true
+        },
+        "goals": {
+          "name": "goals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assists": {
+          "name": "assists",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shots": {
+          "name": "shots",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hits": {
+          "name": "hits",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "blocks": {
+          "name": "blocks",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -1855,15 +1873,8 @@
           "notNull": true,
           "default": 0
         },
-        "changed_regular_season_games": {
-          "name": "changed_regular_season_games",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "changed_weeks": {
-          "name": "changed_weeks",
+        "changed_skater_categories": {
+          "name": "changed_skater_categories",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -2555,66 +2566,6 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "league.weeks": {
-      "name": "weeks",
-      "schema": "league",
-      "columns": {
-        "season_year": {
-          "name": "season_year",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "week": {
-          "name": "week",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "starts_at": {
-          "name": "starts_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ends_at": {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "weeks_season_year_seasons_year_fk": {
-          "name": "weeks_season_year_seasons_year_fk",
-          "tableFrom": "weeks",
-          "tableTo": "seasons",
-          "schemaTo": "league",
-          "columnsFrom": [
-            "season_year"
-          ],
-          "columnsTo": [
-            "year"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "weeks_season_year_week_pk": {
-          "name": "weeks_season_year_week_pk",
-          "columns": [
-            "season_year",
-            "week"
-          ]
-        }
-      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

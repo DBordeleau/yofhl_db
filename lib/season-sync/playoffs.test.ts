@@ -67,7 +67,7 @@ test('after the Semifinals and the Final, each round is stored, and the run afte
     assert.equal((await league.read(() => getSeasonArchive())).latest?.year, 2026);
 
     const { result } = await league.run(endOf(FINAL) + 7 * HOUR);
-    assert.deepEqual(result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 1, championshipRoster: 1, regularSeasonGames: 0, weeks: 0 }, warnings: [] });
+    assert.deepEqual(result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 1, championshipRoster: 1, skaterCategories: 0, regularSeasonGames: 0, weeks: 0 }, warnings: [] });
     assert.deepEqual(await bracket(league), [
         [1, 0, 5, 4, 410.5, 398.25, 5],
         [1, 1, 6, 3, 350, 402.1, 3],
@@ -159,7 +159,7 @@ test('a level Final has no champion and records a warning, and setting its winne
     assert.equal((await league.read(() => getSeasonArchive())).latest?.team, 'Club 1');
 
     const after = await league.run(endOf(FINAL) + 31 * HOUR);
-    assert.deepEqual(after.result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 1, regularSeasonGames: 0, weeks: 0 }, warnings: [] },
+    assert.deepEqual(after.result, { outcome: 'synced', seasonYear: SEASON, changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 1, skaterCategories: 0, regularSeasonGames: 0, weeks: 0 }, warnings: [] },
         'the next run keeps the winner set in bracket review, and writes the championship roster');
     assert.equal((await league.read(() => getSeasonArchive())).latest?.team, 'Club 1');
 });

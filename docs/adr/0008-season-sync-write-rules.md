@@ -4,15 +4,13 @@ status: accepted
 
 # The season sync's write rules
 
-The season sync (`lib/season-sync/`) writes the season being played into the archive every morning, alongside data the league owner curates and data the season import replaces. Five rules decide what it may write, so it can run unattended all season without undoing anyone's work or storing a half-read Fantrax response.
+The season sync (`lib/season-sync/`) writes the season being played into the archive every morning, alongside data the league owner curates and data the season import replaces. It writes each team season's standings, each player season with its skater categories, every week of the season with its dates, each final regular-season week's games, each final playoff round's championship games and the automatic championship roster. Five rules decide what it may write, so it can run unattended all season without undoing anyone's work or storing a half-read Fantrax response.
 
 1. **The league configuration owns season identity.** The season import opens the season, creating its team seasons with the name, owner, logo and abbreviation of each franchise's era in `league.yml`. The season sync writes standings, never identity, so an owner renaming their Fantrax team mid-season doesn't change the archive's season identity.
 2. **A failed run writes nothing.** Every Fantrax read is made and checked before anything is written, then every part is written in one statement with the status row ([ADR 0002](0002-curated-edits-are-single-statements.md)). A failed or invalid read, a failed check or a failed write records only the error on the status row; yesterday's numbers stay and the next run catches up.
 3. **Curated data is never overwritten.** Awards, bracket corrections and saved championship rosters are the league owner's. A saved bracket correction still decides the winner of a game the sync writes, as it does after an import.
 4. **A game freezes with its correction window.** A game, regular-season or playoff, follows Fantrax's scores until its week's seven-day correction window closes and is never rewritten after. Seven days after the season's last week ends, the whole season freezes and the sync stops writing it.
 5. **An automatic championship roster is replaced only while untouched.** The sync writes the roster when the season has a champion and no roster, and records the franchise it was written for. Saving the roster in admin clears that record. If the Final flips inside its correction window, a roster still on record is replaced with the new champion's; a saved one is left alone and every run warns until it is saved again.
-
-The sync writes each team season's record and points, each player season, every week of the season with its dates, each final regular-season week's games, each final playoff round's championship games, and the champion's automatic championship roster.
 
 [ADR 0004](0004-season-import-is-one-transaction.md) is unchanged: the season import is still one transaction and still replaces a season, so it is the repair path for a season the sync got wrong.
 
@@ -29,5 +27,6 @@ The sync writes each team season's record and points, each player season, every 
 
 - The season sync must not write a team season's identity, an award, a bracket correction or a saved roster. A new part goes through the same read-check-write run and adds its rows to the one statement, or to an ordered write ([ADR 0007](0007-ordered-writes-use-write-in-order.md)) if its order matters.
 - A season import of the season being played lasts only where it agrees with Fantrax until the season freezes.
+- Skater categories come from one more Fantrax read each run, Fantrax's skater table, made and checked with the others before any write. They are written onto the player seasons the keep rule already keeps, in the player season part of the one statement; the skater table never creates a player season. A goalie's are null, as is every season's before 2027.
 - The league configuration's `scoreOverrides` stay import-only; the sync's guard against Fantrax rescoring is the freeze.
 - The status row carries two franchise columns, the automatic roster's champion and the champion the roster was last saved for, and the roster editor's save updates both.

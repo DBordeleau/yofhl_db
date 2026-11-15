@@ -57,7 +57,7 @@ test("the first run stores every final regular-season week's games and every wee
     league.league.failNextQuery('refresh materialized view', new Error('no refresh expected'));
     const quiet = await league.run(MID_SEASON + HOUR);
     assert.deepEqual(quiet.result, { outcome: 'synced', seasonYear: SEASON,
-        changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 0, regularSeasonGames: 0, weeks: 0 }, warnings: [] });
+        changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 0, skaterCategories: 0, regularSeasonGames: 0, weeks: 0 }, warnings: [] });
     assert.deepEqual(quiet.revalidatedTags, []);
 });
 
