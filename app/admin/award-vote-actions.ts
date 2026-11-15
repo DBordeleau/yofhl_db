@@ -18,12 +18,13 @@ const REFUSALS: Record<PrepareRejection, (message: string) => string> = {
     'fantrax-failed': message => `Fantrax failed: ${message}. ${CARRY_ON}`,
 };
 
-// One bounded batch of preparing the season's ballot; the panel calls again while `more` is set.
-export async function prepareAwardVote(seasonYear: number): Promise<PrepareActionResult> {
+// One bounded batch of preparing the season's ballot, or with `startOver` the first batch of preparing an unfinished
+// one again from nothing; the panel calls again (carrying on) while `more` is set.
+export async function prepareAwardVote(seasonYear: number, startOver = false): Promise<PrepareActionResult> {
     await requireAdmin();
-    if (!Number.isInteger(seasonYear)) return { error: 'Choose a valid season.' };
+    if (!Number.isInteger(seasonYear) || typeof startOver !== 'boolean') return { error: 'Choose a valid season.' };
     try {
-        const result = await awardVote.prepare({ seasonYear });
+        const result = await awardVote.prepare({ seasonYear, startOver });
         if (result.ok) return result.done
             ? { message: 'Ballot prepared.', more: false }
             : { message: `Preparing… ${result.stepsDone} of ${result.steps} steps done.`, more: true };

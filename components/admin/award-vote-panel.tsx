@@ -15,10 +15,10 @@ export default function AwardVotePanel({ year, preview }: { year: number; previe
     const rehearsal = preview.kind === 'rehearsal' || !!vote?.rehearsal;
     const unfinished = vote !== null && vote.preparedAt === null;
 
-    const prepare = () => run(async () => {
+    const prepare = (startOver = false) => run(async () => {
         setProgress(null);
-        for (;;) {
-            const step = await prepareAwardVote(year);
+        for (let first = true; ; first = false) {
+            const step = await prepareAwardVote(year, startOver && first);
             if ('error' in step || !step.more) return step;
             setProgress(step.message);
         }
@@ -31,9 +31,12 @@ export default function AwardVotePanel({ year, preview }: { year: number; previe
             <dt className="font-bold">State</dt><dd className="capitalize">{vote.rehearsal ? `${vote.state} (rehearsal)` : vote.state}</dd>
             <dt className="font-bold">Prepared</dt><dd>{vote.preparedAt ? easternTime(vote.preparedAt) : `Unfinished, started ${easternTime(vote.prepareStartedAt)}`}</dd>
         </dl>}
-        {(!vote || vote.state === 'prepared') && <button type="button" className={`${ADMIN_BUTTON} mt-4`} disabled={pending} onClick={prepare}>
-            {`${unfinished ? 'Continue preparing' : vote ? 'Prepare again' : 'Prepare ballot'}${rehearsal ? ' (rehearsal)' : ''}`}
-        </button>}
+        {(!vote || vote.state === 'prepared') && <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" className={ADMIN_BUTTON} disabled={pending} onClick={() => prepare()}>
+                {`${unfinished ? 'Continue preparing' : vote ? 'Prepare again' : 'Prepare ballot'}${rehearsal ? ' (rehearsal)' : ''}`}
+            </button>
+            {unfinished && <button type="button" className={ADMIN_BUTTON} disabled={pending} onClick={() => prepare(true)}>Start over</button>}
+        </div>}
         <AdminActionStatus pending={pending} pendingText={progress ?? 'Preparing…'} result={result} />
         {ballot && <BallotPreview ballot={ballot} rehearsal={rehearsal} />}
     </div>;

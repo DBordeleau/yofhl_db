@@ -3,7 +3,7 @@
 // only prepared. Each call runs steps in order until its time budget is
 // spent, recording each step as done in the same statement as its write, so the next call resumes where this one
 // stopped; the admin page calls again until it is done. The call after a finished prepare starts over, replacing
-// the snapshot. Nothing runs unless the admin asks.
+// the snapshot, as does a call asking to start over an unfinished one. Nothing runs unless the admin asks.
 //
 // The steps (prepare-steps.ts): the season's dates from its own Fantrax league info, then each stat set's Fantrax
 // reads (with the finalists' daily rosters over the Final read before the Danny Briere Award's), then the young
@@ -16,6 +16,8 @@ import { awardVoteKind } from './rehearsal';
 
 export interface PrepareInput {
     seasonYear: number;
+    /** discard an unfinished prepare and start again from nothing, rather than carry on from where it stopped */
+    startOver?: boolean;
 }
 
 export type PrepareRejection = 'before-award-votes' | 'no-champion' | 'no-fantrax-league' | 'not-prepared' | 'fantrax-failed';
@@ -42,7 +44,7 @@ interface SeasonCheck {
 
 export function createPrepare(ports: AwardVotePorts) {
     const { db, clock } = ports;
-    return async function prepare({ seasonYear }: PrepareInput): Promise<PrepareResult> {
+    return async function prepare({ seasonYear, startOver = false }: PrepareInput): Promise<PrepareResult> {
         const kind = await awardVoteKind(db, seasonYear);
         if (kind === null) return { ok: false, reason: 'before-award-votes' };
         const [season] = await db.rows<SeasonCheck>(sql`
@@ -57,7 +59,7 @@ export function createPrepare(ports: AwardVotePorts) {
         if (season.state !== null && season.state !== 'prepared') return { ok: false, reason: 'not-prepared' };
 
         const started = clock.now();
-        let progress = season.progress && !season.finished ? season.progress : await start(seasonYear, kind === 'rehearsal', new Date(started).toISOString());
+        let progress = season.progress && !season.finished && !startOver ? season.progress : await start(seasonYear, kind === 'rehearsal', new Date(started).toISOString());
         if (!progress) return { ok: false, reason: 'not-prepared' };
         const steps = prepareSteps(ports, { seasonYear, leagueId: season.leagueId });
         while (progress.done.length < steps.length && clock.now() - started < PREPARE_BUDGET_MS) {

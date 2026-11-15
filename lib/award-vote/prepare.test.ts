@@ -181,3 +181,40 @@ test('preparing again replaces the snapshot', async t => {
         [],
     ]);
 });
+
+test("an unfinished prepare can be started over from nothing, keeping the admin's rookie changes", async t => {
+    const { act, vote, setRegularSeason, prepareFully, fantrax, clock, league } = await awardVoteLeague(t);
+    setRegularSeason([skater('s1', 100), skater('unknown', 80, { age: 22 })], [goalie('g1', 50)]);
+    await prepareFully();
+    assert.deepEqual(await act(() => vote.adjustRookie({ seasonYear: SEASON, playerId: 'unknown', change: 'add' })), { ok: true });
+
+    // preparing again, interrupted partway
+    clock.time += 3600_000;
+    fantrax.onRead = () => { clock.time += 20_000; };
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 2, steps: 10 });
+
+    // started over, it begins again at the first step with no snapshot
+    clock.time += 3600_000;
+    const restarted = clock.time;
+    fantrax.reads.length = 0;
+    fantrax.onRead = () => { clock.time += 30_000; };
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON, startOver: true })), { ok: true, done: false, stepsDone: 1, steps: 10 });
+    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]), ['leagueInfo']);
+    assert.equal((await act(() => vote.readPreview({ seasonYear: SEASON }))).vote?.prepareStartedAt, new Date(restarted).toISOString());
+    const snapshot = await league.client.query<{ players: number }>(`select count(*)::int as players from league.award_vote_players where season_year = ${SEASON}`);
+    assert.equal(snapshot.rows[0].players, 0);
+
+    fantrax.onRead = undefined;
+    assert.equal((await prepareFully()).result.ok, true);
+    const teemu = (await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot!.find(award => award.award === 'teemu-selanne')!;
+    assert.deepEqual(teemu.candidates.map(candidate => candidate.playerId), ['unknown']);
+});
+
+test('starting over is refused once the award vote is past prepared', async t => {
+    const { act, vote, setRegularSeason, prepareFully, league } = await awardVoteLeague(t);
+    setRegularSeason([skater('s1', 100)]);
+    await prepareFully();
+    await league.client.exec(`update league.award_votes set state = 'open', ballot_lock = now() + interval '1 day' where season_year = ${SEASON}`);
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON, startOver: true })), { ok: false, reason: 'not-prepared' });
+    assert.notEqual((await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot, null);
+});
