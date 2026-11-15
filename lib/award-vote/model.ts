@@ -31,16 +31,23 @@ export interface SkaterLine {
     blocks: number;
 }
 
-/** a goalie's totals over one stat set */
+/**
+ * A goalie's totals over one stat set. The categories after shutouts are kept only when the season's league scores
+ * them (its Fantrax table has them), and are null where Fantrax shows no value.
+ */
 export interface GoalieLine {
     group: 'goalie';
     points: number;
     perGame: number | null;
     gamesPlayed: number;
     wins: number;
-    goalsAgainst: number;
-    saves: number;
     shutouts: number;
+    /** overtime and shootout losses (OL+ShL) */
+    overtimeLosses?: number | null;
+    goalsAgainst?: number | null;
+    saves?: number | null;
+    /** e.g. 0.915 */
+    savePercentage?: number | null;
 }
 
 export type StatLine = SkaterLine | GoalieLine;

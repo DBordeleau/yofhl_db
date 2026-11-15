@@ -49,9 +49,12 @@ const skaterLine = (player: RangedSkater): SkaterLine => ({
     group: 'skater', points: player.points, perGame: player.perGame, gamesPlayed: player.gamesPlayed,
     goals: player.goals, assists: player.assists, shots: player.shots, hits: player.hits, blocks: player.blocks,
 });
+/** the categories a goalie's league may not score, kept only when its table has them */
+const OPTIONAL_GOALIE_CATEGORIES = ['overtimeLosses', 'goalsAgainst', 'saves', 'savePercentage'] as const;
 const goalieLine = (player: RangedGoalie): GoalieLine => ({
     group: 'goalie', points: player.points, perGame: player.perGame, gamesPlayed: player.gamesPlayed,
-    wins: player.wins, goalsAgainst: player.goalsAgainst, saves: player.saves, shutouts: player.shutouts,
+    wins: player.wins, shutouts: player.shutouts,
+    ...Object.fromEntries(OPTIONAL_GOALIE_CATEGORIES.filter(category => player[category] !== undefined).map(category => [category, player[category]])),
 });
 const positionsOf = (positions: string) => positions.split(',').map(position => position.trim()).filter(Boolean);
 
