@@ -70,6 +70,13 @@ _Avoid_: day, period (on its own)
 **Final week**:
 A week whose scores are settled, either automatically because the standings records add up or by hand in admin.
 
+**Regular-season game**:
+One pairing in a week before Fantrax's first playoff week. From 2027 the season sync stores each one once its week is final, as a game with the regular stage and its week number as its round; earlier seasons' are in `lib/rivalries/regular-season-history.json`.
+_Avoid_: matchup (on its own, when the stage matters)
+
+**Matchup format**:
+The kind of week a regular-season game was played over, which decides which games the record book compares. Weekly is any week of up to seven days in 2019, or a seven-day week from 2027. Bi-weekly is a week shorter than seven days after 2019. A week longer than seven days has no format, and neither do the few seven-day weeks of 2020–2026, so the checked-in history's records hold.
+
 **Playoff round**:
 The Quarterfinals, Semifinals or Final, each one Fantrax week, which can be longer than seven days: the 2027 Final is a single two-week week. The rounds start at Fantrax's first playoff week; every earlier week is the regular season.
 
@@ -79,6 +86,10 @@ The Quarterfinals, Semifinals or Final, each one Fantrax week, which can be long
 Fantrax's identifier for a player (`02b81`), the same in the archive, the live season, URLs and scripts. Fantrax's CSV exports wrap it in asterisks (`*02b81*`); the Fantrax CSV reading code strips them, and that wrapped form never gets past it.
 _Avoid_: archive ID, Fantrax ID (as if they were different things), slug
 
+**Skater categories**:
+A skater's goals, assists, shots, hits and blocks for a season, the record book's player categories. 2019–2026's are in a checked-in history file (`lib/records/player-category-history.json`); from 2027 the season sync writes them onto each skater's player season from Fantrax's skater table. A skater with no games played has zeros; a goalie has none.
+_Avoid_: stats, player stats (FPts and FP/G are stats too), categories (alone, when a team's could be meant)
+
 ## Importing
 
 **Season import**:
@@ -86,7 +97,7 @@ Replacing whole seasons' imported data (standings, player seasons, playoff games
 _Avoid_: sync, load, the importer (when you mean the rules rather than the command)
 
 **Season sync**:
-The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season straight from Fantrax, each playoff round's games once the round is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
+The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season (with its skater categories) straight from Fantrax, the season's weeks, each regular-season week's games and each playoff round's games once the week is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
 _Avoid_: import (for this), refresh (that is the evening Fantrax refresh)
 
 **Automatic championship roster**:

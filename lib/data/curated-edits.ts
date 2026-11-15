@@ -94,18 +94,20 @@ export async function saveAwards(year: number, picks: { award: string; playerId:
     return { ok: true, saved: winners.length };
 }
 
-// winner: 'score' follows the score, or a franchise id overrides it. Following the score with
-// an empty note removes the correction. A game is keyed by season, round and its two franchises.
+// Corrects a playoff game. winner: 'score' follows the score, or a franchise id overrides it.
+// Following the score with an empty note removes the correction. A game is keyed by season, round and its two franchises.
 export async function saveMatchup(year: number, matchupId: number, winner: 'score' | number, note: string, options: EditOptions = {}):
-    Promise<{ ok: true } | Rejected<'unknown-matchup' | 'not-in-matchup'>> {
-    const [game] = await rows<{ round: number; a_ts: number; a_f: number; a_score: number; h_ts: number; h_f: number; h_score: number }>(sql`
-        select m.round, a.id as a_ts, a.franchise_id as a_f, m.away_score::float8 as a_score,
+    Promise<{ ok: true } | Rejected<'unknown-matchup' | 'not-playoff' | 'not-in-matchup'>> {
+    const [game] = await rows<{ stage: 'playoff' | 'regular'; round: number; a_ts: number; a_f: number; a_score: number; h_ts: number; h_f: number; h_score: number }>(sql`
+        select m.stage, m.round, a.id as a_ts, a.franchise_id as a_f, m.away_score::float8 as a_score,
                h.id as h_ts, h.franchise_id as h_f, m.home_score::float8 as h_score
         from league.matchups m
         join league.team_seasons a on a.id = m.away_team_season_id
         join league.team_seasons h on h.id = m.home_team_season_id
         where m.id = ${matchupId} and m.season_year = ${year}`);
     if (!game) return { ok: false, reason: 'unknown-matchup' };
+    // Bracket review is the only caller; a regular-season game has no curated path.
+    if (game.stage !== 'playoff') return { ok: false, reason: 'not-playoff' };
     if (winner !== 'score' && winner !== game.a_f && winner !== game.h_f) return { ok: false, reason: 'not-in-matchup' };
 
     const cleanNote = String(note ?? '').trim().slice(0, 300) || null;

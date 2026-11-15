@@ -12,6 +12,7 @@ const messages = {
     'unknown-player': "Some of those players didn't play that season.",
     'unknown-award': "One of those awards doesn't exist.",
     'unknown-matchup': 'That playoff game no longer exists. Reload the page.',
+    'not-playoff': 'Only playoff games can be corrected here.',
     'not-in-matchup': 'The winner has to be one of the two teams.',
 };
 

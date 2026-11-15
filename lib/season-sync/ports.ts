@@ -2,7 +2,8 @@
 // the in-memory binding in memory-fantrax.ts. Every read checks its own response's shape and rejects a failed or
 // malformed one; the season sync then checks the reads against the archive before it writes anything. The bracket
 // comes from the live season module, which already has Fantrax's playoff weeks, pairings and final weeks.
-import type { getLiveSeason, getWeekScores } from '@/lib/fantrax/live-season';
+import type { getLiveSeason, getWeekScores, WeekScores } from '@/lib/fantrax/live-season';
+import type { PlayerCategories } from '@/lib/records/player-stats';
 
 /** one Fantrax scoring period, its dates as ISO strings */
 export interface FantraxWeek {
@@ -68,15 +69,27 @@ export interface FantraxPlayer {
     perGame: number | null;
 }
 
+/** one skater in Fantrax's website skater table (the record book's category export's read), season to date */
+export interface FantraxSkater {
+    /** bare Fantrax player ID */
+    id: string;
+    /** goals, assists, shots, hits and blocks, or null for a skater with no games played */
+    categories: PlayerCategories | null;
+}
+
 export interface SeasonSyncFantrax {
     leagueInfo(leagueId: string): Promise<FantraxLeagueInfo>;
     standings(leagueId: string): Promise<FantraxStanding[]>;
     /** every player who scored (a non-zero total, negative included) or is rostered, for the season year given */
     players(leagueId: string, seasonYear: number): Promise<FantraxPlayer[]>;
+    /** every NHL skater (goalies are not in it), with skater categories for those who have played, for the season year given */
+    skaters(leagueId: string, seasonYear: number): Promise<FantraxSkater[]>;
     /** every team's roster on one past (or the current) daily roster period */
     dayRosters(leagueId: string, rosterPeriod: number): Promise<FantraxDayRosters>;
     /** every NHL player Fantrax knows, by bare player ID */
     playerDirectory(): Promise<Record<string, FantraxDirectoryPlayer>>;
+    /** one week's games and scores, read from Fantrax now rather than the evening refresh's snapshot */
+    weekScores(leagueId: string, week: number): Promise<WeekScores>;
 }
 
 export interface SeasonSyncPorts {

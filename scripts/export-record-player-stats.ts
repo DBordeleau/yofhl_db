@@ -1,7 +1,8 @@
 // Read-only export. Completed seasons are bundled with Records; page views make no extra API calls.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { parse } from 'csv-parse/sync';
-import { parseCategoryPage, type CategorySeason } from '../lib/records/player-stats';
+import { loadSkaterTable } from '../lib/fantrax/skater-table';
+import type { CategorySeason } from '../lib/records/player-stats';
 import { csvPlayerId } from './db/lib/fantrax';
 
 const seasons = [
@@ -17,31 +18,15 @@ async function main() {
         const archive = (parse(await readFile(file, 'utf8'), { columns: true, skip_empty_lines: true, bom: true }) as { ID: string; Position: string; FPts: string }[])
             .map((p, i) => ({ ...p, id: csvPlayerId(p.ID, file, i) }));
         const ids = new Set(archive.filter(p => !p.Position.split(',').includes('G')).map(p => p.id));
-        const found = new Set<string>(), allIds = new Set<string>();
-        let pageCount = 1, total = 0, seasonCode: string | undefined;
-        for (let page = 1; page <= pageCount; page++) {
-            const response = await fetch(`https://www.fantrax.com/fxpa/req?leagueId=${leagueId}`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(30000),
-                body: JSON.stringify({ msgs: [{ method: 'getPlayerStats', data: {
-                    leagueId, view: 'STATS', statusOrTeamFilter: 'ALL', positionOrGroup: 'HOCKEY_SKATING',
-                    pageNumber: String(page), maxResultsPerPage: '10000', miscDisplayType: '1', ...(seasonCode ? { seasonOrProjection: seasonCode } : {}),
-                } }] }),
-            });
-            if (!response.ok) throw new Error(`Fantrax HTTP ${response.status}`);
-            const raw = await response.json();
-            const result = parseCategoryPage(raw.responses?.[0]?.data, year, page);
-            await writeFile(`output/record-player-stats/${year}-${page}.json`, JSON.stringify(raw));
-            if (page > 1 && (total !== result.pagination.totalNumResults || pageCount !== result.pagination.totalNumPages)) throw new Error('Pagination changed during export');
-            pageCount = result.pagination.totalNumPages; total = result.pagination.totalNumResults; seasonCode = result.seasonCode;
-            if (pageCount > 100) throw new Error('Unexpected pagination');
-            for (const id of result.allIds) { if (allIds.has(id)) throw new Error(`Repeated player ${id}`); allIds.add(id); }
-            for (const player of result.players) if (ids.has(player.id)) { players.push(player); found.add(player.id); }
-        }
-        if (allIds.size !== total) throw new Error(`Incomplete pagination for ${year}`);
+        const found = new Set<string>();
+        const table = await loadSkaterTable(leagueId, year, {
+            onPage: (raw, page) => writeFile(`output/record-player-stats/${year}-${page}.json`, JSON.stringify(raw)),
+        });
+        for (const { id, categories } of table.skaters) if (categories && ids.has(id)) { players.push({ id, year, ...categories }); found.add(id); }
         const missing = archive.filter(p => ids.has(p.id) && Number(p.FPts.replace(/,/g, '')) > 0 && !found.has(p.id));
         if (missing.length) throw new Error(`Missing ${missing.length} scoring skaters in ${year}: ${missing.slice(0, 5).map(p => p.id).join(', ')}`);
-        coverage.push({ year, leagueId, seasonCode: seasonCode!, players: found.size });
-        console.log(`${year - 1}-${year}: ${found.size} archived skaters; ${allIds.size}/${total} API rows validated`);
+        coverage.push({ year, leagueId, seasonCode: table.seasonCode, players: found.size });
+        console.log(`${year - 1}-${year}: ${found.size} archived skaters; ${table.skaters.length} API rows validated`);
     }
     await writeFile('lib/records/player-category-history.json', JSON.stringify({ fetchedAt: new Date().toISOString(), source: 'Fantrax regular-season player totals', coverage, players }));
     console.log(`Saved ${players.length} player-seasons. No database changes.`);

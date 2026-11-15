@@ -7,7 +7,8 @@ import type { LiveSeason, RosterStats } from '../fantrax/live-season';
 import type { RivalryGame } from '../rivalries/model';
 
 export type Category = 'teams' | 'players' | 'matchups' | 'honours';
-export interface PlayerSeason { id: string; name: string; year: number; points: number; positions: string[]; stats?: PlayerCategories }
+/** `stats`: the season's category totals, each only where it is known */
+export interface PlayerSeason { id: string; name: string; year: number; points: number; positions: string[]; stats?: Partial<PlayerCategories> }
 export interface TeamSeason { team: number; name: string; year: number; wins: number; losses: number; ties: number; points: number; logo?: string | null; abbreviation?: string }
 export interface Award { player: string; name: string; award: string; year: number; team: number | null }
 export interface PeriodInfo { year: number; period: number; days: number; era: number; start: string; end: string }
@@ -63,11 +64,16 @@ export function defaultMatchupFormat(source: RecordSource) {
 
 export type MatchupFormat = 'biweekly' | 'weekly';
 
+/** The last season of the checked-in history files, which are frozen; the season sync stores every later season's games, weeks and skater categories. */
+export const HISTORY_THROUGH = 2026;
+
+/** A week's matchup format (GLOSSARY.md, "Matchup format"), or null for a week no other is compared with. */
 export function matchupFormat(period: PeriodInfo): MatchupFormat | null {
     if (period.days <= 0 || period.days > 7) return null;
     // Keep shortened opening periods with their season's usual schedule.
     if (period.year === 2019) return 'weekly';
-    if (period.days >= 7) return null;
+    // The history's few seven-day weeks between 2020 and 2026 stay out, so its records hold.
+    if (period.days === 7) return period.year > HISTORY_THROUGH ? 'weekly' : null;
     return 'biweekly';
 }
 
@@ -100,9 +106,10 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
     const stat = PLAYER_STATS.find(stat => stat.id === filter.stat);
     if (stat) {
         const unit = stat.label.toLowerCase();
-        const measured = careers.map(seasons => seasons.filter(p => p.stats?.[stat.id] != null)).filter(seasons => seasons.length);
-        add(`player-career-${stat.id}`, 'players', `Career ${unit}`, unit, measured.map(seasons => playerEntry(seasons[0], seasons.reduce((sum, p) => sum + p.stats![stat.id], 0), `${seasons.length} seasons`)).filter(p => p.value > 0));
-        add(`player-season-${stat.id}`, 'players', `Most ${unit} in a season`, unit, eligible.filter(p => (p.stats?.[stat.id] ?? 0) > 0).map(p => ({ ...playerEntry(p, p.stats![stat.id], seasonLabel(p.year)), id: `${p.id}:${p.year}` })));
+        const total = (p: PlayerSeason) => p.stats?.[stat.id];
+        const measured = careers.map(seasons => seasons.filter(p => total(p) != null)).filter(seasons => seasons.length);
+        add(`player-career-${stat.id}`, 'players', `Career ${unit}`, unit, measured.map(seasons => playerEntry(seasons[0], seasons.reduce((sum, p) => sum + total(p)!, 0), `${seasons.length} seasons`)).filter(p => p.value > 0));
+        add(`player-season-${stat.id}`, 'players', `Most ${unit} in a season`, unit, eligible.filter(p => (total(p) ?? 0) > 0).map(p => ({ ...playerEntry(p, total(p)!, seasonLabel(p.year)), id: `${p.id}:${p.year}` })));
     } else {
         add('player-career', 'players', 'Career scoring', 'FPts', careers.map(seasons => playerEntry(seasons[0], round(seasons.reduce((sum, p) => sum + p.points, 0)), `${seasons.length} seasons`)));
         add('player-season', 'players', 'Highest-scoring season', 'FPts', eligible.map(p => ({ ...playerEntry(p, p.points, seasonLabel(p.year)), id: `${p.id}:${p.year}` })));

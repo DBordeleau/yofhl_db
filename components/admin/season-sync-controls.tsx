@@ -5,12 +5,15 @@ import type { SeasonSyncStatus } from '@/lib/season-sync/status';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime as time, useAdminAction } from './admin-action';
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 
-function changes({ teamSeasons, playerSeasons, playoffGames, championshipRoster }: SeasonSyncStatus['changed']) {
+function changes({ teamSeasons, playerSeasons, playoffGames, championshipRoster, skaterCategories, regularSeasonGames, weeks }: SeasonSyncStatus['changed']) {
     const parts = [
         playerSeasons && plural(playerSeasons, 'player season'),
         teamSeasons && plural(teamSeasons, 'team season'),
+        regularSeasonGames && plural(regularSeasonGames, 'regular-season game'),
+        weeks && plural(weeks, 'week'),
         playoffGames && plural(playoffGames, 'playoff game'),
         championshipRoster && plural(championshipRoster, 'championship roster player'),
+        skaterCategories && `category totals for ${plural(skaterCategories, 'skater')}`,
     ].filter(Boolean);
     return parts.length ? parts.join(', ') : 'nothing';
 }

@@ -3,10 +3,13 @@
 // says by changing `fantrax` (and `live`, the live season's weeks, playoffs and scores), pass the current time to
 // each run, and read the result through the site's own readers.
 import type { TestContext } from 'node:test';
+import type { WeekScores } from '@/lib/fantrax/live-season';
 import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
+import { SKATER_CATEGORIES } from '@/lib/records/player-stats';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
-import type { FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxWeek } from '../ports';
+import type { FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxSkater, FantraxWeek } from '../ports';
+import type { SkaterCategoryTotals } from '../skater-categories';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -14,17 +17,23 @@ export const FRANCHISES = [1, 2, 3, 4];
 /** Fantrax's first playoff week: the Quarterfinals, then the Semifinals (23) and the two-week Final (24) */
 export const FIRST_PLAYOFF_WEEK = 22;
 const DAY = 86400 * 1000;
+/** midnight in Eastern time (the league's time zone), `days` days after October 12, 2026 */
+const easternMidnight = (days: number) => {
+    const fiveUtc = Date.UTC(2026, 9, 12 + days, 5);
+    const hour = Number(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: '2-digit', hourCycle: 'h23' }).format(fiveUtc));
+    return fiveUtc - hour * 3600 * 1000;
+};
 
-/** The season's 24 weeks: weekly from October 12, then a two-week Final ending April 5, 2027. */
+/** The season's 24 weeks: Monday to Sunday in Eastern time from October 12, then a two-week Final ending April 5, 2027. */
 export const WEEKS: FantraxWeek[] = Array.from({ length: 24 }, (_, index) => {
-    const start = Date.parse('2026-10-12T04:00:00Z') + index * 7 * DAY;
-    const end = index === 23 ? Date.parse('2027-04-05T15:59:58Z') : start + 7 * DAY - 1000;
+    const start = easternMidnight(index * 7);
+    const end = index === 23 ? Date.parse('2027-04-05T15:59:58Z') : easternMidnight(index * 7 + 7) - 1000;
     return { number: index + 1, startDate: new Date(start).toISOString(), endDate: new Date(end).toISOString() };
 });
-/** Fantrax's daily roster periods, numbered from 1: midnight to midnight Eastern (standard time), from the first week's start to the Final's last day */
+/** Fantrax's daily roster periods, numbered from 1: midnight to midnight Eastern, from the first week's start to the Final's last day */
 export const ROSTER_PERIODS: FantraxRosterPeriod[] = Array.from({ length: 176 }, (_, index) => {
-    const start = Date.parse(WEEKS[0].startDate) + index * DAY;
-    return { number: index + 1, startDate: new Date(start).toISOString(), endDate: new Date(start + DAY - 1000).toISOString() };
+    const start = easternMidnight(index);
+    return { number: index + 1, startDate: new Date(start).toISOString(), endDate: new Date(easternMidnight(index + 1) - 1000).toISOString() };
 }).filter(period => Date.parse(period.startDate) <= Date.parse(WEEKS.at(-1)!.endDate));
 /** the roster periods of week `week`: those starting inside it */
 export const daysOf = (week: number) => ROSTER_PERIODS.filter(period =>
@@ -71,15 +80,32 @@ export type PlayerRow = [string, number, number | null, number | null];
 const playersOf = (rows: PlayerRow[]): FantraxPlayer[] => rows.map(([id, points, perGame, team]) =>
     ({ id, name: `Name ${id}`, positions: ['C'], nhlTeam: 'EDM', teamId: team === null ? null : `fx${team}`, points, perGame }));
 
+/** a skater in Fantrax's skater table: [player ID, goals, assists, shots, hits, blocks], or [player ID, null] for one with no games played */
+export type SkaterRow = [string, number, number, number, number, number] | [string, null];
+const skatersOf = (rows: SkaterRow[]): FantraxSkater[] => rows.map(row => row[1] === null
+    ? { id: row[0], categories: null }
+    : { id: row[0], categories: { goals: row[1], assists: row[2], shots: row[3], hits: row[4], blocks: row[5] } });
+
+/** Fantrax's scores for `games` in week `week`: [away team, home team, away score, home score] each */
+const weekScoresOf = (week: number, games: GameScore[], fetchedAt: string): WeekScores => ({
+    fetchedAt, week, matchups: games.map(([away, home, awayScore, homeScore]) => ({
+        away: { teamId: `fx${away}`, score: awayScore, gamesPlayed: 0 }, home: { teamId: `fx${home}`, score: homeScore, gamesPlayed: 0 },
+    })),
+});
+
+/** Fantrax's state, every week scored 0–0 between teams paired in order (fx1 v fx2, fx3 v fx4, …) until a test scores it */
 export function fantraxState(franchises = FRANCHISES): MemoryFantraxState {
+    const pairs = franchises.flatMap((id, index): GameScore[] => index % 2 === 0 && franchises[index + 1] ? [[id, franchises[index + 1], 0, 0]] : []);
     return {
         leagueId: LEAGUE_ID,
         leagueInfo: { seasonYear: SEASON, weeks: structuredClone(WEEKS), rosterPeriods: structuredClone(ROSTER_PERIODS) },
         standings: standingsOf(franchises.map(id => [id, id, 0, 0, 0, 0, 0])),
         players: [],
+        skaters: [],
         // every team's roster is empty every day until a test fills it
         rosters: Object.fromEntries(ROSTER_PERIODS.map(period => [period.number, Object.fromEntries(franchises.map(id => [`fx${id}`, []]))])),
         directory: {},
+        scores: Object.fromEntries(WEEKS.map(week => [week.number, weekScoresOf(week.number, pairs, week.endDate)])),
         down: new Set(),
     };
 }
@@ -161,6 +187,17 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     const setStandings = (rows: StandingRow[]) => { fantrax.standings = standingsOf(rows); };
     /** Fantrax's player stats table now lists `rows` (every NHL player, scored or not) */
     const setPlayers = (rows: PlayerRow[]) => { fantrax.players = playersOf(rows); };
+    /** Fantrax's skater table now lists `rows` (every NHL skater, played or not) */
+    const setSkaters = (rows: SkaterRow[]) => { fantrax.skaters = skatersOf(rows); };
+    /**
+     * Each player season's stored goals, assists, shots, hits and blocks in `year`, by player ID, or null where none
+     * are stored. Read from the table, as the record book shows only the ranked ones.
+     */
+    const skaterCategories = async (year: number) => {
+        const { rows } = await league.client.query<{ id: string } & SkaterCategoryTotals>(
+            `select player_id as id, ${SKATER_CATEGORIES.join(', ')} from league.player_seasons where season_year = $1 order by player_id`, [year]);
+        return Object.fromEntries(rows.map(({ id, ...totals }) => [id, Object.values(totals).every(value => value === null) ? null : totals]));
+    };
     const core = live.fantrax.core;
     /**
      * Fantrax publishes week `week`'s pairings, in its schedule's order. Publishing the first playoff week's
@@ -172,13 +209,13 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
         }];
         if (week === core.playoffs.firstPlayoffPeriod) delete core.playoffs.seeding;
     };
-    /** Fantrax's scores for week `week` (a stat correction, once the week has been scored) */
+    /**
+     * Fantrax's scores for week `week` (a stat correction, once the week has been scored), as the run reads them and
+     * as the evening refresh saves them
+     */
     const setScores = (week: number, games: GameScore[]) => {
-        live.fantrax.scores[week] = {
-            fetchedAt: core.fetchedAt, week, matchups: games.map(([away, home, awayScore, homeScore]) => ({
-                away: { teamId: `fx${away}`, score: awayScore, gamesPlayed: 0 }, home: { teamId: `fx${home}`, score: homeScore, gamesPlayed: 0 },
-            })),
-        };
+        live.fantrax.scores[week] = weekScoresOf(week, games, core.fetchedAt);
+        fantrax.scores[week] = weekScoresOf(week, games, core.fetchedAt);
     };
     /** team fx`team` has `players` (each with its slot) on its roster on each of `days`, roster period numbers, and no one else */
     const setRoster = (team: number, days: number[], players: [string, FantraxRosterSlot][]) => {
@@ -186,5 +223,5 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     };
     /** an admin marks week `week` final */
     const markFinal = (week: number) => { live.manualFinalWeeks[SEASON] = [...live.manualFinalWeeks[SEASON] ?? [], week]; };
-    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setPairings, setScores, markFinal, setRoster, refreshStopsAt, failureLogs };
+    return { league, fantrax, live, sync, run, read, setStandings, setPlayers, setSkaters, skaterCategories, setPairings, setScores, markFinal, setRoster, refreshStopsAt, failureLogs };
 }

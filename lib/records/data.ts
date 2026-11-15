@@ -8,33 +8,54 @@ import regularSeason from '../rivalries/regular-season-history.json';
 import periods from './periods.json';
 import playerCategories from './player-category-history.json';
 import playerPortraits from './player-portraits.json';
-import type { PlayerStat } from './player-stats';
-import { buildChases, buildRecords, matchupFormats, defaultMatchupFormat, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
+import type { PlayerCategories, PlayerStat } from './player-stats';
+import { storedRegularSeasonGames, storedWeeks } from '../data/regular-season-games';
+import { buildChases, buildRecords, HISTORY_THROUGH, matchupFormat, matchupFormats, defaultMatchupFormat, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
+
+// Games, weeks and skater categories for 2026 and earlier are checked in; the season sync stores later seasons'.
 
 // Keep checked-in history outside the data cache. Combining it with all player
 // rows exceeds Next's 2 MB entry limit and silently repeats the database reads.
 const getRecordArchive = cached(async () => {
-    const [teams, players, seasons, awards] = await Promise.all([
+    const [teams, players, seasons, awards, games, weeks] = await Promise.all([
         getFranchiseCards(),
-        rows<PlayerSeason>(sql`select p.id, p.name, ps.season_year as year, ps.fpts::float8 as points, ps.positions
+        // A stored player season's category totals, each only when it is not null; none when all of them are.
+        rows<PlayerSeason & { stats: Partial<PlayerCategories> | null }>(sql`select p.id, p.name, ps.season_year as year, ps.fpts::float8 as points, ps.positions,
+                nullif(jsonb_strip_nulls(jsonb_build_object('goals', ps.goals, 'assists', ps.assists, 'shots', ps.shots, 'hits', ps.hits, 'blocks', ps.blocks)), '{}') as stats
             from league.player_seasons ps join league.players p on p.id = ps.player_id order by ps.season_year`),
         rows<TeamSeason>(sql`select t.franchise_id as team, st.name, t.season_year as year, t.wins, t.losses, t.ties, t.fpts_for::float8 as points, st.logo, st.abbreviation
             from league.team_seasons t join league.season_teams st on st.team_season_id = t.id`),
         rows<Award>(sql`select a.player_id as player, p.name, at.label as award, a.season_year as year, t.franchise_id as team
             from league.awards a join league.players p on p.id = a.player_id join league.award_types at on at.id = a.award_type_id
             left join league.team_seasons t on t.id = a.team_season_id`),
+        storedRegularSeasonGames(),
+        storedWeeks(),
     ]);
-    return { teams, players, seasons, awards };
-}, 'records-archive-v2', [leagueTags.records]);
+    return { teams, players, seasons, awards, storedGames: games, storedWeeks: weeks };
+}, 'records-archive-v5', [leagueTags.records]);
 
 const categories = new Map(playerCategories.players.map(p => [`${p.id}:${p.year}`, p]));
-const games = regularSeason.games.map(g => ({ ...g, stage: 'regular' as const }));
+const historyGames = regularSeason.games.map(g => ({ ...g, stage: 'regular' as const }));
 export async function getRecordSource(): Promise<RecordSource> {
     // Only the season archive decides which seasons are published (lib/seasons.ts).
-    const [archive, seasons] = await Promise.all([getRecordArchive(), getSeasonArchive()]);
+    const [{ storedGames, storedWeeks: weeks, ...archive }, seasons] = await Promise.all([getRecordArchive(), getSeasonArchive()]);
     const published = [...seasons.published].reverse(); // oldest first
     return { ...archive, published: published.map(season => season.year),
-        competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: categories.get(`${p.id}:${p.year}`) })), games, periods };
+        competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: p.year > HISTORY_THROUGH ? p.stats ?? undefined : categories.get(`${p.id}:${p.year}`) })),
+        games: [...historyGames, ...storedGames], periods: [...periods, ...weeks] };
+}
+
+/**
+ * A regular-season game's page: a history game by its negative id, a stored game by its `matchups` row id. None for
+ * any other id, a playoff game's included, or a game whose week has no matchup format.
+ */
+export async function getRecordGame(id: string) {
+    const source = await getRecordSource();
+    const game = source.games.find(g => String(g.id) === id);
+    if (!game || game.stage !== 'regular') return null;
+    const week = source.periods.find(p => p.year === game.year && p.period === game.round);
+    const format = week ? matchupFormat(week) : null;
+    return format ? { source, game, week, format } : null;
 }
 
 export async function getRecordBook(filter: { team?: number; position?: string; format?: string; stat?: PlayerStat } = {}) {

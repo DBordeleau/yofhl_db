@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
 import { drawingOrder } from '@/lib/data/bracket-order';
 import { matchupWinner } from '@/lib/data/matchup-winner';
@@ -20,8 +20,9 @@ import { eraFor, findByAbbreviation, findByName, suggestEra, type LeagueConfig, 
 // All or nothing: every season validates before anything is written, then the league configuration,
 // Fantrax teams, every season, the legacy seeds, history and the view refreshes are written in one
 // transaction (docs/adr/0004-season-import-is-one-transaction.md). Standings, player seasons and playoff
-// games are rebuilt; championship rosters and awards are never touched (the legacy seeds are loaded once
-// for seasons that have none).
+// games are rebuilt from the CSVs; what only the season sync writes (regular-season games, weeks and the
+// skater categories of the player seasons kept) survives. Championship rosters and awards are never
+// touched (the legacy seeds are loaded once for seasons that have none).
 //
 // Opening the season being played: a season with a `fantrax` block in league.yml and no CSVs is opened
 // instead, with one team season per mapped franchise, its identity from the franchise's era and zeroed
@@ -336,22 +337,39 @@ const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<str
                 .values(batch.map((p) => ({ id: p.id, name: p.name })))
                 .onConflictDoUpdate({ target: schema.players.id, set: { name: sql`excluded.name` } });
         }
-        await tx.delete(schema.playerSeasons).where(eq(schema.playerSeasons.seasonYear, season.year));
+        // player seasons are rewritten in place, so the skater categories the season sync wrote (which the
+        // CSVs don't hold) stay with them; one the keep rule drops goes with its categories
+        await tx
+            .delete(schema.playerSeasons)
+            .where(and(eq(schema.playerSeasons.seasonYear, season.year), notInArray(schema.playerSeasons.playerId, kept.map((p) => p.id))));
         for (const batch of chunk(kept, 1000)) {
-            await tx.insert(schema.playerSeasons).values(
-                batch.map((p) => ({
-                    playerId: p.id,
-                    seasonYear: season.year,
-                    teamSeasonId: p.franchiseId === null ? null : teamSeasonIds.get(p.franchiseId)!,
-                    nhlTeam: p.nhlTeam,
-                    positions: p.positions,
-                    fpts: p.fpts,
-                    fpg: p.fpg,
-                })),
-            );
+            await tx
+                .insert(schema.playerSeasons)
+                .values(
+                    batch.map((p) => ({
+                        playerId: p.id,
+                        seasonYear: season.year,
+                        teamSeasonId: p.franchiseId === null ? null : teamSeasonIds.get(p.franchiseId)!,
+                        nhlTeam: p.nhlTeam,
+                        positions: p.positions,
+                        fpts: p.fpts,
+                        fpg: p.fpg,
+                    })),
+                )
+                .onConflictDoUpdate({
+                    target: [schema.playerSeasons.playerId, schema.playerSeasons.seasonYear],
+                    set: {
+                        teamSeasonId: sql`excluded.team_season_id`,
+                        nhlTeam: sql`excluded.nhl_team`,
+                        positions: sql`excluded.positions`,
+                        fpts: sql`excluded.fpts`,
+                        fpg: sql`excluded.fpg`,
+                    },
+                });
         }
 
-        await tx.delete(schema.matchups).where(eq(schema.matchups.seasonYear, season.year));
+        // the CSVs hold only playoff games; regular-season games come from the season sync and are kept
+        await tx.delete(schema.matchups).where(and(eq(schema.matchups.seasonYear, season.year), eq(schema.matchups.stage, 'playoff')));
         if (season.games.length) {
             await tx.insert(schema.matchups).values(
                 season.games.map((g) => ({
