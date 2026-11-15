@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rangeKey } from './memory-fantrax';
-import { awardVoteLeague, FINAL, FRANCHISES, goalie, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
+import { awardVoteLeague, FINAL, FRANCHISES, goalie, nhlRecord, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
 
 // The rehearsal: the season before the live season (2026 here, the live season being 2027) prepared and previewed
 // like a live award vote, but never opened. Its Fantrax league is the 2025–26 one, league26, mapped like league27.
@@ -22,8 +22,10 @@ async function rehearsalLeague(t: Parameters<typeof awardVoteLeague>[0]) {
 }
 
 test('the season before the live season is prepared and previewed as a rehearsal, with every award a live prepare shows', async t => {
-    const { act, vote, fantrax, setRegularSeason, prepareFully, fantraxIs2026, league } = await rehearsalLeague(t);
+    const { act, vote, fantrax, nhl, setRegularSeason, prepareFully, fantraxIs2026, league } = await rehearsalLeague(t);
     setRegularSeason([skater('s1', 100), skater('d1', 60, { positions: 'D' })], [goalie('g1', 50)]);
+    // a rookie in both seasons
+    nhl.players.d1 = nhlRecord();
     fantrax.skaters[rangeKey(PLAYOFF_ROUNDS)] = [skater('s1', 40)];
     fantrax.skaters[rangeKey(FINAL)] = [skater('s1', 15)];
     const livePrepared = (await prepareFully(SEASON)).result;
@@ -50,6 +52,7 @@ test('the season before the live season is prepared and previewed as a rehearsal
         ['s1', 'd1', 'g1'],
         ['d1'],
         ['g1'],
+        ['d1'],
         ['s1'],
     ]);
     assert.deepEqual(rehearsal.ballot![0].candidates[0].team, { teamSeasonId: 3, franchiseId: 3, name: 'Old 3', abbreviation: 'O3', logo: '/logos/o3.png' });

@@ -1,10 +1,11 @@
 // The award vote module wired to production: the real clock, Fantrax over HTTP (league info and daily rosters
 // through the Fantrax client, date-range totals through the ranged-stats reader, under the season's own by-date
-// code), and the app's database.
+// code), the NHL's player search and profiles (nhl-lookup.ts), and the app's database.
 import { rows, writeInOrder } from '@/lib/data/db';
 import { createFantraxClient } from '@/lib/fantrax/fantrax-client';
 import { findByDateSeasonCode, loadRangedGoalies, loadRangedSkaters } from '@/lib/fantrax/ranged-stats';
 import { createAwardVote } from './create-award-vote';
+import { createNhlLookup } from './nhl-lookup';
 import type { AwardVoteRange } from './ports';
 
 const client = createFantraxClient();
@@ -33,7 +34,6 @@ export const awardVote = createAwardVote({
         goalies: async range => loadRangedGoalies(await rangedRead(range)),
         dayRosters: (leagueId, rosterPeriod) => client.dayRosters(leagueId, rosterPeriod),
     },
-    // Nothing looks NHL players up yet; the Teemu Trophy's rookie review binds the NHL's player search here.
-    nhl: { lookup: () => Promise.reject(new Error('No NHL player lookup is bound yet')) },
+    nhl: createNhlLookup(),
     db: { rows, writeInOrder },
 });

@@ -41,7 +41,7 @@ test("the Danny Briere Award lists everyone outside the minors on either finalis
     // a non-finalist's player, however good
     rostered(league, 3, EVERY_DAY, [['elsewhere', 'ACTIVE']]);
 
-    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 9, steps: 9 });
+    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
     // only the Final's rosters are read
     assert.deepEqual(fantrax.reads.filter(read => read.startsWith('dayRosters')), FINAL_PERIODS.map(period => `dayRosters ${period}`));
 

@@ -5,6 +5,7 @@ import AwardVotePanel from '@/components/admin/award-vote-panel';
 import AwardsEditor from '@/components/admin/awards-editor';
 import BracketReview from '@/components/admin/bracket-review';
 import LoginForm from '@/components/admin/login-form';
+import RookieReview from '@/components/admin/rookie-review';
 import RosterEditor from '@/components/admin/roster-editor';
 import { adminConfigured, isAdmin } from '@/lib/admin/auth';
 import { getSeasonAdmin } from '@/lib/admin/data';
@@ -32,6 +33,7 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
     const playoffs = season.playoffStatus === 'complete';
     // from 2026–27 on, and for the season before the live season as a rehearsal
     const vote = await awardVote.readPreview({ seasonYear: season.year });
+    const rookies = vote.kind ? await awardVote.readRookieReview({ seasonYear: season.year }) : null;
 
     return (
         <>
@@ -68,6 +70,14 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
                             : 'Prepare the ballot from Fantrax and the archive, then check it here as owners will see it. Preparing again replaces it.'}
                     >
                         <AwardVotePanel year={season.year} preview={vote} />
+                    </Section>
+                )}
+                {rookies && (
+                    <Section
+                        title="Rookie review"
+                        description="Who is a Calder-eligible rookie for the Teemu Trophy, by the NHL’s records. Add a player the NHL lookup missed or remove one wrongly admitted; your changes stay when you prepare again."
+                    >
+                        <RookieReview year={season.year} review={rookies} />
                     </Section>
                 )}
                 <Section title="Awards" description={playoffs ? undefined : 'The playoffs were cancelled this season, so there is no Playoff MVP.'}>

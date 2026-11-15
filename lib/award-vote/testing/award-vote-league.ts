@@ -5,7 +5,7 @@ import type { TestContext } from 'node:test';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryAwardVoteFantrax, rangeKey, type MemoryAwardVoteFantraxState } from '../memory-fantrax';
 import { createMemoryNhl, type MemoryNhlState } from '../memory-nhl';
-import type { FantraxRosterPeriod, FantraxWeek, RangedGoalie, RangedSkater } from '../ports';
+import type { FantraxRosterPeriod, FantraxWeek, NhlPlayerRecord, RangedGoalie, RangedSkater } from '../ports';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -151,3 +151,10 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
     };
     return { league, vote, fantrax, nhl: nhlState, clock, act, setRegularSeason, prepareFully, endedSeasonWith, dropped, claimed };
 }
+
+/**
+ * the NHL's record of a player: born `birthDate` (a 22-year-old in 2026–27 unless given), with `[season, games]`
+ * NHL regular-season games per season (e.g. `[20252026, 12]`)
+ */
+export const nhlRecord = (seasons: [number, number][] = [], birthDate = '2004-03-01', nhlId = 8480000): NhlPlayerRecord =>
+    ({ nhlId, birthDate, seasons: seasons.map(([season, games]) => ({ season, games })) });

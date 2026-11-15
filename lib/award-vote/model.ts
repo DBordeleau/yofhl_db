@@ -59,6 +59,8 @@ export interface PrepareProgress {
     startedAt: string;
     done: string[];
     dates: import('./season-dates').SeasonDates | null;
+    /** the NHL lookup of each young player looked up so far for the Teemu Trophy, by player ID */
+    rookies?: Record<string, RookieLookup>;
     /**
      * Everyone on a finalist's roster outside the minors on any day of the Final, by player ID, each with the team
      * season of the finalist credited with them; absent until the Final's rosters are read.
@@ -66,10 +68,10 @@ export interface PrepareProgress {
     finalRosters?: Record<string, number>;
 }
 
-/**
- * The admin's changes to the computed Calder-eligible rookie list, by player ID, kept across re-prepares. Unused
- * until the Teemu Trophy is prepared.
- */
+/** a young player's NHL match and whether the Calder rule (calder.ts) admits them, or null when no NHL player matches */
+export type RookieLookup = { nhlId: number; eligible: boolean } | null;
+
+/** the admin's changes to the computed Calder-eligible rookie list, by player ID, kept across re-prepares */
 export interface RookieAdjustments {
     added: string[];
     removed: string[];

@@ -18,6 +18,8 @@ export interface SnapshotPlayer {
 /** what the rules know beyond the player */
 export interface EligibilityContext {
     seasonYear: number;
+    /** the Calder-eligible rookies by player ID, with the admin's changes */
+    rookies: ReadonlySet<string>;
     /** the Final's rosters: each player on a finalist's roster outside the minors, with that finalist's team season */
     finalRosters: Record<string, number>;
 }
@@ -54,6 +56,8 @@ export const PLAYER_AWARD_RULES: readonly PlayerAwardRule[] = [
     { award: 'le-magnifique', statSets: ['regularSeason'], shown: SHOWN_CANDIDATES, eligible: scoredInRegularSeason },
     { award: 'bobby-orr', statSets: ['regularSeason'], shown: SHOWN_CANDIDATES, eligible: player => scoredInRegularSeason(player) && player.positions.includes('D') },
     { award: 'hasek', statSets: ['regularSeason'], shown: SHOWN_CANDIDATES, eligible: player => scoredInRegularSeason(player) && player.positions.includes('G') },
+    // every rookie, so a goalie with few games isn't hidden below the top 50
+    { award: 'teemu-selanne', statSets: ['regularSeason'], shown: null, eligible: (player, { rookies }) => scoredInRegularSeason(player) && rookies.has(player.playerId) },
     // Everyone on a finalist's roster during the Final, credited to the finalist they played for.
     {
         award: 'danny-briere', statSets: ['playoffRounds', 'final'], shown: SHOWN_CANDIDATES,
