@@ -10,7 +10,7 @@ import playerCategories from './player-category-history.json';
 import playerPortraits from './player-portraits.json';
 import type { PlayerCategories, PlayerStat } from './player-stats';
 import { storedRegularSeasonGames, storedWeeks } from '../data/regular-season-games';
-import { buildChases, buildRecords, HISTORY_THROUGH, matchupFormat, matchupFormats, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
+import { buildChases, buildRecords, HISTORY_THROUGH, matchupFormat, matchupFormats, defaultMatchupFormat, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
 
 // Games, weeks and skater categories for 2026 and earlier are checked in; the season sync stores later seasons'.
 
@@ -64,7 +64,7 @@ export async function getRecordBook(filter: { team?: number; position?: string; 
     const stats = live?.rosterStats.status === 'available' ? live.rosterStats.value : null;
     const formats = matchupFormats(source);
     const requestedFormat = filter.format?.startsWith('2019:') ? 'weekly' : filter.format;
-    const format = formats.find(f => f.id === requestedFormat)?.id ?? formats[0]?.id;
+    const format = formats.find(f => f.id === requestedFormat)?.id ?? defaultMatchupFormat(source);
     const portraits: Record<string, string> = playerPortraits;
     const records = buildRecords(source, { ...filter, format }).map(record => ({ ...record, entries: record.entries.map(entry => ({
         ...entry, portrait: entry.href.startsWith('/player/') ? portraits[entry.href.slice('/player/'.length)] : undefined,

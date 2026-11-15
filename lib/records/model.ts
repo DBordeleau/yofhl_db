@@ -56,6 +56,12 @@ export function matchupFormats(source: RecordSource) {
     return [{ id: 'biweekly', label: 'Bi-weekly' }, { id: 'weekly', label: 'Weekly' }].filter(f => formats.has(f.id as MatchupFormat));
 }
 
+/** Weekly matchups lead the record book when the league has them. */
+export function defaultMatchupFormat(source: RecordSource) {
+    const formats = matchupFormats(source);
+    return (formats.find(f => f.id === 'weekly') ?? formats[0])?.id;
+}
+
 export type MatchupFormat = 'biweekly' | 'weekly';
 
 /** The last season of the checked-in history files, which are frozen; the season sync stores every later season's games, weeks and skater categories. */
@@ -139,7 +145,7 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
             detail: yearList(wins.map(a => a.year)), team: filter.team ?? null, href: playerHref(wins[0].player) })));
     }
 
-    const selectedFormat = filter.format ?? matchupFormats(source)[0]?.id;
+    const selectedFormat = filter.format ?? defaultMatchupFormat(source);
     const periods = new Map(source.periods.map(p => [`${p.year}:${p.period}`, p]));
     // Entirely inactive periods cannot establish scoring records or break a streak.
     const activePeriods = new Set(source.games.filter(g => g.awayScore !== 0 || g.homeScore !== 0).map(g => `${g.year}:${g.round}`));
