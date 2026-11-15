@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
 import { drawingOrder } from '@/lib/data/bracket-order';
 import { matchupWinner } from '@/lib/data/matchup-winner';
@@ -351,7 +351,8 @@ const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<str
             );
         }
 
-        await tx.delete(schema.matchups).where(eq(schema.matchups.seasonYear, season.year));
+        // the CSVs hold only playoff games; regular-season games come from the season sync and are kept
+        await tx.delete(schema.matchups).where(and(eq(schema.matchups.seasonYear, season.year), eq(schema.matchups.stage, 'playoff')));
         if (season.games.length) {
             await tx.insert(schema.matchups).values(
                 season.games.map((g) => ({
