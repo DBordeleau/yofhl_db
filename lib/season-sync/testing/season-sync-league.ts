@@ -5,9 +5,11 @@
 import type { TestContext } from 'node:test';
 import type { WeekScores } from '@/lib/fantrax/live-season';
 import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
+import { SKATER_CATEGORIES } from '@/lib/records/player-stats';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
 import type { FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxSkater, FantraxWeek } from '../ports';
+import type { SkaterCategoryTotals } from '../skater-categories';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -192,8 +194,8 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
      * are stored. Read from the table, as the record book shows only the ranked ones.
      */
     const skaterCategories = async (year: number) => {
-        const { rows } = await league.client.query<{ id: string; goals: number | null; assists: number | null; shots: number | null; hits: number | null; blocks: number | null }>(
-            'select player_id as id, goals, assists, shots, hits, blocks from league.player_seasons where season_year = $1 order by player_id', [year]);
+        const { rows } = await league.client.query<{ id: string } & SkaterCategoryTotals>(
+            `select player_id as id, ${SKATER_CATEGORIES.join(', ')} from league.player_seasons where season_year = $1 order by player_id`, [year]);
         return Object.fromEntries(rows.map(({ id, ...totals }) => [id, Object.values(totals).every(value => value === null) ? null : totals]));
     };
     const core = live.fantrax.core;

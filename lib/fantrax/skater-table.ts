@@ -2,7 +2,7 @@
 // checked by the record book's page check (lib/records/player-stats.ts). The season sync reads the live season's
 // skater categories from it, and the record book's category export (scripts/export-record-player-stats.ts) read
 // 2019–2026's.
-import { parseCategoryPage, type PlayerCategories } from '../records/player-stats';
+import { eachCategory, parseCategoryPage, type PlayerCategories } from '../records/player-stats';
 import { globalFetch, type Fetcher } from './leaders';
 
 export interface TableSkater {
@@ -48,7 +48,7 @@ export async function loadSkaterTable(leagueId: string, seasonYear: number, opti
         ({ totalNumPages: pageCount, totalNumResults: total } = result.pagination);
         seasonCode = result.seasonCode;
         if (pageCount > MAX_PAGES) throw new Error(`Fantrax's skater table for ${seasonYear} has an unexpected ${pageCount} pages`);
-        const played = new Map(result.players.map(({ id, goals, assists, shots, hits, blocks }) => [id, { goals, assists, shots, hits, blocks }]));
+        const played = new Map(result.players.map(player => [player.id, eachCategory(category => player[category])]));
         for (const id of result.allIds) {
             if (skaters.has(id)) throw new Error(`Fantrax's skater table for ${seasonYear} has player ${id} more than once`);
             skaters.set(id, { id, categories: played.get(id) ?? null });
