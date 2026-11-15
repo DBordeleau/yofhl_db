@@ -220,7 +220,7 @@ test("a stored game's page opens at its positive id, a history game's at its neg
     const href = records.find(record => record.id === 'matchup-score')!.entries[0].href;
     const page = async (id: string) => {
         const found = await league.read(() => getRecordGame(id));
-        return found && { id: found.game.id, year: found.game.year, round: found.game.round, format: found.format, dates: [found.period?.start, found.period?.end] };
+        return found && { id: found.game.id, year: found.game.year, round: found.game.round, format: found.format, dates: [found.week?.start, found.week?.end] };
     };
 
     const id = Number(href.slice('/records/game/'.length));
@@ -246,7 +246,7 @@ test("a stored week's game page shows it Monday to the next Monday, seven days, 
     for (const week of [1, 2, 3, 4]) {
         const [id] = await gameIds(league, week);
         const found = await league.read(() => getRecordGame(String(id)));
-        pages.push(found && [found.format, found.period?.days, found.period?.start, found.period?.end]);
+        pages.push(found && [found.format, found.week?.days, found.week?.start, found.week?.end]);
     }
     assert.deepEqual(pages, [
         ['weekly', 7, '2026-10-12', '2026-10-19'],

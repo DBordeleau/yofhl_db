@@ -103,7 +103,7 @@ export function playerSeasonsWrites(seasonYear: number, rows: (PlayerSeasonRow &
         {
             // the player seasons the part above leaves alone: only their skater categories changed
             count: null,
-            change: 'categories',
+            change: 'skaterCategories',
             statement: sql`
                 update league.player_seasons ps
                 set goals = s.goals, assists = s.assists, shots = s.shots, hits = s.hits, blocks = s.blocks
@@ -117,7 +117,7 @@ export function playerSeasonsWrites(seasonYear: number, rows: (PlayerSeasonRow &
         {
             // writes nothing: the kept player seasons, new ones included, whose skater categories the two parts above change
             count: 'skaterCategories',
-            change: 'categories',
+            change: 'skaterCategories',
             statement: sql`
                 select s.id from ${seasons}
                 left join league.player_seasons ps on ps.player_id = s.id and ps.season_year = ${seasonYear}

@@ -86,7 +86,7 @@ test('matchup records combine split-week periods across scoring rules and exclud
 });
 
 test("a seven-day week after the checked-in history is Weekly, a shorter one Bi-weekly and a longer one has no format", () => {
-    const week = { year: 2027, period: 1, days: 7, era: 2027, start: '2026-10-12', end: '2026-10-18' };
+    const week = { year: 2027, period: 1, days: 7, era: 2027, start: '2026-10-12', end: '2026-10-19' };
     assert.equal(matchupFormat(week), 'weekly');
     assert.equal(matchupFormat({ ...week, days: 4 }), 'biweekly');
     assert.equal(matchupFormat({ ...week, days: 8 }), null);
