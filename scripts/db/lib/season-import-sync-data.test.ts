@@ -40,13 +40,14 @@ const SYNC_WRITES = `
     update league.player_seasons set goals = 5, assists = 20, shots = 90, hits = 60, blocks = 80 where player_id = '0fx02' and season_year = 2026;
     update league.player_seasons set goals = 4, assists = 3, shots = 30, hits = 12, blocks = 2 where player_id = '0fx0b' and season_year = 2026;`;
 
-async function syncedLeague(t: TestContext) {
+// `first` varies the import before the season sync's writes
+async function syncedLeague(t: TestContext, first: Partial<Omit<SeasonImportInput, 'db'>> = {}) {
     const league = await disposableLeague(t);
     const db = drizzle(league.client, { schema });
     const run = (input: Partial<Omit<SeasonImportInput, 'db'>> = {}) =>
         importSeasons({ db: db as unknown as Db, config: loadLeagueConfig(path.join(FIXTURE, 'league.yml')), dataDir: path.join(FIXTURE, 'data'), seasons: [], legacy: fixtureLegacy(), loadDraftFacts: draftFacts, ...input });
 
-    assert.equal((await run()).ok, true);
+    assert.equal((await run(first)).ok, true);
     await league.client.exec(SYNC_WRITES);
 
     const query = async <T>(sql: string) => (await league.client.query<T>(sql)).rows;
@@ -104,4 +105,46 @@ test('a re-import rewrites player seasons from the CSVs, keeping their category 
     // imported again with his points, Kyle Knox is back without the totals he had
     assert.equal((await run()).ok, true);
     assert.deepEqual((await players()).find((p) => p.player_id === '0fx0b'), { player_id: '0fx0b', fpts: 45, goals: null, assists: null, shots: null, hits: null, blocks: null });
+});
+
+test('a re-import replaces the playoff games from the CSVs, reapplying saved bracket corrections, beside the regular-season games', async (t) => {
+    const { client, run, query, regularGames } = await syncedLeague(t);
+    const games = await regularGames();
+    // the admin gave the final to Cobalt, and Dunmore's semifinal score was corrected in the export
+    await client.exec(`insert into league.matchup_overrides (season_year, round, franchise_a, franchise_b, winner_franchise_id, bracket, note)
+                       values (2026, 2, 1, 3, 3, null, 'Ashgrove forfeited')`);
+    const changed = dataCopy(t, '2025-2026 Playoffs.csv', [['"Dunmore Drakes","210.5"', '"Dunmore Drakes","215.5"']]);
+
+    assert.equal((await run({ dataDir: changed })).ok, true);
+    assert.deepEqual(await query(`
+        select g.round, g.bracket, g.slot, a.franchise_id as away, h.franchise_id as home, g.away_score::float as away_score, w.franchise_id as winner
+        from league.matchups g
+        join league.team_seasons a on a.id = g.away_team_season_id
+        join league.team_seasons h on h.id = g.home_team_season_id
+        left join league.team_seasons w on w.id = g.winner_team_season_id
+        where g.stage = 'playoff' order by g.bracket, g.round, g.slot`), [
+        { round: 1, bracket: 'championship', slot: 0, away: 3, home: 2, away_score: 240.25, winner: 3 },
+        { round: 1, bracket: 'championship', slot: 1, away: 4, home: 1, away_score: 215.5, winner: 1 },
+        { round: 2, bracket: 'championship', slot: 0, away: 3, home: 1, away_score: 300, winner: 3 },
+        { round: 1, bracket: 'consolation', slot: 0, away: 6, home: 5, away_score: 180, winner: 6 },
+    ]);
+    assert.deepEqual(await regularGames(), games);
+});
+
+test('a failed re-import leaves the regular-season games, weeks and category totals as they were', async (t) => {
+    // imported first with no legacy awards, so the failing import seeds them
+    const { run, query } = await syncedLeague(t, { legacy: { ...fixtureLegacy(), awards: [] } });
+    const everything = async () => Promise.all([
+        query(`select * from league.matchups order by id`),
+        query(`select * from league.weeks order by season_year, week`),
+        query(`select * from league.player_seasons order by player_id, season_year`),
+    ]);
+    const before = await everything();
+    // Kyle Knox drops out of the keep rule, then the legacy seeding fails after the season is written
+    const changed = dataCopy(t, PLAYER_STATS, [['"*0fx0b*","Kyle Knox","LAK","RW","FA","45","0.9"', '"*0fx0b*","Kyle Knox","LAK","RW","FA","0","0"']]);
+    const legacy = fixtureLegacy();
+    legacy.awards.push({ season: 2026, award: 'Hart Trophy', playerId: '0fx01', player: 'Aaron Ashby', team: 'Ashgrove Anglers' });
+
+    await assert.rejects(run({ dataDir: changed, legacy }), /Legacy award "Hart Trophy" isn't in league.yml awards/);
+    assert.deepEqual(await everything(), before);
 });
