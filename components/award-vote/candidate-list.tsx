@@ -1,10 +1,11 @@
 'use client';
 
 // One voted award's candidates with their stats, as the ballot and its admin preview show them: the top of the
-// list by the sort column (FPts at first), sortable by any stat column, with a search across every candidate.
+// list by the sort column (FPts at first), sortable by any stat column, with a search across every candidate. The
+// best value in each column across every candidate is bold.
 // `action` adds a control to each row (the ballot's rank picker).
 import { useId, useState } from 'react';
-import { candidateColumns, listCandidates, statValue, type CandidateColumn } from '@/lib/award-vote/candidate-list';
+import { candidateColumns, listCandidates, statLeaders, statValue, type CandidateColumn } from '@/lib/award-vote/candidate-list';
 import type { BallotAward, PlayerCandidate, StatSetName } from '@/lib/award-vote/create-award-vote';
 
 type Sort = { statSet: StatSetName; key: CandidateColumn['key']; ascending: boolean };
@@ -21,6 +22,7 @@ export default function CandidateList({ award, action }: { award: BallotAward; a
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState<Sort>({ statSet: award.statSets[0].name, key: 'points', ascending: false });
     const columns = candidateColumns(award);
+    const leads = statLeaders(award);
     const listed = listCandidates(award, { statSet: sort.statSet, sortBy: sort.key, ascending: sort.ascending, search });
     const truncated = !search.trim() && award.shown !== null && award.candidates.length > award.shown;
     const sortBy = (statSet: StatSetName, key: CandidateColumn['key']) => setSort(current =>
@@ -68,7 +70,7 @@ export default function CandidateList({ award, action }: { award: BallotAward; a
                         </th>
                         <td className="px-2 py-1.5">{candidate.team ? <abbr title={candidate.team.name} className="no-underline">{candidate.team.abbreviation}</abbr> : <span className="text-ink-soft">None</span>}</td>
                         {award.statSets.flatMap(set => columns.map(column =>
-                            <td key={`${set.name}-${column.key}`} className="px-2 py-1.5 text-right">{format(statValue(candidate, set.name, column.key), column.key)}</td>))}
+                            <td key={`${set.name}-${column.key}`} className={`px-2 py-1.5 text-right ${leads(candidate, set.name, column.key) ? 'font-bold' : ''}`}>{format(statValue(candidate, set.name, column.key), column.key)}</td>))}
                     </tr>)}
                 </tbody>
             </table>
