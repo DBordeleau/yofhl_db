@@ -88,3 +88,30 @@ test('a failing or unexpected skater table writes nothing, standings and player 
     assert.equal((await getSeasonSyncStatus(SEASON))!.changed.skaterCategories, 1, "the status row records the last success's count");
     assert.deepEqual(await seen(), [145, 1, { v1: totals(11, 12, 80, 30, 15) }], 'the next run catches up');
 });
+
+test("the record book's category records count the live season's stored totals, a player season with none contributes nothing, and a corrected total shows after the next run", async t => {
+    const { league, fantrax, run, read, setPlayers, setSkaters } = await seasonSyncLeague(t);
+    const { getRecordBook } = await import('@/lib/records/data');
+    // 02f9l scored 53 goals in 2025–26, as the checked-in history has it
+    await league.client.exec(`insert into league.players (id, name) values ('02f9l', 'Name 02f9l');
+        insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg) values ('02f9l', 2026, 1, 'EDM', '{C}', 150, 2)`);
+    setPlayers([['v1', 50, 5, 1], ['02f9l', 40, 4, 2], ['goalie', 30, 3, 3], ['benched', 0, null, 4]]);
+    fantrax.players.find(player => player.id === 'goalie')!.positions = ['G'];
+    setSkaters([['v1', 60, 12, 80, 30, 15], ['02f9l', 7, 4, 40, 60, 20], ['benched', null]]);
+    await run(MID_SEASON);
+
+    const goals = async () => {
+        const { records } = await read(() => getRecordBook({ stat: 'goals' }));
+        const list = (id: string) => records.find(record => record.id === id)!.entries.map(entry => [entry.id, entry.value, entry.detail]);
+        return { season: list('player-season-goals'), career: list('player-career-goals') };
+    };
+    assert.deepEqual(await goals(), {
+        season: [['v1:2027', 60, '2026–27'], ['02f9l:2026', 53, '2025–26'], ['02f9l:2027', 7, '2026–27']],
+        career: [['02f9l', 60, '2 seasons'], ['v1', 60, '1 seasons']],
+    }, 'the goalie and the skater with no games played are not listed');
+
+    // a stat correction takes a goal from v1, and the next read shows it
+    setSkaters([['v1', 59, 12, 80, 30, 15], ['02f9l', 7, 4, 40, 60, 20], ['benched', null]]);
+    await run(MID_SEASON + 3600_000);
+    assert.deepEqual((await goals()).season[0], ['v1:2027', 59, '2026–27']);
+});

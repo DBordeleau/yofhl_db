@@ -8,15 +8,21 @@ import regularSeason from '../rivalries/regular-season-history.json';
 import periods from './periods.json';
 import playerCategories from './player-category-history.json';
 import playerPortraits from './player-portraits.json';
-import type { PlayerStat } from './player-stats';
+import type { PlayerCategories, PlayerStat } from './player-stats';
 import { buildChases, buildRecords, matchupFormats, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
+
+// Skater categories for 2026 and earlier are checked in; the season sync stores later seasons'.
+const lastHistoryYear = Math.max(...playerCategories.coverage.map(season => season.year));
 
 // Keep checked-in history outside the data cache. Combining it with all player
 // rows exceeds Next's 2 MB entry limit and silently repeats the database reads.
 const getRecordArchive = cached(async () => {
     const [teams, players, seasons, awards] = await Promise.all([
         getFranchiseCards(),
-        rows<PlayerSeason>(sql`select p.id, p.name, ps.season_year as year, ps.fpts::float8 as points, ps.positions
+        // A stored player season's categories, or none while any total is null.
+        rows<PlayerSeason & { stats: PlayerCategories | null }>(sql`select p.id, p.name, ps.season_year as year, ps.fpts::float8 as points, ps.positions,
+                case when ps.season_year > ${lastHistoryYear} and num_nulls(ps.goals, ps.assists, ps.shots, ps.hits, ps.blocks) = 0
+                    then json_build_object('goals', ps.goals, 'assists', ps.assists, 'shots', ps.shots, 'hits', ps.hits, 'blocks', ps.blocks) end as stats
             from league.player_seasons ps join league.players p on p.id = ps.player_id order by ps.season_year`),
         rows<TeamSeason>(sql`select t.franchise_id as team, st.name, t.season_year as year, t.wins, t.losses, t.ties, t.fpts_for::float8 as points, st.logo, st.abbreviation
             from league.team_seasons t join league.season_teams st on st.team_season_id = t.id`),
@@ -25,7 +31,7 @@ const getRecordArchive = cached(async () => {
             left join league.team_seasons t on t.id = a.team_season_id`),
     ]);
     return { teams, players, seasons, awards };
-}, 'records-archive-v2', [leagueTags.records]);
+}, 'records-archive-v3', [leagueTags.records]);
 
 const categories = new Map(playerCategories.players.map(p => [`${p.id}:${p.year}`, p]));
 const games = regularSeason.games.map(g => ({ ...g, stage: 'regular' as const }));
@@ -34,7 +40,7 @@ export async function getRecordSource(): Promise<RecordSource> {
     const [archive, seasons] = await Promise.all([getRecordArchive(), getSeasonArchive()]);
     const published = [...seasons.published].reverse(); // oldest first
     return { ...archive, published: published.map(season => season.year),
-        competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: categories.get(`${p.id}:${p.year}`) })), games, periods };
+        competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: p.year > lastHistoryYear ? p.stats ?? undefined : categories.get(`${p.id}:${p.year}`) })), games, periods };
 }
 
 export async function getRecordBook(filter: { team?: number; position?: string; format?: string; stat?: PlayerStat } = {}) {
