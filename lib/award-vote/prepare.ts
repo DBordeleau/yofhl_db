@@ -6,7 +6,8 @@
 // the snapshot. Nothing runs unless the admin asks.
 //
 // The steps (prepare-steps.ts): the season's dates from its own Fantrax league info, then each stat set's Fantrax
-// reads, then each award's candidates from the stored stats and the archive.
+// reads (with the finalists' daily rosters over the Final read before the Danny Briere Award's), then each award's
+// candidates from the stored stats and the archive.
 import { sql } from 'drizzle-orm';
 import type { AwardVoteState, PrepareProgress } from './model';
 import type { AwardVotePorts } from './ports';
