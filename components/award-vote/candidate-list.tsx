@@ -1,11 +1,11 @@
 'use client';
 
 // One voted award's candidates with their stats, as the ballot and its admin preview show them: the top of the
-// list by FPts, sortable by any stat column, with a search across every candidate. `action` adds a control to
-// each row (the ballot's rank picker).
+// list by the sort column (FPts at first), sortable by any stat column, with a search across every candidate.
+// `action` adds a control to each row (the ballot's rank picker).
 import { useId, useState } from 'react';
 import { candidateColumns, listCandidates, statValue, type CandidateColumn } from '@/lib/award-vote/candidate-list';
-import type { BallotAward, PlayerCandidate, StatSetName } from '@/lib/award-vote/model';
+import type { BallotAward, PlayerCandidate, StatSetName } from '@/lib/award-vote/create-award-vote';
 
 type Sort = { statSet: StatSetName; key: CandidateColumn['key']; ascending: boolean };
 
@@ -21,7 +21,9 @@ export default function CandidateList({ award, action }: { award: BallotAward; a
     const truncated = !search.trim() && award.shown !== null && award.candidates.length > award.shown;
     const sortBy = (statSet: StatSetName, key: CandidateColumn['key']) => setSort(current =>
         current.statSet === statSet && current.key === key ? { ...current, ascending: !current.ascending } : { statSet, key, ascending: false });
-    const several = award.statSets.length > 1;
+    const hasStatSetHeaders = award.statSets.length > 1;
+    const sortLabel = [hasStatSetHeaders && award.statSets.find(set => set.name === sort.statSet)?.label,
+        columns.find(column => column.key === sort.key)?.label].filter(Boolean).join(' ');
 
     return <div>
         <label htmlFor={searchId} className="sr-only">Search {award.label} candidates</label>
@@ -30,11 +32,11 @@ export default function CandidateList({ award, action }: { award: BallotAward; a
             placeholder="Search every candidate"
             className="h-11 w-full max-w-sm rounded-xl border border-line-strong bg-white px-3.5 text-[15px] outline-none focus:border-rink-blue focus:shadow-[0_0_0_3px_rgba(31,111,194,.15)]"
         />
-        {truncated && <p className="mt-2 text-sm text-ink-soft">Top {award.shown} by FPts. Search to find anyone else.</p>}
+        {truncated && <p className="mt-2 text-sm text-ink-soft">Top {award.shown} by {sortLabel}{sort.ascending ? ', lowest first' : ''}. Search to find anyone else.</p>}
         <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-sm tabular-nums">
                 <thead>
-                    {several && <tr className="text-xs uppercase text-ink-soft">
+                    {hasStatSetHeaders && <tr className="text-xs uppercase text-ink-soft">
                         <th colSpan={action ? 3 : 2} />
                         {award.statSets.map(set => <th key={set.name} colSpan={columns.length} scope="colgroup" className="px-2 pb-1 text-left">{set.label}</th>)}
                     </tr>}

@@ -21,11 +21,13 @@ test('each list opens on the top 50 candidates by FPts', async t => {
     assert.deepEqual(listCandidates(gretzky).map(candidate => candidate.playerId), Array.from({ length: 50 }, (_, index) => id(index + 1)));
 });
 
-test('a list sorts its candidates by any stat column, and a column a candidate lacks puts them last', async t => {
+test('a list sorts every candidate by any stat column and shows the top 50 of that ranking, and a column a candidate lacks puts them last', async t => {
     const [gretzky] = await preparedBallot(t);
     const byHits = listCandidates(gretzky, { sortBy: 'hits' }).map(candidate => candidate.playerId);
-    assert.deepEqual(byHits.slice(0, 3), ['p02', 'p50', 'p49']);
+    // p51 to p60 are outside the FPts top 50 but have the most hits after p02
+    assert.deepEqual(byHits.slice(0, 3), ['p02', 'p60', 'p59']);
     assert.equal(byHits.length, 50);
+    assert.ok(!byHits.includes('p01') && !byHits.includes('g1'));
     assert.deepEqual(listCandidates(gretzky, { sortBy: 'hits', ascending: true }).map(candidate => candidate.playerId).slice(0, 2), ['p01', 'p03']);
     // the goalie is found by search, and has no hits
     assert.deepEqual(listCandidates(gretzky, { sortBy: 'hits', search: 'o' }).map(candidate => candidate.playerId).at(-1), 'g1');

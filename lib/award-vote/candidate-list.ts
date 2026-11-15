@@ -1,5 +1,6 @@
-// Which of a ballot award's candidates a list shows, and in what order: the top of the list by FPts (the top 50, or
-// everyone for an award that shows all), or every candidate whose name matches a search, sorted by any stat column.
+// Which of a ballot award's candidates a list shows, and in what order: every candidate ranked by any stat column (FPts
+// by default) and cut to the top 50 of that ranking (everyone for an award that shows all), or every candidate whose
+// name matches a search.
 // Pure and free of server imports, so the ballot and its admin preview run it in the browser.
 import type { BallotAward, GoalieLine, PlayerCandidate, SkaterLine, StatLine, StatSetName } from './model';
 
@@ -54,15 +55,16 @@ export interface CandidateListView {
 
 const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
+/** every candidate ranked by the sort column, cut to the award's top `shown` (all for an award that shows everyone),
+ * or every candidate whose name matches a search, in the same order */
 export function listCandidates(award: BallotAward, { statSet = award.statSets[0].name, sortBy = 'points', ascending = false, search = '' }: CandidateListView = {}): PlayerCandidate[] {
     const query = normalize(search);
-    const listed = query
-        ? award.candidates.filter(candidate => normalize(candidate.name).includes(query))
-        : award.shown === null ? award.candidates : award.candidates.slice(0, award.shown);
     // a candidate the column doesn't apply to goes last either way; ties keep the FPts order
-    return listed.map((candidate, index) => ({ candidate, index, value: statValue(candidate, statSet, sortBy) }))
+    const ranked = award.candidates.map((candidate, index) => ({ candidate, index, value: statValue(candidate, statSet, sortBy) }))
         .sort((a, b) => a.value === null || b.value === null
             ? (a.value === null ? 1 : 0) - (b.value === null ? 1 : 0) || a.index - b.index
             : (ascending ? a.value - b.value : b.value - a.value) || a.index - b.index)
         .map(({ candidate }) => candidate);
+    if (query) return ranked.filter(candidate => normalize(candidate.name).includes(query));
+    return award.shown === null ? ranked : ranked.slice(0, award.shown);
 }
