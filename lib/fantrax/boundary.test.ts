@@ -29,6 +29,7 @@ test('outside the live season module, its public files may be imported', async (
         "export { FANTRAX_TAG, getLiveSeason } from '@/lib/fantrax/live-season';",
         "export { fantraxLeagueUrl } from '@/lib/fantrax/config';",
         "export { seasonYearFromFantrax } from '@/lib/fantrax/season';",
+        "export { LIVE_SEASON_YEAR } from '@/lib/fantrax/live-season-year';",
         "export { scheduledRefreshTime } from '@/lib/fantrax/schedule';",
     ].join('\n') + '\n'), []);
 });
@@ -51,6 +52,16 @@ test('only tests and test harnesses may import the in-memory live season', async
     assert.equal((await boundaryErrors('app/sample.ts', standIn)).length, 1);
     assert.equal((await boundaryErrors('lib/pickem/sample.test.ts', "export { createMemorySource } from '@/lib/fantrax/memory-source';\n")).length, 1,
         'a test still uses the stand-in, not the source behind it');
+});
+
+test("the award vote's ports may import the ranged-stats reader's types, but not the reader", async () => {
+    const types = "import type { RangedSkater } from '@/lib/fantrax/ranged-stats';\nexport type Skater = RangedSkater;\n";
+    const reader = "import { loadRangedSkaters } from '@/lib/fantrax/ranged-stats';\nexport const load = loadRangedSkaters;\n";
+    const errors = async (filePath: string, source: string) => (await eslint.lintText(source, { filePath }))[0].messages
+        .filter(message => message.ruleId === 'import/no-restricted-paths' || message.ruleId === '@typescript-eslint/no-restricted-imports');
+    assert.deepEqual(await errors('lib/award-vote/ports.ts', types), []);
+    assert.equal((await errors('lib/award-vote/ports.ts', reader)).length, 1);
+    assert.equal((await errors('lib/award-vote/prepare.ts', types)).length, 1);
 });
 
 test('inside the live season module, its files import each other freely', async () => {

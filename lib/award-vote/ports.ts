@@ -2,41 +2,12 @@
 // in-memory Fantrax (memory-fantrax.ts) and NHL lookup (memory-nhl.ts), a fake clock, and the app's own database
 // handle pointed at a disposable league.
 import type { rows, writeInOrder } from '@/lib/data/db';
+import type { RangedGoalie, RangedSkater } from '@/lib/fantrax/ranged-stats';
 import type { FantraxDayRosters, FantraxRosterPeriod, FantraxWeek } from '@/lib/season-sync/ports';
 
 export type { FantraxDayRosters, FantraxRosterPeriod, FantraxWeek } from '@/lib/season-sync/ports';
-
-/** one player's totals over a date range in Fantrax's stats table (Fantrax's status column, current ownership, is left out) */
-export interface RangedPlayer {
-    /** bare player ID */
-    id: string;
-    name: string;
-    /** Fantrax's positions, e.g. `C,RW` */
-    positions: string;
-    nhlTeam: string | null;
-    /** age now, by Fantrax's age column */
-    age: number | null;
-    points: number;
-    /** null for no games in the range */
-    perGame: number | null;
-}
-
-export interface RangedSkater extends RangedPlayer {
-    gamesPlayed: number;
-    goals: number;
-    assists: number;
-    shots: number;
-    hits: number;
-    blocks: number;
-}
-
-export interface RangedGoalie extends RangedPlayer {
-    gamesPlayed: number;
-    wins: number;
-    goalsAgainst: number;
-    saves: number;
-    shutouts: number;
-}
+// one player's totals over a date range in Fantrax's stats table, as the ranged-stats reader gives them
+export type { RangedGoalie, RangedPlayer, RangedSkater } from '@/lib/fantrax/ranged-stats';
 
 /** a season's Fantrax league info: its weeks, daily roster periods and first playoff week */
 export interface AwardVoteLeagueInfo {
