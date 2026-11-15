@@ -194,3 +194,19 @@ test("the record book's Weekly matchup records and winning streaks run through t
     assert.deepEqual([after.margin.value, after.margin.detail], [320.25, '410.25–90 vs Club 4 · 2026–27 · P3']);
     assert.deepEqual([after.streak.value, after.streak.detail], [11, '2025–26 P42 → 2026–27 P4']);
 });
+
+test("Compare teams' head-to-head includes the stored regular-season games after the history's once a run stores them", async t => {
+    const league = await seasonSyncLeague(t);
+    const { getRivalryData } = await import('@/lib/data/rivalries');
+    const { pairSummary, roundLabel } = await import('@/lib/rivalries/model');
+    const headToHead = async () => {
+        const summary = pairSummary((await league.read(() => getRivalryData())).games, 1, 2);
+        return { record: [summary.winsA, summary.winsB, summary.meetings.length], latest: summary.meetings.slice(0, 2).map(game => [game.year, roundLabel(game), game.winner]) };
+    };
+    // the history's 24 regular-season meetings split 12–12, and franchise 1 won the 2025–26 Final
+    assert.deepEqual((await headToHead()).record, [13, 12, 25]);
+
+    franchiseTwoWinsTheMonth(league);
+    await league.run(MID_SEASON);
+    assert.deepEqual(await headToHead(), { record: [13, 14, 27], latest: [[2027, 'Period 4', 2], [2027, 'Period 1', 2]] });
+});

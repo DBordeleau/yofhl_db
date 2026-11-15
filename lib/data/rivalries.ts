@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
+import { storedRegularSeasonGames } from './regular-season-games';
 import { getFranchiseCards } from './league';
 import { PLAYOFF_FORMAT } from '@/lib/fantrax/config';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
@@ -8,7 +9,7 @@ import type { RivalryGame, RivalrySeason, RivalryTrade } from '@/lib/rivalries/m
 import regularSeason from '@/lib/rivalries/regular-season-history.json';
 
 export const getRivalryData = cached(async () => {
-    const [teams, games, seasons, trades] = await Promise.all([
+    const [teams, games, seasons, trades, storedGames] = await Promise.all([
         getFranchiseCards(),
         rows<RivalryGame>(sql`
             select m.id, m.season_year as year, m.stage, m.round,
@@ -35,8 +36,9 @@ export const getRivalryData = cached(async () => {
             from league.transaction_events e join league.transaction_assets a on a.event_id = e.id
             where e.kind = 'trade' and ${visibleTransactionEvents}
             group by e.id order by e.occurred_on desc, e.id`),
+        storedRegularSeasonGames(),
     ]);
-    // Regular-season snapshot, verified against every team's archived record and points.
+    // Regular-season snapshot through 2026, verified against every team's archived record and points; the season sync stores later seasons' games.
     const regularGames: RivalryGame[] = regularSeason.games.map(game => ({ ...game, stage: 'regular' }));
-    return { teams, games: [...games, ...regularGames], seasons, trades };
-}, 'rivalry-history-v3', [leagueTags.rivalries]);
+    return { teams, games: [...games, ...regularGames, ...storedGames], seasons, trades };
+}, 'rivalry-history-v4', [leagueTags.rivalries]);
