@@ -2,7 +2,7 @@
 // the in-memory binding in memory-fantrax.ts. Every read checks its own response's shape and rejects a failed or
 // malformed one; the season sync then checks the reads against the archive before it writes anything. The bracket
 // comes from the live season module, which already has Fantrax's playoff weeks, pairings and final weeks.
-import type { getLiveSeason, getWeekScores } from '@/lib/fantrax/live-season';
+import type { getLiveSeason, getWeekScores, WeekScores } from '@/lib/fantrax/live-season';
 
 /** one Fantrax scoring period, its dates as ISO strings */
 export interface FantraxWeek {
@@ -77,6 +77,8 @@ export interface SeasonSyncFantrax {
     dayRosters(leagueId: string, rosterPeriod: number): Promise<FantraxDayRosters>;
     /** every NHL player Fantrax knows, by bare player ID */
     playerDirectory(): Promise<Record<string, FantraxDirectoryPlayer>>;
+    /** one week's games and scores, read from Fantrax now rather than the evening refresh's snapshot */
+    weekScores(leagueId: string, week: number): Promise<WeekScores>;
 }
 
 export interface SeasonSyncPorts {

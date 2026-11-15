@@ -3,6 +3,7 @@
 // says by changing `fantrax` (and `live`, the live season's weeks, playoffs and scores), pass the current time to
 // each run, and read the result through the site's own readers.
 import type { TestContext } from 'node:test';
+import type { WeekScores } from '@/lib/fantrax/live-season';
 import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
@@ -71,7 +72,16 @@ export type PlayerRow = [string, number, number | null, number | null];
 const playersOf = (rows: PlayerRow[]): FantraxPlayer[] => rows.map(([id, points, perGame, team]) =>
     ({ id, name: `Name ${id}`, positions: ['C'], nhlTeam: 'EDM', teamId: team === null ? null : `fx${team}`, points, perGame }));
 
+/** Fantrax's scores for `games` in week `week`: [away team, home team, away score, home score] each */
+const weekScoresOf = (week: number, games: GameScore[], fetchedAt: string): WeekScores => ({
+    fetchedAt, week, matchups: games.map(([away, home, awayScore, homeScore]) => ({
+        away: { teamId: `fx${away}`, score: awayScore, gamesPlayed: 0 }, home: { teamId: `fx${home}`, score: homeScore, gamesPlayed: 0 },
+    })),
+});
+
+/** Fantrax's state, every week scored 0–0 between teams paired in order (fx1 v fx2, fx3 v fx4, …) until a test scores it */
 export function fantraxState(franchises = FRANCHISES): MemoryFantraxState {
+    const pairs = franchises.flatMap((id, index): GameScore[] => index % 2 === 0 && franchises[index + 1] ? [[id, franchises[index + 1], 0, 0]] : []);
     return {
         leagueId: LEAGUE_ID,
         leagueInfo: { seasonYear: SEASON, weeks: structuredClone(WEEKS), rosterPeriods: structuredClone(ROSTER_PERIODS) },
@@ -80,6 +90,7 @@ export function fantraxState(franchises = FRANCHISES): MemoryFantraxState {
         // every team's roster is empty every day until a test fills it
         rosters: Object.fromEntries(ROSTER_PERIODS.map(period => [period.number, Object.fromEntries(franchises.map(id => [`fx${id}`, []]))])),
         directory: {},
+        scores: Object.fromEntries(WEEKS.map(week => [week.number, weekScoresOf(week.number, pairs, week.endDate)])),
         down: new Set(),
     };
 }
@@ -172,13 +183,13 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
         }];
         if (week === core.playoffs.firstPlayoffPeriod) delete core.playoffs.seeding;
     };
-    /** Fantrax's scores for week `week` (a stat correction, once the week has been scored) */
+    /**
+     * Fantrax's scores for week `week` (a stat correction, once the week has been scored), as the run reads them and
+     * as the evening refresh saves them
+     */
     const setScores = (week: number, games: GameScore[]) => {
-        live.fantrax.scores[week] = {
-            fetchedAt: core.fetchedAt, week, matchups: games.map(([away, home, awayScore, homeScore]) => ({
-                away: { teamId: `fx${away}`, score: awayScore, gamesPlayed: 0 }, home: { teamId: `fx${home}`, score: homeScore, gamesPlayed: 0 },
-            })),
-        };
+        live.fantrax.scores[week] = weekScoresOf(week, games, core.fetchedAt);
+        fantrax.scores[week] = weekScoresOf(week, games, core.fetchedAt);
     };
     /** team fx`team` has `players` (each with its slot) on its roster on each of `days`, roster period numbers, and no one else */
     const setRoster = (team: number, days: number[], players: [string, FantraxRosterSlot][]) => {

@@ -1,5 +1,6 @@
 // The season sync's Fantrax reads, in memory. A test changes what Fantrax says by changing `state`, and makes a
 // read fail by adding its name to `down`. Reads of any other league fail, as Fantrax's would.
+import type { WeekScores } from '@/lib/fantrax/live-season';
 import type { FantraxDayRosters, FantraxDirectoryPlayer, FantraxLeagueInfo, FantraxPlayer, FantraxStanding, SeasonSyncFantrax } from './ports';
 
 export type MemoryFantraxRead = keyof SeasonSyncFantrax;
@@ -14,6 +15,8 @@ export interface MemoryFantraxState {
     rosters: Record<number, FantraxDayRosters>;
     /** Fantrax's player directory, by player ID */
     directory: Record<string, FantraxDirectoryPlayer>;
+    /** each week's games and scores, by week number */
+    scores: Record<number, WeekScores>;
     /** reads that fail */
     down: Set<MemoryFantraxRead>;
 }
@@ -35,5 +38,8 @@ export function createMemoryFantrax(state: MemoryFantraxState): SeasonSyncFantra
             ? read('dayRosters', leagueId, () => state.rosters[rosterPeriod])
             : Promise.reject(new Error(`Fantrax returned invalid rosters for roster period ${rosterPeriod}`)),
         playerDirectory: () => read('playerDirectory', state.leagueId, () => state.directory),
+        weekScores: (leagueId, week) => state.scores[week]
+            ? read('weekScores', leagueId, () => state.scores[week])
+            : Promise.reject(new Error('Fantrax returned invalid matchup scores')),
     };
 }
