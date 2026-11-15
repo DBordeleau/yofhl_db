@@ -18,6 +18,8 @@ export interface SnapshotPlayer {
 /** what the rules know beyond the player */
 export interface EligibilityContext {
     seasonYear: number;
+    /** the Final's rosters: each player on a finalist's roster outside the minors, with that finalist's team season */
+    finalRosters: Record<string, number>;
 }
 
 export interface PlayerAwardRule {
@@ -27,11 +29,18 @@ export interface PlayerAwardRule {
     /** how many candidates the list opens on, or null for all */
     shown: number | null;
     eligible(player: SnapshotPlayer, context: EligibilityContext): boolean;
+    /**
+     * The team season credited with a candidate, for an award that credits someone other than the last franchise to
+     * roster them that season (the default, when this is absent).
+     */
+    credit?(player: SnapshotPlayer, context: EligibilityContext): number | null;
 }
 
 /** each stat set: its heading and the days it totals */
 export const STAT_SETS: Record<StatSetName, { label: string; range(dates: SeasonDates): DateRange }> = {
     regularSeason: { label: 'Regular season', range: dates => dates.regularSeason },
+    playoffRounds: { label: 'Playoffs', range: dates => dates.playoffRounds },
+    final: { label: 'Final', range: dates => dates.final },
 };
 
 /** the ballot's default list length */
@@ -45,6 +54,12 @@ export const PLAYER_AWARD_RULES: readonly PlayerAwardRule[] = [
     { award: 'le-magnifique', statSets: ['regularSeason'], shown: SHOWN_CANDIDATES, eligible: scoredInRegularSeason },
     { award: 'bobby-orr', statSets: ['regularSeason'], shown: SHOWN_CANDIDATES, eligible: player => scoredInRegularSeason(player) && player.positions.includes('D') },
     { award: 'hasek', statSets: ['regularSeason'], shown: SHOWN_CANDIDATES, eligible: player => scoredInRegularSeason(player) && player.positions.includes('G') },
+    // Everyone on a finalist's roster during the Final, credited to the finalist they played for.
+    {
+        award: 'danny-briere', statSets: ['playoffRounds', 'final'], shown: SHOWN_CANDIDATES,
+        eligible: (player, { finalRosters }) => player.playerId in finalRosters,
+        credit: (player, { finalRosters }) => finalRosters[player.playerId] ?? null,
+    },
 ];
 
 /** an award's catalogue entry (lib/awards.ts), which every voted award has */
