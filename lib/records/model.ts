@@ -57,11 +57,16 @@ export function matchupFormats(source: RecordSource) {
 
 export type MatchupFormat = 'biweekly' | 'weekly';
 
+/** The last season of the checked-in history files, which are frozen; the season sync stores every later season's games, weeks and skater categories. */
+export const HISTORY_THROUGH = 2026;
+
+/** A week's matchup format (GLOSSARY.md, "Matchup format"), or null for a week no other is compared with. */
 export function matchupFormat(period: PeriodInfo): MatchupFormat | null {
     if (period.days <= 0 || period.days > 7) return null;
     // Keep shortened opening periods with their season's usual schedule.
     if (period.year === 2019) return 'weekly';
-    if (period.days >= 7) return null;
+    // The history's few seven-day weeks between 2020 and 2026 stay out, so its records hold.
+    if (period.days === 7) return period.year > HISTORY_THROUGH ? 'weekly' : null;
     return 'biweekly';
 }
 
