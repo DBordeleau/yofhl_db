@@ -162,25 +162,26 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
             const context = { seasonYear, finalRosters: progress.finalRosters ?? {}, rookies };
             const picked = JSON.stringify(PLAYER_AWARD_RULES.flatMap(rule =>
                 players.filter(player => rule.eligible(player, context)).map(player => ({
-                    award: rule.award, playerId: player.playerId, credited: rule.credit !== undefined, teamSeasonId: rule.credit?.(player, context) ?? null,
+                    award: rule.award, playerId: player.playerId, ruleCredits: rule.credit !== undefined, teamSeasonId: rule.credit?.(player, context) ?? null,
                 }))));
             // the admin's changes can't move while the candidates are written from them
             const guard = sql`rookie_adjustments = ${JSON.stringify(adjustments)}::jsonb`;
             return markDone(progress, 'candidates', { preparedAt: new Date(clock.now()).toISOString(), guard }, [
                 // The franchise credited with a player is the award's own (the Danny Briere Award's finalist), or else
-                // the last to roster them that season: the one with them at the end of it, or else the one whose drop
-                // was the player's last move. Nobody, for a player no one rostered.
+                // the last to roster them that season: the one with them at the end of it, or else the one the
+                // player's last move left them with (the receiving franchise of a claim or trade, the dropping one of
+                // a drop). Nobody, for a player no one rostered.
                 sql`insert into league.award_vote_candidates (season_year, award, player_id, team_season_id)
                     select ${seasonYear}, c.award, c."playerId",
-                           case when c.credited then c."teamSeasonId"
-                                else coalesce(ps.team_season_id, case when last_move.action = 'drop' then last_move.team_season_id end) end
-                    from jsonb_to_recordset(${picked}::jsonb) as c(award text, "playerId" text, credited boolean, "teamSeasonId" int)
+                           case when c."ruleCredits" then c."teamSeasonId" else coalesce(ps.team_season_id, last_move.team_season_id) end
+                    from jsonb_to_recordset(${picked}::jsonb) as c(award text, "playerId" text, "ruleCredits" boolean, "teamSeasonId" int)
                     left join league.player_seasons ps on ps.player_id = c."playerId" and ps.season_year = ${seasonYear}
                     left join lateral (
-                        select a.action, t.id as team_season_id
+                        select t.id as team_season_id
                         from league.transaction_assets a
                         join league.transaction_events e on e.id = a.event_id
-                        left join league.team_seasons t on t.season_year = e.season_year and t.franchise_id = a.from_franchise_id
+                        left join league.team_seasons t on t.season_year = e.season_year
+                            and t.franchise_id = case when a.action = 'drop' then a.from_franchise_id else a.to_franchise_id end
                         where a.player_id = c."playerId" and e.season_year = ${seasonYear}
                         order by e.occurred_at desc, a.source_row desc
                         limit 1

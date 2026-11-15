@@ -96,6 +96,25 @@ test('each candidate is credited to the last franchise to roster them that seaso
     ]);
 });
 
+test('a candidate missing from the end-of-season rosters is credited to the franchise their last move put them on', async t => {
+    const { act, vote, setRegularSeason, prepareFully, dropped, claimed, traded } = await awardVoteLeague(t);
+    setRegularSeason([skater('claimed-last', 100), skater('traded-last', 90), skater('dropped-last', 80)]);
+    // none of them has an end-of-season roster row in the archive
+    await dropped('claimed-last', 1, '2026-10-14');
+    await claimed('claimed-last', 2, '2026-10-20');
+    await claimed('traded-last', 1, '2026-10-14');
+    await traded('traded-last', 1, 3, '2026-10-25');
+    await claimed('dropped-last', 4, '2026-10-14');
+    await dropped('dropped-last', 4, '2026-10-28');
+    await prepareFully();
+    const { ballot } = await act(() => vote.readPreview({ seasonYear: SEASON }));
+    assert.deepEqual(ballot![0].candidates.map(candidate => [candidate.playerId, candidate.team?.franchiseId ?? null]), [
+        ['claimed-last', 2],
+        ['traded-last', 3],
+        ['dropped-last', 4],
+    ]);
+});
+
 test('preparing runs in bounded batches, resuming from recorded progress until it is done', async t => {
     const { act, vote, setRegularSeason, prepareFully, fantrax, clock } = await awardVoteLeague(t);
     setRegularSeason([skater('s1', 100)], [goalie('g1', 50)]);

@@ -149,7 +149,16 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
             insert into league.transaction_assets (id, event_id, player_id, label, asset_kind, action, from_franchise_id, to_franchise_id, from_name, to_name, source_row)
                 values ('${id}-1', '${id}', '${playerId}', 'Archive ${playerId}', 'player', 'claim', null, ${to}, null, 'Club ${to}', ${transactions});`);
     };
-    return { league, vote, fantrax, nhl: nhlState, clock, act, setRegularSeason, prepareFully, endedSeasonWith, dropped, claimed };
+    /** the archive's 2027 transactions include franchise `from` trading `playerId` to franchise `to` on `on` */
+    const traded = async (playerId: string, from: number, to: number, on: string) => {
+        const id = `t${++transactions}`;
+        await league.client.exec(`${players([playerId])}
+            insert into league.transaction_events (id, season_year, kind, occurred_at, occurred_on, source_file, source_time)
+                values ('${id}', ${SEASON}, 'trade', '${on}T17:00:00Z', '${on}', 'transactions.csv', '12:00PM');
+            insert into league.transaction_assets (id, event_id, player_id, label, asset_kind, action, from_franchise_id, to_franchise_id, from_name, to_name, source_row)
+                values ('${id}-1', '${id}', '${playerId}', 'Archive ${playerId}', 'player', 'trade', ${from}, ${to}, 'Club ${from}', 'Club ${to}', ${transactions});`);
+    };
+    return { league, vote, fantrax, nhl: nhlState, clock, act, setRegularSeason, prepareFully, endedSeasonWith, dropped, claimed, traded };
 }
 
 /**
