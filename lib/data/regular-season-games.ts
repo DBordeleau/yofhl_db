@@ -18,9 +18,14 @@ export const storedRegularSeasonGames = () => rows<RivalryGame>(sql`
     where m.stage = 'regular' and m.season_year > ${HISTORY_THROUGH}
     order by m.season_year, m.round, m.slot`);
 
-/** every stored week after the history, as the record book's periods: whole days long, dated in Eastern time */
+// A week's days are calendar days in Eastern time, from its start's to the day after its last second's: Fantrax's
+// Monday-to-Monday week is seven, as the checked-in history counts it, whose end is the next week's start date.
+const endDay = sql`((ends_at + interval '1 second') at time zone 'America/Toronto')::date`;
+const startDay = sql`(starts_at at time zone 'America/Toronto')::date`;
+
+/** every stored week after the history, as the record book reads weeks: its days, its start and its end (the next week's start) as Eastern dates */
 export const storedWeeks = () => rows<PeriodInfo>(sql`
-    select season_year as year, week as period, round(extract(epoch from ends_at - starts_at) / 86400)::int as days, season_year as era,
-           to_char(starts_at at time zone 'America/Toronto', 'YYYY-MM-DD') as start, to_char(ends_at at time zone 'America/Toronto', 'YYYY-MM-DD') as "end"
+    select season_year as year, week as period, ${endDay} - ${startDay} as days, season_year as era,
+           to_char(${startDay}, 'YYYY-MM-DD') as start, to_char(${endDay}, 'YYYY-MM-DD') as "end"
     from league.weeks where season_year > ${HISTORY_THROUGH}
     order by season_year, week`);

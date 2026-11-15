@@ -7,21 +7,38 @@ import type { LiveSeason } from '@/lib/fantrax/live-season';
 import { readChampionshipRoster } from './championship-roster';
 import type { CurrentSeason } from './current-season';
 import { readBracket } from './playoffs';
-import type { FantraxLeagueInfo, SeasonSyncPorts } from './ports';
+import type { FantraxLeagueInfo, FantraxWeek, SeasonSyncPorts } from './ports';
 import { playerSeasonRows, playerSeasonsWrites } from './player-seasons';
 import { withSkaterCategories } from './skater-categories';
 import { readRegularSeason } from './regular-season';
 import { teamSeasonStandings, teamSeasonsWrite } from './team-seasons';
 import type { SyncRunWrite } from './write';
 
-/** Fantrax's league info for the current season (its weeks and daily roster periods), checked to be the same season */
+const HOUR = 3600 * 1000;
+const easternClock = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+const easternHour = (time: number) => Number(easternClock.format(time).slice(0, 2));
+
+/**
+ * A week ending at its last second. Fantrax ends a week a second before the next week's first game; an end at
+ * midnight Eastern names the week's last day, so the week ends a second before the following midnight instead.
+ */
+function endingAtItsLastSecond(week: FantraxWeek): FantraxWeek {
+    const end = Date.parse(week.endDate);
+    if (easternClock.format(end) !== '00:00:00' || end % 1000) return week;
+    // a day is 23 or 25 hours long when the clocks change
+    const next = end + 24 * HOUR, hour = easternHour(next);
+    const midnight = hour === 23 ? next + HOUR : hour === 1 ? next - HOUR : next;
+    return { ...week, endDate: new Date(midnight - 1000).toISOString() };
+}
+
+/** Fantrax's league info for the current season (its weeks, each ending at its last second, and daily roster periods), checked to be the same season */
 export async function readLeagueInfo(ports: SeasonSyncPorts, season: CurrentSeason): Promise<FantraxLeagueInfo> {
     const info = await ports.fantrax.leagueInfo(season.leagueId);
     if (info.seasonYear !== season.seasonYear) {
         throw new Error(`Fantrax league ${season.leagueId} is the ${info.seasonYear} season, not ${season.seasonYear}.`);
     }
     if (!info.weeks.length) throw new Error(`Fantrax league ${season.leagueId} has no weeks.`);
-    return info;
+    return { ...info, weeks: info.weeks.map(endingAtItsLastSecond) };
 }
 
 /** the live season, checked to be the current season: its weeks' stages and final weeks, and the playoff bracket */

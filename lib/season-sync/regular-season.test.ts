@@ -225,8 +225,46 @@ test("a stored game's page opens at its positive id, a history game's at its neg
 
     const id = Number(href.slice('/records/game/'.length));
     assert.ok(id > 0, href);
-    assert.deepEqual(await page(String(id)), { id, year: 2027, round: 3, format: 'weekly', dates: ['2026-10-26', '2026-11-01'] });
+    assert.deepEqual(await page(String(id)), { id, year: 2027, round: 3, format: 'weekly', dates: ['2026-10-26', '2026-11-02'] });
     assert.deepEqual(await page('-20191505'), { id: -20191505, year: 2019, round: 15, format: 'weekly', dates: ['2019-01-07', '2019-01-14'] });
     const { rows: [final] } = await league.league.client.query<{ id: number }>("select id from league.matchups where stage = 'playoff'");
     assert.equal(await page(String(final.id)), null);
+});
+
+test("a stored week's game page shows it Monday to the next Monday, seven days, however Fantrax dates its end", async t => {
+    const league = await seasonSyncLeague(t);
+    const { getRecordGame } = await import('@/lib/records/data');
+    // Fantrax ends a week a second before the next week's first game; an end on the last day itself must read the same
+    const weeks = league.fantrax.leagueInfo.weeks;
+    weeks[0] = { ...weeks[0], startDate: '2026-10-12T23:00:00.000Z', endDate: '2026-10-19T22:59:59.000Z' };
+    weeks[1] = { ...weeks[1], endDate: '2026-10-26T03:59:59.000Z' };
+    weeks[2] = { ...weeks[2], endDate: '2026-11-01T04:00:00.000Z' };
+    franchiseTwoWinsTheMonth(league);
+    await league.run(MID_SEASON);
+
+    const pages = [];
+    for (const week of [1, 2, 3, 4]) {
+        const [id] = await gameIds(league, week);
+        const found = await league.read(() => getRecordGame(String(id)));
+        pages.push(found && [found.format, found.period?.days, found.period?.start, found.period?.end]);
+    }
+    assert.deepEqual(pages, [
+        ['weekly', 7, '2026-10-12', '2026-10-19'],
+        ['weekly', 7, '2026-10-19', '2026-10-26'],
+        ['weekly', 7, '2026-10-26', '2026-11-02'],
+        ['weekly', 7, '2026-11-02', '2026-11-09'],
+    ]);
+});
+
+test("a week Fantrax ends at the start of its last day isn't final until that day is over", async t => {
+    const league = await seasonSyncLeague(t);
+    playFirstMonth(league);
+    league.setScores(5, [[1, 4, 60, 50], [2, 3, 40, 45]]);
+    // week 5 runs November 9 to 15
+    league.fantrax.leagueInfo.weeks[4].endDate = '2026-11-15T05:00:00.000Z';
+    await league.run(Date.parse('2026-11-15T22:00:00Z'));
+    assert.deepEqual((await games(league)).filter(([week]) => week === 5), [], 'November 15 is still being played');
+
+    await league.run(Date.parse('2026-11-16T05:30:00Z'));
+    assert.deepEqual((await games(league)).filter(([week]) => week === 5), [[5, 1, 4, 60, 50, 1], [5, 2, 3, 40, 45, 3]]);
 });
