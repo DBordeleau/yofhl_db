@@ -1,9 +1,11 @@
 import sharp from 'sharp';
-import { getDb, rows } from '@/lib/data/db';
+import { getDb, rows, writeInOrder } from '@/lib/data/db';
 import { saveTeamBranding, saveTeamIdentity, type Actor } from '@/lib/data/curated-edits';
 import { parseTeamColours } from '@/lib/team-branding';
 import type { KeeperReminderState } from '@/components/keepers/reminder';
 import { getKeeperReminder } from '@/lib/keepers/data';
+// The award vote's own header read, not its module (which takes this session as a port).
+import { createReadBallotNudge, type BallotNudge } from '@/lib/award-vote/read-ballot-nudge';
 import { hashCode, teamName, type ManagedTeam } from './model';
 import type { OwnerSessionPorts, OwnerUser } from './ports';
 import { claimTeamQuery, rateLimitCleanupQuery, rateLimitQuery } from './queries';
@@ -52,7 +54,11 @@ export interface HeaderAnswer {
     signedIn: boolean;
     team: Pick<ManagedTeam, 'name' | 'logo' | 'abbreviation'> | null;
     keepers: KeeperReminderState | null;
+    /** the open award vote the owner's franchise has yet to submit a ballot in, before its ballot lock */
+    awardVote: BallotNudge | null;
 }
+
+const readBallotNudge = createReadBallotNudge({ db: { rows, writeInOrder } });
 
 export interface SaveTeamInput {
     franchiseId: number;
@@ -180,7 +186,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
     }
 
     /**
-     * What the header shows: whether an owner is signed in, their team and the keeper reminder. Reconciles the
+     * What the header shows: whether an owner is signed in, their team, the keeper reminder and the ballot nudge. Reconciles the
      * hint with the session, which heals owners signed in before the hint existed and clears a dead session's.
      */
     async function headerAnswer(): Promise<HeaderAnswer> {
@@ -193,6 +199,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
             signedIn: Boolean(user),
             team: team ? { name: team.name, logo: team.logo, abbreviation: team.abbreviation } : null,
             keepers: team ? await getKeeperReminder(team.id) : null,
+            awardVote: team ? await readBallotNudge({ franchiseId: team.id }) : null,
         };
     }
 

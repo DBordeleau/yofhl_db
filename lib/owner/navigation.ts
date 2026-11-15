@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { KeeperReminderState } from '@/components/keepers/reminder';
+import type { BallotNudge } from '@/lib/award-vote/read-ballot-nudge';
 
 const UPDATED = 'yofhl:owner-updated';
 export const refreshOwnerNavigation = () => window.dispatchEvent(new Event(UPDATED));
@@ -10,6 +11,8 @@ export interface OwnerNavigation {
     signedIn: boolean;
     team: { name: string; logo: string | null; abbreviation: string } | null;
     keepers?: KeeperReminderState | null;
+    /** the open award vote the owner's franchise has yet to submit a ballot in */
+    awardVote?: BallotNudge | null;
 }
 
 // The owner session sets this readable cookie beside the HttpOnly session cookie. See ADR 0003. Without it a

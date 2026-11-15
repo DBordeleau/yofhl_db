@@ -1,11 +1,12 @@
-// A season's award vote as the admin sees it before opening: whether the season may have one (or only a rehearsal),
-// its state, whether preparing has finished, and once it has, the ballot exactly as owners will see it, read only
-// from the frozen snapshot. Admin only: it returns rehearsals.
+// A season's award vote as the admin sees it: whether the season may have one (or only a rehearsal), its state,
+// whether preparing has finished, the ballot lock once open, and once preparing has finished, the ballot exactly as
+// owners will see it, read only from the frozen snapshot. Admin only: it returns rehearsals.
 import { sql } from 'drizzle-orm';
-import type { AwardVoteState, BallotAward, CreditedTeam, PlayerAwardId, PlayerCandidate, PrepareProgress } from './model';
+import { readBallotAwards } from './ballot-snapshot';
+import { readBallotStatus, type BallotStatus } from './ballot-status';
+import type { AwardVoteState, BallotAward, PrepareProgress } from './model';
 import type { AwardVotePorts } from './ports';
 import { awardVoteKind, type AwardVoteKind } from './rehearsal';
-import { awardDefinition, PLAYER_AWARD_RULES, STAT_SETS } from './voted-awards';
 
 export interface ReadPreviewInput {
     seasonYear: number;
@@ -19,6 +20,10 @@ export interface AwardVoteSummary {
     prepareStartedAt: string;
     /** when the latest prepare finished, or null while it is unfinished */
     preparedAt: string | null;
+    /** the ballot lock, or null before opening */
+    ballotLock: string | null;
+    /** when voting opened, or null before opening */
+    openedAt: string | null;
 }
 
 export interface AwardVotePreview {
@@ -28,52 +33,30 @@ export interface AwardVotePreview {
     vote: AwardVoteSummary | null;
     /** the ballot's awards in order, or null until a prepare has finished */
     ballot: BallotAward[] | null;
+    /** which franchises have submitted a ballot, without their rankings; null before voting opens */
+    ballotStatus: BallotStatus[] | null;
 }
 
-type CandidateRow = Omit<PlayerCandidate, 'stats'> & { award: PlayerAwardId; stats: PlayerCandidate['stats'] };
+const isoOrNull = (ms: number | null) => ms === null ? null : new Date(ms).toISOString();
 
 export function createReadPreview({ db }: AwardVotePorts) {
     return async function readPreview({ seasonYear }: ReadPreviewInput): Promise<AwardVotePreview> {
-        const [vote] = await db.rows<{ state: AwardVoteState; rehearsal: boolean; progress: PrepareProgress; preparedAt: number | null }>(sql`
-            select state, rehearsal, prepare_progress as progress, (extract(epoch from prepared_at) * 1000)::float8 as "preparedAt"
+        const [vote] = await db.rows<{
+            state: AwardVoteState; rehearsal: boolean; progress: PrepareProgress; preparedAt: number | null; ballotLock: number | null; openedAt: number | null;
+        }>(sql`
+            select state, rehearsal, prepare_progress as progress, (extract(epoch from prepared_at) * 1000)::float8 as "preparedAt",
+                   (extract(epoch from ballot_lock) * 1000)::float8 as "ballotLock", (extract(epoch from opened_at) * 1000)::float8 as "openedAt"
             from league.award_votes where season_year = ${seasonYear}`);
         const kind = await awardVoteKind(db, seasonYear);
-        if (!vote) return { kind, vote: null, ballot: null };
+        if (!vote) return { kind, vote: null, ballot: null, ballotStatus: null };
         const summary: AwardVoteSummary = {
             seasonYear, state: vote.state, rehearsal: vote.rehearsal, prepareStartedAt: vote.progress.startedAt,
-            preparedAt: vote.preparedAt === null ? null : new Date(vote.preparedAt).toISOString(),
+            preparedAt: isoOrNull(vote.preparedAt), ballotLock: isoOrNull(vote.ballotLock), openedAt: isoOrNull(vote.openedAt),
         };
-        if (summary.preparedAt === null) return { kind, vote: summary, ballot: null };
-        return { kind, vote: summary, ballot: await readBallot(seasonYear) };
+        if (summary.preparedAt === null) return { kind, vote: summary, ballot: null, ballotStatus: null };
+        return {
+            kind, vote: summary, ballot: await readBallotAwards(db, seasonYear),
+            ballotStatus: vote.state === 'prepared' ? null : await readBallotStatus(db, seasonYear),
+        };
     };
-
-    /** each award's candidates from the snapshot, best first by FPts in the award's first stat set */
-    async function readBallot(seasonYear: number): Promise<BallotAward[]> {
-        const candidates = await db.rows<CandidateRow>(sql`
-            select c.award, c.player_id as "playerId", p.name, p.positions, p.nhl_team as "nhlTeam",
-                   case when t.team_season_id is null then null else jsonb_build_object(
-                       'teamSeasonId', t.team_season_id, 'franchiseId', t.franchise_id, 'name', t.name, 'abbreviation', t.abbreviation, 'logo', t.logo
-                   ) end as team,
-                   coalesce((select jsonb_object_agg(s.stat_set, s.line) from league.award_vote_stats s
-                             where s.season_year = c.season_year and s.player_id = c.player_id), '{}'::jsonb) as stats
-            from league.award_vote_candidates c
-            join league.award_vote_players p on p.season_year = c.season_year and p.player_id = c.player_id
-            left join league.season_teams t on t.team_season_id = c.team_season_id
-            where c.season_year = ${seasonYear}`);
-        return PLAYER_AWARD_RULES.map(rule => {
-            const definition = awardDefinition(rule.award);
-            const [ranking] = rule.statSets;
-            const points = (candidate: PlayerCandidate) => candidate.stats[ranking]?.points ?? -Infinity;
-            return {
-                award: rule.award, label: definition.label, honor: definition.honor, shown: rule.shown,
-                statSets: rule.statSets.map(name => ({ name, label: STAT_SETS[name].label })),
-                candidates: candidates.filter(candidate => candidate.award === rule.award)
-                    .map(({ playerId, name, positions, nhlTeam, team, stats }): PlayerCandidate => ({
-                        playerId, name, positions, nhlTeam, team: team as CreditedTeam | null,
-                        stats: Object.fromEntries(rule.statSets.filter(name => stats[name]).map(name => [name, stats[name]])),
-                    }))
-                    .sort((a, b) => points(b) - points(a) || a.name.localeCompare(b.name) || a.playerId.localeCompare(b.playerId)),
-            };
-        });
-    }
 }

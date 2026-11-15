@@ -2,6 +2,7 @@
 // in-memory Fantrax and NHL lookup, and a fake clock. Tests arrange what Fantrax says through the helpers below
 // (or `fantrax` directly), arrange the archive with the roster helpers, and read results through the module.
 import type { TestContext } from 'node:test';
+import { createMemoryIdentity, createMemoryRequest, createMemoryStorage } from '@/lib/owner/memory-ports';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryAwardVoteFantrax, rangeKey, type MemoryAwardVoteFantraxState } from '../memory-fantrax';
 import { createMemoryNhl, type MemoryNhlState } from '../memory-nhl';
@@ -72,7 +73,7 @@ export const savePercentageGoalie = (id: string, points: number, more: Partial<R
 // Franchises 1–4, owned by Owner 1–4. The 2025–26 season (2026) names franchise N "Old N" in team season N and is
 // published: franchise 1 beat franchise 2. The 2026–27 season (2027) names franchise N "Club N" (CN,
 // /logos/cN.png) in team season 10 + N; with `champion`, franchise 1 beat franchise 2 in its Final. Fantrax team fxN
-// of league27 is franchise N in 2027.
+// of league27 is franchise N in 2027. The owner account owner-N manages franchise N on the site.
 const seed = (champion: boolean) => `
     insert into league.seasons values (2026, '2025–26', 'complete'), (${SEASON}, '2026–27', 'complete');
     insert into league.franchises (id, display_name, first_season) values ${FRANCHISES.map(id => `(${id}, 'Franchise ${id}', 2020)`).join(', ')};
@@ -85,7 +86,16 @@ const seed = (champion: boolean) => `
         ${champion ? `, (${SEASON}, 'playoff', 3, 'championship', 1, 11, 12, 300, 250, 11)` : ''};
     insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id)
         values ${FRANCHISES.map(id => `(${SEASON}, '${LEAGUE_ID}', 'fx${id}', ${id})`).join(', ')};
+    insert into league.team_management (franchise_id, owner_uid, owner_email, version)
+        values ${FRANCHISES.map(id => `(${id}, 'owner-${id}', 'owner${id}@example.test', 1)`).join(', ')};
 `;
+
+const HOUR = 3600_000;
+/**
+ * A ballot lock `hours` from the real present: ballot writes check the lock against the database clock, which the
+ * fake clock does not move
+ */
+export const lockInHours = (hours: number) => new Date(Date.now() + hours * HOUR).toISOString();
 
 export function fantraxState(): MemoryAwardVoteFantraxState {
     return {
@@ -108,18 +118,37 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
     // Modules that touch Next load after the league stands in for it.
     const { rows, writeInOrder } = await import('@/lib/data/db');
     const { createAwardVote } = await import('../create-award-vote');
+    const { createOwnerSession } = await import('@/lib/owner/create-owner-session');
     const fantrax = fantraxState();
     const nhlState: MemoryNhlState = { players: {}, failing: new Set(), lookups: [] };
     /** the fake clock: tests set or advance `clock.time`, and the module's waits advance it */
     const clock = { time: AFTER_FINAL };
+    const identity = createMemoryIdentity();
+    const request = createMemoryRequest();
+    const session = createOwnerSession({ identity: identity.port, storage: createMemoryStorage().port, request: request.port });
     const vote = createAwardVote({
         clock: { now: () => clock.time, sleep: async ms => { clock.time += ms; } },
         fantrax: createMemoryAwardVoteFantrax(fantrax),
         nhl: createMemoryNhl(nhlState),
         db: { rows, writeInOrder },
+        ownerSession: session,
     });
     /** an operation, run as the admin's server action runs it */
     const act = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/admin/seasons/[year]', fn)).result;
+    /** an operation, run as the ballot page's server actions run it, for whoever is signed in */
+    const asOwner = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/owner/ballot', fn)).result;
+    /** owner `uid` (owner-N manages franchise N) signs in on this browser; null signs out */
+    const signInAs = (uid: string | null) => asOwner(() => uid === null ? session.signOut() : session.signIn(identity.signIn(uid)));
+    /** what the header shows whoever is signed in */
+    const headerAnswer = () => asOwner(() => session.headerAnswer());
+    /** prepare fully and open voting with the ballot lock `hours` from now */
+    const openVoting = async (hours = 24) => {
+        await prepareFully();
+        const opened = await act(() => vote.openVoting({ seasonYear: SEASON, ballotLock: lockInHours(hours) }));
+        if (!opened.ok) throw new Error(`Opening failed: ${opened.reason}`);
+    };
+    /** the ballot lock passes: a second ago by the database clock */
+    const ballotLockPasses = () => league.client.exec(`update league.award_votes set ballot_lock = clock_timestamp() - interval '1 second' where season_year = ${SEASON}`);
     /** Fantrax's regular-season skater and goalie tables now list these players (every NHL player, scored or not) */
     const setRegularSeason = (skaters: RangedSkater[], goalies: RangedGoalie[] = []) => {
         fantrax.skaters[rangeKey(REGULAR_SEASON)] = skaters;
@@ -168,7 +197,10 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
             insert into league.transaction_assets (id, event_id, player_id, label, asset_kind, action, from_franchise_id, to_franchise_id, from_name, to_name, source_row)
                 values ('${id}-1', '${id}', '${playerId}', 'Archive ${playerId}', 'player', 'trade', ${from}, ${to}, 'Club ${from}', 'Club ${to}', ${transactions});`);
     };
-    return { league, vote, fantrax, nhl: nhlState, clock, act, setRegularSeason, prepareFully, endedSeasonWith, dropped, claimed, traded };
+    return {
+        league, vote, fantrax, nhl: nhlState, clock, request: request.state, act, asOwner, signInAs, headerAnswer, setRegularSeason, prepareFully,
+        openVoting, ballotLockPasses, endedSeasonWith, dropped, claimed, traded,
+    };
 }
 
 /**
