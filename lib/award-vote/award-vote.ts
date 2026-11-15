@@ -23,7 +23,7 @@ const rangedRead = async ({ leagueId, seasonYear, startDate, endDate }: AwardVot
     ({ leagueId, seasonCode: await seasonCode(leagueId, seasonYear), startDate, endDate });
 
 export const awardVote = createAwardVote({
-    clock: { now: () => Date.now() },
+    clock: { now: () => Date.now(), sleep: ms => new Promise(resolve => setTimeout(resolve, ms)) },
     fantrax: {
         leagueInfo: async leagueId => {
             const { firstPlayoffWeek, ...info } = await client.leagueInfo(leagueId);

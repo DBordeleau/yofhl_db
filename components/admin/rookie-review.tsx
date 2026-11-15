@@ -1,11 +1,13 @@
 'use client';
 
 // The Teemu Trophy's rookie review in admin: the rookies the NHL lookup found, the young players it could not match,
-// and the young players it ruled out, each addable to or removable from the rookies until voting opens. A rehearsal
-// is marked as one.
+// those it could not look up, and the young players it ruled out, each addable to or removable from the rookies until
+// voting opens; the failed lookups can be retried (batch after batch until done). A rehearsal is marked as one.
+import { useState } from 'react';
+import { prepareAwardVote, retryFailedLookups } from '@/app/admin/award-vote-actions';
 import { adjustRookie } from '@/app/admin/rookie-review-actions';
 import type { RookieReview as Review, RookieReviewPlayer } from '@/lib/award-vote/create-award-vote';
-import { AdminActionStatus, useAdminAction } from './admin-action';
+import { ADMIN_BUTTON, AdminActionStatus, useAdminAction } from './admin-action';
 
 const SMALL_BUTTON = 'min-h-11 rounded-xl border border-line-strong bg-white px-3 text-sm font-bold text-ink hover:border-rink-blue disabled:cursor-wait disabled:opacity-50';
 
@@ -13,8 +15,18 @@ const ADJUSTMENTS = { added: 'Added by you', removed: 'Removed by you' } as cons
 
 export default function RookieReview({ year, review, rehearsal }: { year: number; review: Review; rehearsal: boolean }) {
     const { pending, result, run } = useAdminAction();
+    const retry = useAdminAction({ refreshAfterError: true });
+    const [progress, setProgress] = useState<string | null>(null);
     const change = (player: RookieReviewPlayer) => run(() => adjustRookie(year, player.playerId, player.candidate ? 'remove' : 'add'));
-    const list = (players: RookieReviewPlayer[], empty: string) => players.length ? <div className="mt-2 overflow-x-auto">
+    const retryLookups = () => retry.run(async () => {
+        setProgress(null);
+        for (let step = await retryFailedLookups(year); ; step = await prepareAwardVote(year)) {
+            if ('error' in step || !step.more) return step;
+            setProgress(step.message);
+        }
+    });
+    const busy = pending || retry.pending;
+    const list = (players: RookieReviewPlayer[], empty: string, noMatch = 'No match') => players.length ? <div className="mt-2 overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-sm tabular-nums">
             <thead>
                 <tr className="border-b border-line text-left text-xs uppercase text-ink-soft">
@@ -34,10 +46,10 @@ export default function RookieReview({ year, review, rehearsal }: { year: number
                     <td className="px-2 py-1.5 text-right">{player.age ?? '—'}</td>
                     <td className="px-2 py-1.5">{player.nhlId
                         ? <a href={`https://www.nhl.com/player/${player.nhlId}`} target="_blank" rel="noreferrer" className="font-bold text-rink-blue hover:underline">{player.nhlId}</a>
-                        : <span className="text-ink-soft">No match</span>}</td>
+                        : <span className="text-ink-soft">{noMatch}</span>}</td>
                     <td className="px-2 py-1.5">{player.candidate ? 'Yes' : 'No'}{player.adjustment && <span className="ml-2 text-xs text-ink-soft">{ADJUSTMENTS[player.adjustment]}</span>}</td>
                     {review.adjustable && <td className="px-2 py-1.5 text-right">
-                        <button type="button" className={SMALL_BUTTON} disabled={pending} onClick={() => change(player)}>
+                        <button type="button" className={SMALL_BUTTON} disabled={busy} onClick={() => change(player)}>
                             {player.candidate ? 'Remove' : 'Add'}<span className="sr-only"> {player.name}</span>
                         </button>
                     </td>}
@@ -53,7 +65,14 @@ export default function RookieReview({ year, review, rehearsal }: { year: number
         {list(review.rookies, 'No player is Calder-eligible by the NHL’s records.')}
         <h3 className="mt-6 font-wide text-base font-extrabold uppercase">No NHL match</h3>
         <p className="mt-1 text-sm text-ink-soft">Young players the NHL’s player search couldn’t match. Add any who are rookies.</p>
-        {list(review.unmatched, 'Every young player was matched.')}
+        {list(review.unmatched, 'Every young player looked up was matched.')}
+        <h3 className="mt-6 font-wide text-base font-extrabold uppercase">Lookup failed</h3>
+        <p className="mt-1 text-sm text-ink-soft">Young players the NHL couldn’t be reached for. Retry them, or add any who are rookies.</p>
+        {list(review.failed, 'Every young player was looked up.', 'Lookup failed')}
+        {review.adjustable && review.failed.length > 0 && <div className="mt-3">
+            <button type="button" className={ADMIN_BUTTON} disabled={busy} onClick={retryLookups}>Retry failed lookups</button>
+            <AdminActionStatus pending={retry.pending} pendingText={progress ?? 'Retrying…'} result={retry.result} />
+        </div>}
         <details className="mt-6">
             <summary className="cursor-pointer font-wide text-base font-extrabold uppercase">Not eligible</summary>
             <p className="mt-1 text-sm text-ink-soft">Young players whose NHL record rules them out. Add any matched to the wrong player.</p>

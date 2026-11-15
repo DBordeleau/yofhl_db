@@ -4,17 +4,18 @@
 //  - one read per stat set any award shows and position group: the players with fantasy points over its days (and,
 //    once the Final's rosters are read, everyone on them whatever their points), a page of Fantrax's table at a time
 //  - final rosters, before the Danny Briere Award's stat sets: both finalists' daily rosters over the Final
-//  - rookies: the NHL's record of each player young enough by Fantrax's age to be a rookie, a few at a time, and
-//    whether the Calder rule (calder.ts) admits them; a player whose lookup fails is recorded as unmatched
+//  - rookies: the NHL's record of each player at the candidate floor young enough by Fantrax's age to be a rookie,
+//    a few at a time with a pause between, and whether the Calder rule (calder.ts) admits them; a player whose
+//    lookup fails is recorded as failed and tried again on a later call, up to NHL_LOOKUP_ATTEMPTS in all
 //  - candidates: each award's eligible players (voted-awards.ts), each with its credited team season, and the
 //    prepare's finish
 // Each step's write is conditional on the progress being what this call read, so two prepares never interleave.
 import { sql, type SQL } from 'drizzle-orm';
 import { calderEligible, mightBeCalderEligible } from './calder';
-import type { GoalieLine, PrepareProgress, RookieAdjustments, SkaterLine, StatSetName } from './model';
+import { lookupFailed, type GoalieLine, type PrepareProgress, type RookieAdjustments, type RookieLookup, type SkaterLine, type StatSetName } from './model';
 import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, RangedSkater } from './ports';
 import { seasonDates, type SeasonDates } from './season-dates';
-import { PLAYER_AWARD_RULES, ROOKIE_STAT_SET, STAT_SETS, type SnapshotPlayer } from './voted-awards';
+import { CANDIDATE_FPTS_FLOOR, PLAYER_AWARD_RULES, ROOKIE_STAT_SET, STAT_SETS, type SnapshotPlayer } from './voted-awards';
 
 /** a failed or unexpected Fantrax read, which the admin is told about (by `reason`) and can retry */
 export class ReadFailure extends Error {
@@ -30,13 +31,20 @@ export const PREPARE_STEPS = { dates: 'dates', finalRosters: 'final rosters', ro
 export const statSetStep = (statSet: StatSetName, group: Group) => `${statSet} ${group}s`;
 
 /** how many young players one run of the rookies step looks up, all at once */
-export const NHL_LOOKUPS_AT_ONCE = 8;
+export const NHL_LOOKUPS_AT_ONCE = 3;
+/** the pause before each batch of NHL lookups after a call's first */
+export const NHL_LOOKUP_PAUSE_MS = 1000;
+/** how many times a young player's NHL lookup is tried, once a prepare call, before it is left as failed */
+export const NHL_LOOKUP_ATTEMPTS = 3;
 
 export interface PrepareStep {
     name: string;
     /** whether it reads Fantrax, which a call does for one step at most (prepare.ts) */
     readsFantrax: boolean;
-    /** run the step after `progress`, returning the progress with it done, or null if another prepare moved on first */
+    /**
+     * run the step after `progress`, returning the progress it leaves, or null if another prepare moved on first or
+     * the step has nothing more to do until the next call
+     */
     run(progress: PrepareProgress): Promise<PrepareProgress | null>;
 }
 
@@ -147,32 +155,51 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
         },
     });
 
+    // the young players this call has looked up (the steps are built afresh for each call), whose failed lookups
+    // wait for a later call
+    const lookedUpThisCall = new Set<string>();
     const rookies: PrepareStep = {
         name: PREPARE_STEPS.rookies,
         readsFantrax: false,
         run: async progress => {
             const looked = progress.rookies ?? {};
             const today = new Date(clock.now()).toISOString().slice(0, 10);
-            // only regular-season scorers can be Teemu Trophy candidates
+            // only players at the candidate floor can be Teemu Trophy candidates
             const young = (await db.rows<NhlLookupPlayer & { age: number | null }>(sql`
                 select p.player_id as id, p.name, p.positions, p.nhl_team as "nhlTeam", p.age
                 from league.award_vote_players p
                 join league.award_vote_stats s on s.season_year = p.season_year and s.player_id = p.player_id and s.stat_set = ${ROOKIE_STAT_SET}
-                where p.season_year = ${seasonYear}
+                where p.season_year = ${seasonYear} and (s.line ->> 'points')::numeric >= ${CANDIDATE_FPTS_FLOOR}
                 order by p.player_id`))
-                .filter(player => !(player.id in looked) && mightBeCalderEligible(player.age, seasonYear, today));
-            const batch = young.slice(0, NHL_LOOKUPS_AT_ONCE);
-            const found = await Promise.all(batch.map(async ({ id, name, positions, nhlTeam }) => {
-                // a lookup that fails is recorded as no match, so one player can't stop the prepare: the admin's
-                // rookie review lists them among the unmatched, to add by hand
-                const record = await nhl.lookup({ id, name, positions, nhlTeam }).catch(error => {
-                    console.error(`The NHL lookup of ${name} (${id}) for the ${seasonYear} award vote failed, so they are left unmatched:`, error);
-                    return null;
-                });
-                return [id, record && { nhlId: record.nhlId, eligible: calderEligible(record, seasonYear) }] as const;
+                .filter(player => mightBeCalderEligible(player.age, seasonYear, today));
+            /** never looked up, or failed with attempts left */
+            const toLookUp = (lookups: Record<string, RookieLookup>, id: string) => {
+                const lookup = lookups[id];
+                return lookup === undefined || (lookupFailed(lookup) && lookup.failedAttempts < NHL_LOOKUP_ATTEMPTS);
+            };
+            const batch = young.filter(player => toLookUp(looked, player.id) && !lookedUpThisCall.has(player.id)).slice(0, NHL_LOOKUPS_AT_ONCE);
+            // only failed lookups this call already tried are left: they wait for the next call
+            if (!batch.length && young.some(player => toLookUp(looked, player.id))) return null;
+            // a pause between batches, so the NHL isn't asked for too much at once
+            if (batch.length && lookedUpThisCall.size) await clock.sleep(NHL_LOOKUP_PAUSE_MS);
+            const found = await Promise.all(batch.map(async ({ id, name, positions, nhlTeam }): Promise<[string, RookieLookup]> => {
+                lookedUpThisCall.add(id);
+                try {
+                    const record = await nhl.lookup({ id, name, positions, nhlTeam });
+                    return [id, record && { nhlId: record.nhlId, eligible: calderEligible(record, seasonYear) }];
+                } catch (error) {
+                    // recorded as failed, so one player can't stop the prepare: they are tried again on a later
+                    // call, and after the last attempt the admin's rookie review lists them to decide on by hand
+                    const previous = looked[id];
+                    const failedAttempts = (lookupFailed(previous) ? previous.failedAttempts : 0) + 1;
+                    console.error(`The NHL lookup of ${name} (${id}) for the ${seasonYear} award vote failed (attempt ${failedAttempts} of ${NHL_LOOKUP_ATTEMPTS}):`, error);
+                    return [id, { failedAttempts }];
+                }
             }));
-            const next: PrepareProgress = { ...progress, rookies: { ...looked, ...Object.fromEntries(found) } };
-            return advance(progress, young.length > batch.length ? next : { ...next, done: [...next.done, PREPARE_STEPS.rookies] });
+            const lookups = { ...looked, ...Object.fromEntries(found) };
+            const next: PrepareProgress = { ...progress, rookies: lookups };
+            const finished = !young.some(player => toLookUp(lookups, player.id));
+            return advance(progress, finished ? { ...next, done: [...next.done, PREPARE_STEPS.rookies] } : next);
         },
     };
 
@@ -183,7 +210,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
             // the Calder-eligible rookies, with the admin's changes
             const [{ adjustments }] = await db.rows<{ adjustments: RookieAdjustments }>(sql`
                 select rookie_adjustments as adjustments from league.award_votes where season_year = ${seasonYear}`);
-            const rookies = new Set(Object.entries(progress.rookies ?? {}).filter(([, lookup]) => lookup?.eligible).map(([id]) => id));
+            const rookies = new Set(Object.entries(progress.rookies ?? {}).filter(([, lookup]) => lookup !== null && !lookupFailed(lookup) && lookup.eligible).map(([id]) => id));
             for (const id of adjustments.removed) rookies.delete(id);
             for (const id of adjustments.added) rookies.add(id);
             const players = await db.rows<SnapshotPlayer>(sql`

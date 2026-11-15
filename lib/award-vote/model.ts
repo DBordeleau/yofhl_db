@@ -71,7 +71,7 @@ export interface PrepareProgress {
      * the table's size when its first page was read.
      */
     pagesRead?: { step: string; read: number; pages: number; total: number };
-    /** the NHL lookup of each young player looked up so far for the Teemu Trophy, by player ID */
+    /** the NHL lookup of each young player at the candidate floor looked up so far for the Teemu Trophy, by player ID */
     rookies?: Record<string, RookieLookup>;
     /**
      * Everyone on a finalist's roster outside the minors on any day of the Final, by player ID, each with the team
@@ -80,8 +80,18 @@ export interface PrepareProgress {
     finalRosters?: Record<string, number>;
 }
 
-/** a young player's NHL match and whether the Calder rule (calder.ts) admits them, or null when no NHL player matches */
-export type RookieLookup = { nhlId: number; eligible: boolean } | null;
+/**
+ * A young player's NHL lookup: their NHL match and whether the Calder rule (calder.ts) admits them; null when no NHL
+ * player matches; or a lookup that failed (the NHL couldn't be reached, or answered unexpectedly) on each of its
+ * attempts so far. Progress stored before failed lookups were kept apart has null for those too.
+ */
+export type RookieLookup = { nhlId: number; eligible: boolean } | null | FailedLookup;
+export interface FailedLookup {
+    failedAttempts: number;
+}
+
+/** whether a young player's NHL lookup failed */
+export const lookupFailed = (lookup: RookieLookup | undefined): lookup is FailedLookup => !!lookup && 'failedAttempts' in lookup;
 
 /** the admin's changes to the computed Calder-eligible rookie list, by player ID, kept across re-prepares */
 export interface RookieAdjustments {

@@ -22,7 +22,7 @@ test("a season whose league scores SV% but no GA or SV prepares, and its goalies
     // a list of skaters and goalies shows both groups' columns
     const gretzky = ballot.find(award => award.award === 'wayne-gretzky')!;
     assert.deepEqual(candidateColumns(gretzky).map(column => column.label),
-        ['FPts', 'FP/G', 'GP', 'G', 'A', 'SOG', 'Hit', 'Blk', 'W', 'OL+ShL', 'SV%', 'SHO']);
+        ['FPts', 'FP/G', 'GP', 'G', 'A', 'P', 'SOG', 'Hit', 'Blk', 'W', 'OL+ShL', 'SV%', 'SHO']);
 });
 
 test('a season whose league scores GA and SV keeps them', async t => {

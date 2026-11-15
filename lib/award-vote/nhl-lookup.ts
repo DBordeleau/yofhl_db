@@ -3,7 +3,7 @@
 // position group (lib/keepers/player-details.ts), then the player's NHL profile for their birth date and NHL
 // regular-season games in each season. No match, or more than one, is no match: a rookie is never admitted on
 // another player's record; nor is a profile with no birth date or season history. A failed or unexpected NHL answer
-// throws, and the prepare leaves that player unmatched for the admin to decide on by hand.
+// (a 429 among them) throws, and the prepare records the lookup as failed and tries it again on a later call.
 import nhlIdentities from '@/league/nhl-player-ids.json';
 import { matchNhlPlayer, type NhlProfile, type NhlSearchPlayer } from '@/lib/keepers/player-details';
 import type { AwardVoteNhl, NhlLookupPlayer, NhlPlayerRecord } from './ports';

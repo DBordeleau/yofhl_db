@@ -61,6 +61,8 @@ export interface AwardVoteNhl {
 
 export interface AwardVoteClock {
     now(): number;
+    /** wait `ms` milliseconds */
+    sleep(ms: number): Promise<void>;
 }
 
 /** the app's database handle (lib/data/db.ts) */

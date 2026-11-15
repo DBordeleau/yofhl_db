@@ -34,8 +34,8 @@ export type PrepareResult =
  * inside it:
  *  - one Fantrax step: at worst the season's by-date code (12-second timeout, once per server) and then one page of a
  *    stat set's table (30 seconds), 42 seconds; league info is 12, and the Final's rosters 12 for each seven days
- *  - steps that don't read Fantrax, started within this budget: the last at worst a batch of NHL lookups made at
- *    once (a search and a profile, 6 seconds each), so 25 + 12 seconds
+ *  - steps that don't read Fantrax, started within this budget: the last at worst the pause before a batch of NHL
+ *    lookups made at once and the batch (a search and a profile, 6 seconds each), so 25 + 1 + 12 seconds
  * with the database's writes on top.
  */
 export const PREPARE_BUDGET_MS = 25_000;
@@ -74,7 +74,8 @@ export function createPrepare(ports: AwardVotePorts) {
             if (step.readsFantrax && ran > 0) break;
             try {
                 const next = await step.run(progress);
-                // another prepare has moved on (or started over) since this one read its progress: leave it to that one
+                // another prepare has moved on (or started over) since this one read its progress: leave it to that
+                // one; or the step waits for the next call (failed NHL lookups are tried again a call later)
                 if (!next) break;
                 progress = next;
             } catch (error) {
