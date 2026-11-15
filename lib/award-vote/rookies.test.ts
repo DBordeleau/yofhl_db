@@ -114,17 +114,25 @@ test('the rookie list can only be changed while the award vote is prepared, and 
         [['rookie', null, true], ['unknown', null, false]]);
 });
 
-test('a failed NHL lookup stops preparing with its reason, and the next call carries on', async t => {
-    t.mock.method(console, 'error', () => {});
+test("a player whose NHL lookup fails is left to the admin as unmatched, and preparing carries on", async t => {
+    const logged = t.mock.method(console, 'error', () => {});
     const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
     setRegularSeason(Array.from({ length: 12 }, (_, index) => skater(`r${index}`, 100 - index, { age: 21 })));
     for (let index = 0; index < 12; index++) nhl.players[`r${index}`] = nhlRecord();
-    nhl.down = true;
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: false, reason: 'nhl-failed', message: 'The NHL player search returned 503' });
-    nhl.down = false;
-    nhl.lookups.length = 0;
+    // in the first batch of lookups, and failing every time
+    nhl.failing.add('r3');
     assert.equal((await prepareFully()).result.ok, true);
+    assert.ok(logged.mock.calls.some(call => String(call.arguments[0]).includes('r3')));
     // each young player is looked up once
     assert.equal(nhl.lookups.length, 12);
-    assert.equal(teemu((await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot).candidates.length, 12);
+    const review = (await act(() => vote.readRookieReview({ seasonYear: SEASON })))!;
+    assert.deepEqual(review.unmatched.map(player => [player.playerId, player.nhlId, player.candidate]), [['r3', null, false]]);
+    assert.equal(review.rookies.length, 11);
+    const candidates = async () => teemu((await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot).candidates.map(candidate => candidate.playerId);
+    assert.ok(!(await candidates()).includes('r3'));
+    assert.equal((await candidates()).length, 11);
+
+    // the admin can still add them
+    assert.deepEqual(await act(() => vote.adjustRookie({ seasonYear: SEASON, playerId: 'r3', change: 'add' })), { ok: true });
+    assert.ok((await candidates()).includes('r3'));
 });

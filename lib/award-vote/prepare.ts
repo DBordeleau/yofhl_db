@@ -18,13 +18,13 @@ export interface PrepareInput {
     seasonYear: number;
 }
 
-export type PrepareRejection = 'before-award-votes' | 'no-champion' | 'no-fantrax-league' | 'not-prepared' | 'fantrax-failed' | 'nhl-failed';
+export type PrepareRejection = 'before-award-votes' | 'no-champion' | 'no-fantrax-league' | 'not-prepared' | 'fantrax-failed';
 
 export type PrepareResult =
     | { ok: true; done: boolean; stepsDone: number; steps: number }
-    | { ok: false; reason: Exclude<PrepareRejection, 'fantrax-failed' | 'nhl-failed'> }
-    /** a Fantrax read or an NHL lookup failed; the work before it is kept and the next call retries it */
-    | { ok: false; reason: 'fantrax-failed' | 'nhl-failed'; message: string };
+    | { ok: false; reason: Exclude<PrepareRejection, 'fantrax-failed'> }
+    /** a Fantrax read failed; the work before it is kept and the next call retries it */
+    | { ok: false; reason: 'fantrax-failed'; message: string };
 
 /**
  * A call starts no new step once this much of it has passed. Each step is at most a few Fantrax requests (each with

@@ -5,7 +5,7 @@
 //    once the Final's rosters are read, everyone on them whatever their points)
 //  - final rosters, before the Danny Briere Award's stat sets: both finalists' daily rosters over the Final
 //  - rookies: the NHL's record of each player young enough by Fantrax's age to be a rookie, a few at a time, and
-//    whether the Calder rule (calder.ts) admits them
+//    whether the Calder rule (calder.ts) admits them; a player whose lookup fails is recorded as unmatched
 //  - candidates: each award's eligible players (voted-awards.ts), each with its credited team season, and the
 //    prepare's finish
 // Each step's write is conditional on the progress being what this call read, so two prepares never interleave.
@@ -16,9 +16,9 @@ import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, 
 import { seasonDates, type SeasonDates } from './season-dates';
 import { PLAYER_AWARD_RULES, ROOKIE_STAT_SET, STAT_SETS, type SnapshotPlayer } from './voted-awards';
 
-/** a failed or unexpected Fantrax read or NHL lookup, which the admin is told about (by `reason`) and can retry */
+/** a failed or unexpected Fantrax read, which the admin is told about (by `reason`) and can retry */
 export class ReadFailure extends Error {
-    constructor(readonly reason: 'fantrax-failed' | 'nhl-failed', error: unknown) {
+    constructor(readonly reason: 'fantrax-failed', error: unknown) {
         super(error instanceof Error ? error.message : String(error), { cause: error });
     }
 }
@@ -135,7 +135,12 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                 .filter(player => !(player.id in looked) && mightBeCalderEligible(player.age, seasonYear, today));
             const batch = young.slice(0, NHL_LOOKUPS_AT_ONCE);
             const found = await Promise.all(batch.map(async ({ id, name, positions, nhlTeam }) => {
-                const record = await nhl.lookup({ id, name, positions, nhlTeam }).catch(error => { throw new ReadFailure('nhl-failed', error); });
+                // a lookup that fails is recorded as no match, so one player can't stop the prepare: the admin's
+                // rookie review lists them among the unmatched, to add by hand
+                const record = await nhl.lookup({ id, name, positions, nhlTeam }).catch(error => {
+                    console.error(`The NHL lookup of ${name} (${id}) for the ${seasonYear} award vote failed, so they are left unmatched:`, error);
+                    return null;
+                });
                 return [id, record && { nhlId: record.nhlId, eligible: calderEligible(record, seasonYear) }] as const;
             }));
             const next: PrepareProgress = { ...progress, rookies: { ...looked, ...Object.fromEntries(found) } };

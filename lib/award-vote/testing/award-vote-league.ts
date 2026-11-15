@@ -99,7 +99,7 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
     const { rows, writeInOrder } = await import('@/lib/data/db');
     const { createAwardVote } = await import('../create-award-vote');
     const fantrax = fantraxState();
-    const nhlState: MemoryNhlState = { players: {}, down: false, lookups: [] };
+    const nhlState: MemoryNhlState = { players: {}, failing: new Set(), lookups: [] };
     /** the fake clock: tests set or advance `clock.time` */
     const clock = { time: AFTER_FINAL };
     const vote = createAwardVote({

@@ -16,7 +16,6 @@ const REFUSALS: Record<PrepareRejection, (message: string) => string> = {
     'no-fantrax-league': () => 'This season has no Fantrax league. Add its fantrax block to league/league.yml and run the season import.',
     'not-prepared': () => 'Voting has opened, so this ballot can no longer be prepared.',
     'fantrax-failed': message => `Fantrax failed: ${message}. ${CARRY_ON}`,
-    'nhl-failed': message => `The NHL player lookup failed: ${message}. ${CARRY_ON}`,
 };
 
 // One bounded batch of preparing the season's ballot; the panel calls again while `more` is set.

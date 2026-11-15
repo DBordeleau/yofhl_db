@@ -31,7 +31,7 @@ export interface RookieReview {
     adjustable: boolean;
     /** the Calder-eligible rookies by their NHL record */
     rookies: RookieReviewPlayer[];
-    /** the young players no NHL player matched */
+    /** the young players no NHL player matched, or whose NHL lookup failed */
     unmatched: RookieReviewPlayer[];
     /** the young players whose NHL record rules them out, and any player the admin added who was not looked up */
     ineligible: RookieReviewPlayer[];
