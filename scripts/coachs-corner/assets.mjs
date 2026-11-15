@@ -32,7 +32,8 @@ export async function generateAssets(root = process.cwd()) {
     const recipe = JSON.stringify({ options: AVIF_OPTIONS, sharp: sharp.versions.sharp, heif: sharp.versions.heif });
     const avifBuild = { recipe, files: {} };
     // WebP exports stay with the art for the catalog previews and set each AVIF's size; only AVIF ships.
-    for (const name of (await readdir(art)).filter(name => name.endsWith('.webp'))) {
+    const artwork = await readdir(art);
+    for (const name of artwork.filter(name => name.endsWith('.webp'))) {
         const source = `robots-v2/${name}`;
         const original = source.replace(/(?:-640)?\.webp$/, '.png');
         const input = await readFile(file(original)).catch(error => {
@@ -63,6 +64,18 @@ export async function generateAssets(root = process.cwd()) {
         }
         avifBuild.files[avif] = { inputHash, width, height, outputHash: digest(output) };
         sources.push(avif);
+    }
+    // A wardrobe can ship validated AVIF exports while all authoring files stay local.
+    for (const name of artwork.filter(name => name.endsWith('.avif') && !artwork.includes(name.replace(/\.avif$/, '.webp')))) {
+        const source = `robots-v2/${name}`;
+        const output = await readFile(file(source));
+        const old = previous.files?.[source];
+        const { width, height } = old?.outputHash === digest(output) ? await sharp(output).metadata() : {};
+        if (!old || old.width !== width || old.height !== height || old.outputHash !== digest(output)) {
+            throw new Error(`Missing or invalid optimized artwork: ${source}. Restore ${source.replace(/(?:-640)?\.avif$/, '.png')} and its authoring exports to regenerate it.`);
+        }
+        avifBuild.files[source] = old;
+        sources.push(source);
     }
     await writeChanged(buildPath, `${JSON.stringify(avifBuild, null, 2)}\n`);
     /** @type {Record<string, string>} */

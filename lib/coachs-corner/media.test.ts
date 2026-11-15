@@ -75,6 +75,10 @@ test('AVIF generation uses PNG originals, reuses unchanged encodes, and repairs 
     assert.deepEqual(await readFile(webp), baselineWebp, 'conversion never overwrites the WebP export');
     await rm(original);
     assert.deepEqual(await generateAssets(root), updated, 'optimized-only checkouts retain the same immutable URLs');
+    const optimizedModified = (await stat(avif)).mtimeMs;
+    await rm(webp);
+    assert.deepEqual(await generateAssets(root), updated, 'AVIF-only checkouts need neither PNG masters nor WebP previews');
+    assert.equal((await stat(avif)).mtimeMs, optimizedModified, 'AVIF-only builds reuse the committed export');
     await writeFile(avif, 'corrupt');
     await assert.rejects(generateAssets(root), /Missing or invalid optimized artwork.*Restore.*test-pose\.png/,
         'missing masters must not hide a corrupt committed export');

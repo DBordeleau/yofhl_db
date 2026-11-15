@@ -217,6 +217,6 @@ RON: Hi.`);
 test('an unknown gesture lists the host’s actions and wardrobe prefixes, not every gesture', () => {
     const gestureError = (source: string) => parseScript(source).diagnostics.find(d => d.message.includes('gesture'))?.message;
     assert.equal(gestureError(`${head}[don: wave]`), 'Don has no “wave” gesture. Try: rest, point, thumbs, angry, surprised, lean, stare, pause, tie, mic, pound, pound-ready. '
-        + 'For another wardrobe, start it with halloween-, alternate-1-, alternate-2-, alternate-3- or remembrance-.');
+        + 'For another wardrobe, start it with halloween-, alternate-1-, alternate-2-, alternate-3-, remembrance- or alternate-4-.');
     assert.equal(gestureError(`${head}[ron: wave]`), 'Ron has no “wave” gesture. Try: rest, skeptical, warning, surprised, down.');
 });
