@@ -98,6 +98,8 @@ export const seasonSyncStatus = league.table('season_sync_status', {
     changedPlayoffGames: integer('changed_playoff_games').notNull().default(0),
     changedChampionshipRoster: integer('changed_championship_roster').notNull().default(0),
     changedSkaterCategories: integer('changed_skater_categories').notNull().default(0),
+    changedRegularSeasonGames: integer('changed_regular_season_games').notNull().default(0),
+    changedWeeks: integer('changed_weeks').notNull().default(0),
     warnings: jsonb('warnings').$type<string[]>().notNull().default([]),
     frozenAt: timestamp('frozen_at', { withTimezone: true, mode: 'string' }),
     autoRosterFranchiseId: integer('auto_roster_franchise_id').references(() => franchises.id),
@@ -311,7 +313,9 @@ export const playerSeasons = league.table(
     ],
 );
 
-// playoff games (stage leaves room for regular-season matchups later)
+// Playoff games, from the season import and the season sync, and regular-season games (stage 'regular', round = the
+// week number, bracket 'championship' and slot its place in Fantrax's list) from the season sync, from the 2027
+// season on. A game is one pairing in a season, stage and round, so the season sync updates it in place.
 export const matchups = league.table(
     'matchups',
     {
@@ -329,7 +333,23 @@ export const matchups = league.table(
         scoreAdjusted: boolean('score_adjusted').notNull().default(false),
         note: text('note'),
     },
-    (t) => [index('matchups_season').on(t.seasonYear, t.stage, t.round)],
+    (t) => [
+        index('matchups_season').on(t.seasonYear, t.stage, t.round),
+        unique('matchups_one_game_per_pairing').on(t.seasonYear, t.stage, t.round, t.awayTeamSeasonId, t.homeTeamSeasonId),
+    ],
+);
+
+// Each season's Fantrax weeks with their start and end times, written by the season sync from the 2027 season on.
+// Never written by the season import.
+export const weeks = league.table(
+    'weeks',
+    {
+        seasonYear: integer('season_year').notNull().references(() => seasons.year),
+        week: smallint('week').notNull(),
+        startsAt: timestamp('starts_at', { withTimezone: true, mode: 'string' }).notNull(),
+        endsAt: timestamp('ends_at', { withTimezone: true, mode: 'string' }).notNull(),
+    },
+    (t) => [primaryKey({ columns: [t.seasonYear, t.week] })],
 );
 
 // curated: everyone who gets a ring for the season, including players dropped late in the year

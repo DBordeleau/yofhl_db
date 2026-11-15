@@ -70,6 +70,10 @@ _Avoid_: day, period (on its own)
 **Final week**:
 A week whose scores are settled, either automatically because the standings records add up or by hand in admin.
 
+**Regular-season game**:
+One pairing in a week before Fantrax's first playoff week. From 2027 the season sync stores each one once its week is final, as a game with the regular stage and its week number as its round; earlier seasons' are in `lib/rivalries/regular-season-history.json`.
+_Avoid_: matchup (on its own, when the stage matters)
+
 **Playoff round**:
 The Quarterfinals, Semifinals or Final, each one Fantrax week, which can be longer than seven days: the 2027 Final is a single two-week week. The rounds start at Fantrax's first playoff week; every earlier week is the regular season.
 
@@ -90,7 +94,7 @@ Replacing whole seasons' imported data (standings, player seasons, playoff games
 _Avoid_: sync, load, the importer (when you mean the rules rather than the command)
 
 **Season sync**:
-The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season (with its skater categories) straight from Fantrax, each playoff round's games once the round is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
+The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season (with its skater categories) straight from Fantrax, the season's weeks, each regular-season week's games and each playoff round's games once the week is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
 _Avoid_: import (for this), refresh (that is the evening Fantrax refresh)
 
 **Automatic championship roster**:

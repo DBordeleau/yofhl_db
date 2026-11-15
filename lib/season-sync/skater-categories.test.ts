@@ -38,7 +38,7 @@ test('a changed category total expires the record book alone, and a second run w
     setSkaters([['v1', 10, 12, 80, 29, 15], ['v2', 3, 4, 40, 61, 20]]);
     const corrected = await run(MID_SEASON + 3600_000);
     assert.deepEqual(corrected.result.outcome === 'synced' && corrected.result.changed,
-        { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 0, skaterCategories: 2 });
+        { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 0, skaterCategories: 2, regularSeasonGames: 0, weeks: 0 });
     assert.deepEqual(corrected.revalidatedTags, ['league:records']);
     assert.deepEqual([(await skaterCategories(SEASON)).v1!.hits, (await skaterCategories(SEASON)).v2!.hits], [29, 61]);
 
@@ -52,7 +52,7 @@ test('a changed category total expires the record book alone, and a second run w
     league.failNextQuery('refresh materialized view', new Error('no refresh expected'));
     const quiet = await run(MID_SEASON + 10800_000);
     assert.deepEqual(quiet.result, { outcome: 'synced', seasonYear: SEASON,
-        changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 0, skaterCategories: 0 }, warnings: [] });
+        changed: { playerSeasons: 0, teamSeasons: 0, playoffGames: 0, championshipRoster: 0, skaterCategories: 0, regularSeasonGames: 0, weeks: 0 }, warnings: [] });
     assert.deepEqual(quiet.revalidatedTags, []);
 });
 

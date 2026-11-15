@@ -190,6 +190,13 @@
       "when": 1794705124033,
       "tag": "0026_skater_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794706564239,
+      "tag": "0027_season_sync_regular_season_games",
+      "breakpoints": true
     }
   ]
 }
