@@ -13,9 +13,9 @@ export type PlayerAwardId = typeof PLAYER_AWARD_IDS[number];
 
 /**
  * A named stretch of the season a candidate's stats cover. The regular-season awards show `regularSeason`; the
- * Danny Briere Award will add the playoff rounds and the Final as their own stat sets.
+ * Danny Briere Award shows `playoffRounds` (every playoff round, the Final included) and `final` (the Final alone).
  */
-export type StatSetName = 'regularSeason';
+export type StatSetName = 'regularSeason' | 'playoffRounds' | 'final';
 
 /** a skater's totals over one stat set */
 export interface SkaterLine {
@@ -59,6 +59,11 @@ export interface PrepareProgress {
     startedAt: string;
     done: string[];
     dates: import('./season-dates').SeasonDates | null;
+    /**
+     * Everyone on a finalist's roster outside the minors on any day of the Final, by player ID, each with the team
+     * season of the finalist credited with them; absent until the Final's rosters are read.
+     */
+    finalRosters?: Record<string, number>;
 }
 
 /**
