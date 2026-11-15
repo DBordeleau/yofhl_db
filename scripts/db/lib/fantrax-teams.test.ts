@@ -8,7 +8,7 @@ import * as schema from '@/db/schema';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import type { Db } from './connect';
 import { prepareFantraxTeams, writeFantraxTeams } from './fantrax-teams';
-import { loadLeagueConfig, type LeagueConfig } from './league-config';
+import { liveFantraxLeague, loadLeagueConfig, type LeagueConfig } from './league-config';
 
 // Each season's Fantrax league and team IDs are kept in league.yml; the importer loads them into
 // league.fantrax_teams, against the real migrations.
@@ -103,4 +103,9 @@ test("league.yml's own fantrax blocks map to its franchises", () => {
     const { rows, errors } = prepareFantraxTeams(config);
     assert.deepEqual(errors, []);
     assert.ok(rows.some((row) => row.seasonYear === 2027), 'the 2026–27 season has its Fantrax IDs');
+    // 2025–26's block, for the award vote's rehearsal, maps every franchise that played it
+    const played2026 = config.franchises.filter((franchise) => franchise.eras.some((era) => era.from <= 2026 && (era.to ?? Infinity) >= 2026)).map((franchise) => franchise.id);
+    assert.deepEqual(rows.filter((row) => row.seasonYear === 2026).map((row) => row.franchiseId).sort((a, b) => a - b), played2026.sort((a, b) => a - b));
+    // and the live season is still the latest season with a block
+    assert.equal(liveFantraxLeague(config), 'rf5o9cu2mutybszr');
 });

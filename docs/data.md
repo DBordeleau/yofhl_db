@@ -53,7 +53,7 @@ A season enters the archive when it starts on Fantrax, not when it ends. The sea
 At the start of the season:
 
 1. Update the league configuration for new franchises, renamed teams, ownership changes, abbreviations, and logos. Close the previous era with `to` and add the new era with `from`. Both values are inclusive end years. The new season's team names, owners, logos and abbreviations come from these eras; neither Fantrax nor the season sync changes them.
-2. Add the season's `fantrax` block under `seasons.<end year>`: the Fantrax league ID and each Fantrax team ID's franchise ID. The live season is the latest season with a `fantrax` block. The Coach's Corner fact export reads the same block straight from league.yml, without the database.
+2. Add the season's `fantrax` block under `seasons.<end year>`: the Fantrax league ID and each Fantrax team ID's franchise ID. The live season is the latest season with a `fantrax` block. The Coach's Corner fact export reads the same block straight from league.yml, without the database. Keep the previous season's block when the new one is added: the award vote rehearses the season before the live season against its own Fantrax league (2025–26's block, league `gl4i2lrcmfblkbwq`, is there for that). An earlier season's block only loads its Fantrax teams; a season with CSVs is imported from them and never opened, and the live season stays the latest season with a block.
 3. Review the database connection, then run the import for the season:
 
    ```sh

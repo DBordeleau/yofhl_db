@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AFTER_FINAL, awardVoteLeague, goalie, REGULAR_SEASON, SEASON, skater } from './testing/award-vote-league';
 
-test('preparing refuses a season before the first award vote', async t => {
+test('preparing refuses a season before the first award vote, other than the rehearsal', async t => {
     const { act, vote, fantrax } = await awardVoteLeague(t);
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: 2026 })), { ok: false, reason: 'before-award-votes' });
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: 2025 })), { ok: false, reason: 'before-award-votes' });
     assert.deepEqual(fantrax.reads, []);
 });
 

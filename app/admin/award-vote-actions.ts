@@ -8,7 +8,7 @@ import type { PrepareResult } from '@/lib/award-vote/create-award-vote';
 export type PrepareActionResult = { message: string; more: boolean } | { error: string };
 
 const REFUSALS: Record<Exclude<Extract<PrepareResult, { ok: false }>['reason'], 'fantrax-failed'>, string> = {
-    'before-award-votes': 'Award votes start with the 2026–27 season.',
+    'before-award-votes': 'Award votes start with the 2026–27 season; only the season before the live season can be rehearsed.',
     'no-champion': 'This season has no champion yet. Sync or import the Final first.',
     'no-fantrax-league': 'This season has no Fantrax league. Add its fantrax block to league/league.yml and run the season import.',
     'not-prepared': 'Voting has opened, so this ballot can no longer be prepared.',

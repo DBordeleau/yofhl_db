@@ -9,7 +9,6 @@ import RosterEditor from '@/components/admin/roster-editor';
 import { adminConfigured, isAdmin } from '@/lib/admin/auth';
 import { getSeasonAdmin } from '@/lib/admin/data';
 import { awardVote } from '@/lib/award-vote/award-vote';
-import { FIRST_AWARD_VOTE_SEASON } from '@/lib/award-vote/model';
 
 export const dynamic = 'force-dynamic';
 // preparing an award vote's ballot runs in batches that each fit this limit
@@ -31,7 +30,8 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
     const season = await getSeasonAdmin(parseInt(year, 10));
     if (!season) notFound();
     const playoffs = season.playoffStatus === 'complete';
-    const vote = season.year >= FIRST_AWARD_VOTE_SEASON ? await awardVote.readPreview({ seasonYear: season.year }) : null;
+    // from 2026–27 on, and for the season before the live season as a rehearsal
+    const vote = await awardVote.readPreview({ seasonYear: season.year });
 
     return (
         <>
@@ -60,10 +60,12 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
                         <span />
                     </Section>
                 )}
-                {vote && (
+                {vote.kind && (
                     <Section
-                        title="Award vote"
-                        description="Prepare the ballot from Fantrax and the archive, then check it here as owners will see it. Preparing again replaces it."
+                        title={vote.kind === 'rehearsal' ? 'Award vote rehearsal' : 'Award vote'}
+                        description={vote.kind === 'rehearsal'
+                            ? 'A rehearsal of the award vote on this past season: prepare and preview a real ballot before the first live vote. It can never be opened, and owners never see it. Preparing again replaces it.'
+                            : 'Prepare the ballot from Fantrax and the archive, then check it here as owners will see it. Preparing again replaces it.'}
                     >
                         <AwardVotePanel year={season.year} preview={vote} />
                     </Section>

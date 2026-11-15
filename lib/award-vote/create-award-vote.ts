@@ -5,9 +5,9 @@
 //  - prepare (prepare.ts): build or rebuild a season's frozen candidate snapshot from Fantrax and the archive, in
 //    bounded batches that resume from recorded progress
 //  - readPreview (read-preview.ts): a season's award vote and its ballot as owners will see it, from the snapshot
-// Opening, ballots, scoring and publishing come later.
+// Opening, ballots, scoring and publishing come later; each must refuse a rehearsal first (rehearsal.ts).
 //
-// Who is a candidate for each award and which stats they show is in voted-awards.ts; the season's date ranges in
+// Which seasons may have an award vote, and the rehearsal, is in rehearsal.ts. Who is a candidate for each award and which stats they show is in voted-awards.ts; the season's date ranges in
 // season-dates.ts; listing a ballot award's candidates (top 50, sorting, search) in candidate-list.ts.
 import type { AwardVotePorts } from './ports';
 import { createPrepare } from './prepare';
@@ -18,6 +18,7 @@ export type { AwardVoteState, BallotAward, CreditedTeam, PlayerAwardId, PlayerCa
 export type { PrepareInput, PrepareRejection, PrepareResult } from './prepare';
 export type { AwardVotePreview, AwardVoteSummary, ReadPreviewInput } from './read-preview';
 export type { SeasonDates } from './season-dates';
+export type { AwardVoteKind, RehearsalRefusal } from './rehearsal';
 
 export function createAwardVote(ports: AwardVotePorts) {
     return {
