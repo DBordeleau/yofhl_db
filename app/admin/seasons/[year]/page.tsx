@@ -34,6 +34,7 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
     // from 2026–27 on, and for the season before the live season as a rehearsal
     const vote = await awardVote.readPreview({ seasonYear: season.year });
     const rookies = vote.kind ? await awardVote.readRookieReview({ seasonYear: season.year }) : null;
+    const rehearsal = vote.kind === 'rehearsal' || !!vote.vote?.rehearsal;
 
     return (
         <>
@@ -64,8 +65,8 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
                 )}
                 {vote.kind && (
                     <Section
-                        title={vote.kind === 'rehearsal' ? 'Award vote rehearsal' : 'Award vote'}
-                        description={vote.kind === 'rehearsal'
+                        title={rehearsal ? 'Award vote rehearsal' : 'Award vote'}
+                        description={rehearsal
                             ? 'A rehearsal of the award vote on this past season: prepare and preview a real ballot before the first live vote. It can never be opened, and owners never see it. Preparing again replaces it.'
                             : 'Prepare the ballot from Fantrax and the archive, then check it here as owners will see it. Preparing again replaces it.'}
                     >
@@ -74,10 +75,10 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
                 )}
                 {rookies && (
                     <Section
-                        title="Rookie review"
+                        title={rehearsal ? 'Rookie review rehearsal' : 'Rookie review'}
                         description="Who is a Calder-eligible rookie for the Teemu Trophy, by the NHL’s records. Add a player the NHL lookup missed or remove one wrongly admitted; your changes stay when you prepare again."
                     >
-                        <RookieReview year={season.year} review={rookies} />
+                        <RookieReview year={season.year} review={rookies} rehearsal={rehearsal} />
                     </Section>
                 )}
                 <Section title="Awards" description={playoffs ? undefined : 'The playoffs were cancelled this season, so there is no Playoff MVP.'}>
