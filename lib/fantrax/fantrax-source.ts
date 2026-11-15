@@ -9,12 +9,13 @@ import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
 import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, finalWeeksTag, scoresAreArchived } from './cache-policy';
 import { createFantraxClient, readCore, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
 import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek } from './live-season-source';
+import { LIVE_SEASON_YEAR } from './live-season-year';
 
 const fantraxClient = createFantraxClient();
 
 const latestFantraxTeamsQuery = sql`
     select season_year as "seasonYear", fantrax_league_id as "fantraxLeagueId", fantrax_team_id as "fantraxTeamId", franchise_id as "franchiseId"
-    from league.fantrax_teams where season_year = (select max(season_year) from league.fantrax_teams)
+    from league.fantrax_teams where season_year = ${LIVE_SEASON_YEAR}
     order by fantrax_team_id`;
 // The importer fills the table from league.yml and clears the league cache.
 const getFantraxTeams = cached(() => rows<FantraxTeamRow>(latestFantraxTeamsQuery), 'fantrax-teams');

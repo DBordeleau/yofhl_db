@@ -53,7 +53,7 @@ A season enters the archive when it starts on Fantrax, not when it ends. The sea
 At the start of the season:
 
 1. Update the league configuration for new franchises, renamed teams, ownership changes, abbreviations, and logos. Close the previous era with `to` and add the new era with `from`. Both values are inclusive end years. The new season's team names, owners, logos and abbreviations come from these eras; neither Fantrax nor the season sync changes them.
-2. Add the season's `fantrax` block under `seasons.<end year>`: the Fantrax league ID and each Fantrax team ID's franchise ID. The live season is the latest season with a `fantrax` block. The Coach's Corner fact export reads the same block straight from league.yml, without the database.
+2. Add the season's `fantrax` block under `seasons.<end year>`: the Fantrax league ID and each Fantrax team ID's franchise ID. The live season is the latest season with a `fantrax` block. The Coach's Corner fact export reads the same block straight from league.yml, without the database. Keep the previous season's block when the new one is added: the award vote rehearses the season before the live season against its own Fantrax league (2025–26's block, league `gl4i2lrcmfblkbwq`, is there for that). An earlier season's block only loads its Fantrax teams; a season with CSVs is imported from them and never opened, and the live season stays the latest season with a block.
 3. Review the database connection, then run the import for the season:
 
    ```sh
@@ -286,6 +286,7 @@ Leave out `nextCache` for the app's reads without a cache, or both options for a
 | `npm run test:history` | Run parser, identity, grouping, repeat-import, and rollback tests |
 | `npm run test:pickem` | Run the Pick'em module's tests through its operations against in-memory Postgres and the in-memory live season |
 | `npm run test:season-sync` | Run the season sync's tests through its run operation against in-memory Postgres and its in-memory Fantrax reads |
+| `npm run test:award-vote` | Run the award vote module's tests through its operations against in-memory Postgres, its in-memory Fantrax and a fake clock |
 | `npm run db:verify` | Legacy migration comparison against old-site API shapes; not current-site verification |
 
 `db:verify` still calls `/api/stats/...`, `/api/teams/stats`, and `/api/player/...`, which the current app does not implement. Its default target is the current production API, so it will encounter missing routes. It also reports data differences without making those differences a failing exit status. Use it only with a compatible legacy endpoint via `YOFHL_LIVE_API`; use the current API and page checks for present-day verification.

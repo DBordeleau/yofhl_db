@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { seasonDates } from '@/lib/award-vote/season-dates';
 import { createFantraxClient, readCore } from './fantrax-client';
 
 // Recorded Fantrax responses (lib/fantrax/fixtures), served by endpoint. `edit` changes one response for a test.
@@ -108,14 +109,30 @@ test('invalid matchup scores are rejected', async () => {
     assert.equal((await fantrax().weekScores(LEAGUE, 2)).matchups[1].away.score, 120);
 });
 
-test("league info alone gives the season year, its weeks and its daily roster periods in order", async () => {
+test("league info alone gives the season year, its weeks and its daily roster periods in order, and its first playoff week", async () => {
     const info = await fantrax().leagueInfo(LEAGUE);
     assert.equal(info.seasonYear, 2027);
     assert.deepEqual(info.weeks.map(week => week.number), [1, 2, 3]);
+    assert.equal(info.firstPlayoffWeek, 23);
     assert.deepEqual(info.rosterPeriods, [
         { number: 14, startDate: '2026-10-20T04:00:00.000Z', endDate: '2026-10-21T03:59:59.000Z' },
         { number: 15, startDate: '2026-10-21T04:00:00.000Z', endDate: '2026-10-22T03:59:59.000Z' },
     ]);
+});
+
+// The 2025–26 league's info, recorded signed out on 2026-11-15 and trimmed to its season, periods and playoffs: 51
+// half-week scoring periods, the playoffs from period 49, and 188 daily roster periods, each starting at its day's
+// first lock.
+test("a past season's league info gives the award vote its regular season, playoff rounds and Final", async () => {
+    const info = await fantrax({ getLeagueInfo: () => recorded('getLeagueInfo-2026') }).leagueInfo('gl4i2lrcmfblkbwq');
+    assert.equal(info.seasonYear, 2026);
+    assert.equal(info.firstPlayoffWeek, 49);
+    assert.deepEqual(seasonDates({ ...info, firstPlayoffWeek: info.firstPlayoffWeek! }), {
+        regularSeason: { startDate: '2025-10-07', endDate: '2026-03-22' },
+        playoffRounds: { startDate: '2026-03-23', endDate: '2026-04-12' },
+        final: { startDate: '2026-04-06', endDate: '2026-04-12' },
+        finalRosterPeriods: [182, 183, 184, 185, 186, 187, 188],
+    });
 });
 
 // A past day's rosters (recorded from the live league on 2026-11-14, roster period 20, trimmed to two teams).

@@ -146,6 +146,46 @@ An entry's correct and wrong picks over final weeks. A pick on a tied matchup is
 A season's Pick'em entries ranked by correct picks, then by fewer wrong picks. Entries still level share the place. Always qualified, since the leaderboard at `/stats` ranks players.
 _Avoid_: standings, table
 
+## Award voting
+
+**Award vote**:
+One season's vote on its awards, from the admin opening it to the winners being published. It is held after the Final, covers every voted award at once, and starts with the 2027 season; earlier seasons' winners were entered by hand and have no tally.
+_Avoid_: election, poll, vote (alone, for a ballot or one ranking)
+
+**Rehearsal**:
+An award vote on the season before the live season, prepared and previewed by the league owner like a live one but never opened: no ballots, tally or winners, and owners never see it. It lets the league owner check a real ballot (2025–26's) before the first live award vote.
+_Avoid_: dry run, test vote
+
+**Voted award**:
+An award decided by an award vote: the six individual awards and GM of the Year. The Jagr Cup and the Prime Minister's Trophy are worked out from results and are never voted.
+
+**GM of the Year**:
+The voted award for the franchise that was best run over a season, judged on its draft, its moves from the draft to the end of the regular season, and how the team finished. Rosters are frozen between the Final and the draft, so there are no offseason moves to judge. It goes to a team season and celebrates that season's owner. A franchise can't rank itself.
+
+**Ballot**:
+One franchise's rankings for every voted award in an award vote, cast by its owner. Only a complete ballot counts: every rank of every award filled. It can be changed until the ballot lock, and becomes public when the winners are published.
+_Avoid_: vote, submission, entry (that's Pick'em)
+
+**Void ballot**:
+A ballot the admin has thrown out, with a reason. It adds nothing to any tally, and is published with its reason alongside the ballots that counted.
+_Avoid_: rejected, deleted, spoiled
+
+**Ballot lock**:
+The moment an award vote's ballots stop changing. A franchise with no complete ballot by then has no say. Always qualified, since a bare "lock" is Pick'em's.
+_Avoid_: deadline, cutoff, close
+
+**Candidate**:
+A player, or for GM of the Year a team season, that may be ranked for one voted award. Each award has its own candidates: defensemen for the Bobby Orr Award, goalies for the Hasek Trophy, Calder-eligible rookies for the Teemu Trophy, players on the finalists' rosters during the Final for the Danny Briere Award.
+_Avoid_: nominee, finalist (that's a team in the Final), option
+
+**Tally**:
+One voted award's scored result: every ranked candidate's points, first-place votes and place. Individual awards are ranked five deep for 10, 7, 5, 3 and 1 points, GM of the Year three deep for 5, 3 and 1. Level candidates are split by first-place votes, then second-place votes and so on, and share the award if still level. The admin approves a tally or reopens the vote, and never edits it. It is kept for good.
+_Avoid_: results, score, count
+
+**Move value**:
+The fantasy points a player scored from the day a franchise acquired them until they next left its roster or the regular season ended: gained by the franchise that got them, lost by the one that gave them up. Bench days count. It is what GM of the Year's transaction summary ranks moves by.
+_Avoid_: impact, worth, net points
+
 ## Coach's Corner
 
 **Script**:

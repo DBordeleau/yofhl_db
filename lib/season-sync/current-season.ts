@@ -2,6 +2,7 @@
 // the season import has opened it in the archive, where it is the current season (GLOSSARY.md).
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
+import { LIVE_SEASON_YEAR } from '@/lib/fantrax/live-season-year';
 import { epochMs } from './status';
 
 /** a mapped Fantrax team, its franchise and that franchise's team season (null when it has none) */
@@ -47,7 +48,7 @@ export async function readCurrentSeason(): Promise<{ seasonYear: number | null; 
         left join league.seasons s on s.year = ft.season_year
         left join league.team_seasons t on t.season_year = ft.season_year and t.franchise_id = ft.franchise_id
         left join league.season_sync_status st on st.season_year = ft.season_year
-        where ft.season_year = (select max(season_year) from league.fantrax_teams)
+        where ft.season_year = ${LIVE_SEASON_YEAR}
         order by ft.fantrax_team_id`);
     if (!teams.length) return { seasonYear: null, season: null };
     const [{ seasonYear, leagueId, opened, frozenAt }] = teams;
