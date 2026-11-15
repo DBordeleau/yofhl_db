@@ -2,7 +2,7 @@
 // statement (so a step is never half done, and the next call resumes after the last one written):
 //  - dates: the season's date ranges, from its own Fantrax league info (season-dates.ts)
 //  - one read per stat set any award shows and position group: the players with fantasy points over its days (and,
-//    once the Final's rosters are read, everyone on them whatever their points)
+//    once the Final's rosters are read, everyone on them whatever their points), a page of Fantrax's table at a time
 //  - final rosters, before the Danny Briere Award's stat sets: both finalists' daily rosters over the Final
 //  - rookies: the NHL's record of each player young enough by Fantrax's age to be a rookie, a few at a time, and
 //    whether the Calder rule (calder.ts) admits them; a player whose lookup fails is recorded as unmatched
@@ -34,6 +34,8 @@ export const NHL_LOOKUPS_AT_ONCE = 8;
 
 export interface PrepareStep {
     name: string;
+    /** whether it reads Fantrax, which a call does for one step at most (prepare.ts) */
+    readsFantrax: boolean;
     /** run the step after `progress`, returning the progress with it done, or null if another prepare moved on first */
     run(progress: PrepareProgress): Promise<PrepareProgress | null>;
 }
@@ -77,12 +79,14 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
     /** mark `step` done after `progress` (with `changes`), running `writes` only if it is (see `advance`) */
     async function markDone(progress: PrepareProgress, step: string, changes: { dates?: SeasonDates; finalRosters?: Record<string, number>; preparedAt?: string; guard?: SQL } = {}, writes: SQL[] = []) {
         const next: PrepareProgress = { ...progress, done: [...progress.done, step], dates: changes.dates ?? progress.dates };
+        delete next.pagesRead;
         if (changes.finalRosters) next.finalRosters = changes.finalRosters;
         return advance(progress, next, changes, writes);
     }
 
     const dates: PrepareStep = {
         name: PREPARE_STEPS.dates,
+        readsFantrax: true,
         run: async progress => {
             const info = await read(() => fantrax.leagueInfo(leagueId));
             const found = await read(async () => {
@@ -95,16 +99,34 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
 
     const statSetRead = (statSet: StatSetName, group: Group): PrepareStep => ({
         name: statSetStep(statSet, group),
+        readsFantrax: true,
         run: async progress => {
+            const step = statSetStep(statSet, group);
             const range = { leagueId, seasonYear, ...STAT_SETS[statSet].range(progress.dates!) };
-            const lines = group === 'skater'
-                ? (await read(() => fantrax.skaters(range))).map(player => ({ player, line: skaterLine(player) }))
-                : (await read(() => fantrax.goalies(range))).map(player => ({ player, line: goalieLine(player) }));
+            const sofar = progress.pagesRead?.step === step ? progress.pagesRead : null;
+            const page = (sofar?.read ?? 0) + 1;
+            const table = group === 'skater'
+                ? await read(async () => {
+                    const { players, ...size } = await fantrax.skaters(range, page);
+                    return { ...size, lines: players.map(player => ({ player, line: skaterLine(player) })) };
+                })
+                : await read(async () => {
+                    const { players, ...size } = await fantrax.goalies(range, page);
+                    return { ...size, lines: players.map(player => ({ player, line: goalieLine(player) })) };
+                });
+            if (sofar && (table.pages !== sofar.pages || table.total !== sofar.total)) {
+                // its pages no longer line up, so it is read again from the first, rewriting what the earlier pages wrote
+                console.error(`Fantrax's ${range.startDate}..${range.endDate} ${group} table changed between pages; reading it again`);
+                const restarted = { ...progress };
+                delete restarted.pagesRead;
+                return advance(progress, restarted);
+            }
+            const lines = table.lines;
             const rostered = progress.finalRosters ?? {};
             const payload = JSON.stringify(lines.filter(({ player, line }) => line.points !== 0 || player.id in rostered).map(({ player, line }) => ({
                 playerId: player.id, name: player.name, positions: positionsOf(player.positions), nhlTeam: player.nhlTeam, age: player.age, line,
             })));
-            return markDone(progress, statSetStep(statSet, group), {}, [
+            const writes = [
                 sql`insert into league.award_vote_players (season_year, player_id, name, positions, nhl_team, age)
                     select ${seasonYear}, p."playerId", p.name, p.positions, p."nhlTeam", p.age
                     from jsonb_to_recordset(${payload}::jsonb) as p("playerId" text, name text, positions text[], "nhlTeam" text, age smallint)
@@ -116,12 +138,15 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                     from jsonb_to_recordset(${payload}::jsonb) as p("playerId" text, line jsonb)
                     where exists (select 1 from claim)
                     on conflict (season_year, player_id, stat_set) do update set line = excluded.line`,
-            ]);
+            ];
+            if (page < table.pages) return advance(progress, { ...progress, pagesRead: { step, read: page, pages: table.pages, total: table.total } }, {}, writes);
+            return markDone(progress, step, {}, writes);
         },
     });
 
     const rookies: PrepareStep = {
         name: PREPARE_STEPS.rookies,
+        readsFantrax: false,
         run: async progress => {
             const looked = progress.rookies ?? {};
             const today = new Date(clock.now()).toISOString().slice(0, 10);
@@ -150,6 +175,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
 
     const candidates: PrepareStep = {
         name: PREPARE_STEPS.candidates,
+        readsFantrax: false,
         run: async progress => {
             // the Calder-eligible rookies, with the admin's changes
             const [{ adjustments }] = await db.rows<{ adjustments: RookieAdjustments }>(sql`
@@ -197,6 +223,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
 
     const finalRosters: PrepareStep = {
         name: PREPARE_STEPS.finalRosters,
+        readsFantrax: true,
         run: async progress => {
             const finalists = await db.rows<{ teamSeasonId: number; name: string; fantraxTeamId: string | null }>(sql`
                 select t.id as "teamSeasonId", t.name,

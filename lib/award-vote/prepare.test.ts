@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { rangeKey } from './memory-fantrax';
 import { AFTER_FINAL, awardVoteLeague, goalie, REGULAR_SEASON, SEASON, skater } from './testing/award-vote-league';
 
 test('preparing refuses a season before the first award vote, other than the rehearsal', async t => {
@@ -120,15 +121,17 @@ test('preparing runs in bounded batches, resuming from recorded progress until i
     setRegularSeason([skater('s1', 100)], [goalie('g1', 50)]);
     // every Fantrax read takes 20 seconds
     fantrax.onRead = () => { clock.time += 20_000; };
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 2, steps: 10 });
-    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]), ['leagueInfo', 'skaters']);
+    // a call reads Fantrax for one step at most
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 1, steps: 10 });
+    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]), ['leagueInfo']);
     // an unfinished prepare shows no ballot
     const unfinished = await act(() => vote.readPreview({ seasonYear: SEASON }));
     assert.equal(unfinished.vote?.preparedAt, null);
     assert.equal(unfinished.ballot, null);
 
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 4, steps: 10 });
-    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]).slice(0, 4), ['leagueInfo', 'skaters', 'goalies', 'dayRosters']);
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 2, steps: 10 });
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 3, steps: 10 });
+    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]), ['leagueInfo', 'skaters', 'goalies']);
     assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
     // each call carried on where the last stopped, so nothing was read twice
     assert.equal(new Set(fantrax.reads).size, fantrax.reads.length);
@@ -136,12 +139,43 @@ test('preparing runs in bounded batches, resuming from recorded progress until i
     assert.deepEqual(ballot![0].candidates.map(candidate => candidate.playerId), ['s1', 'g1']);
 });
 
-test('a failed Fantrax read stops preparing with its reason, and the next call retries it', async t => {
+test("a stat set's table of several pages is read a page per call, and its players are all captured", async t => {
+    const { act, vote, setRegularSeason, prepareFully, fantrax } = await awardVoteLeague(t);
+    setRegularSeason([skater('s1', 100), skater('s2', 90), skater('s3', 80)], [goalie('g1', 50)]);
+    fantrax.pageSize = 2;
+    await act(() => vote.prepare({ seasonYear: SEASON }));
+    const range = rangeKey(REGULAR_SEASON);
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 1, steps: 10 });
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 2, steps: 10 });
+    assert.deepEqual(fantrax.reads.slice(1), [`skaters ${range}`, `skaters ${range} page 2`]);
+    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
+    assert.equal(new Set(fantrax.reads).size, fantrax.reads.length);
+    const { ballot } = await act(() => vote.readPreview({ seasonYear: SEASON }));
+    assert.deepEqual(ballot![0].candidates.map(candidate => candidate.playerId), ['s1', 's2', 's3', 'g1']);
+});
+
+test("a stat set's table that changes between pages is read again from its first page", async t => {
     t.mock.method(console, 'error', () => {});
     const { act, vote, setRegularSeason, prepareFully, fantrax } = await awardVoteLeague(t);
+    setRegularSeason([skater('s1', 100), skater('s2', 90), skater('s3', 80)]);
+    fantrax.pageSize = 2;
+    await act(() => vote.prepare({ seasonYear: SEASON }));
+    await act(() => vote.prepare({ seasonYear: SEASON }));
+    setRegularSeason([skater('s1', 100), skater('s2', 90), skater('s3', 80), skater('s4', 70)]);
+    assert.equal((await prepareFully()).result.ok, true);
+    const range = rangeKey(REGULAR_SEASON);
+    assert.deepEqual(fantrax.reads.filter(read => read.startsWith(`skaters ${range}`)),
+        [`skaters ${range}`, `skaters ${range} page 2`, `skaters ${range}`, `skaters ${range} page 2`]);
+    const { ballot } = await act(() => vote.readPreview({ seasonYear: SEASON }));
+    assert.deepEqual(ballot![0].candidates.map(candidate => candidate.playerId), ['s1', 's2', 's3', 's4']);
+});
+
+test('a failed Fantrax read stops preparing with its reason, and the next call retries it', async t => {
+    t.mock.method(console, 'error', () => {});
+    const { setRegularSeason, prepareFully, fantrax } = await awardVoteLeague(t);
     setRegularSeason([skater('s1', 100)], [goalie('g1', 50)]);
     fantrax.down.add('goalies');
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: false, reason: 'fantrax-failed', message: 'Fantrax goalies returned 503' });
+    assert.deepEqual((await prepareFully()).result, { ok: false, reason: 'fantrax-failed', message: 'Fantrax goalies returned 503' });
     fantrax.down.clear();
     assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
     assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]).slice(0, 4), ['leagueInfo', 'skaters', 'goalies', 'goalies']);
@@ -190,21 +224,19 @@ test("an unfinished prepare can be started over from nothing, keeping the admin'
 
     // preparing again, interrupted partway
     clock.time += 3600_000;
-    fantrax.onRead = () => { clock.time += 20_000; };
+    await act(() => vote.prepare({ seasonYear: SEASON }));
     assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 2, steps: 10 });
 
     // started over, it begins again at the first step with no snapshot
     clock.time += 3600_000;
     const restarted = clock.time;
     fantrax.reads.length = 0;
-    fantrax.onRead = () => { clock.time += 30_000; };
     assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON, startOver: true })), { ok: true, done: false, stepsDone: 1, steps: 10 });
     assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]), ['leagueInfo']);
     assert.equal((await act(() => vote.readPreview({ seasonYear: SEASON }))).vote?.prepareStartedAt, new Date(restarted).toISOString());
     const snapshot = await league.client.query<{ players: number }>(`select count(*)::int as players from league.award_vote_players where season_year = ${SEASON}`);
     assert.equal(snapshot.rows[0].players, 0);
 
-    fantrax.onRead = undefined;
     assert.equal((await prepareFully()).result.ok, true);
     const teemu = (await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot!.find(award => award.award === 'teemu-selanne')!;
     assert.deepEqual(teemu.candidates.map(candidate => candidate.playerId), ['unknown']);

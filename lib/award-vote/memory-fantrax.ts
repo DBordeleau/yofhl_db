@@ -2,7 +2,8 @@
 // goalie tables are kept per date range, so a read of any range the test hasn't set fails, as an unexpected
 // request would. A read fails while its name is in `down`, and reads of any other league or season fail, as
 // Fantrax's would. `onRead` runs before every read (a test's clock can advance there, as a slow Fantrax's would).
-import type { AwardVoteFantrax, AwardVoteLeagueInfo, AwardVoteRange, FantraxDayRosters, RangedGoalie, RangedSkater } from './ports';
+// A skater or goalie table is one page unless `pageSize` is set; a read of a later page is named with its number.
+import type { AwardVoteFantrax, AwardVoteLeagueInfo, AwardVoteRange, FantraxDayRosters, RangedGoalie, RangedPage, RangedSkater } from './ports';
 
 export type MemoryAwardVoteRead = keyof AwardVoteFantrax;
 
@@ -18,6 +19,8 @@ export interface MemoryAwardVoteFantraxState {
     goalies: Record<string, RangedGoalie[]>;
     /** each roster period's rosters, by roster period number */
     rosters: Record<number, FantraxDayRosters>;
+    /** rows per page of a skater or goalie table; the whole table by default */
+    pageSize?: number;
     /** reads that fail */
     down: Set<MemoryAwardVoteRead>;
     /** every read made, in order: its name and the range or roster period asked for */
@@ -35,12 +38,18 @@ export function createMemoryAwardVoteFantrax(state: MemoryAwardVoteFantraxState)
         if (answer === undefined) return Promise.reject(new Error(`Fantrax has no ${name} for ${asked}`));
         return Promise.resolve(structuredClone(answer));
     };
-    const ranged = <T>(name: 'skaters' | 'goalies', range: AwardVoteRange, tables: Record<string, T[]>) =>
-        read(name, range.leagueId, rangeKey(range), () => range.seasonYear === state.leagueInfo.seasonYear ? tables[rangeKey(range)] : undefined);
+    const ranged = <T>(name: 'skaters' | 'goalies', range: AwardVoteRange, page: number, tables: Record<string, T[]>) =>
+        read<RangedPage<T>>(name, range.leagueId, page > 1 ? `${rangeKey(range)} page ${page}` : rangeKey(range), () => {
+            const table = range.seasonYear === state.leagueInfo.seasonYear ? tables[rangeKey(range)] : undefined;
+            if (!table) return undefined;
+            const size = state.pageSize ?? Math.max(1, table.length);
+            const pages = Math.max(1, Math.ceil(table.length / size));
+            return page <= pages ? { players: table.slice((page - 1) * size, page * size), pages, total: table.length } : undefined;
+        });
     return {
         leagueInfo: leagueId => read('leagueInfo', leagueId, '', () => state.leagueInfo),
-        skaters: range => ranged('skaters', range, state.skaters),
-        goalies: range => ranged('goalies', range, state.goalies),
+        skaters: (range, page) => ranged('skaters', range, page, state.skaters),
+        goalies: (range, page) => ranged('goalies', range, page, state.goalies),
         dayRosters: (leagueId, rosterPeriod) => read('dayRosters', leagueId, String(rosterPeriod), () => state.rosters[rosterPeriod]),
     };
 }

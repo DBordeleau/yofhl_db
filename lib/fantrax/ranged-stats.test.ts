@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { findByDateSeasonCode, loadRangedGoalies, loadRangedPoints, loadRangedSkaters } from './ranged-stats';
+import { findByDateSeasonCode, loadRangedGoalies, loadRangedPoints, loadRangedSkaterPage, loadRangedSkaters } from './ranged-stats';
 import type { Fetcher } from './leaders';
 
 // Recorded signed-out answers to ranged getPlayerStats requests against the 2026-27 league (lib/fantrax/fixtures),
@@ -72,6 +72,24 @@ test('a range beyond one page is read in full, page by page', async () => {
         id: '04lbz', name: 'Quinn Hughes', positions: 'D', nhlTeam: 'MIN', age: 27,
         points: 366.5, perGame: 6.32, gamesPlayed: 58, goals: 6, assists: 57, shots: 155, hits: 5, blocks: 65,
     });
+});
+
+test('one page of a range is read on its own, with the size of the whole table', async () => {
+    const { fetcher, requests } = fantrax('ranged-skaters', 'ranged-skaters-p2');
+    const page = await loadRangedSkaterPage(regularSeason, 2, { fetcher, pageSize: 20 });
+    assert.deepEqual(requests.map(request => request.pageNumber), ['2']);
+    assert.equal(page.pages, 2);
+    assert.equal(page.total, 40);
+    assert.equal(page.players.length, 20);
+    assert.equal(page.players[0].name, 'Quinn Hughes');
+});
+
+test('each page of a range may take 30 seconds, as a full 5000-row page can', async t => {
+    const timeout = t.mock.method(AbortSignal, 'timeout');
+    const { fetcher } = fantrax('ranged-skaters', 'ranged-skaters-p2');
+    await loadRangedSkaters(regularSeason, { fetcher, pageSize: 20 });
+    await loadRangedSkaterPage(regularSeason, 1, { fetcher, pageSize: 20 });
+    assert.deepEqual(timeout.mock.calls.map(call => call.arguments[0]), [30_000, 30_000, 30_000]);
 });
 
 test('a table that changes size between pages throws', async () => {

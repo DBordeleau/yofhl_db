@@ -34,10 +34,13 @@ const LEADERS: StatsTableRequest = { filter: 'ALL', page: 1, limit: 10 };
 // shortcut: one page covers this league; add pagination if rosters ever exceed 1,000 players.
 export const ROSTERED: StatsTableRequest = { filter: 'ALL_TAKEN', page: 1, limit: 1000, whole: true };
 
-/** one call to Fantrax's website API (`/fxpa/req`): the data of its one response; `what` names the call in a failure */
-export async function websiteRequest(leagueId: string, method: string, data: object, what: string, fetcher: Fetcher): Promise<unknown> {
+/**
+ * one call to Fantrax's website API (`/fxpa/req`): the data of its one response; `what` names the call in a failure,
+ * and `timeoutMs` is how long it may take
+ */
+export async function websiteRequest(leagueId: string, method: string, data: object, what: string, fetcher: Fetcher, timeoutMs = 12000): Promise<unknown> {
     const response = await fetcher(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(12000),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(timeoutMs),
         body: JSON.stringify({ msgs: [{ method, data }] }),
     });
     if (!response.ok) throw new Error(`Fantrax ${what} returned ${response.status}`);

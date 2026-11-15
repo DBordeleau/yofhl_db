@@ -59,6 +59,11 @@ export interface PrepareProgress {
     startedAt: string;
     done: string[];
     dates: import('./season-dates').SeasonDates | null;
+    /**
+     * The stat set read under way when its table has more pages than one call reads: its step, the pages read, and
+     * the table's size when its first page was read.
+     */
+    pagesRead?: { step: string; read: number; pages: number; total: number };
     /** the NHL lookup of each young player looked up so far for the Teemu Trophy, by player ID */
     rookies?: Record<string, RookieLookup>;
     /**

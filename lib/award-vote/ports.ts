@@ -2,12 +2,12 @@
 // in-memory Fantrax (memory-fantrax.ts) and NHL lookup (memory-nhl.ts), a fake clock, and the app's own database
 // handle pointed at a disposable league.
 import type { rows, writeInOrder } from '@/lib/data/db';
-import type { RangedGoalie, RangedSkater } from '@/lib/fantrax/ranged-stats';
+import type { RangedGoalie, RangedPage, RangedSkater } from '@/lib/fantrax/ranged-stats';
 import type { FantraxDayRosters, FantraxRosterPeriod, FantraxWeek } from '@/lib/season-sync/ports';
 
 export type { FantraxDayRosters, FantraxRosterPeriod, FantraxWeek } from '@/lib/season-sync/ports';
 // one player's totals over a date range in Fantrax's stats table, as the ranged-stats reader gives them
-export type { RangedGoalie, RangedPlayer, RangedSkater } from '@/lib/fantrax/ranged-stats';
+export type { RangedGoalie, RangedPage, RangedPlayer, RangedSkater } from '@/lib/fantrax/ranged-stats';
 
 /** a season's Fantrax league info: its weeks, daily roster periods and first playoff week */
 export interface AwardVoteLeagueInfo {
@@ -31,10 +31,10 @@ export interface AwardVoteRange {
 
 export interface AwardVoteFantrax {
     leagueInfo(leagueId: string): Promise<AwardVoteLeagueInfo>;
-    /** every NHL skater's totals over the range, scored or not, fantasy points descending */
-    skaters(range: AwardVoteRange): Promise<RangedSkater[]>;
-    /** every NHL goalie's totals over the range, scored or not, fantasy points descending */
-    goalies(range: AwardVoteRange): Promise<RangedGoalie[]>;
+    /** one page (from 1) of every NHL skater's totals over the range, scored or not, fantasy points descending */
+    skaters(range: AwardVoteRange, page: number): Promise<RangedPage<RangedSkater>>;
+    /** one page (from 1) of every NHL goalie's totals over the range, scored or not, fantasy points descending */
+    goalies(range: AwardVoteRange, page: number): Promise<RangedPage<RangedGoalie>>;
     /** every team's roster on one past daily roster period, by Fantrax team ID */
     dayRosters(leagueId: string, rosterPeriod: number): Promise<FantraxDayRosters>;
 }

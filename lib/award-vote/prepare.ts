@@ -1,8 +1,8 @@
 // Preparing a season's award vote: building its frozen candidate snapshot. Allowed for a season year from 2027, or
 // for the season before the live season as a rehearsal (rehearsal.ts), that has a champion, while the vote is still
 // only prepared. Each call runs steps in order until its time budget is
-// spent, recording each step as done in the same statement as its write, so the next call resumes where this one
-// stopped; the admin page calls again until it is done. The call after a finished prepare starts over, replacing
+// spent or it has read Fantrax for a step, recording each step as done in the same statement as its write, so the
+// next call resumes where this one stopped; the admin page calls again until it is done. The call after a finished prepare starts over, replacing
 // the snapshot, as does a call asking to start over an unfinished one. Nothing runs unless the admin asks.
 //
 // The steps (prepare-steps.ts): the season's dates from its own Fantrax league info, then each stat set's Fantrax
@@ -29,8 +29,14 @@ export type PrepareResult =
     | { ok: false; reason: 'fantrax-failed'; message: string };
 
 /**
- * A call starts no new step once this much of it has passed. Each step is at most a few Fantrax requests (each with
- * a 12-second timeout), so a call ends well inside the 60-second function limit.
+ * A call starts no new step once this much of it has passed, and reads Fantrax for one step at most: only as its
+ * first step, after which it stops. Vercel stops the function at 60 seconds (maxDuration), and so either call ends
+ * inside it:
+ *  - one Fantrax step: at worst the season's by-date code (12-second timeout, once per server) and then one page of a
+ *    stat set's table (30 seconds), 42 seconds; league info is 12, and the Final's rosters 12 for each seven days
+ *  - steps that don't read Fantrax, started within this budget: the last at worst a batch of NHL lookups made at
+ *    once (a search and a profile, 6 seconds each), so 25 + 12 seconds
+ * with the database's writes on top.
  */
 export const PREPARE_BUDGET_MS = 25_000;
 
@@ -62,8 +68,10 @@ export function createPrepare(ports: AwardVotePorts) {
         let progress = season.progress && !season.finished && !startOver ? season.progress : await start(seasonYear, kind === 'rehearsal', new Date(started).toISOString());
         if (!progress) return { ok: false, reason: 'not-prepared' };
         const steps = prepareSteps(ports, { seasonYear, leagueId: season.leagueId });
-        while (progress.done.length < steps.length && clock.now() - started < PREPARE_BUDGET_MS) {
+        for (let ran = 0; progress.done.length < steps.length && clock.now() - started < PREPARE_BUDGET_MS; ran++) {
             const step = steps.find(({ name }) => !progress!.done.includes(name))!;
+            // a step that reads Fantrax runs only first in a call (see PREPARE_BUDGET_MS)
+            if (step.readsFantrax && ran > 0) break;
             try {
                 const next = await step.run(progress);
                 // another prepare has moved on (or started over) since this one read its progress: leave it to that one
@@ -74,6 +82,7 @@ export function createPrepare(ports: AwardVotePorts) {
                 console.error(`Preparing the ${seasonYear} award vote stopped at ${step.name}:`, error.cause);
                 return { ok: false, reason: error.reason, message: error.message };
             }
+            if (step.readsFantrax) break;
         }
         return { ok: true, done: progress.done.length === steps.length, stepsDone: progress.done.length, steps: steps.length };
     };

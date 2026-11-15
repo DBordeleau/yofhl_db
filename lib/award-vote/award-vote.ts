@@ -3,7 +3,7 @@
 // code), the NHL's player search and profiles (nhl-lookup.ts), and the app's database.
 import { rows, writeInOrder } from '@/lib/data/db';
 import { createFantraxClient } from '@/lib/fantrax/fantrax-client';
-import { findByDateSeasonCode, loadRangedGoalies, loadRangedSkaters } from '@/lib/fantrax/ranged-stats';
+import { findByDateSeasonCode, loadRangedGoaliePage, loadRangedSkaterPage } from '@/lib/fantrax/ranged-stats';
 import { createAwardVote } from './create-award-vote';
 import { createNhlLookup } from './nhl-lookup';
 import type { AwardVoteRange } from './ports';
@@ -30,8 +30,8 @@ export const awardVote = createAwardVote({
             if (firstPlayoffWeek === null) throw new Error(`Fantrax league ${leagueId} has no playoff weeks`);
             return { ...info, firstPlayoffWeek };
         },
-        skaters: async range => loadRangedSkaters(await rangedRead(range)),
-        goalies: async range => loadRangedGoalies(await rangedRead(range)),
+        skaters: async (range, page) => loadRangedSkaterPage(await rangedRead(range), page),
+        goalies: async (range, page) => loadRangedGoaliePage(await rangedRead(range), page),
         dayRosters: (leagueId, rosterPeriod) => client.dayRosters(leagueId, rosterPeriod),
     },
     nhl: createNhlLookup(),
