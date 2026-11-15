@@ -210,3 +210,23 @@ test("Compare teams' head-to-head includes the stored regular-season games after
     await league.run(MID_SEASON);
     assert.deepEqual(await headToHead(), { record: [13, 14, 27], latest: [[2027, 'Period 4', 2], [2027, 'Period 1', 2]] });
 });
+
+test("a stored game's page opens at its positive id, a history game's at its negative id, and a playoff game's id finds none", async t => {
+    const league = await seasonSyncLeague(t);
+    const { getRecordBook, getRecordGame } = await import('@/lib/records/data');
+    franchiseTwoWinsTheMonth(league);
+    await league.run(MID_SEASON);
+    const { records } = await league.read(() => getRecordBook({ format: 'weekly' }));
+    const href = records.find(record => record.id === 'matchup-score')!.entries[0].href;
+    const page = async (id: string) => {
+        const found = await league.read(() => getRecordGame(id));
+        return found && { id: found.game.id, year: found.game.year, round: found.game.round, format: found.format, dates: [found.period?.start, found.period?.end] };
+    };
+
+    const id = Number(href.slice('/records/game/'.length));
+    assert.ok(id > 0, href);
+    assert.deepEqual(await page(String(id)), { id, year: 2027, round: 3, format: 'weekly', dates: ['2026-10-26', '2026-11-01'] });
+    assert.deepEqual(await page('-20191505'), { id: -20191505, year: 2019, round: 15, format: 'weekly', dates: ['2019-01-07', '2019-01-14'] });
+    const { rows: [final] } = await league.league.client.query<{ id: number }>("select id from league.matchups where stage = 'playoff'");
+    assert.equal(await page(String(final.id)), null);
+});

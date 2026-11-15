@@ -10,7 +10,7 @@ import playerCategories from './player-category-history.json';
 import playerPortraits from './player-portraits.json';
 import type { PlayerCategories, PlayerStat } from './player-stats';
 import { storedRegularSeasonGames, storedWeeks } from '../data/regular-season-games';
-import { buildChases, buildRecords, HISTORY_THROUGH, matchupFormats, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
+import { buildChases, buildRecords, HISTORY_THROUGH, matchupFormat, matchupFormats, type Award, type PlayerSeason, type TeamSeason, type RecordSource } from './model';
 
 // Games, weeks and skater categories for 2026 and earlier are checked in; the season sync stores later seasons'.
 
@@ -44,6 +44,19 @@ export async function getRecordSource(): Promise<RecordSource> {
     return { ...archive, published: published.map(season => season.year),
         competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: p.year > HISTORY_THROUGH ? p.stats ?? undefined : categories.get(`${p.id}:${p.year}`) })),
         games: [...historyGames, ...storedGames], periods: [...periods, ...storedPeriods] };
+}
+
+/**
+ * A regular-season game's page: a history game by its negative id, a stored game by its `matchups` row id. None for
+ * any other id, a playoff game's included, or a game whose week has no matchup format.
+ */
+export async function getRecordGame(id: string) {
+    const source = await getRecordSource();
+    const game = source.games.find(g => String(g.id) === id);
+    if (!game || game.stage !== 'regular') return null;
+    const period = source.periods.find(p => p.year === game.year && p.period === game.round);
+    const format = period ? matchupFormat(period) : null;
+    return format ? { source, game, period, format } : null;
 }
 
 export async function getRecordBook(filter: { team?: number; position?: string; format?: string; stat?: PlayerStat } = {}) {
