@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { loadRangedGoalies, loadRangedPoints, loadRangedSkaters } from './ranged-stats';
+import { findByDateSeasonCode, loadRangedGoalies, loadRangedPoints, loadRangedSkaters } from './ranged-stats';
 import type { Fetcher } from './leaders';
 
 // Recorded signed-out answers to ranged getPlayerStats requests against the 2026-27 league (lib/fantrax/fixtures),
@@ -139,4 +139,12 @@ test('a range Fantrax answered for other dates throws', async () => {
 test('a range Fantrax answered for another season or position group throws', async () => {
     await assert.rejects(loadRangedSkaters({ ...regularSeason, seasonCode: 'SEASON_31n_BY_DATE' }, { fetcher: fantrax('ranged-skaters').fetcher, pageSize: 20 }), /season/);
     await assert.rejects(loadRangedGoalies(regularSeason, { fetcher: fantrax('ranged-skaters').fetcher, pageSize: 20 }), /position/);
+});
+
+test("a season's by-date code is found among the seasons Fantrax offers, by season year", async () => {
+    const { fetcher, requests } = fantrax('ranged-all-day');
+    assert.equal(await findByDateSeasonCode(league, 2026, { fetcher }), 'SEASON_31l_BY_DATE');
+    assert.equal(await findByDateSeasonCode(league, 2027, { fetcher }), 'SEASON_31n_BY_DATE');
+    assert.equal(requests[0].maxResultsPerPage, '1');
+    await assert.rejects(findByDateSeasonCode(league, 2040, { fetcher }), /2039-40/);
 });

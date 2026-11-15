@@ -1,0 +1,104 @@
+// The award vote's stored shapes and what its reads return. Pure types and constants, free of server imports, so
+// db/schema.ts and client components can use them.
+
+/** an award vote's state (GLOSSARY.md, "Award vote"); "locked" is not stored: it is open with the ballot lock past */
+export type AwardVoteState = 'prepared' | 'open' | 'scored' | 'published';
+
+/** the first season year with an award vote; the season before the latest may only be rehearsed */
+export const FIRST_AWARD_VOTE_SEASON = 2027;
+
+/** the individual voted awards, by their id in the award catalogue (lib/awards.ts) */
+export const PLAYER_AWARD_IDS = ['wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere'] as const;
+export type PlayerAwardId = typeof PLAYER_AWARD_IDS[number];
+
+/**
+ * A named stretch of the season a candidate's stats cover. The regular-season awards show `regularSeason`; the
+ * Danny Briere Award will add the playoff rounds and the Final as their own stat sets.
+ */
+export type StatSetName = 'regularSeason';
+
+/** a skater's totals over one stat set */
+export interface SkaterLine {
+    group: 'skater';
+    points: number;
+    /** null for no games in the stretch */
+    perGame: number | null;
+    gamesPlayed: number;
+    goals: number;
+    assists: number;
+    shots: number;
+    hits: number;
+    blocks: number;
+}
+
+/** a goalie's totals over one stat set */
+export interface GoalieLine {
+    group: 'goalie';
+    points: number;
+    perGame: number | null;
+    gamesPlayed: number;
+    wins: number;
+    goalsAgainst: number;
+    saves: number;
+    shutouts: number;
+}
+
+export type StatLine = SkaterLine | GoalieLine;
+
+/** the season's date ranges stored with a prepare, each `YYYY-MM-DD` to `YYYY-MM-DD` inclusive (see season-dates.ts) */
+export interface DateRange {
+    startDate: string;
+    endDate: string;
+}
+
+/**
+ * How far a prepare has got (stored on the award vote): when it started, the steps done in order, and the season's
+ * dates once read. A prepare is finished when the award vote's prepared time is set.
+ */
+export interface PrepareProgress {
+    startedAt: string;
+    done: string[];
+    dates: import('./season-dates').SeasonDates | null;
+}
+
+/**
+ * The admin's changes to the computed Calder-eligible rookie list, by player ID, kept across re-prepares. Unused
+ * until the Teemu Trophy is prepared.
+ */
+export interface RookieAdjustments {
+    added: string[];
+    removed: string[];
+}
+
+/** the team season credited with a candidate, as it was named that season */
+export interface CreditedTeam {
+    teamSeasonId: number;
+    franchiseId: number;
+    name: string;
+    abbreviation: string;
+    logo: string | null;
+}
+
+/** a player candidate for one voted award, from the frozen snapshot */
+export interface PlayerCandidate {
+    playerId: string;
+    name: string;
+    positions: string[];
+    nhlTeam: string | null;
+    /** the franchise credited with the player for this award, or null when nobody rostered them */
+    team: CreditedTeam | null;
+    /** the player's stats in each of the award's stat sets */
+    stats: Partial<Record<StatSetName, StatLine>>;
+}
+
+/** one voted award on the ballot: its candidates, best regular-season FPts first */
+export interface BallotAward {
+    award: PlayerAwardId;
+    label: string;
+    honor: string;
+    /** the stat sets each candidate shows, the first being the one the list is ranked by */
+    statSets: { name: StatSetName; label: string }[];
+    /** how many candidates the list opens on, or null for all of them */
+    shown: number | null;
+    candidates: PlayerCandidate[];
+}

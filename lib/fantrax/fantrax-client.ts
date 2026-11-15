@@ -115,12 +115,19 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         return { info: readLeagueInfo(info), rosters, standings, fetchedAt };
     }
 
-    /** league info alone: the season year, its weeks and its daily roster periods, each in order */
-    async function leagueInfo(leagueId: string): Promise<{ seasonYear: number; weeks: SourceWeek[]; rosterPeriods: SourceWeek[] }> {
+    /**
+     * league info alone: the season year, its weeks and its daily roster periods, each in order, and its first
+     * playoff week (null while Fantrax has none)
+     */
+    async function leagueInfo(leagueId: string): Promise<{ seasonYear: number; weeks: SourceWeek[]; rosterPeriods: SourceWeek[]; firstPlayoffWeek: number | null }> {
         const info = await request<LeagueInfo>('getLeagueInfo', { leagueId, excludePlayerInfo: 'true' });
         if (!Number.isInteger(info?.seasonYear) || !info.scoringPeriods?.length || !Array.isArray(info.rosterPeriods)) throw new Error('Fantrax returned incomplete league info');
         const inOrder = (periods: SourceWeek[]) => periods.map(normalizePeriod).sort((a, b) => a.number - b.number);
-        return { seasonYear: readLeagueInfo(info).seasonYear, weeks: inOrder(info.scoringPeriods), rosterPeriods: inOrder(info.rosterPeriods) };
+        const firstPlayoffWeek = info.playoffs?.firstPlayoffPeriod;
+        return {
+            seasonYear: readLeagueInfo(info).seasonYear, weeks: inOrder(info.scoringPeriods), rosterPeriods: inOrder(info.rosterPeriods),
+            firstPlayoffWeek: Number.isInteger(firstPlayoffWeek) ? firstPlayoffWeek! : null,
+        };
     }
 
     /** every team's roster on a past (or the current) daily roster period, each player with their slot that day */

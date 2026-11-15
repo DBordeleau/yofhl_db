@@ -1,7 +1,8 @@
 // Fantrax's website stats table over a date range: each NHL player's fantasy points, games played and categories
-// between two days, signed out. Built for the award vote's prepare; nothing calls it yet. See "Reading Fantrax by
-// date range" in issue #147.
+// between two days, signed out. The award vote's prepare reads through it (lib/award-vote/award-vote.ts). See
+// "Reading Fantrax by date range" in issue #147.
 import { globalFetch, numericStat, websiteRequest, type Fetcher } from './leaders';
+import { fantraxByDateSeasonName } from './season';
 
 /** a date range in one Fantrax season */
 export interface RangedRead {
@@ -73,6 +74,23 @@ export function loadRangedGoalies(range: RangedRead, options?: RangedReadOptions
 /** every NHL player's fantasy points over the range, without games played or categories (Fantrax's all-positions table has neither) */
 export function loadRangedPoints(range: RangedRead, options?: RangedReadOptions): Promise<RangedPlayer[]> {
     return loadRanged(range, 'ALL', {}, options);
+}
+
+/**
+ * The by-date code of a season year (e.g. `SEASON_31l_BY_DATE` for 2026), from the seasons a one-row stats page
+ * offers. Throws when Fantrax offers no date ranges for that season.
+ */
+export async function findByDateSeasonCode(leagueId: string, seasonYear: number, { fetcher = globalFetch }: Pick<RangedReadOptions, 'fetcher'> = {}): Promise<string> {
+    const data = await websiteRequest(leagueId, 'getPlayerStats', {
+        leagueId, view: 'STATS', statusOrTeamFilter: 'ALL', positionOrGroup: 'ALL', sortType: 'SCORE', sortReversed: false, miscDisplayType: '1',
+        scoringCategoryType: '5', pageNumber: '1', maxResultsPerPage: '1',
+    }, 'player stats seasons', fetcher) as { seasonOrProjections?: { code?: unknown; name?: unknown; timeframeTypeCode?: unknown }[] } | undefined;
+    const name = fantraxByDateSeasonName(seasonYear);
+    const season = Array.isArray(data?.seasonOrProjections) ? data.seasonOrProjections.find(item => item?.name === name) : undefined;
+    if (typeof season?.code !== 'string' || !season.code.endsWith('_BY_DATE') || season.timeframeTypeCode !== 'BY_DATE') {
+        throw new Error(`Fantrax offers no "${name}" stats`);
+    }
+    return season.code;
 }
 
 interface RangedPage {
