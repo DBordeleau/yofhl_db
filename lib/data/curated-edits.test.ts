@@ -20,7 +20,8 @@ test('curated edits against disposable Postgres', async t => {
         insert into league.award_types (id, name, label, description, sort_order) values (1, 'mvp', 'MVP', 'MVP', 1), (2, 'rookie', 'Rookie', 'Rookie', 2);
         insert into league.awards values (2026, 1, 'p1', 3);
         insert into league.matchups (id, season_year, stage, round, bracket, slot, away_team_season_id, home_team_season_id, away_score, home_score, winner_team_season_id)
-        values (1, 2025, 'playoff', 1, 'championship', 1, 1, 2, 100, 90, 1), (2, 2026, 'playoff', 1, 'championship', 1, 3, 4, 100, 90, 3);
+        values (1, 2025, 'playoff', 1, 'championship', 1, 1, 2, 100, 90, 1), (2, 2026, 'playoff', 1, 'championship', 1, 3, 4, 100, 90, 3),
+               (3, 2026, 'regular', 1, 'championship', 1, 3, 4, 50, 60, 4);
     ` });
     const edits = await import('./curated-edits');
     const recorder = () => {
@@ -162,6 +163,14 @@ test('curated edits against disposable Postgres', async t => {
             assert.deepEqual(await edits.saveMatchup(year, id, winner, 'note', cache), { ok: false, reason });
             assert.deepEqual(cache.tags, []);
         }
+        assert.deepEqual((await game()).overrides, []);
+    });
+
+    await t.test('a regular-season game has no curated edit and is left alone', async () => {
+        const cache = recorder();
+        assert.deepEqual(await edits.saveMatchup(2026, 3, 1, 'note', cache), { ok: false, reason: 'not-playoff' });
+        assert.deepEqual(cache.tags, []);
+        assert.deepEqual(await query('select winner_team_season_id as winner from league.matchups where id = 3'), [{ winner: 4 }]);
         assert.deepEqual((await game()).overrides, []);
     });
 
