@@ -19,10 +19,10 @@ import { buildChases, buildRecords, HISTORY_THROUGH, matchupFormat, matchupForma
 const getRecordArchive = cached(async () => {
     const [teams, players, seasons, awards, storedGames, storedPeriods] = await Promise.all([
         getFranchiseCards(),
-        // A stored player season's categories, or none while any total is null.
-        rows<PlayerSeason & { stats: PlayerCategories | null }>(sql`select p.id, p.name, ps.season_year as year, ps.fpts::float8 as points, ps.positions,
-                case when ps.season_year > ${HISTORY_THROUGH} and num_nulls(ps.goals, ps.assists, ps.shots, ps.hits, ps.blocks) = 0
-                    then json_build_object('goals', ps.goals, 'assists', ps.assists, 'shots', ps.shots, 'hits', ps.hits, 'blocks', ps.blocks) end as stats
+        // A stored player season's category totals, each only when it is not null; none when all five are.
+        rows<PlayerSeason & { stats: Partial<PlayerCategories> | null }>(sql`select p.id, p.name, ps.season_year as year, ps.fpts::float8 as points, ps.positions,
+                case when num_nulls(ps.goals, ps.assists, ps.shots, ps.hits, ps.blocks) < 5
+                    then json_strip_nulls(json_build_object('goals', ps.goals, 'assists', ps.assists, 'shots', ps.shots, 'hits', ps.hits, 'blocks', ps.blocks)) end as stats
             from league.player_seasons ps join league.players p on p.id = ps.player_id order by ps.season_year`),
         rows<TeamSeason>(sql`select t.franchise_id as team, st.name, t.season_year as year, t.wins, t.losses, t.ties, t.fpts_for::float8 as points, st.logo, st.abbreviation
             from league.team_seasons t join league.season_teams st on st.team_season_id = t.id`),
