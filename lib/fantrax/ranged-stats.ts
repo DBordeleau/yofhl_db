@@ -46,19 +46,30 @@ export interface RangedSkater extends RangedPlayer {
     blocks: number;
 }
 
+/**
+ * A goalie's totals. Fantrax's table shows the categories its league scores, so the categories every league has
+ * scored are always there, and the others only when that league's table has their column (the 2025-26 league scores
+ * OL+ShL and SV%, the 2026-27 league OL+ShL, GA and SV); each is null where Fantrax shows no value.
+ */
 export interface RangedGoalie extends RangedPlayer {
     gamesPlayed: number;
     wins: number;
-    goalsAgainst: number;
-    saves: number;
     shutouts: number;
+    /** overtime and shootout losses (OL+ShL) */
+    overtimeLosses?: number | null;
+    goalsAgainst?: number | null;
+    saves?: number | null;
+    /** e.g. 0.915 */
+    savePercentage?: number | null;
 }
 
 const SKATER_COLUMNS = {
     gamesPlayed: '2010#2100#-1', goals: '2010#2130#-1', assists: '2010#2090#-1', shots: '2010#2270#-1', hits: '2010#2147#-1', blocks: '2010#2092#-1',
 } as const;
-const GOALIE_COLUMNS = {
-    gamesPlayed: '2020#2100#-1', wins: '2020#231b#-1', goalsAgainst: '2020#2140#-1', saves: '2020#2230#-1', shutouts: '2020#2290#-1',
+const GOALIE_COLUMNS = { gamesPlayed: '2020#2100#-1', wins: '2020#231b#-1', shutouts: '2020#2290#-1' } as const;
+/** the goalie categories a league may not score, read when its table has the column */
+const GOALIE_OPTIONAL_COLUMNS = {
+    overtimeLosses: '2020#232c#-1', goalsAgainst: '2020#2140#-1', saves: '2020#2230#-1', savePercentage: '2020#2330#-1',
 } as const;
 
 /** one page of a range's table (`players` in Fantrax's order), with how many pages and players the whole table has */
@@ -75,7 +86,7 @@ export function loadRangedSkaters(range: RangedRead, options?: RangedReadOptions
 
 /** every NHL goalie's totals over the range, in Fantrax's order (fantasy points descending) */
 export function loadRangedGoalies(range: RangedRead, options?: RangedReadOptions): Promise<RangedGoalie[]> {
-    return loadRanged(range, 'POS_201', GOALIE_COLUMNS, options);
+    return loadRanged(range, 'POS_201', GOALIE_COLUMNS, options, GOALIE_OPTIONAL_COLUMNS);
 }
 
 /** one page (from 1) of every NHL skater's totals over the range, for a caller that reads the pages apart */
@@ -85,7 +96,7 @@ export function loadRangedSkaterPage(range: RangedRead, page: number, options?: 
 
 /** one page (from 1) of every NHL goalie's totals over the range, for a caller that reads the pages apart */
 export function loadRangedGoaliePage(range: RangedRead, page: number, options?: RangedReadOptions): Promise<RangedPage<RangedGoalie>> {
-    return loadRangedPage(range, 'POS_201', GOALIE_COLUMNS, page, options);
+    return loadRangedPage(range, 'POS_201', GOALIE_COLUMNS, page, options, GOALIE_OPTIONAL_COLUMNS);
 }
 
 /** every NHL player's fantasy points over the range, without games played or categories (Fantrax's all-positions table has neither) */
@@ -139,16 +150,17 @@ const MAX_PAGES = 20;
 /** a full page takes far longer than Fantrax's other answers, as the skater table's large pages do (skater-table.ts) */
 const PAGE_TIMEOUT_MS = 30_000;
 
-type Ranged<Columns extends Record<string, string>> = RangedPlayer & { [Name in keyof Columns]: number };
+type Ranged<Columns extends Record<string, string>, Optional extends Record<string, string> = Record<never, string>> =
+    RangedPlayer & { [Name in keyof Columns]: number } & { [Name in keyof Optional]?: number | null };
 
-async function loadRanged<Columns extends Record<string, string>>(
-    range: RangedRead, positionOrGroup: string, columns: Columns, options: RangedReadOptions = {},
-): Promise<Ranged<Columns>[]> {
+async function loadRanged<Columns extends Record<string, string>, Optional extends Record<string, string> = Record<never, string>>(
+    range: RangedRead, positionOrGroup: string, columns: Columns, options: RangedReadOptions = {}, optional?: Optional,
+): Promise<Ranged<Columns, Optional>[]> {
     const { startDate, endDate } = range;
-    const players = new Map<string, Ranged<Columns>>();
+    const players = new Map<string, Ranged<Columns, Optional>>();
     let pageCount = 1, total = 0;
     for (let page = 1; page <= pageCount; page++) {
-        const read = await loadRangedPage(range, positionOrGroup, columns, page, options);
+        const read = await loadRangedPage(range, positionOrGroup, columns, page, options, optional);
         if (page > 1 && (read.total !== total || read.pages !== pageCount)) {
             throw new Error(`Fantrax's ${startDate}..${endDate} table changed between pages`);
         }
@@ -163,10 +175,11 @@ async function loadRanged<Columns extends Record<string, string>>(
 }
 
 // shortcut: Fantrax's website stats endpoint is undocumented; replace it when a supported player-stats API is available.
-async function loadRangedPage<Columns extends Record<string, string>>(
+/** `columns` must all be in the table; each of `optional` is read when the table has it and left out when it hasn't */
+async function loadRangedPage<Columns extends Record<string, string>, Optional extends Record<string, string> = Record<never, string>>(
     { leagueId, seasonCode, startDate, endDate }: RangedRead, positionOrGroup: string, columns: Columns, page: number,
-    { fetcher = globalFetch, pageSize = MAX_PAGE_SIZE }: RangedReadOptions = {},
-): Promise<RangedPage<Ranged<Columns>>> {
+    { fetcher = globalFetch, pageSize = MAX_PAGE_SIZE }: RangedReadOptions = {}, optional?: Optional,
+): Promise<RangedPage<Ranged<Columns, Optional>>> {
     if (!seasonCode.endsWith('_BY_DATE') || !isDate(startDate) || !isDate(endDate) || startDate > endDate) {
         throw new Error(`${seasonCode} ${startDate}..${endDate} is not a Fantrax date range`);
     }
@@ -204,8 +217,10 @@ async function loadRangedPage<Columns extends Record<string, string>>(
         if (index < 0) throw new Error(`Fantrax's ranged player stats have no ${key} column`);
         return [key, index];
     }));
+    const offered = Object.entries(optional ?? {}).filter(([, key]) => header.includes(key));
+    for (const [, key] of offered) indexes.set(key, header.indexOf(key));
     const column = (key: string) => indexes.get(key)!;
-    const players = new Map<string, Ranged<Columns>>();
+    const players = new Map<string, Ranged<Columns, Optional>>();
     for (const row of data.statsTable) {
         const scorer = row?.scorer;
         if (typeof scorer?.scorerId !== 'string' || !scorer.scorerId || typeof scorer.name !== 'string' || !scorer.name ||
@@ -217,7 +232,8 @@ async function loadRangedPage<Columns extends Record<string, string>>(
             id: row.scorer.scorerId, name: row.scorer.name, positions: row.scorer.posShortNames, nhlTeam: row.scorer.teamShortName ?? null,
             age: stat('age'), points: stat('fpts') ?? 0, perGame: stat('fptsPerGame'),
             ...Object.fromEntries(Object.entries(columns).map(([name, key]) => [name, stat(key) ?? 0])),
-        } as Ranged<Columns>;
+            ...Object.fromEntries(offered.map(([name, key]) => [name, stat(key)])),
+        } as Ranged<Columns, Optional>;
         players.set(player.id, player);
     }
     return { players: [...players.values()], pages, total };

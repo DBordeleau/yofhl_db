@@ -58,6 +58,16 @@ export const goalie = (id: string, points: number, more: Partial<RangedGoalie> =
     id, name: `Goalie ${id}`, positions: 'G', nhlTeam: 'TOR', age: 28, points, perGame: points === 0 ? null : points / 10,
     gamesPlayed: points === 0 ? 0 : 10, wins: 0, goalsAgainst: 0, saves: 0, shutouts: 0, ...more,
 });
+/**
+ * a goalie as the 2025–26 league's table gives them, with OL+ShL and SV% and no GA or SV (that league scored no GA or
+ * SV), otherwise as `goalie`
+ */
+export const savePercentageGoalie = (id: string, points: number, more: Partial<RangedGoalie> = {}): RangedGoalie => {
+    const line = goalie(id, points, { overtimeLosses: 0, savePercentage: points === 0 ? null : 0.9, ...more });
+    delete line.goalsAgainst;
+    delete line.saves;
+    return line;
+};
 
 // Franchises 1–4, owned by Owner 1–4. The 2025–26 season (2026) names franchise N "Old N" in team season N and is
 // published: franchise 1 beat franchise 2. The 2026–27 season (2027) names franchise N "Club N" (CN,

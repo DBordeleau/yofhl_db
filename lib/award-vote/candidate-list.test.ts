@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { candidateColumns, listCandidates } from './candidate-list';
+import type { BallotAward, StatLine } from './model';
 import { awardVoteLeague, goalie, SEASON, skater } from './testing/award-vote-league';
 
 // 60 skaters, p01 with the most FPts (160) down to p60 (101), p02 with the most hits, then a goalie with 10 FPts
@@ -42,4 +43,25 @@ test('search finds any eligible candidate outside the top 50, ignoring case and 
     assert.deepEqual(listCandidates(orr, { search: 'sorokin' }), []);
     assert.deepEqual(listCandidates(hasek, { search: 'sorokin' }).map(candidate => candidate.playerId), ['g1']);
     assert.deepEqual(candidateColumns(hasek).map(column => column.label), ['FPts', 'FP/G', 'GP', 'W', 'GA', 'SV', 'SHO']);
+});
+
+test("a list shows only the goalie categories its candidates' lines have, in order, and sorts by any of them", () => {
+    const candidate = (playerId: string, line: StatLine) =>
+        ({ playerId, name: playerId, positions: [line.group === 'goalie' ? 'G' : 'C'], nhlTeam: null, team: null, stats: { regularSeason: line } });
+    const goalie = (savePercentage: number | null) => ({ group: 'goalie' as const, points: 10, perGame: 1, gamesPlayed: 10, wins: 5, overtimeLosses: 1, savePercentage, shutouts: 0 });
+    const award: BallotAward = {
+        award: 'wayne-gretzky', label: 'Wayne Gretzky Award', honor: '', shown: 50, statSets: [{ name: 'regularSeason', label: 'Regular season' }],
+        candidates: [
+            candidate('s1', { group: 'skater', points: 30, perGame: 3, gamesPlayed: 10, goals: 1, assists: 1, shots: 1, hits: 1, blocks: 1 }),
+            candidate('g-low', goalie(0.901)),
+            candidate('g-none', goalie(null)),
+            candidate('g-high', goalie(0.925)),
+        ],
+    };
+    assert.deepEqual(candidateColumns(award).map(column => column.label), ['FPts', 'FP/G', 'GP', 'G', 'A', 'SOG', 'Hit', 'Blk', 'W', 'OL+ShL', 'SV%', 'SHO']);
+    // a skater, or a goalie with no SV%, goes last either way
+    assert.deepEqual(listCandidates(award, { sortBy: 'savePercentage' }).map(c => c.playerId), ['g-high', 'g-low', 's1', 'g-none']);
+    assert.deepEqual(listCandidates(award, { sortBy: 'savePercentage', ascending: true }).map(c => c.playerId), ['g-low', 'g-high', 's1', 'g-none']);
+    const goaliesOnly = { ...award, candidates: award.candidates.slice(1) };
+    assert.deepEqual(candidateColumns(goaliesOnly).map(column => column.label), ['FPts', 'FP/G', 'GP', 'W', 'OL+ShL', 'SV%', 'SHO']);
 });

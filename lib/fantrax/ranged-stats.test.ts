@@ -5,7 +5,8 @@ import { findByDateSeasonCode, loadRangedGoalies, loadRangedPoints, loadRangedSk
 import type { Fetcher } from './leaders';
 
 // Recorded signed-out answers to ranged getPlayerStats requests against the 2026-27 league (lib/fantrax/fixtures),
-// read with Fantrax's page size of 20 that recorded them.
+// read with Fantrax's page size of 20 that recorded them. `ranged-goalies-save-percentage` is the 2025-26 league's
+// goalie table, which scores OL+ShL and SV% where the 2026-27 league scores GA and SV.
 const recorded = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/getPlayerStats-${name}.json`, import.meta.url), 'utf8'));
 
 /** serves the recorded pages by requested page number, as a table of only those pages; `requests` collects what was sent */
@@ -46,10 +47,38 @@ test("a goalie range returns each goalie's fantasy points, games played and cate
     assert.equal(goalies.length, 20);
     assert.deepEqual(goalies[0], {
         id: '03rih', name: 'Karel Vejmelka', positions: 'G', nhlTeam: 'UTA', age: 30,
-        points: 308.1, perGame: 6.29, gamesPlayed: 49, wins: 30, goalsAgainst: 127, saves: 1137, shutouts: 1,
+        points: 308.1, perGame: 6.29, gamesPlayed: 49, wins: 30, overtimeLosses: 2, goalsAgainst: 127, saves: 1137, shutouts: 1,
     });
     assert.equal(requests[0].positionOrGroup, 'POS_201');
     assert.equal('scoringCategoryType' in requests[0], false);
+});
+
+test("a goalie range reads the categories the league's table offers and leaves out those it doesn't", async () => {
+    // the 2025-26 league scores GP, W, OL+ShL, SV% and SHO
+    const { fetcher } = fantrax('ranged-goalies-save-percentage');
+    const formerLeague = { leagueId: 'gl4i2lrcmfblkbwq', seasonCode: 'SEASON_31l_BY_DATE', startDate: '2025-10-07', endDate: '2026-03-22' };
+    const goalies = await loadRangedGoalies(formerLeague, { fetcher, pageSize: 20 });
+    assert.equal(goalies.length, 20);
+    assert.deepEqual(goalies[0], {
+        id: '02nom', name: 'Andrei Vasilevskiy', positions: 'G', nhlTeam: 'TBL', age: 32,
+        points: 450, perGame: 9.38, gamesPlayed: 48, wins: 33, overtimeLosses: 3, savePercentage: 0.915, shutouts: 2,
+    });
+    assert.ok(goalies.every(goalie => !('goalsAgainst' in goalie) && !('saves' in goalie)));
+    // the 2026-27 league scores GP, W, OL+ShL, GA, SV and SHO
+    const [current] = await loadRangedGoalies(regularSeason, { fetcher: fantrax('ranged-goalies').fetcher, pageSize: 20 });
+    assert.deepEqual([current.goalsAgainst, current.saves, current.overtimeLosses, 'savePercentage' in current], [127, 1137, 2, false]);
+});
+
+test('a goalie table without games played, wins or shutouts throws', async () => {
+    for (const key of ['2020#2100#-1', '2020#231b#-1', '2020#2290#-1']) {
+        const { fetcher } = fantrax('ranged-goalies');
+        const missing: typeof fetcher = async (url, init) => {
+            const body = await (await fetcher(url, init)).json();
+            for (const cell of body.responses[0].data.tableHeader.cells) if (cell.key === key) cell.key = 'other';
+            return Response.json(body);
+        };
+        await assert.rejects(loadRangedGoalies(regularSeason, { fetcher: missing, pageSize: 20 }), new RegExp(`no ${key} column`));
+    }
 });
 
 test("an all-positions single day returns each player's fantasy points without categories", async () => {

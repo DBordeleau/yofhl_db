@@ -10,7 +10,11 @@ import type { BallotAward, PlayerCandidate, StatSetName } from '@/lib/award-vote
 type Sort = { statSet: StatSetName; key: CandidateColumn['key']; ascending: boolean };
 
 const format = (value: number | null, key: CandidateColumn['key']) =>
-    value === null ? '—' : key === 'points' || key === 'perGame' ? value.toFixed(key === 'perGame' ? 2 : 1) : String(value);
+    value === null ? '—'
+        : key === 'points' || key === 'perGame' ? value.toFixed(key === 'perGame' ? 2 : 1)
+        // as Fantrax writes it, e.g. .915
+        : key === 'savePercentage' ? value.toFixed(3).replace(/^0/, '')
+        : String(value);
 
 export default function CandidateList({ award, action }: { award: BallotAward; action?: (candidate: PlayerCandidate) => React.ReactNode }) {
     const searchId = useId();

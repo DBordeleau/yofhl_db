@@ -14,7 +14,10 @@ export interface CandidateColumn {
     group: Group | null;
 }
 
-/** skaters show FPts, FP/G, GP, G, A, SOG, Hit and Blk; goalies FPts, FP/G, GP, W, GA, SV and SHO */
+/**
+ * skaters show FPts, FP/G, GP, G, A, SOG, Hit and Blk; goalies FPts, FP/G, GP, W, OL+ShL, GA, SV, SV% and SHO, of
+ * which OL+ShL, GA, SV and SV% only when the season's league scores them
+ */
 export const CANDIDATE_COLUMNS: readonly CandidateColumn[] = [
     { key: 'points', label: 'FPts', group: null },
     { key: 'perGame', label: 'FP/G', group: null },
@@ -25,15 +28,20 @@ export const CANDIDATE_COLUMNS: readonly CandidateColumn[] = [
     { key: 'hits', label: 'Hit', group: 'skater' },
     { key: 'blocks', label: 'Blk', group: 'skater' },
     { key: 'wins', label: 'W', group: 'goalie' },
+    { key: 'overtimeLosses', label: 'OL+ShL', group: 'goalie' },
     { key: 'goalsAgainst', label: 'GA', group: 'goalie' },
     { key: 'saves', label: 'SV', group: 'goalie' },
+    { key: 'savePercentage', label: 'SV%', group: 'goalie' },
     { key: 'shutouts', label: 'SHO', group: 'goalie' },
 ];
 
-/** the columns an award's list needs: the shared ones, then those of each position group among its candidates */
+/**
+ * the columns an award's list needs: the shared ones, then those of each position group among its candidates that
+ * the group's lines have (a goalie category the season's league didn't score is in none)
+ */
 export function candidateColumns(award: BallotAward): CandidateColumn[] {
-    const groups = new Set(award.candidates.flatMap(candidate => Object.values(candidate.stats).map(line => line!.group)));
-    return CANDIDATE_COLUMNS.filter(column => column.group === null || groups.has(column.group));
+    const lines = award.candidates.flatMap(candidate => Object.values(candidate.stats));
+    return CANDIDATE_COLUMNS.filter(column => column.group === null || lines.some(line => line!.group === column.group && column.key in line!));
 }
 
 /** a candidate's value in one column of one stat set, or null where the column doesn't apply */
