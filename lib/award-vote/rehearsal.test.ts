@@ -23,7 +23,7 @@ async function rehearsalLeague(t: Parameters<typeof awardVoteLeague>[0]) {
 
 test('the season before the live season is prepared and previewed as a rehearsal, with every award a live prepare shows', async t => {
     const { act, vote, fantrax, nhl, setRegularSeason, prepareFully, fantraxIs2026, league } = await rehearsalLeague(t);
-    setRegularSeason([skater('s1', 100), skater('d1', 60, { positions: 'D' })], [goalie('g1', 50)]);
+    setRegularSeason([skater('s1', 300), skater('d1', 200, { positions: 'D' })], [goalie('g1', 100)]);
     // a rookie in both seasons
     nhl.players.d1 = nhlRecord();
     fantrax.skaters[rangeKey(PLAYOFF_ROUNDS)] = [skater('s1', 40)];
@@ -106,11 +106,11 @@ test('a rehearsal can be prepared again, replacing its snapshot and staying a re
     fantraxIs2026();
     setRegularSeason([skater('s1', 100)]);
     await prepareFully(2026);
-    setRegularSeason([skater('s1', 104), skater('s2', 20)]);
+    setRegularSeason([skater('s1', 104), skater('s2', 100)]);
     clock.time += 3600_000;
     const again = (await prepareFully(2026)).result;
     assert.ok(again.ok && again.done, JSON.stringify(again));
     const { vote: summary, ballot } = await act(() => vote.readPreview({ seasonYear: 2026 }));
     assert.equal(summary?.rehearsal, true);
-    assert.deepEqual(ballot![0].candidates.map(candidate => [candidate.playerId, candidate.stats.regularSeason?.points]), [['s1', 104], ['s2', 20]]);
+    assert.deepEqual(ballot![0].candidates.map(candidate => [candidate.playerId, candidate.stats.regularSeason?.points]), [['s1', 104], ['s2', 100]]);
 });

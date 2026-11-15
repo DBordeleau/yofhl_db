@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rangeKey } from './memory-fantrax';
-import { AFTER_FINAL, awardVoteLeague, goalie, REGULAR_SEASON, SEASON, skater } from './testing/award-vote-league';
+import { AFTER_FINAL, awardVoteLeague, FINAL, goalie, nhlRecord, PLAYOFF_ROUNDS, REGULAR_SEASON, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
 
 test('preparing refuses a season before the first award vote, other than the rehearsal', async t => {
     const { act, vote, fantrax } = await awardVoteLeague(t);
@@ -17,13 +17,13 @@ test('preparing refuses a season without a champion', async t => {
 });
 
 test("preparing captures the fantasy regular season's stats for every player with fantasy points, and the preview shows them", async t => {
-    const { act, vote, setRegularSeason, prepareFully, fantrax } = await awardVoteLeague(t);
+    const { act, vote, setRegularSeason, prepareFully, fantrax, league } = await awardVoteLeague(t);
     setRegularSeason([
         skater('s1', 120.5, { name: 'Connor McDavid', positions: 'C,RW', perGame: 12.05, gamesPlayed: 10, goals: 7, assists: 9, shots: 40, hits: 3, blocks: 2 }),
         skater('s2', -1.5),
         skater('s3', 0),
     ], [
-        goalie('g1', 80, { name: 'Andrei Vasilevskiy', nhlTeam: 'TBL', perGame: 8, gamesPlayed: 10, wins: 7, goalsAgainst: 20, saves: 280, shutouts: 1 }),
+        goalie('g1', 100, { name: 'Andrei Vasilevskiy', nhlTeam: 'TBL', perGame: 10, gamesPlayed: 10, wins: 7, goalsAgainst: 20, saves: 280, shutouts: 1 }),
         goalie('g2', 0),
     ]);
     assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
@@ -44,23 +44,23 @@ test("preparing captures the fantasy regular season's stats for every player wit
         },
         {
             playerId: 'g1', name: 'Andrei Vasilevskiy', positions: ['G'], nhlTeam: 'TBL', team: null,
-            stats: { regularSeason: { group: 'goalie', points: 80, perGame: 8, gamesPlayed: 10, wins: 7, goalsAgainst: 20, saves: 280, shutouts: 1 } },
-        },
-        {
-            playerId: 's2', name: 'Skater s2', positions: ['C'], nhlTeam: 'EDM', team: null,
-            stats: { regularSeason: { group: 'skater', points: -1.5, perGame: -0.15, gamesPlayed: 10, goals: 0, assists: 0, shots: 0, hits: 0, blocks: 0 } },
+            stats: { regularSeason: { group: 'goalie', points: 100, perGame: 10, gamesPlayed: 10, wins: 7, goalsAgainst: 20, saves: 280, shutouts: 1 } },
         },
     ]);
+    // s2 scored, below the candidate floor: captured, but no candidate
+    const captured = await league.client.query<{ playerId: string; points: number }>(`
+        select player_id as "playerId", (line ->> 'points')::float8 as points from league.award_vote_stats where season_year = ${SEASON} and stat_set = 'regularSeason' order by player_id`);
+    assert.deepEqual(captured.rows.map(row => [row.playerId, row.points]), [['g1', 100], ['s1', 120.5], ['s2', -1.5]]);
 });
 
 test('the Bobby Orr Award lists players with D among their positions, the Hasek Trophy goalies, and the Wayne Gretzky Award and Le Magnifique everyone', async t => {
     const { act, vote, setRegularSeason, prepareFully } = await awardVoteLeague(t);
     setRegularSeason([
-        skater('c', 100),
-        skater('d', 90, { positions: 'D' }),
-        skater('dual', 80, { positions: 'RW,D' }),
+        skater('c', 130),
+        skater('d', 120, { positions: 'D' }),
+        skater('dual', 110, { positions: 'RW,D' }),
         skater('quiet-d', 0, { positions: 'D' }),
-    ], [goalie('g', 70)]);
+    ], [goalie('g', 100)]);
     await prepareFully();
     const { ballot } = await act(() => vote.readPreview({ seasonYear: SEASON }));
     assert.deepEqual(ballot!.map(award => [award.award, award.label, award.candidates.map(candidate => candidate.playerId)]), [
@@ -74,9 +74,37 @@ test('the Bobby Orr Award lists players with D among their positions, the Hasek 
     ]);
 });
 
+test('the regular-season awards need at least 100 regular-season FPts, and the Danny Briere Award does not', async t => {
+    const { act, vote, setRegularSeason, prepareFully, fantrax, nhl } = await awardVoteLeague(t);
+    setRegularSeason([
+        skater('in', 100, { age: 30 }),
+        skater('out', 99.75, { age: 30 }),
+        skater('d-in', 100, { positions: 'D', age: 30 }),
+        skater('d-out', 99.75, { positions: 'D', age: 30 }),
+        skater('rookie-in', 100, { age: 20 }),
+        skater('rookie-out', 99.75, { age: 20 }),
+    ], [goalie('g-in', 100), goalie('g-out', 99.75)]);
+    nhl.players['rookie-in'] = nhlRecord();
+    nhl.players['rookie-out'] = nhlRecord();
+    // short of the floor, but on the champion's roster through the Final
+    fantrax.skaters[rangeKey(PLAYOFF_ROUNDS)] = [skater('out', 30)];
+    fantrax.skaters[rangeKey(FINAL)] = [skater('out', 10)];
+    for (const period of ROSTER_PERIODS.slice(-7)) fantrax.rosters[period.number].fx1.push({ id: 'out', status: 'ACTIVE' });
+    await prepareFully();
+    const { ballot } = await act(() => vote.readPreview({ seasonYear: SEASON }));
+    assert.deepEqual(ballot!.map(award => [award.award, award.candidates.map(candidate => candidate.playerId)]), [
+        ['wayne-gretzky', ['g-in', 'd-in', 'in', 'rookie-in']],
+        ['le-magnifique', ['g-in', 'd-in', 'in', 'rookie-in']],
+        ['bobby-orr', ['d-in']],
+        ['hasek', ['g-in']],
+        ['teemu-selanne', ['rookie-in']],
+        ['danny-briere', ['out']],
+    ]);
+});
+
 test('each candidate is credited to the last franchise to roster them that season, and nobody rostered no one', async t => {
     const { act, vote, setRegularSeason, prepareFully, endedSeasonWith, dropped, claimed } = await awardVoteLeague(t);
-    setRegularSeason([skater('kept', 100), skater('late-drop', 90), skater('traded-on', 80), skater('never', 70)]);
+    setRegularSeason([skater('kept', 130), skater('late-drop', 120), skater('traded-on', 110), skater('never', 100)]);
     // with franchise 3 all season
     await endedSeasonWith('kept', 3);
     // claimed by franchise 2, dropped by it late in the season, and a free agent at the end of it
@@ -99,7 +127,7 @@ test('each candidate is credited to the last franchise to roster them that seaso
 
 test('a candidate missing from the end-of-season rosters is credited to the franchise their last move put them on', async t => {
     const { act, vote, setRegularSeason, prepareFully, dropped, claimed, traded } = await awardVoteLeague(t);
-    setRegularSeason([skater('claimed-last', 100), skater('traded-last', 90), skater('dropped-last', 80)]);
+    setRegularSeason([skater('claimed-last', 120), skater('traded-last', 110), skater('dropped-last', 100)]);
     // none of them has an end-of-season roster row in the archive
     await dropped('claimed-last', 1, '2026-10-14');
     await claimed('claimed-last', 2, '2026-10-20');
@@ -118,7 +146,7 @@ test('a candidate missing from the end-of-season rosters is credited to the fran
 
 test('preparing runs in bounded batches, resuming from recorded progress until it is done', async t => {
     const { act, vote, setRegularSeason, prepareFully, fantrax, clock } = await awardVoteLeague(t);
-    setRegularSeason([skater('s1', 100)], [goalie('g1', 50)]);
+    setRegularSeason([skater('s1', 150)], [goalie('g1', 100)]);
     // every Fantrax read takes 20 seconds
     fantrax.onRead = () => { clock.time += 20_000; };
     // a call reads Fantrax for one step at most
@@ -141,7 +169,7 @@ test('preparing runs in bounded batches, resuming from recorded progress until i
 
 test("a stat set's table of several pages is read a page per call, and its players are all captured", async t => {
     const { act, vote, setRegularSeason, prepareFully, fantrax } = await awardVoteLeague(t);
-    setRegularSeason([skater('s1', 100), skater('s2', 90), skater('s3', 80)], [goalie('g1', 50)]);
+    setRegularSeason([skater('s1', 160), skater('s2', 150), skater('s3', 140)], [goalie('g1', 130)]);
     fantrax.pageSize = 2;
     await act(() => vote.prepare({ seasonYear: SEASON }));
     const range = rangeKey(REGULAR_SEASON);
@@ -157,11 +185,11 @@ test("a stat set's table of several pages is read a page per call, and its playe
 test("a stat set's table that changes between pages is read again from its first page", async t => {
     t.mock.method(console, 'error', () => {});
     const { act, vote, setRegularSeason, prepareFully, fantrax } = await awardVoteLeague(t);
-    setRegularSeason([skater('s1', 100), skater('s2', 90), skater('s3', 80)]);
+    setRegularSeason([skater('s1', 160), skater('s2', 150), skater('s3', 140)]);
     fantrax.pageSize = 2;
     await act(() => vote.prepare({ seasonYear: SEASON }));
     await act(() => vote.prepare({ seasonYear: SEASON }));
-    setRegularSeason([skater('s1', 100), skater('s2', 90), skater('s3', 80), skater('s4', 70)]);
+    setRegularSeason([skater('s1', 160), skater('s2', 150), skater('s3', 140), skater('s4', 130)]);
     assert.equal((await prepareFully()).result.ok, true);
     const range = rangeKey(REGULAR_SEASON);
     assert.deepEqual(fantrax.reads.filter(read => read.startsWith(`skaters ${range}`)),
@@ -198,17 +226,17 @@ test("preparing refuses a season whose Fantrax league is another season's", asyn
 
 test('preparing again replaces the snapshot', async t => {
     const { act, vote, setRegularSeason, prepareFully, clock } = await awardVoteLeague(t);
-    setRegularSeason([skater('s1', 100), skater('d1', 60, { positions: 'D' })]);
+    setRegularSeason([skater('s1', 100), skater('d1', 160, { positions: 'D' })]);
     await prepareFully();
     // a stat correction: s1's points move, d1's go, and s2 has some
-    setRegularSeason([skater('s1', 104), skater('s2', 20), skater('d1', 0, { positions: 'D' })]);
+    setRegularSeason([skater('s1', 104), skater('s2', 100), skater('d1', 0, { positions: 'D' })]);
     clock.time += 3600_000;
     await prepareFully();
     const { vote: summary, ballot } = await act(() => vote.readPreview({ seasonYear: SEASON }));
     assert.equal(summary?.preparedAt, new Date(clock.time).toISOString());
     assert.deepEqual(ballot!.map(award => award.candidates.map(candidate => [candidate.playerId, candidate.stats.regularSeason?.points])), [
-        [['s1', 104], ['s2', 20]],
-        [['s1', 104], ['s2', 20]],
+        [['s1', 104], ['s2', 100]],
+        [['s1', 104], ['s2', 100]],
         [],
         [],
         [],
@@ -218,7 +246,7 @@ test('preparing again replaces the snapshot', async t => {
 
 test("an unfinished prepare can be started over from nothing, keeping the admin's rookie changes", async t => {
     const { act, vote, setRegularSeason, prepareFully, fantrax, clock, league } = await awardVoteLeague(t);
-    setRegularSeason([skater('s1', 100), skater('unknown', 80, { age: 22 })], [goalie('g1', 50)]);
+    setRegularSeason([skater('s1', 100), skater('unknown', 120, { age: 22 })], [goalie('g1', 50)]);
     await prepareFully();
     assert.deepEqual(await act(() => vote.adjustRookie({ seasonYear: SEASON, playerId: 'unknown', change: 'add' })), { ok: true });
 

@@ -175,7 +175,7 @@ The moment an award vote's ballots stop changing. A franchise with no complete b
 _Avoid_: deadline, cutoff, close
 
 **Candidate**:
-A player, or for GM of the Year a team season, that may be ranked for one voted award. Each award has its own candidates: defensemen for the Bobby Orr Award, goalies for the Hasek Trophy, Calder-eligible rookies for the Teemu Trophy, players on the finalists' rosters during the Final for the Danny Briere Award.
+A player, or for GM of the Year a team season, that may be ranked for one voted award. Each award has its own candidates: defensemen for the Bobby Orr Award, goalies for the Hasek Trophy, Calder-eligible rookies for the Teemu Trophy, players on the finalists' rosters during the Final for the Danny Briere Award. A player needs at least 100 fantasy points in the fantasy regular season to be a candidate for any award but the Danny Briere Award, which judges the playoffs.
 _Avoid_: nominee, finalist (that's a team in the Final), option
 
 **Tally**:

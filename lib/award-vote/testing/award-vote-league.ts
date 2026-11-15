@@ -110,10 +110,10 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
     const { createAwardVote } = await import('../create-award-vote');
     const fantrax = fantraxState();
     const nhlState: MemoryNhlState = { players: {}, failing: new Set(), lookups: [] };
-    /** the fake clock: tests set or advance `clock.time` */
+    /** the fake clock: tests set or advance `clock.time`, and the module's waits advance it */
     const clock = { time: AFTER_FINAL };
     const vote = createAwardVote({
-        clock: { now: () => clock.time },
+        clock: { now: () => clock.time, sleep: async ms => { clock.time += ms; } },
         fantrax: createMemoryAwardVoteFantrax(fantrax),
         nhl: createMemoryNhl(nhlState),
         db: { rows, writeInOrder },
