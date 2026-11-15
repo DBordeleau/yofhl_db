@@ -183,6 +183,13 @@
       "when": 1794690618836,
       "tag": "0025_season_sync_championship_roster",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794705124033,
+      "tag": "0026_skater_categories",
+      "breakpoints": true
     }
   ]
 }

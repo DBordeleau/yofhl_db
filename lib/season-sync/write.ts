@@ -11,7 +11,7 @@ export interface SyncWrite {
     count: keyof SyncCounts | null;
     /** the kind of change, for the views to refresh and tags to expire when it changes a row */
     change: SeasonSyncChange;
-    /** a data-modifying statement returning one row per row it changed */
+    /** a data-modifying statement returning one row per row it changed, or a query counting rows that other parts change */
     statement: SQL;
 }
 

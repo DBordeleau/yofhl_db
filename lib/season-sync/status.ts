@@ -10,6 +10,8 @@ export interface SyncCounts {
     playoffGames: number;
     /** championship roster players added or removed */
     championshipRoster: number;
+    /** player seasons whose skater categories changed */
+    skaterCategories: number;
 }
 
 /** each count's column on the status row */
@@ -18,6 +20,7 @@ export const COUNT_COLUMNS: Record<keyof SyncCounts, string> = {
     teamSeasons: 'changed_team_seasons',
     playoffGames: 'changed_playoff_games',
     championshipRoster: 'changed_championship_roster',
+    skaterCategories: 'changed_skater_categories',
 };
 const COUNTS = Object.keys(COUNT_COLUMNS) as (keyof SyncCounts)[];
 

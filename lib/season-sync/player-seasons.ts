@@ -2,10 +2,11 @@
 // season import's rule: the player scored (a non-zero total), is on a franchise's roster, or is on the season's
 // championship roster or an award list. A player season that no longer qualifies is removed. Each kept player is
 // a player row (bare ID and name) and a player season with the fantasy team from the Fantrax team mapping (none
-// for a free agent), NHL team, positions, FPts and FP/G.
+// for a free agent), NHL team, positions, FPts and FP/G, and its skater categories (skater-categories.ts).
 import { sql } from 'drizzle-orm';
 import type { CurrentSeason } from './current-season';
 import type { FantraxPlayer } from './ports';
+import type { SkaterCategoryTotals } from './skater-categories';
 import type { SyncWrite } from './write';
 
 export interface PlayerSeasonRow {
@@ -42,14 +43,21 @@ export function playerSeasonRows(season: CurrentSeason, players: FantraxPlayer[]
 /**
  * The writes that bring the season's players up to date, each changing a row only where a value differs. Every part
  * touches its own rows: new players, renamed players, kept player seasons, player seasons no longer kept, and ring or
- * award players Fantrax no longer lists (kept with no points and no roster spot).
+ * award players Fantrax no longer lists (kept with no points and no roster spot, and the skater categories they had).
+ *
+ * A kept player season's skater categories are written with the rest of it when anything else about it changed, and
+ * on their own otherwise, so the two parts touch different rows; a third part only counts the player seasons whose
+ * categories change, which is what expires the record book.
  *
  * `ringed` is the championship roster this run writes: every part of the run's statement sees the roster as it was
  * before the statement, so its players are kept as ring players here.
  */
-export function playerSeasonsWrites(seasonYear: number, rows: PlayerSeasonRow[], ringed: string[] = []): SyncWrite[] {
+export function playerSeasonsWrites(seasonYear: number, rows: (PlayerSeasonRow & SkaterCategoryTotals)[], ringed: string[] = []): SyncWrite[] {
     const payload = JSON.stringify(rows);
     const kept = sql`(select k.id from jsonb_to_recordset(${payload}::jsonb) as k(id text))`;
+    const seasons = sql`jsonb_to_recordset(${payload}::jsonb) as s(id text, "teamSeasonId" int, "nhlTeam" text, positions text[], fpts numeric, fpg numeric,
+        goals int, assists int, shots int, hits int, blocks int)`;
+    const categoriesChanged = sql`(ps.goals, ps.assists, ps.shots, ps.hits, ps.blocks) is distinct from (s.goals, s.assists, s.shots, s.hits, s.blocks)`;
     // on the season's championship roster (or the one this run writes) or an award list
     const listed = sql`(
         exists (select 1 from league.championship_rosters c where c.season_year = ${seasonYear} and c.player_id = ps.player_id)
@@ -81,15 +89,39 @@ export function playerSeasonsWrites(seasonYear: number, rows: PlayerSeasonRow[],
             count: 'playerSeasons',
             change: 'stats',
             statement: sql`
-                insert into league.player_seasons as ps (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
-                select s.id, ${seasonYear}, s."teamSeasonId", s."nhlTeam", s.positions, round(s.fpts, 2), round(s.fpg, 2)
-                from jsonb_to_recordset(${payload}::jsonb) as s(id text, "teamSeasonId" int, "nhlTeam" text, positions text[], fpts numeric, fpg numeric)
+                insert into league.player_seasons as ps (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg, goals, assists, shots, hits, blocks)
+                select s.id, ${seasonYear}, s."teamSeasonId", s."nhlTeam", s.positions, round(s.fpts, 2), round(s.fpg, 2), s.goals, s.assists, s.shots, s.hits, s.blocks
+                from ${seasons}
                 on conflict (player_id, season_year) do update
                 set team_season_id = excluded.team_season_id, nhl_team = excluded.nhl_team, positions = excluded.positions,
-                    fpts = excluded.fpts, fpg = excluded.fpg
+                    fpts = excluded.fpts, fpg = excluded.fpg,
+                    goals = excluded.goals, assists = excluded.assists, shots = excluded.shots, hits = excluded.hits, blocks = excluded.blocks
                 where (ps.team_season_id, ps.nhl_team, ps.positions, ps.fpts, ps.fpg)
                       is distinct from (excluded.team_season_id, excluded.nhl_team, excluded.positions, excluded.fpts, excluded.fpg)
                 returning ps.player_id`,
+        },
+        {
+            // the player seasons the part above leaves alone: only their skater categories changed
+            count: null,
+            change: 'categories',
+            statement: sql`
+                update league.player_seasons ps
+                set goals = s.goals, assists = s.assists, shots = s.shots, hits = s.hits, blocks = s.blocks
+                from ${seasons}
+                where ps.player_id = s.id and ps.season_year = ${seasonYear}
+                  and (ps.team_season_id, ps.nhl_team, ps.positions, ps.fpts, ps.fpg)
+                      is not distinct from (s."teamSeasonId", s."nhlTeam", s.positions, round(s.fpts, 2), round(s.fpg, 2))
+                  and ${categoriesChanged}
+                returning ps.player_id`,
+        },
+        {
+            // writes nothing: the kept player seasons, new ones included, whose skater categories the two parts above change
+            count: 'skaterCategories',
+            change: 'categories',
+            statement: sql`
+                select s.id from ${seasons}
+                left join league.player_seasons ps on ps.player_id = s.id and ps.season_year = ${seasonYear}
+                where ${categoriesChanged}`,
         },
         {
             count: 'playerSeasons',

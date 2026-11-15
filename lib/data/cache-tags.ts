@@ -27,8 +27,9 @@ export const teamIdentityTags = (id: number) => [leagueTags.franchise(id), leagu
 
 // What a season sync run changed (lib/season-sync): each kind of change refreshes these views and expires these
 // tags, once per run whatever else it changed. A run that changes nothing has no effects. A playoff game decides
-// the champion, so it expires what a bracket correction does (the 'matchup' curated edit).
-export type SeasonSyncChange = 'stats' | 'playoffs' | 'roster';
+// the champion, so it expires what a bracket correction does (the 'matchup' curated edit). Skater categories are
+// read only by the record book.
+export type SeasonSyncChange = 'stats' | 'playoffs' | 'roster' | 'categories';
 export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: number): { views: MaterializedView[]; tags: string[] } {
     const effects = changes.map(change => {
         switch (change) {
@@ -40,6 +41,7 @@ export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: nu
             };
             case 'playoffs': return curatedEditEffects('matchup', year);
             case 'roster': return curatedEditEffects('roster', year);
+            case 'categories': return { views: [] as MaterializedView[], tags: [leagueTags.records] };
         }
     });
     return { views: [...new Set(effects.flatMap(effect => effect.views))], tags: [...new Set(effects.flatMap(effect => effect.tags))] };
