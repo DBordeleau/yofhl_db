@@ -113,6 +113,24 @@ test('an opened season is the current season, unpublished, and on the admin seas
     });
 });
 
+test("an earlier season's Fantrax block with its CSVs beside it is only loaded as its Fantrax teams: the season is imported from its CSVs, not opened", async (t) => {
+    const withBlock = await league(t);
+    const result = await withBlock.run();
+    assert.ok(result.ok);
+    assert.deepEqual([result.seasons, result.opened], [[{ year: 2026, players: 12 }], [{ year: 2027, teams: 6 }]]);
+
+    // the same import without 2025–26's block (as for a past season kept only for the award vote's rehearsal)
+    const withoutBlock = await league(t);
+    const noBlock = withLiveSeason();
+    delete noBlock.seasons[2026].fantrax;
+    assert.ok((await withoutBlock.run({ config: noBlock })).ok);
+
+    const { fantrax_teams: mapped, ...rest } = await withBlock.everyRow();
+    const { fantrax_teams: unmapped, ...restWithout } = await withoutBlock.everyRow();
+    assert.deepEqual(rest, restWithout);
+    assert.deepEqual([mapped.length, unmapped.length], [12, 6]);
+});
+
 // what the season sync writes into an opened season: standings, player seasons and a playoff game
 async function syncWrites(db: Awaited<ReturnType<typeof league>>['db'], year: number) {
     const teams = await db.select().from(schema.teamSeasons).where(eq(schema.teamSeasons.seasonYear, year)).orderBy(asc(schema.teamSeasons.franchiseId));

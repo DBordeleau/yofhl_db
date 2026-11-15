@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AFTER_FINAL, awardVoteLeague, goalie, REGULAR_SEASON, SEASON, skater } from './testing/award-vote-league';
 
-test('preparing refuses a season before the first award vote', async t => {
+test('preparing refuses a season before the first award vote, other than the rehearsal', async t => {
     const { act, vote, fantrax } = await awardVoteLeague(t);
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: 2026 })), { ok: false, reason: 'before-award-votes' });
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: 2025 })), { ok: false, reason: 'before-award-votes' });
     assert.deepEqual(fantrax.reads, []);
 });
 
@@ -25,10 +25,10 @@ test("preparing captures the fantasy regular season's stats for every player wit
         goalie('g1', 80, { name: 'Andrei Vasilevskiy', nhlTeam: 'TBL', perGame: 8, gamesPlayed: 10, wins: 7, goalsAgainst: 20, saves: 280, shutouts: 1 }),
         goalie('g2', 0),
     ]);
-    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 5, steps: 5 });
-    // only the fantasy regular season's dates are asked for
+    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
+    // the regular season's stats are asked for over the fantasy regular season's dates
     const range = `${REGULAR_SEASON.startDate}..${REGULAR_SEASON.endDate}`;
-    assert.deepEqual(fantrax.reads.filter(read => !read.startsWith('leagueInfo')), [`skaters ${range}`, `goalies ${range}`]);
+    assert.deepEqual(fantrax.reads.filter(read => read.endsWith(range)), [`skaters ${range}`, `goalies ${range}`]);
 
     const { vote: summary, ballot } = await act(() => vote.readPreview({ seasonYear: SEASON }));
     assert.equal(summary?.state, 'prepared');
@@ -69,6 +69,7 @@ test('the Bobby Orr Award lists players with D among their positions, the Hasek 
         ['hasek', 'Hasek Award', ['g']],
         // nobody is a rookie
         ['teemu-selanne', 'Teemu Selanne Trophy', []],
+        ['danny-briere', 'Danny Briere Trophy', []],
     ]);
 });
 
@@ -96,19 +97,22 @@ test('each candidate is credited to the last franchise to roster them that seaso
 });
 
 test('preparing runs in bounded batches, resuming from recorded progress until it is done', async t => {
-    const { act, vote, setRegularSeason, fantrax, clock } = await awardVoteLeague(t);
+    const { act, vote, setRegularSeason, prepareFully, fantrax, clock } = await awardVoteLeague(t);
     setRegularSeason([skater('s1', 100)], [goalie('g1', 50)]);
     // every Fantrax read takes 20 seconds
     fantrax.onRead = () => { clock.time += 20_000; };
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 2, steps: 5 });
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 2, steps: 10 });
     assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]), ['leagueInfo', 'skaters']);
     // an unfinished prepare shows no ballot
     const unfinished = await act(() => vote.readPreview({ seasonYear: SEASON }));
     assert.equal(unfinished.vote?.preparedAt, null);
     assert.equal(unfinished.ballot, null);
 
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: true, stepsDone: 5, steps: 5 });
-    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]), ['leagueInfo', 'skaters', 'goalies']);
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: true, done: false, stepsDone: 4, steps: 10 });
+    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]).slice(0, 4), ['leagueInfo', 'skaters', 'goalies', 'dayRosters']);
+    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
+    // each call carried on where the last stopped, so nothing was read twice
+    assert.equal(new Set(fantrax.reads).size, fantrax.reads.length);
     const { ballot } = await act(() => vote.readPreview({ seasonYear: SEASON }));
     assert.deepEqual(ballot![0].candidates.map(candidate => candidate.playerId), ['s1', 'g1']);
 });
@@ -120,8 +124,8 @@ test('a failed Fantrax read stops preparing with its reason, and the next call r
     fantrax.down.add('goalies');
     assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON })), { ok: false, reason: 'fantrax-failed', message: 'Fantrax goalies returned 503' });
     fantrax.down.clear();
-    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 5, steps: 5 });
-    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]), ['leagueInfo', 'skaters', 'goalies', 'goalies']);
+    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
+    assert.deepEqual(fantrax.reads.map(read => read.split(' ')[0]).slice(0, 4), ['leagueInfo', 'skaters', 'goalies', 'goalies']);
 });
 
 test('preparing refuses a season with no Fantrax league in the league configuration', async t => {
@@ -152,6 +156,7 @@ test('preparing again replaces the snapshot', async t => {
     assert.deepEqual(ballot!.map(award => award.candidates.map(candidate => [candidate.playerId, candidate.stats.regularSeason?.points])), [
         [['s1', 104], ['s2', 20]],
         [['s1', 104], ['s2', 20]],
+        [],
         [],
         [],
         [],

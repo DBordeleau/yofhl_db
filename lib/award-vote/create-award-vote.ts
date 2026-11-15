@@ -8,9 +8,9 @@
 //  - readRookieReview (read-rookie-review.ts): the Teemu Trophy's computed rookies, the young players the NHL
 //    lookup could not match, and the admin's changes
 //  - adjustRookie (adjust-rookie.ts): the admin adding a player to the rookies or removing one, before opening
-// Opening, ballots, scoring and publishing come later.
+// Opening, ballots, scoring and publishing come later; each must refuse a rehearsal first (rehearsal.ts).
 //
-// Who is a candidate for each award and which stats they show is in voted-awards.ts; the season's date ranges in
+// Which seasons may have an award vote, and the rehearsal, is in rehearsal.ts. Who is a candidate for each award and which stats they show is in voted-awards.ts; the season's date ranges in
 // season-dates.ts; listing a ballot award's candidates (top 50, sorting, search) in candidate-list.ts.
 import { createAdjustRookie } from './adjust-rookie';
 import type { AwardVotePorts } from './ports';
@@ -25,6 +25,7 @@ export type { PrepareInput, PrepareRejection, PrepareResult } from './prepare';
 export type { AwardVotePreview, AwardVoteSummary, ReadPreviewInput } from './read-preview';
 export type { ReadRookieReviewInput, RookieReview, RookieReviewPlayer } from './read-rookie-review';
 export type { SeasonDates } from './season-dates';
+export type { AwardVoteKind, RehearsalRefusal } from './rehearsal';
 
 export function createAwardVote(ports: AwardVotePorts) {
     return {

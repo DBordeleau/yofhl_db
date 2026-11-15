@@ -1,8 +1,10 @@
-// A season's award vote as the admin sees it before opening: its state, whether preparing has finished, and once
-// it has, the ballot exactly as owners will see it, read only from the frozen snapshot.
+// A season's award vote as the admin sees it before opening: whether the season may have one (or only a rehearsal),
+// its state, whether preparing has finished, and once it has, the ballot exactly as owners will see it, read only
+// from the frozen snapshot. Admin only: it returns rehearsals.
 import { sql } from 'drizzle-orm';
 import type { AwardVoteState, BallotAward, CreditedTeam, PlayerAwardId, PlayerCandidate, PrepareProgress } from './model';
 import type { AwardVotePorts } from './ports';
+import { awardVoteKind, type AwardVoteKind } from './rehearsal';
 import { awardDefinition, PLAYER_AWARD_RULES, STAT_SETS } from './voted-awards';
 
 export interface ReadPreviewInput {
@@ -20,6 +22,8 @@ export interface AwardVoteSummary {
 }
 
 export interface AwardVotePreview {
+    /** whether the season may have a live award vote or only a rehearsal, or null for neither (and no panel) */
+    kind: AwardVoteKind | null;
     /** null for a season never prepared */
     vote: AwardVoteSummary | null;
     /** the ballot's awards in order, or null until a prepare has finished */
@@ -33,13 +37,14 @@ export function createReadPreview({ db }: AwardVotePorts) {
         const [vote] = await db.rows<{ state: AwardVoteState; rehearsal: boolean; progress: PrepareProgress; preparedAt: number | null }>(sql`
             select state, rehearsal, prepare_progress as progress, (extract(epoch from prepared_at) * 1000)::float8 as "preparedAt"
             from league.award_votes where season_year = ${seasonYear}`);
-        if (!vote) return { vote: null, ballot: null };
+        const kind = await awardVoteKind(db, seasonYear);
+        if (!vote) return { kind, vote: null, ballot: null };
         const summary: AwardVoteSummary = {
             seasonYear, state: vote.state, rehearsal: vote.rehearsal, prepareStartedAt: vote.progress.startedAt,
             preparedAt: vote.preparedAt === null ? null : new Date(vote.preparedAt).toISOString(),
         };
-        if (summary.preparedAt === null) return { vote: summary, ballot: null };
-        return { vote: summary, ballot: await readBallot(seasonYear) };
+        if (summary.preparedAt === null) return { kind, vote: summary, ballot: null };
+        return { kind, vote: summary, ballot: await readBallot(seasonYear) };
     };
 
     /** each award's candidates from the snapshot, best first by FPts in the award's first stat set */

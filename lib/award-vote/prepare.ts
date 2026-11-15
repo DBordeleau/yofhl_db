@@ -1,15 +1,18 @@
-// Preparing a season's award vote: building its frozen candidate snapshot. Allowed for a season year from 2027 that
-// has a champion, while the vote is still only prepared. Each call runs steps in order until its time budget is
+// Preparing a season's award vote: building its frozen candidate snapshot. Allowed for a season year from 2027, or
+// for the season before the live season as a rehearsal (rehearsal.ts), that has a champion, while the vote is still
+// only prepared. Each call runs steps in order until its time budget is
 // spent, recording each step as done in the same statement as its write, so the next call resumes where this one
 // stopped; the admin page calls again until it is done. The call after a finished prepare starts over, replacing
 // the snapshot. Nothing runs unless the admin asks.
 //
 // The steps (prepare-steps.ts): the season's dates from its own Fantrax league info, then each stat set's Fantrax
-// reads, then the young players' NHL lookups, then each award's candidates from the stored stats and the archive.
+// reads (with the finalists' daily rosters over the Final read before the Danny Briere Award's), then the young
+// players' NHL lookups, then each award's candidates from the stored stats and the archive.
 import { sql } from 'drizzle-orm';
-import { FIRST_AWARD_VOTE_SEASON, type AwardVoteState, type PrepareProgress } from './model';
+import type { AwardVoteState, PrepareProgress } from './model';
 import type { AwardVotePorts } from './ports';
 import { FantraxFailure, NhlFailure, prepareSteps } from './prepare-steps';
+import { awardVoteKind } from './rehearsal';
 
 export interface PrepareInput {
     seasonYear: number;
@@ -40,7 +43,8 @@ interface SeasonCheck {
 export function createPrepare(ports: AwardVotePorts) {
     const { db, clock } = ports;
     return async function prepare({ seasonYear }: PrepareInput): Promise<PrepareResult> {
-        if (seasonYear < FIRST_AWARD_VOTE_SEASON) return { ok: false, reason: 'before-award-votes' };
+        const kind = await awardVoteKind(db, seasonYear);
+        if (kind === null) return { ok: false, reason: 'before-award-votes' };
         const [season] = await db.rows<SeasonCheck>(sql`
             select r.champion_team_season_id is not null as champion, v.state, v.prepare_progress as progress,
                    v.prepared_at is not null as finished,
@@ -53,7 +57,7 @@ export function createPrepare(ports: AwardVotePorts) {
         if (season.state !== null && season.state !== 'prepared') return { ok: false, reason: 'not-prepared' };
 
         const started = clock.now();
-        let progress = season.progress && !season.finished ? season.progress : await start(seasonYear, new Date(started).toISOString());
+        let progress = season.progress && !season.finished ? season.progress : await start(seasonYear, kind === 'rehearsal', new Date(started).toISOString());
         if (!progress) return { ok: false, reason: 'not-prepared' };
         const steps = prepareSteps(ports, { seasonYear, leagueId: season.leagueId });
         while (progress.done.length < steps.length && clock.now() - started < PREPARE_BUDGET_MS) {
@@ -73,7 +77,7 @@ export function createPrepare(ports: AwardVotePorts) {
     };
 
     /** start a prepare over: the season's snapshot goes, and its progress starts empty; null if the vote is no longer prepared */
-    async function start(seasonYear: number, startedAt: string): Promise<PrepareProgress | null> {
+    async function start(seasonYear: number, rehearsal: boolean, startedAt: string): Promise<PrepareProgress | null> {
         const progress: PrepareProgress = { startedAt, done: [], dates: null };
         const [{ started }] = await db.rows<{ started: number }>(sql`
             with old_snapshot as (
@@ -81,8 +85,9 @@ export function createPrepare(ports: AwardVotePorts) {
                 delete from league.award_vote_players
                 where season_year = ${seasonYear} and (select state from league.award_votes where season_year = ${seasonYear}) = 'prepared'
             ), vote as (
-                insert into league.award_votes (season_year, prepare_progress) values (${seasonYear}, ${JSON.stringify(progress)}::jsonb)
-                on conflict (season_year) do update set prepare_progress = excluded.prepare_progress, prepared_at = null, updated_at = now()
+                insert into league.award_votes (season_year, rehearsal, prepare_progress) values (${seasonYear}, ${rehearsal}, ${JSON.stringify(progress)}::jsonb)
+                on conflict (season_year) do update
+                set rehearsal = excluded.rehearsal, prepare_progress = excluded.prepare_progress, prepared_at = null, updated_at = now()
                 where award_votes.state = 'prepared'
                 returning 1
             )

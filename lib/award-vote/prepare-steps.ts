@@ -1,7 +1,9 @@
 // The steps of a prepare, in order, each a bounded piece of work that writes its result and marks itself done in one
 // statement (so a step is never half done, and the next call resumes after the last one written):
 //  - dates: the season's date ranges, from its own Fantrax league info (season-dates.ts)
-//  - one read per stat set any award shows and position group: the players with fantasy points over its days
+//  - one read per stat set any award shows and position group: the players with fantasy points over its days (and,
+//    once the Final's rosters are read, everyone on them whatever their points)
+//  - final rosters, before the Danny Briere Award's stat sets: both finalists' daily rosters over the Final
 //  - rookies: the NHL's record of each player young enough by Fantrax's age to be a rookie, a few at a time, and
 //    whether the Calder rule (calder.ts) admits them
 //  - candidates: each award's eligible players (voted-awards.ts), each with its credited team season, and the
@@ -10,7 +12,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { calderEligible, mightBeCalderEligible } from './calder';
 import type { GoalieLine, PrepareProgress, RookieAdjustments, SkaterLine, StatSetName } from './model';
-import type { AwardVotePorts, NhlLookupPlayer, RangedGoalie, RangedSkater } from './ports';
+import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, RangedSkater } from './ports';
 import { seasonDates, type SeasonDates } from './season-dates';
 import { PLAYER_AWARD_RULES, STAT_SETS, type SnapshotPlayer } from './voted-awards';
 
@@ -38,6 +40,9 @@ export interface PrepareStep {
 }
 
 type Group = 'skater' | 'goalie';
+
+/** daily roster reads made at once, as the season sync's championship roster makes them */
+const ROSTER_READS_AT_ONCE = 7;
 
 const skaterLine = (player: RangedSkater): SkaterLine => ({
     group: 'skater', points: player.points, perGame: player.perGame, gamesPlayed: player.gamesPlayed,
@@ -71,8 +76,9 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
     }
 
     /** mark `step` done after `progress` (with `changes`), running `writes` only if it is (see `advance`) */
-    async function markDone(progress: PrepareProgress, step: string, changes: { dates?: SeasonDates; preparedAt?: string; guard?: SQL } = {}, writes: SQL[] = []) {
+    async function markDone(progress: PrepareProgress, step: string, changes: { dates?: SeasonDates; finalRosters?: Record<string, number>; preparedAt?: string; guard?: SQL } = {}, writes: SQL[] = []) {
         const next: PrepareProgress = { ...progress, done: [...progress.done, step], dates: changes.dates ?? progress.dates };
+        if (changes.finalRosters) next.finalRosters = changes.finalRosters;
         return advance(progress, next, changes, writes);
     }
 
@@ -95,7 +101,8 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
             const lines = group === 'skater'
                 ? (await read(() => fantrax.skaters(range))).map(player => ({ player, line: skaterLine(player) }))
                 : (await read(() => fantrax.goalies(range))).map(player => ({ player, line: goalieLine(player) }));
-            const payload = JSON.stringify(lines.filter(({ line }) => line.points !== 0).map(({ player, line }) => ({
+            const rostered = progress.finalRosters ?? {};
+            const payload = JSON.stringify(lines.filter(({ player, line }) => line.points !== 0 || player.id in rostered).map(({ player, line }) => ({
                 playerId: player.id, name: player.name, positions: positionsOf(player.positions), nhlTeam: player.nhlTeam, age: player.age, line,
             })));
             return markDone(progress, `${statSet} ${group}s`, {}, [
@@ -152,16 +159,22 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                                  where s.season_year = p.season_year and s.player_id = p.player_id), '{}'::jsonb) as stats
                 from league.award_vote_players p
                 where p.season_year = ${seasonYear}`);
+            const context = { seasonYear, finalRosters: progress.finalRosters ?? {}, rookies };
             const picked = JSON.stringify(PLAYER_AWARD_RULES.flatMap(rule =>
-                players.filter(player => rule.eligible(player, { seasonYear, rookies })).map(player => ({ award: rule.award, playerId: player.playerId }))));
+                players.filter(player => rule.eligible(player, context)).map(player => ({
+                    award: rule.award, playerId: player.playerId, credited: rule.credit !== undefined, teamSeasonId: rule.credit?.(player, context) ?? null,
+                }))));
             // the admin's changes can't move while the candidates are written from them
             const guard = sql`rookie_adjustments = ${JSON.stringify(adjustments)}::jsonb`;
             return markDone(progress, 'candidates', { preparedAt: new Date(clock.now()).toISOString(), guard }, [
-                // The franchise credited with a player is the last to roster them that season: the one with them at
-                // the end of it, or else the one whose drop was the player's last move. Nobody, for a player no one rostered.
+                // The franchise credited with a player is the award's own (the Danny Briere Award's finalist), or else
+                // the last to roster them that season: the one with them at the end of it, or else the one whose drop
+                // was the player's last move. Nobody, for a player no one rostered.
                 sql`insert into league.award_vote_candidates (season_year, award, player_id, team_season_id)
-                    select ${seasonYear}, c.award, c."playerId", coalesce(ps.team_season_id, case when last_move.action = 'drop' then last_move.team_season_id end)
-                    from jsonb_to_recordset(${picked}::jsonb) as c(award text, "playerId" text)
+                    select ${seasonYear}, c.award, c."playerId",
+                           case when c.credited then c."teamSeasonId"
+                                else coalesce(ps.team_season_id, case when last_move.action = 'drop' then last_move.team_season_id end) end
+                    from jsonb_to_recordset(${picked}::jsonb) as c(award text, "playerId" text, credited boolean, "teamSeasonId" int)
                     left join league.player_seasons ps on ps.player_id = c."playerId" and ps.season_year = ${seasonYear}
                     left join lateral (
                         select a.action, t.id as team_season_id
@@ -177,6 +190,53 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
         },
     };
 
+    const finalRosters: PrepareStep = {
+        name: 'final rosters',
+        run: async progress => {
+            const finalists = await db.rows<{ teamSeasonId: number; name: string; fantraxTeamId: string | null }>(sql`
+                select t.id as "teamSeasonId", t.name,
+                       (select min(ft.fantrax_team_id) from league.fantrax_teams ft
+                        where ft.season_year = t.season_year and ft.fantrax_league_id = ${leagueId} and ft.franchise_id = t.franchise_id) as "fantraxTeamId"
+                from league.season_results r
+                join league.team_seasons t on t.id in (r.champion_team_season_id, r.runner_up_team_season_id)
+                where r.season_year = ${seasonYear}
+                order by t.id = r.champion_team_season_id desc`);
+            const credited = await read(async () => {
+                const unmapped = finalists.find(finalist => finalist.fantraxTeamId === null);
+                if (finalists.length !== 2 || unmapped) throw new Error(`The league configuration has no Fantrax team for finalist ${unmapped?.name ?? 'of the Final'}`);
+                const periods = progress.dates!.finalRosterPeriods;
+                const days: FantraxDayRosters[] = [];
+                for (let index = 0; index < periods.length; index += ROSTER_READS_AT_ONCE) {
+                    days.push(...await Promise.all(periods.slice(index, index + ROSTER_READS_AT_ONCE).map(period => fantrax.dayRosters(leagueId, period))));
+                }
+                // day by day, so a player on both finalists' rosters during the Final goes to the one that had him last
+                const byPlayer: Record<string, number> = {};
+                days.forEach((day, index) => {
+                    for (const finalist of finalists) {
+                        const roster = day[finalist.fantraxTeamId!];
+                        if (!roster) throw new Error(`Fantrax's rosters for roster period ${periods[index]} have no team ${finalist.fantraxTeamId}`);
+                        for (const player of roster) if (player.status !== 'MINORS') byPlayer[player.id] = finalist.teamSeasonId;
+                    }
+                });
+                return byPlayer;
+            });
+            return markDone(progress, 'final rosters', { finalRosters: credited });
+        },
+    };
+
     const statSets = [...new Set(PLAYER_AWARD_RULES.flatMap(rule => rule.statSets))];
-    return [dates, ...statSets.flatMap(statSet => [statSetRead(statSet, 'skater'), statSetRead(statSet, 'goalie')]), rookies, candidates];
+    // The Final's rosters are read before the stat sets of an award that credits its own franchise, so those reads
+    // keep every rostered player, scored or not.
+    const rosterStatSets = new Set(PLAYER_AWARD_RULES.filter(rule => rule.credit).flatMap(rule => rule.statSets));
+    const firstRosterStatSet = statSets.find(statSet => rosterStatSets.has(statSet));
+    return [
+        dates,
+        ...statSets.flatMap(statSet => [
+            ...statSet === firstRosterStatSet ? [finalRosters] : [],
+            statSetRead(statSet, 'skater'),
+            statSetRead(statSet, 'goalie'),
+        ]),
+        rookies,
+        candidates,
+    ];
 }

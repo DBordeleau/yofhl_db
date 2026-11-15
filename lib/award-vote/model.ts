@@ -13,9 +13,9 @@ export type PlayerAwardId = typeof PLAYER_AWARD_IDS[number];
 
 /**
  * A named stretch of the season a candidate's stats cover. The regular-season awards show `regularSeason`; the
- * Danny Briere Award will add the playoff rounds and the Final as their own stat sets.
+ * Danny Briere Award shows `playoffRounds` (every playoff round, the Final included) and `final` (the Final alone).
  */
-export type StatSetName = 'regularSeason';
+export type StatSetName = 'regularSeason' | 'playoffRounds' | 'final';
 
 /** a skater's totals over one stat set */
 export interface SkaterLine {
@@ -61,6 +61,11 @@ export interface PrepareProgress {
     dates: import('./season-dates').SeasonDates | null;
     /** the NHL lookup of each young player looked up so far for the Teemu Trophy, by player ID */
     rookies?: Record<string, RookieLookup>;
+    /**
+     * Everyone on a finalist's roster outside the minors on any day of the Final, by player ID, each with the team
+     * season of the finalist credited with them; absent until the Final's rosters are read.
+     */
+    finalRosters?: Record<string, number>;
 }
 
 /** a young player's NHL match and whether the Calder rule (calder.ts) admits them, or null when no NHL player matches */

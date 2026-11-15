@@ -99,6 +99,21 @@ test('a failing or invalid standings read writes nothing and records the error, 
         [null, new Date(MID_SEASON + 86400_000).toISOString(), 4, []]);
 });
 
+test("an earlier season's Fantrax teams leave the live season the latest one, and that earlier season untouched", async t => {
+    const { league, run, read, setStandings } = await seasonSyncLeague(t);
+    const { getFranchise } = await import('@/lib/data/league');
+    // 2025–26's own Fantrax league, mapped for the award vote's rehearsal
+    await league.client.exec(`insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id)
+        values (2026, 'league26', 'old1', 1), (2026, 'league26', 'old2', 2), (2026, 'league26', 'old3', 3), (2026, 'league26', 'old4', 4)`);
+    setStandings([...STANDINGS]);
+    const { result } = await run(MID_SEASON);
+    assert.equal(result.outcome, 'synced');
+    assert.equal(result.outcome === 'synced' && result.seasonYear, SEASON);
+    const seasons = (await read(() => getFranchise(1)))!.seasons;
+    assert.deepEqual(seasons.find(season => season.year === SEASON)!.wins, 3);
+    assert.deepEqual([seasons.find(season => season.year === 2026)!.wins, seasons.find(season => season.year === 2026)!.fptsFor], [10, 1000.5]);
+});
+
 test('with the live season not opened in the archive, a run writes nothing', async t => {
     const { run, read, setStandings } = await seasonSyncLeague(t, { opened: false });
     const { getSeasonSyncStatus } = await import('@/lib/admin/data');
