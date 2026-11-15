@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rangeKey } from './memory-fantrax';
-import { AFTER_FINAL, awardVoteLeague, FINAL, goalie, nhlRecord, PLAYOFF_ROUNDS, REGULAR_SEASON, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
+import { AFTER_FINAL, awardVoteLeague, FINAL, goalie, lockInHours, nhlRecord, PLAYOFF_ROUNDS, REGULAR_SEASON, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
 
 test('preparing refuses a season before the first award vote, other than the rehearsal', async t => {
     const { act, vote, fantrax } = await awardVoteLeague(t);
@@ -271,10 +271,10 @@ test("an unfinished prepare can be started over from nothing, keeping the admin'
 });
 
 test('starting over is refused once the award vote is past prepared', async t => {
-    const { act, vote, setRegularSeason, prepareFully, league } = await awardVoteLeague(t);
+    const { act, vote, setRegularSeason, prepareFully } = await awardVoteLeague(t);
     setRegularSeason([skater('s1', 100)]);
     await prepareFully();
-    await league.client.exec(`update league.award_votes set state = 'open', ballot_lock = now() + interval '1 day' where season_year = ${SEASON}`);
+    assert.deepEqual(await act(() => vote.openVoting({ seasonYear: SEASON, ballotLock: lockInHours(24) })), { ok: true });
     assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON, startOver: true })), { ok: false, reason: 'not-prepared' });
     assert.notEqual((await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot, null);
 });

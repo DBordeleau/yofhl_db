@@ -1,9 +1,10 @@
 // The award vote module wired to production: the real clock, Fantrax over HTTP (league info and daily rosters
 // through the Fantrax client, date-range totals through the ranged-stats reader, under the season's own by-date
-// code), the NHL's player search and profiles (nhl-lookup.ts), and the app's database.
+// code), the NHL's player search and profiles (nhl-lookup.ts), the app's database and the owner session.
 import { rows, writeInOrder } from '@/lib/data/db';
 import { createFantraxClient } from '@/lib/fantrax/fantrax-client';
 import { findByDateSeasonCode, loadRangedGoaliePage, loadRangedSkaterPage } from '@/lib/fantrax/ranged-stats';
+import { ownerSession } from '@/lib/owner/owner-session';
 import { createAwardVote } from './create-award-vote';
 import { createNhlLookup } from './nhl-lookup';
 import type { AwardVoteRange } from './ports';
@@ -36,4 +37,5 @@ export const awardVote = createAwardVote({
     },
     nhl: createNhlLookup(),
     db: { rows, writeInOrder },
+    ownerSession,
 });

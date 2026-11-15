@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rangeKey } from './memory-fantrax';
-import { awardVoteLeague, FINAL, FRANCHISES, goalie, nhlRecord, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
+import { awardVoteLeague, FINAL, FRANCHISES, goalie, lockInHours, nhlRecord, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
 
 // The rehearsal: the season before the live season (2026 here, the live season being 2027) prepared and previewed
 // like a live award vote, but never opened. Its Fantrax league is the 2025–26 one, league26, mapped like league27.
@@ -67,8 +67,8 @@ test('the season before the live season is prepared and previewed as a rehearsal
 test('only the season before the live season can be rehearsed', async t => {
     const { act, vote, fantrax, league } = await rehearsalLeague(t);
     assert.deepEqual(await act(() => vote.prepare({ seasonYear: 2025 })), { ok: false, reason: 'before-award-votes' });
-    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2025 })), { kind: null, vote: null, ballot: null });
-    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2026 })), { kind: 'rehearsal', vote: null, ballot: null });
+    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2025 })), { kind: null, vote: null, ballot: null, ballotStatus: null });
+    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2026 })), { kind: 'rehearsal', vote: null, ballot: null, ballotStatus: null });
 
     // once 2027–28 starts on Fantrax, 2026–27 is a live award vote and 2025–26 can no longer be rehearsed
     await league.client.exec(`
@@ -97,8 +97,29 @@ test('a rehearsal is refused everything past preparing, and the database never l
     assert.equal(await act(() => rehearsalRefusal(db, 2026)), 'rehearsal');
 
     for (const state of ['open', 'scored', 'published']) {
-        await assert.rejects(league.client.query(`update league.award_votes set state = '${state}' where season_year = 2026`), /award_votes_rehearsal_prepared/);
+        await assert.rejects(league.client.query(`
+            update league.award_votes set state = '${state}', ballot_lock = now() + interval '1 day', opened_at = now()
+            where season_year = 2026`), /award_votes_rehearsal_prepared/);
     }
+});
+
+test('a rehearsal is never opened, has no ballot lock to move and takes no ballot, and owners never see it', async t => {
+    const { act, vote, asOwner, signInAs, headerAnswer, setRegularSeason, prepareFully, fantraxIs2026 } = await rehearsalLeague(t);
+    fantraxIs2026();
+    setRegularSeason([skater('s1', 300)]);
+    await prepareFully(2026);
+    const refused = { ok: false, reason: 'rehearsal' };
+    assert.deepEqual(await act(() => vote.openVoting({ seasonYear: 2026, ballotLock: lockInHours(24) })), refused);
+    assert.deepEqual(await act(() => vote.moveBallotLock({ seasonYear: 2026, ballotLock: lockInHours(48) })), refused);
+    await signInAs('owner-1');
+    const rankings = { 'wayne-gretzky': ['s1'], 'le-magnifique': ['s1'] };
+    assert.deepEqual(await asOwner(() => vote.saveDraft({ seasonYear: 2026, rankings })), refused);
+    assert.deepEqual(await asOwner(() => vote.submitBallot({ seasonYear: 2026, rankings })), refused);
+
+    assert.equal((await act(() => vote.readPreview({ seasonYear: 2026 }))).vote?.state, 'prepared');
+    assert.deepEqual(await asOwner(() => vote.readOwnerBallot({ seasonYear: 2026 })), { status: 'no-vote' });
+    assert.deepEqual(await asOwner(() => vote.readOwnerBallot({})), { status: 'no-vote' });
+    assert.equal((await headerAnswer()).awardVote, null);
 });
 
 test('a rehearsal can be prepared again, replacing its snapshot and staying a rehearsal', async t => {
