@@ -152,6 +152,10 @@ _Avoid_: standings, table
 One season's vote on its awards, from the admin opening it to the winners being published. It is held after the Final, covers every voted award at once, and starts with the 2027 season; earlier seasons' winners were entered by hand and have no tally.
 _Avoid_: election, poll, vote (alone, for a ballot or one ranking)
 
+**Rehearsal**:
+An award vote on the season before the live season, prepared and previewed by the league owner like a live one but never opened: no ballots, tally or winners, and owners never see it. It lets the league owner check a real ballot (2025–26's) before the first live award vote.
+_Avoid_: dry run, test vote
+
 **Voted award**:
 An award decided by an award vote: the six individual awards and GM of the Year. The Jagr Cup and the Prime Minister's Trophy are worked out from results and are never voted.
 

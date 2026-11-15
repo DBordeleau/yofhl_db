@@ -111,6 +111,23 @@ seasons:
   2021:
     # the 2020–21 export holds two 4-team brackets; these teams played the consolation one
     consolation: [JTPJ, NFLD, MAC, MEAT]
+  2026:
+    # the 2025–26 league, for the award vote's rehearsal; the season itself is imported from its CSVs
+    fantrax:
+      league: gl4i2lrcmfblkbwq
+      teams:
+        aptf947xmfblkbwz: 1 # Paddyville Lucifers
+        nqtabylxmfblkbwz: 2 # New Purrsey Devils
+        8bel9iiwmfblkbwz: 3 # Hooterville Honkers
+        x349hilhmfblkbwz: 4 # Varrock Dark Wizards
+        o8tkoufmmfblkbwz: 5 # Jagrtown Ice Fellas
+        ypeh4mx8mfblkbwz: 6 # West Texas Torteehaws
+        kzjo8shwmfblkbwz: 7 # The Lalibirdies
+        1kav3w3hmfblkbwz: 8 # Skellige Sirens
+        985vecsomfblkbwz: 9 # Carolina Reapers
+        u6ttlt5bmfblkbwz: 10 # Retro Phenoms
+        f1lgd36qmfblkbwz: 13 # Hamhung Hall Monitors
+        jdm5md74mfblkbwz: 14 # Johnny T & The PJs
   2027:
     fantrax:
       league: rf5o9cu2mutybszr
