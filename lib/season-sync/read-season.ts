@@ -1,13 +1,14 @@
 // Everything one run reads from Fantrax, checked against the current season before anything is written. Each part
-// of the season (team seasons, player seasons, the playoff bracket and the championship roster, which follows the
-// bracket's champion) turns its validated reads into SyncWrites; a part that cannot be checked
-// throws, which fails the whole run before any write. A part that is fine but has something the league owner
+// of the season (team seasons, player seasons with their skater categories, the playoff bracket and the
+// championship roster, which follows the bracket's champion) turns its validated reads into SyncWrites; a part
+// that cannot be checked throws, which fails the whole run before any write. A part that is fine but has something the league owner
 // should know adds a warning instead.
 import { readChampionshipRoster } from './championship-roster';
 import type { CurrentSeason } from './current-season';
 import { readBracket } from './playoffs';
 import type { FantraxLeagueInfo, SeasonSyncPorts } from './ports';
 import { playerSeasonRows, playerSeasonsWrites } from './player-seasons';
+import { withSkaterCategories } from './skater-categories';
 import { teamSeasonStandings, teamSeasonsWrite } from './team-seasons';
 import type { SyncRunWrite } from './write';
 
@@ -23,12 +24,13 @@ export async function readLeagueInfo(ports: SeasonSyncPorts, season: CurrentSeas
 
 /** every other read, checked, as the run's write: the writes that bring the archive up to date and their warnings */
 export async function readSeason(ports: SeasonSyncPorts, season: CurrentSeason, info: FantraxLeagueInfo, now: number): Promise<SyncRunWrite> {
-    const [standings, players, bracket] = await Promise.all([
+    const [standings, players, skaters, bracket] = await Promise.all([
         ports.fantrax.standings(season.leagueId),
         ports.fantrax.players(season.leagueId, season.seasonYear),
+        ports.fantrax.skaters(season.leagueId, season.seasonYear),
         readBracket(ports, season, now),
     ]);
-    const playerSeasons = playerSeasonRows(season, players);
+    const playerSeasons = withSkaterCategories(playerSeasonRows(season, players), skaters);
     const roster = await readChampionshipRoster(ports, season, info, bracket.champion, new Set(playerSeasons.map(row => row.id)));
     return {
         writes: [

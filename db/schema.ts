@@ -97,6 +97,7 @@ export const seasonSyncStatus = league.table('season_sync_status', {
     changedTeamSeasons: integer('changed_team_seasons').notNull().default(0),
     changedPlayoffGames: integer('changed_playoff_games').notNull().default(0),
     changedChampionshipRoster: integer('changed_championship_roster').notNull().default(0),
+    changedSkaterCategories: integer('changed_skater_categories').notNull().default(0),
     warnings: jsonb('warnings').$type<string[]>().notNull().default([]),
     frozenAt: timestamp('frozen_at', { withTimezone: true, mode: 'string' }),
     autoRosterFranchiseId: integer('auto_roster_franchise_id').references(() => franchises.id),
@@ -295,6 +296,13 @@ export const playerSeasons = league.table(
         positions: text('positions').array().notNull(), // ["C", "LW"]
         fpts: fpts('fpts').notNull(),
         fpg: numeric('fpg', { precision: 6, scale: 2, mode: 'number' }).notNull(),
+        // Skater categories (GLOSSARY.md), written by the season sync. Null when not stored here: goalies, and
+        // every season before 2027, whose totals are in lib/records/player-category-history.json.
+        goals: integer('goals'),
+        assists: integer('assists'),
+        shots: integer('shots'),
+        hits: integer('hits'),
+        blocks: integer('blocks'),
     },
     (t) => [
         primaryKey({ columns: [t.playerId, t.seasonYear] }),
