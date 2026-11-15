@@ -81,3 +81,27 @@ test('a re-import keeps every regular-season game, ids included, and the season\
     assert.deepEqual(await regularGames(), games);
     assert.deepEqual(await weeks(), weeksBefore);
 });
+
+test('a re-import rewrites player seasons from the CSVs, keeping their category totals, and removes one the keep rule drops with its totals', async (t) => {
+    const { run, query } = await syncedLeague(t);
+    const players = async () => (await query<{ player_id: string; fpts: number; goals: number | null; assists: number | null; shots: number | null; hits: number | null; blocks: number | null }>(
+        `select player_id, fpts::float as fpts, goals, assists, shots, hits, blocks from league.player_seasons
+         where season_year = 2026 and player_id in ('0fx01', '0fx02', '0fx04', '0fx0b') order by player_id`,
+    ));
+    // Aaron Ashby's points change; Kyle Knox ends the season a free agent with none, so the keep rule drops him
+    const changed = dataCopy(t, PLAYER_STATS, [
+        ['"*0fx01*","Aaron Ashby","TOR","C","ASH","300","3.75"', '"*0fx01*","Aaron Ashby","TOR","C","ASH","305","3.81"'],
+        ['"*0fx0b*","Kyle Knox","LAK","RW","FA","45","0.9"', '"*0fx0b*","Kyle Knox","LAK","RW","FA","0","0"'],
+    ]);
+
+    assert.equal((await run({ dataDir: changed })).ok, true);
+    assert.deepEqual(await players(), [
+        { player_id: '0fx01', fpts: 305, goals: 30, assists: 25, shots: 200, hits: 40, blocks: 10 },
+        { player_id: '0fx02', fpts: 150.5, goals: 5, assists: 20, shots: 90, hits: 60, blocks: 80 },
+        { player_id: '0fx04', fpts: 400, goals: null, assists: null, shots: null, hits: null, blocks: null },
+    ]);
+
+    // imported again with his points, Kyle Knox is back without the totals he had
+    assert.equal((await run()).ok, true);
+    assert.deepEqual((await players()).find((p) => p.player_id === '0fx0b'), { player_id: '0fx0b', fpts: 45, goals: null, assists: null, shots: null, hits: null, blocks: null });
+});

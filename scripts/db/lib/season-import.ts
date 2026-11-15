@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import * as schema from '@/db/schema';
 import { drawingOrder } from '@/lib/data/bracket-order';
 import { matchupWinner } from '@/lib/data/matchup-winner';
@@ -336,19 +336,35 @@ const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<str
                 .values(batch.map((p) => ({ id: p.id, name: p.name })))
                 .onConflictDoUpdate({ target: schema.players.id, set: { name: sql`excluded.name` } });
         }
-        await tx.delete(schema.playerSeasons).where(eq(schema.playerSeasons.seasonYear, season.year));
+        // player seasons are rewritten in place, so the skater categories the season sync wrote (which the
+        // CSVs don't hold) stay with them; one the keep rule drops goes with its categories
+        await tx
+            .delete(schema.playerSeasons)
+            .where(and(eq(schema.playerSeasons.seasonYear, season.year), notInArray(schema.playerSeasons.playerId, kept.map((p) => p.id))));
         for (const batch of chunk(kept, 1000)) {
-            await tx.insert(schema.playerSeasons).values(
-                batch.map((p) => ({
-                    playerId: p.id,
-                    seasonYear: season.year,
-                    teamSeasonId: p.franchiseId === null ? null : teamSeasonIds.get(p.franchiseId)!,
-                    nhlTeam: p.nhlTeam,
-                    positions: p.positions,
-                    fpts: p.fpts,
-                    fpg: p.fpg,
-                })),
-            );
+            await tx
+                .insert(schema.playerSeasons)
+                .values(
+                    batch.map((p) => ({
+                        playerId: p.id,
+                        seasonYear: season.year,
+                        teamSeasonId: p.franchiseId === null ? null : teamSeasonIds.get(p.franchiseId)!,
+                        nhlTeam: p.nhlTeam,
+                        positions: p.positions,
+                        fpts: p.fpts,
+                        fpg: p.fpg,
+                    })),
+                )
+                .onConflictDoUpdate({
+                    target: [schema.playerSeasons.playerId, schema.playerSeasons.seasonYear],
+                    set: {
+                        teamSeasonId: sql`excluded.team_season_id`,
+                        nhlTeam: sql`excluded.nhl_team`,
+                        positions: sql`excluded.positions`,
+                        fpts: sql`excluded.fpts`,
+                        fpg: sql`excluded.fpg`,
+                    },
+                });
         }
 
         // the CSVs hold only playoff games; regular-season games come from the season sync and are kept
