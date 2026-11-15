@@ -1,14 +1,19 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AdminHeader from '@/components/admin/admin-header';
+import AwardVotePanel from '@/components/admin/award-vote-panel';
 import AwardsEditor from '@/components/admin/awards-editor';
 import BracketReview from '@/components/admin/bracket-review';
 import LoginForm from '@/components/admin/login-form';
 import RosterEditor from '@/components/admin/roster-editor';
 import { adminConfigured, isAdmin } from '@/lib/admin/auth';
 import { getSeasonAdmin } from '@/lib/admin/data';
+import { awardVote } from '@/lib/award-vote/award-vote';
+import { FIRST_AWARD_VOTE_SEASON } from '@/lib/award-vote/model';
 
 export const dynamic = 'force-dynamic';
+// preparing an award vote's ballot runs in batches that each fit this limit
+export const maxDuration = 60;
 
 const Section = ({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) => (
     <section className="rounded-3xl border border-line bg-ice/60 p-4 shadow-card md:p-6">
@@ -26,6 +31,7 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
     const season = await getSeasonAdmin(parseInt(year, 10));
     if (!season) notFound();
     const playoffs = season.playoffStatus === 'complete';
+    const vote = season.year >= FIRST_AWARD_VOTE_SEASON ? await awardVote.readPreview({ seasonYear: season.year }) : null;
 
     return (
         <>
@@ -52,6 +58,14 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
                 {playoffs && !season.champion && (
                     <Section title="Championship roster" description="The bracket doesn't have a champion yet, so there's no roster to set. Import the season's playoff results first." >
                         <span />
+                    </Section>
+                )}
+                {vote && (
+                    <Section
+                        title="Award vote"
+                        description="Prepare the ballot from Fantrax and the archive, then check it here as owners will see it. Preparing again replaces it."
+                    >
+                        <AwardVotePanel year={season.year} preview={vote} />
                     </Section>
                 )}
                 <Section title="Awards" description={playoffs ? undefined : 'The playoffs were cancelled this season, so there is no Playoff MVP.'}>

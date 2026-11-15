@@ -23,6 +23,7 @@ import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 import type { TeamColours } from '@/lib/team-branding';
 import type { DraftDevelopmentFacts } from '@/lib/draft/development';
 import type { SavedLiveSeason } from '@/lib/fantrax/fantrax-client';
+import type { AwardVoteState, PlayerAwardId, PrepareProgress, RookieAdjustments, StatLine, StatSetName } from '@/lib/award-vote/model';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -397,6 +398,65 @@ export const awards = league.table(
     },
     (t) => [primaryKey({ columns: [t.seasonYear, t.awardTypeId, t.playerId] })],
 );
+
+// ---- award votes (GLOSSARY.md, "Award vote"): written only by the award vote module (lib/award-vote); the season
+// import and the season sync never touch them ----
+
+// One award vote per season year. A rehearsal (the season before the first award vote) can only ever be prepared.
+// prepare_progress is how far the latest prepare has got; prepared_at is set when it finishes, so a snapshot is
+// readable only while prepared_at is set. rookie_adjustments are the admin's additions to and removals from the
+// computed Teemu Trophy candidates, kept across re-prepares.
+export const awardVotes = league.table('award_votes', {
+    seasonYear: integer('season_year').primaryKey().references(() => seasons.year),
+    state: text('state', { enum: ['prepared', 'open', 'scored', 'published'] }).$type<AwardVoteState>().notNull().default('prepared'),
+    rehearsal: boolean('rehearsal').notNull().default(false),
+    ballotLock: timestamp('ballot_lock', { withTimezone: true, mode: 'string' }),
+    prepareProgress: jsonb('prepare_progress').$type<PrepareProgress>().notNull(),
+    preparedAt: timestamp('prepared_at', { withTimezone: true, mode: 'string' }),
+    rookieAdjustments: jsonb('rookie_adjustments').$type<RookieAdjustments>().notNull().default({ added: [], removed: [] }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (t) => [
+    check('award_votes_state', sql`${t.state} in ('prepared', 'open', 'scored', 'published')`),
+    check('award_votes_rehearsal_prepared', sql`not ${t.rehearsal} or ${t.state} = 'prepared'`),
+]);
+
+// The frozen snapshot: every player who is a candidate for some voted award, as Fantrax named them when the vote
+// was prepared. Players are not referenced, since Fantrax lists players the archive may not have.
+export const awardVotePlayers = league.table('award_vote_players', {
+    seasonYear: integer('season_year').notNull().references(() => awardVotes.seasonYear, { onDelete: 'cascade' }),
+    playerId: text('player_id').notNull(),
+    name: text('name').notNull(),
+    positions: text('positions').array().notNull(),
+    nhlTeam: text('nhl_team'),
+    // age now by Fantrax's age column, as it was when prepared
+    age: smallint('age'),
+}, (t) => [primaryKey({ columns: [t.seasonYear, t.playerId] })]);
+
+// A snapshot player's totals over one stat set (a named stretch of the season: regularSeason, and later the
+// playoff rounds and the Final), as a skater or goalie line.
+export const awardVoteStats = league.table('award_vote_stats', {
+    seasonYear: integer('season_year').notNull(),
+    playerId: text('player_id').notNull(),
+    statSet: text('stat_set').$type<StatSetName>().notNull(),
+    line: jsonb('line').$type<StatLine>().notNull(),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.playerId, t.statSet] }),
+    foreignKey({ name: 'award_vote_stats_player', columns: [t.seasonYear, t.playerId], foreignColumns: [awardVotePlayers.seasonYear, awardVotePlayers.playerId] }).onDelete('cascade'),
+]);
+
+// A snapshot player's candidacy for one individual voted award (by its catalogue id in lib/awards.ts), with the team
+// season credited with them for it, or none for a player nobody rostered.
+export const awardVoteCandidates = league.table('award_vote_candidates', {
+    seasonYear: integer('season_year').notNull(),
+    award: text('award').$type<PlayerAwardId>().notNull(),
+    playerId: text('player_id').notNull(),
+    teamSeasonId: integer('team_season_id').references(() => teamSeasons.id),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.award, t.playerId] }),
+    foreignKey({ name: 'award_vote_candidates_player', columns: [t.seasonYear, t.playerId], foreignColumns: [awardVotePlayers.seasonYear, awardVotePlayers.playerId] }).onDelete('cascade'),
+    check('award_vote_candidates_award', sql`${t.award} in ('wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere')`),
+]);
 
 // ---- derived, refreshed after every import or curated edit (SQL lives in the views migration) ----
 

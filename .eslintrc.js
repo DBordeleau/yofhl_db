@@ -27,6 +27,13 @@ module.exports = {
       },
     },
     {
+      files: ['lib/award-vote/award-vote.ts'],
+      rules: {
+        'import/no-restricted-paths': fantraxBoundary([...publicFantraxFiles, './fantrax-client.ts', './ranged-stats.ts'],
+          `${boundaryMessage}; the award vote's production binding may also import the Fantrax client and the ranged-stats reader.`),
+      },
+    },
+    {
       files: ['lib/fantrax/**'],
       rules: { 'import/no-restricted-paths': 'off' },
     },

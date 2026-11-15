@@ -286,6 +286,7 @@ Leave out `nextCache` for the app's reads without a cache, or both options for a
 | `npm run test:history` | Run parser, identity, grouping, repeat-import, and rollback tests |
 | `npm run test:pickem` | Run the Pick'em module's tests through its operations against in-memory Postgres and the in-memory live season |
 | `npm run test:season-sync` | Run the season sync's tests through its run operation against in-memory Postgres and its in-memory Fantrax reads |
+| `npm run test:award-vote` | Run the award vote module's tests through its operations against in-memory Postgres, its in-memory Fantrax and a fake clock |
 | `npm run db:verify` | Legacy migration comparison against old-site API shapes; not current-site verification |
 
 `db:verify` still calls `/api/stats/...`, `/api/teams/stats`, and `/api/player/...`, which the current app does not implement. Its default target is the current production API, so it will encounter missing routes. It also reports data differences without making those differences a failing exit status. Use it only with a compatible legacy endpoint via `YOFHL_LIVE_API`; use the current API and page checks for present-day verification.
