@@ -184,17 +184,6 @@ function championOf(live: LiveSeason, season: CurrentSeason, planned: PlayoffGam
 /** the oldest live season the bracket is read from: a day and a half, so one missed evening of refreshes still syncs */
 const LIVE_SEASON_MAX_AGE = 36 * 3600_000;
 
-/** the live season, checked to be the current season */
-async function liveSeasonOf(ports: SeasonSyncPorts, season: CurrentSeason, now: number): Promise<LiveSeason> {
-    const result = await ports.liveSeason.getLiveSeason({ now });
-    if (result.status !== 'available') throw new Error('The live season is unavailable, so its playoff weeks could not be read.');
-    const live = result.value;
-    if (live.seasonYear !== season.seasonYear || live.fantraxLeagueId !== season.leagueId) {
-        throw new Error(`The live season is Fantrax league ${live.fantraxLeagueId}'s ${live.seasonYear} season, not ${season.leagueId}'s ${season.seasonYear}.`);
-    }
-    return live;
-}
-
 const playoffGamesQuery = (seasonYear: number) => sql`
     select round, slot, away_team_season_id as away, home_team_season_id as home,
            away_score::float8 as "awayScore", home_score::float8 as "homeScore", winner_team_season_id as winner
@@ -207,9 +196,8 @@ const bracketCorrectionsQuery = (seasonYear: number) => sql`
     from league.matchup_overrides where season_year = ${seasonYear}`;
 
 /** Everything the bracket needs, checked, as its writes and warnings, and the champion once the writes land. */
-export async function readBracket(ports: SeasonSyncPorts, season: CurrentSeason, now: number): Promise<{ writes: SyncWrite[]; warnings: string[]; champion: Champion | null }> {
-    const [live, stored, corrections] = await Promise.all([
-        liveSeasonOf(ports, season, now),
+export async function readBracket(ports: SeasonSyncPorts, season: CurrentSeason, live: LiveSeason, now: number): Promise<{ writes: SyncWrite[]; warnings: string[]; champion: Champion | null }> {
+    const [stored, corrections] = await Promise.all([
         rows<PlayoffGame>(playoffGamesQuery(season.seasonYear)),
         rows<BracketCorrection>(bracketCorrectionsQuery(season.seasonYear)),
     ]);
