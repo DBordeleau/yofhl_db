@@ -115,3 +115,26 @@ test("the record book's category records count the live season's stored totals, 
     await run(MID_SEASON + 3600_000);
     assert.deepEqual((await goals()).season[0], ['v1:2027', 59, '2026–27']);
 });
+
+test('a stored player season missing one category total still counts each total it has, and the missing one is never zero', async t => {
+    const { league, run, read, setPlayers, setSkaters } = await seasonSyncLeague(t);
+    const { getRecordBook } = await import('@/lib/records/data');
+    // 02f9l scored 53 goals and 74 assists in 2025–26, as the checked-in history has it
+    await league.client.exec(`insert into league.players (id, name) values ('02f9l', 'Name 02f9l');
+        insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg) values ('02f9l', 2026, 1, 'EDM', '{C}', 150, 2)`);
+    setPlayers([['02f9l', 40, 4, 2]]);
+    setSkaters([['02f9l', 7, 4, 40, 60, 20]]);
+    await run(MID_SEASON);
+    await league.client.exec(`update league.player_seasons set assists = null where player_id = '02f9l' and season_year = ${SEASON}`);
+
+    const records = async (stat: 'goals' | 'assists') => {
+        const { records } = await read(() => getRecordBook({ stat }));
+        const list = (id: string) => records.find(record => record.id === id)!.entries.map(entry => [entry.id, entry.value, entry.detail]);
+        return { season: list(`player-season-${stat}`), career: list(`player-career-${stat}`) };
+    };
+    assert.deepEqual(await records('goals'), {
+        season: [['02f9l:2026', 53, '2025–26'], ['02f9l:2027', 7, '2026–27']],
+        career: [['02f9l', 60, '2 seasons']],
+    });
+    assert.deepEqual(await records('assists'), { season: [['02f9l:2026', 74, '2025–26']], career: [['02f9l', 74, '1 seasons']] });
+});

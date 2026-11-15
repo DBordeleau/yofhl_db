@@ -30,7 +30,7 @@ export const teamIdentityTags = (id: number) => [leagueTags.franchise(id), leagu
 // the champion, so it expires what a bracket correction does (the 'matchup' curated edit). Skater categories are
 // read only by the record book; regular-season games and weeks only by the record book and Compare. Neither is
 // in a view.
-export type SeasonSyncChange = 'stats' | 'playoffs' | 'roster' | 'categories' | 'regularSeason';
+export type SeasonSyncChange = 'stats' | 'playoffs' | 'roster' | 'skaterCategories' | 'regularSeason';
 export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: number): { views: MaterializedView[]; tags: string[] } {
     const effects = changes.map(change => {
         switch (change) {
@@ -42,7 +42,7 @@ export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: nu
             };
             case 'playoffs': return curatedEditEffects('matchup', year);
             case 'roster': return curatedEditEffects('roster', year);
-            case 'categories': return { views: [] as MaterializedView[], tags: [leagueTags.records] };
+            case 'skaterCategories': return { views: [] as MaterializedView[], tags: [leagueTags.records] };
             case 'regularSeason': return { views: [] as MaterializedView[], tags: [leagueTags.records, leagueTags.rivalries] };
         }
     });

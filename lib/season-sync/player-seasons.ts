@@ -4,6 +4,7 @@
 // a player row (bare ID and name) and a player season with the fantasy team from the Fantrax team mapping (none
 // for a free agent), NHL team, positions, FPts and FP/G, and its skater categories (skater-categories.ts).
 import { sql } from 'drizzle-orm';
+import { SKATER_CATEGORIES, type PlayerStat } from '@/lib/records/player-stats';
 import type { CurrentSeason } from './current-season';
 import type { FantraxPlayer } from './ports';
 import type { SkaterCategoryTotals } from './skater-categories';
@@ -54,10 +55,12 @@ export function playerSeasonRows(season: CurrentSeason, players: FantraxPlayer[]
  */
 export function playerSeasonsWrites(seasonYear: number, rows: (PlayerSeasonRow & SkaterCategoryTotals)[], ringed: string[] = []): SyncWrite[] {
     const payload = JSON.stringify(rows);
+    /** the skater category columns, each spelled by `spell`, comma-separated */
+    const categories = (spell: (column: PlayerStat) => string) => sql.raw(SKATER_CATEGORIES.map(spell).join(', '));
     const kept = sql`(select k.id from jsonb_to_recordset(${payload}::jsonb) as k(id text))`;
     const seasons = sql`jsonb_to_recordset(${payload}::jsonb) as s(id text, "teamSeasonId" int, "nhlTeam" text, positions text[], fpts numeric, fpg numeric,
-        goals int, assists int, shots int, hits int, blocks int)`;
-    const categoriesChanged = sql`(ps.goals, ps.assists, ps.shots, ps.hits, ps.blocks) is distinct from (s.goals, s.assists, s.shots, s.hits, s.blocks)`;
+        ${categories(column => `${column} int`)})`;
+    const categoriesChanged = sql`(${categories(column => `ps.${column}`)}) is distinct from (${categories(column => `s.${column}`)})`;
     // on the season's championship roster (or the one this run writes) or an award list
     const listed = sql`(
         exists (select 1 from league.championship_rosters c where c.season_year = ${seasonYear} and c.player_id = ps.player_id)
@@ -89,13 +92,13 @@ export function playerSeasonsWrites(seasonYear: number, rows: (PlayerSeasonRow &
             count: 'playerSeasons',
             change: 'stats',
             statement: sql`
-                insert into league.player_seasons as ps (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg, goals, assists, shots, hits, blocks)
-                select s.id, ${seasonYear}, s."teamSeasonId", s."nhlTeam", s.positions, round(s.fpts, 2), round(s.fpg, 2), s.goals, s.assists, s.shots, s.hits, s.blocks
+                insert into league.player_seasons as ps (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg, ${categories(column => column)})
+                select s.id, ${seasonYear}, s."teamSeasonId", s."nhlTeam", s.positions, round(s.fpts, 2), round(s.fpg, 2), ${categories(column => `s.${column}`)}
                 from ${seasons}
                 on conflict (player_id, season_year) do update
                 set team_season_id = excluded.team_season_id, nhl_team = excluded.nhl_team, positions = excluded.positions,
                     fpts = excluded.fpts, fpg = excluded.fpg,
-                    goals = excluded.goals, assists = excluded.assists, shots = excluded.shots, hits = excluded.hits, blocks = excluded.blocks
+                    ${categories(column => `${column} = excluded.${column}`)}
                 where (ps.team_season_id, ps.nhl_team, ps.positions, ps.fpts, ps.fpg)
                       is distinct from (excluded.team_season_id, excluded.nhl_team, excluded.positions, excluded.fpts, excluded.fpg)
                 returning ps.player_id`,
@@ -103,10 +106,10 @@ export function playerSeasonsWrites(seasonYear: number, rows: (PlayerSeasonRow &
         {
             // the player seasons the part above leaves alone: only their skater categories changed
             count: null,
-            change: 'categories',
+            change: 'skaterCategories',
             statement: sql`
                 update league.player_seasons ps
-                set goals = s.goals, assists = s.assists, shots = s.shots, hits = s.hits, blocks = s.blocks
+                set ${categories(column => `${column} = s.${column}`)}
                 from ${seasons}
                 where ps.player_id = s.id and ps.season_year = ${seasonYear}
                   and (ps.team_season_id, ps.nhl_team, ps.positions, ps.fpts, ps.fpg)
@@ -117,7 +120,7 @@ export function playerSeasonsWrites(seasonYear: number, rows: (PlayerSeasonRow &
         {
             // writes nothing: the kept player seasons, new ones included, whose skater categories the two parts above change
             count: 'skaterCategories',
-            change: 'categories',
+            change: 'skaterCategories',
             statement: sql`
                 select s.id from ${seasons}
                 left join league.player_seasons ps on ps.player_id = s.id and ps.season_year = ${seasonYear}

@@ -19,21 +19,15 @@ import { matchupWinner } from '@/lib/data/matchup-winner';
 import { PLAYOFF_FORMAT } from '@/lib/fantrax/config';
 import { correctionWindowClosed, type LiveSeason, type Week, type WeekScores } from '@/lib/fantrax/live-season';
 import type { CurrentSeason } from './current-season';
+import { gamesPayload, insertGames, type SyncedGame } from './games';
 import type { SeasonSyncPorts } from './ports';
 import type { SyncWrite } from './write';
 
-/** a championship game as stored: its round and slot, both team seasons, both scores and the winning team season */
-export interface PlayoffGame {
-    round: number;
-    /** top-to-bottom position in its round for drawing the bracket, from 0 (lib/data/bracket-order.ts) */
-    slot: number;
-    away: number;
-    home: number;
-    awayScore: number;
-    homeScore: number;
-    /** null while the game has no winner: a level Final with no bracket correction */
-    winner: number | null;
-}
+/**
+ * a championship game as stored: its slot is its top-to-bottom position in its round for drawing the bracket, from 0
+ * (lib/data/bracket-order.ts), and it has no winner while a level Final has no bracket correction
+ */
+export type PlayoffGame = SyncedGame;
 
 /** a saved bracket correction (league.matchup_overrides); `winner` is a franchise, null when the score decides */
 interface BracketCorrection {
@@ -210,9 +204,6 @@ export async function readBracket(ports: SeasonSyncPorts, season: CurrentSeason,
     return { writes: games.length ? playoffGamesWrites(season.seasonYear, games) : [], warnings, champion: championOf(live, season, games, stored) };
 }
 
-const gamesPayload = (games: PlayoffGame[]) => sql`jsonb_to_recordset(${JSON.stringify(games)}::jsonb)
-    as g(round smallint, slot smallint, away int, home int, "awayScore" numeric, "homeScore" numeric, winner int)`;
-
 /**
  * The games as two parts touching disjoint rows: a stored game (by round and slot) is rewritten only where a value
  * differs, and a game not yet stored is inserted. Each returns one row per game it changed.
@@ -233,10 +224,8 @@ export const playoffGamesWrites = (seasonYear: number, games: PlayoffGame[]): Sy
     count: 'playoffGames',
     change: 'playoffs',
     statement: sql`
-        insert into league.matchups (season_year, stage, round, bracket, slot, away_team_season_id, home_team_season_id, away_score, home_score, winner_team_season_id)
-        select ${seasonYear}, 'playoff', g.round, 'championship', g.slot, g.away, g.home, round(g."awayScore", 2), round(g."homeScore", 2), g.winner
-        from ${gamesPayload(games)}
-        where not exists (select 1 from league.matchups m
-            where m.season_year = ${seasonYear} and m.stage = 'playoff' and m.bracket = 'championship' and m.round = g.round and m.slot = g.slot)
+        ${insertGames(seasonYear, 'playoff', games)}
+        where not exists (select 1 from league.matchups s
+            where s.season_year = ${seasonYear} and s.stage = 'playoff' and s.bracket = 'championship' and s.round = g.round and s.slot = g.slot)
         returning id`,
 }];

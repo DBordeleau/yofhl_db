@@ -5,9 +5,11 @@
 import type { TestContext } from 'node:test';
 import type { WeekScores } from '@/lib/fantrax/live-season';
 import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
+import { SKATER_CATEGORIES } from '@/lib/records/player-stats';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
 import type { FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxSkater, FantraxWeek } from '../ports';
+import type { SkaterCategoryTotals } from '../skater-categories';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -15,17 +17,23 @@ export const FRANCHISES = [1, 2, 3, 4];
 /** Fantrax's first playoff week: the Quarterfinals, then the Semifinals (23) and the two-week Final (24) */
 export const FIRST_PLAYOFF_WEEK = 22;
 const DAY = 86400 * 1000;
+/** midnight in Eastern time (the league's time zone), `days` days after October 12, 2026 */
+const easternMidnight = (days: number) => {
+    const fiveUtc = Date.UTC(2026, 9, 12 + days, 5);
+    const hour = Number(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: '2-digit', hourCycle: 'h23' }).format(fiveUtc));
+    return fiveUtc - hour * 3600 * 1000;
+};
 
-/** The season's 24 weeks: weekly from October 12, then a two-week Final ending April 5, 2027. */
+/** The season's 24 weeks: Monday to Sunday in Eastern time from October 12, then a two-week Final ending April 5, 2027. */
 export const WEEKS: FantraxWeek[] = Array.from({ length: 24 }, (_, index) => {
-    const start = Date.parse('2026-10-12T04:00:00Z') + index * 7 * DAY;
-    const end = index === 23 ? Date.parse('2027-04-05T15:59:58Z') : start + 7 * DAY - 1000;
+    const start = easternMidnight(index * 7);
+    const end = index === 23 ? Date.parse('2027-04-05T15:59:58Z') : easternMidnight(index * 7 + 7) - 1000;
     return { number: index + 1, startDate: new Date(start).toISOString(), endDate: new Date(end).toISOString() };
 });
-/** Fantrax's daily roster periods, numbered from 1: midnight to midnight Eastern (standard time), from the first week's start to the Final's last day */
+/** Fantrax's daily roster periods, numbered from 1: midnight to midnight Eastern, from the first week's start to the Final's last day */
 export const ROSTER_PERIODS: FantraxRosterPeriod[] = Array.from({ length: 176 }, (_, index) => {
-    const start = Date.parse(WEEKS[0].startDate) + index * DAY;
-    return { number: index + 1, startDate: new Date(start).toISOString(), endDate: new Date(start + DAY - 1000).toISOString() };
+    const start = easternMidnight(index);
+    return { number: index + 1, startDate: new Date(start).toISOString(), endDate: new Date(easternMidnight(index + 1) - 1000).toISOString() };
 }).filter(period => Date.parse(period.startDate) <= Date.parse(WEEKS.at(-1)!.endDate));
 /** the roster periods of week `week`: those starting inside it */
 export const daysOf = (week: number) => ROSTER_PERIODS.filter(period =>
@@ -186,8 +194,8 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
      * are stored. Read from the table, as the record book shows only the ranked ones.
      */
     const skaterCategories = async (year: number) => {
-        const { rows } = await league.client.query<{ id: string; goals: number | null; assists: number | null; shots: number | null; hits: number | null; blocks: number | null }>(
-            'select player_id as id, goals, assists, shots, hits, blocks from league.player_seasons where season_year = $1 order by player_id', [year]);
+        const { rows } = await league.client.query<{ id: string } & SkaterCategoryTotals>(
+            `select player_id as id, ${SKATER_CATEGORIES.join(', ')} from league.player_seasons where season_year = $1 order by player_id`, [year]);
         return Object.fromEntries(rows.map(({ id, ...totals }) => [id, Object.values(totals).every(value => value === null) ? null : totals]));
     };
     const core = live.fantrax.core;

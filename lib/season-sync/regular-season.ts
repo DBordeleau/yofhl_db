@@ -11,20 +11,12 @@ import { rows } from '@/lib/data/db';
 import { matchupWinner } from '@/lib/data/matchup-winner';
 import { correctionWindowClosed, type LiveSeason, type WeekScores } from '@/lib/fantrax/live-season';
 import type { CurrentSeason } from './current-season';
+import { insertGames, type SyncedGame } from './games';
 import type { FantraxLeagueInfo, FantraxWeek, SeasonSyncPorts } from './ports';
 import type { SyncWrite } from './write';
 
-/** a regular-season game as stored: its week, its place in Fantrax's list, both team seasons, both scores and the winning team season */
-interface RegularSeasonGame {
-    week: number;
-    slot: number;
-    away: number;
-    home: number;
-    awayScore: number;
-    homeScore: number;
-    /** null on a tie */
-    winner: number | null;
-}
+/** a regular-season game as stored: its week as its round, its place in Fantrax's list as its slot, and no winner on a tie */
+type RegularSeasonGame = SyncedGame;
 
 /** the regular-season weeks whose games are read this run */
 function weeksToRead(info: FantraxLeagueInfo, live: LiveSeason, stored: Set<number>, now: number): FantraxWeek[] {
@@ -48,7 +40,7 @@ function gamesOf(season: CurrentSeason, week: number, scores: WeekScores): Regul
             return season.teamSeasonId(team);
         });
         return {
-            week, slot, away: awayTeam, home: homeTeam, awayScore: away.score, homeScore: home.score,
+            round: week, slot, away: awayTeam, home: homeTeam, awayScore: away.score, homeScore: home.score,
             winner: matchupWinner({ id: awayTeam, score: away.score }, { id: homeTeam, score: home.score }),
         };
     });
@@ -84,10 +76,7 @@ const gamesWrite = (seasonYear: number, games: RegularSeasonGame[]): SyncWrite =
     count: 'regularSeasonGames',
     change: 'regularSeason',
     statement: sql`
-        insert into league.matchups as m (season_year, stage, round, bracket, slot, away_team_season_id, home_team_season_id, away_score, home_score, winner_team_season_id)
-        select ${seasonYear}, 'regular', g.week, 'championship', g.slot, g.away, g.home, round(g."awayScore", 2), round(g."homeScore", 2), g.winner
-        from jsonb_to_recordset(${JSON.stringify(games)}::jsonb)
-            as g(week smallint, slot smallint, away int, home int, "awayScore" numeric, "homeScore" numeric, winner int)
+        ${insertGames(seasonYear, 'regular', games)}
         on conflict (season_year, stage, round, away_team_season_id, home_team_season_id) do update
         set slot = excluded.slot, away_score = excluded.away_score, home_score = excluded.home_score, winner_team_season_id = excluded.winner_team_season_id
         where (m.slot, m.away_score, m.home_score, m.winner_team_season_id)
