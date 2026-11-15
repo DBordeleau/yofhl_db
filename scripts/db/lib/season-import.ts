@@ -20,8 +20,9 @@ import { eraFor, findByAbbreviation, findByName, suggestEra, type LeagueConfig, 
 // All or nothing: every season validates before anything is written, then the league configuration,
 // Fantrax teams, every season, the legacy seeds, history and the view refreshes are written in one
 // transaction (docs/adr/0004-season-import-is-one-transaction.md). Standings, player seasons and playoff
-// games are rebuilt; championship rosters and awards are never touched (the legacy seeds are loaded once
-// for seasons that have none).
+// games are rebuilt from the CSVs; what only the season sync writes (regular-season games, weeks and the
+// skater categories of the player seasons kept) survives. Championship rosters and awards are never
+// touched (the legacy seeds are loaded once for seasons that have none).
 //
 // Opening the season being played: a season with a `fantrax` block in league.yml and no CSVs is opened
 // instead, with one team season per mapped franchise, its identity from the franchise's era and zeroed
