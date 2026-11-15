@@ -128,7 +128,7 @@ test('a draft or ballot that is not rankings of the ballot\'s candidates is refu
 test('submitting is refused, naming what is missing, unless every rank is filled with distinct candidates', async t => {
     const { signInAs, submit, ownBallot, headerAnswer } = await votingLeague(t);
     await signInAs('owner-1');
-    const { hasek: _left, ...withoutHasek } = COMPLETE;
+    const withoutHasek = Object.fromEntries(Object.entries(COMPLETE).filter(([award]) => award !== 'hasek'));
     assert.deepEqual(await submit({
         ...withoutHasek,
         'wayne-gretzky': ['s1', 's2', null, 's4'],
