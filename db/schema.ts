@@ -402,7 +402,7 @@ export const awards = league.table(
 // ---- award votes (GLOSSARY.md, "Award vote"): written only by the award vote module (lib/award-vote); the season
 // import and the season sync never touch them ----
 
-// One award vote per season year. A rehearsal (the season before the first award vote) can only ever be prepared.
+// One award vote per season year. A rehearsal (the season before the live season) can only ever be prepared.
 // prepare_progress is how far the latest prepare has got; prepared_at is set when it finishes, so a snapshot is
 // readable only while prepared_at is set. rookie_adjustments are the admin's additions to and removals from the
 // computed Teemu Trophy candidates, kept across re-prepares.
@@ -433,8 +433,8 @@ export const awardVotePlayers = league.table('award_vote_players', {
     age: smallint('age'),
 }, (t) => [primaryKey({ columns: [t.seasonYear, t.playerId] })]);
 
-// A snapshot player's totals over one stat set (a named stretch of the season: regularSeason, and later the
-// playoff rounds and the Final), as a skater or goalie line.
+// A snapshot player's totals over one stat set (a named stretch of the season: regularSeason, playoffRounds (every
+// playoff round, the Final included) or final), as a skater or goalie line.
 export const awardVoteStats = league.table('award_vote_stats', {
     seasonYear: integer('season_year').notNull(),
     playerId: text('player_id').notNull(),
