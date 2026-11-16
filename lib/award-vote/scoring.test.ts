@@ -2,17 +2,17 @@
 // of the tallies and the ballots, and reopening a scored award vote with a new ballot lock.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { BallotRankings } from './model';
-import { COMPLETE, FRANCHISES, SEASON, votingLeague } from './testing/award-vote-league';
+import type { BallotRankings, PlayerAwardId } from './model';
+import { COMPLETE, completeFor, FRANCHISES, playerTally, SEASON, votingLeague } from './testing/award-vote-league';
 
 test('scoring is refused while the ballot lock is ahead and a franchise has not submitted, and allowed once every franchise has', async t => {
     const { submitFor, score, admin } = await votingLeague(t);
     assert.deepEqual(await score(), { ok: false, reason: 'still-voting' });
-    for (const franchise of FRANCHISES.slice(0, 3)) await submitFor(franchise, COMPLETE);
+    for (const franchise of FRANCHISES.slice(0, 3)) await submitFor(franchise, completeFor(franchise));
     assert.deepEqual(await score(), { ok: false, reason: 'still-voting' });
     assert.equal((await admin()).vote?.state, 'open');
 
-    await submitFor(4, COMPLETE);
+    await submitFor(4, completeFor(4));
     assert.deepEqual(await score(), { ok: true });
     const { vote } = await admin();
     assert.equal(vote?.state, 'scored');
@@ -31,16 +31,16 @@ test("a franchise with no team season that season can't cast a ballot, isn't lis
     assert.deepEqual(await submit(COMPLETE), { ok: false, reason: 'no-team' });
     assert.deepEqual((await admin()).ballotStatus?.map(item => item.franchise.id), FRANCHISES);
 
-    for (const franchise of FRANCHISES) await submitFor(franchise, COMPLETE);
+    for (const franchise of FRANCHISES) await submitFor(franchise, completeFor(franchise));
     assert.deepEqual(await score(), { ok: true }, 'every franchise that played the season has submitted');
 });
 
 /** franchise 2's ballot: level with COMPLETE at the top of the Wayne Gretzky Award */
-const SECOND: BallotRankings = {
+const SECOND: BallotRankings = completeFor(2, {
     ...COMPLETE,
     'wayne-gretzky': ['s2', 's1', 's6', 's3', 'g1'],
     'teemu-selanne': ['r1', 'r2'],
-};
+});
 
 /** an award's tally lines as [player, points, votes at each rank, place] */
 const lines = (tally: { lines: { playerId: string; points: number; votes: number[]; place: number }[] } | undefined) =>
@@ -48,11 +48,11 @@ const lines = (tally: { lines: { playerId: string; points: number; votes: number
 
 test('once the ballot lock passes, submitted ballots score 10, 7, 5, 3 and 1, and a draft or no ballot adds nothing', async t => {
     const { submitFor, signInAs, saveDraft, ballotLockPasses, score, tallies } = await votingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
     // franchise 3 only has a draft, and franchise 4 nothing
     await signInAs('owner-3');
-    await saveDraft({ ...COMPLETE, 'wayne-gretzky': ['s6', 's5', 's4', 's3', 's2'] });
+    await saveDraft(completeFor(3, { ...COMPLETE, 'wayne-gretzky': ['s6', 's5', 's4', 's3', 's2'] }));
     assert.deepEqual(await tallies(), { ok: false, reason: 'not-scored' });
 
     await ballotLockPasses();
@@ -61,8 +61,8 @@ test('once the ballot lock passes, submitted ballots score 10, 7, 5, 3 and 1, an
     assert.ok(result.ok);
     assert.equal(result.counted, 2);
     assert.deepEqual(result.tallies.map(tally => tally.award),
-        ['wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere']);
-    const tally = (award: string) => result.tallies.find(item => item.award === award);
+        ['wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere', 'gm-of-the-year']);
+    const tally = (award: PlayerAwardId) => playerTally(result.tallies, award);
     assert.equal(tally('wayne-gretzky')?.label, 'Wayne Gretzky Award');
     assert.deepEqual(lines(tally('wayne-gretzky')), [
         ['s1', 17, [1, 1, 0, 0, 0], 1],
@@ -89,11 +89,11 @@ const TIED: BallotRankings[] = [
 
 test('places follow points, then first-place votes, then second-place votes and so on, and level candidates share a place', async t => {
     const { submitFor, score, tallies } = await votingLeague(t);
-    for (const [index, ballot] of TIED.entries()) await submitFor(FRANCHISES[index], ballot);
+    for (const [index, ballot] of TIED.entries()) await submitFor(FRANCHISES[index], completeFor(FRANCHISES[index], ballot));
     assert.deepEqual(await score(), { ok: true }, 'every franchise has submitted');
     const result = await tallies();
     assert.ok(result.ok);
-    const tally = (award: string) => lines(result.tallies.find(item => item.award === award));
+    const tally = (award: PlayerAwardId) => lines(playerTally(result.tallies, award));
     assert.deepEqual(tally('hasek'), [
         // level on 23 points and one first-place vote: g3 has more second-place votes
         ['g3', 23, [1, 1, 1, 0, 1], 1],
@@ -126,21 +126,21 @@ test('places follow points, then first-place votes, then second-place votes and 
 
 test('a void ballot adds nothing to any tally', async t => {
     const { submitFor, league, score, tallies } = await votingLeague(t);
-    for (const franchise of FRANCHISES) await submitFor(franchise, franchise === 2 ? SECOND : COMPLETE);
+    for (const franchise of FRANCHISES) await submitFor(franchise, completeFor(franchise, franchise === 2 ? SECOND : COMPLETE));
     // voiding is its own operation later; here franchise 2's ballot is simply stored void
     await league.client.exec(`update league.award_vote_ballots set void_reason = 'bad faith', voided_at = now() where franchise_id = 2`);
     assert.deepEqual(await score(), { ok: true });
     const result = await tallies();
     assert.ok(result.ok);
     assert.equal(result.counted, 3);
-    assert.deepEqual(lines(result.tallies.find(item => item.award === 'wayne-gretzky'))?.slice(0, 2),
+    assert.deepEqual(lines(playerTally(result.tallies, 'wayne-gretzky'))?.slice(0, 2),
         [['s1', 30, [3, 0, 0, 0, 0], 1], ['s2', 21, [0, 3, 0, 0, 0], 2]]);
 });
 
 test('the admin reads every submitted ballot\'s rankings only once the ballot lock has passed, and owners never read another franchise\'s', async t => {
     const { submitFor, signInAs, saveDraft, ownBallot, read, ballots, ballotLockPasses, score } = await votingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
     await signInAs('owner-3');
     await saveDraft({ hasek: ['g5'] });
     assert.deepEqual(await ballots(), { ok: false, reason: 'not-locked' });
@@ -157,7 +157,7 @@ test('the admin reads every submitted ballot\'s rankings only once the ballot lo
     assert.deepEqual(await ownBallot(), { draft: { hasek: ['g5', null, null, null, null] }, submitted: null, submittedAt: null });
     const view = await read();
     assert.ok(view.status === 'ballot');
-    assert.deepEqual(Object.keys(view).sort(), ['awards', 'ballot', 'ballotLock', 'ballotStatus', 'lists', 'locked', 'seasonYear', 'status', 'team']);
+    assert.deepEqual(Object.keys(view).sort(), ['awards', 'ballot', 'ballotLock', 'ballotStatus', 'gmOfTheYear', 'lists', 'locked', 'seasonYear', 'status', 'team']);
 
     assert.deepEqual(await score(), { ok: true });
     assert.equal((await ballots()).ok, true, 'and once scored');
@@ -170,8 +170,8 @@ test('the admin reads no rankings before voting opens', async t => {
 
 test('reopening a scored award vote takes a new ballot lock and keeps every ballot editable, and scoring again replaces the tallies', async t => {
     const { act, vote, submitFor, signInAs, saveDraft, submit, ownBallot, admin, ballotLockPasses, score, reopen, tallies, ballots } = await votingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
     await signInAs('owner-3');
     await saveDraft({ hasek: ['g5'] });
     await ballotLockPasses();
@@ -192,7 +192,7 @@ test('reopening a scored award vote takes a new ballot lock and keeps every ball
 
     // franchise 3's draft is still there to finish, and franchise 2 changes its submitted ballot
     assert.deepEqual((await ownBallot())?.draft, { hasek: ['g5', null, null, null, null] });
-    assert.deepEqual(await submit({ ...COMPLETE, hasek: ['g5', 'g1', 'g2', 'g3', 'g4'] }), { ok: true });
+    assert.deepEqual(await submit(completeFor(3, { ...COMPLETE, hasek: ['g5', 'g1', 'g2', 'g3', 'g4'] })), { ok: true });
     await signInAs('owner-2');
     assert.deepEqual((await ownBallot())?.submitted, SECOND);
     assert.deepEqual(await submit({ ...SECOND, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] }), { ok: true });
@@ -203,19 +203,19 @@ test('reopening a scored award vote takes a new ballot lock and keeps every ball
     assert.ok(result.ok);
     assert.equal(result.counted, 3);
     // s6 and g1 are no longer ranked for the Wayne Gretzky Award
-    assert.deepEqual(lines(result.tallies.find(item => item.award === 'wayne-gretzky')), [
+    assert.deepEqual(lines(playerTally(result.tallies, 'wayne-gretzky')), [
         ['s1', 27, [2, 1, 0, 0, 0], 1],
         ['s2', 24, [1, 2, 0, 0, 0], 2],
         ['s3', 15, [0, 0, 3, 0, 0], 3],
         ['s4', 9, [0, 0, 0, 3, 0], 4],
         ['s5', 3, [0, 0, 0, 0, 3], 5],
     ]);
-    assert.deepEqual(lines(result.tallies.find(item => item.award === 'hasek'))?.[0], ['g1', 27, [2, 1, 0, 0, 0], 1]);
+    assert.deepEqual(lines(playerTally(result.tallies, 'hasek'))?.[0], ['g1', 27, [2, 1, 0, 0, 0], 1]);
 });
 
 test('once scored, and after reopening, preparing again, starting over, rookie changes, retrying lookups and ballot writes are refused as before', async t => {
     const { act, vote, submitFor, ballotLockPasses, score, reopen, signInAs, saveDraft, submit, read, headerAnswer, nhl, fantrax } = await votingLeague(t);
-    await submitFor(1, COMPLETE);
+    await submitFor(1, completeFor(1));
     await ballotLockPasses();
     await score();
     t.mock.method(console, 'error', () => {});

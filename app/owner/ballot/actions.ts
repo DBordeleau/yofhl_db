@@ -13,6 +13,7 @@ const messages: Record<BallotWriteRejection, string> = {
     locked: 'The ballot lock has passed. Your ballot can no longer change.',
     'rate-limited': 'Too many saves in a short time. Try again in 15 minutes.',
     'invalid-ballot': 'Your ballot has changed since this page loaded. Reload the page.',
+    'own-franchise': 'You can’t rank your own team for GM of the Year.',
 };
 
 // where an owner goes to fix a refusal, when the fix is on another page

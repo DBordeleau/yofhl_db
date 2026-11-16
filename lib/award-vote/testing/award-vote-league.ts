@@ -6,7 +6,8 @@ import { createMemoryIdentity, createMemoryRequest, createMemoryStorage } from '
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryAwardVoteFantrax, rangeKey, type MemoryAwardVoteFantraxState } from '../memory-fantrax';
 import { createMemoryNhl, type MemoryNhlState } from '../memory-nhl';
-import { PLAYER_AWARD_IDS, type BallotRankings } from '../model';
+import { PLAYER_AWARD_IDS, type BallotRankings, type PlayerAwardId } from '../model';
+import type { AwardTally, PlayerAwardTally } from '../read-tallies';
 import { awardDefinition } from '../voted-awards';
 import type { FantraxRosterPeriod, FantraxWeek, NhlPlayerRecord, RangedGoalie, RangedSkater } from '../ports';
 
@@ -274,7 +275,10 @@ export async function votingLeague(t: TestContext, options: { open?: boolean; ar
     return { ...harness, saveDraft, submit, read, ownBallot, admin, submitFor, score, reopen, tallies, ballots, publish };
 }
 
-/** a complete ballot for the voting league, which ranks franchise 1's s1 */
+/**
+ * a complete ballot for franchise 1 in the voting league, which ranks franchise 1's s1, and franchises 2, 3 and 4
+ * (team seasons 12–14) for GM of the Year
+ */
 export const COMPLETE: BallotRankings = {
     'wayne-gretzky': ['s1', 's2', 's3', 's4', 's5'],
     'le-magnifique': ['g1', 's1', 'd1', 's2', 's3'],
@@ -282,4 +286,16 @@ export const COMPLETE: BallotRankings = {
     hasek: ['g1', 'g2', 'g3', 'g4', 'g5'],
     'teemu-selanne': ['r1', 'r2'],
     'danny-briere': ['s2', 's1'],
+    'gm-of-the-year': ['12', '13', '14'],
 };
+
+/** an individual award's tally among the admin's tallies */
+export const playerTally = (tallies: AwardTally[], award: PlayerAwardId) =>
+    tallies.find((tally): tally is PlayerAwardTally => tally.award === award);
+
+/**
+ * `rankings` (by default COMPLETE) as franchise `franchise`'s ballot: GM of the Year ranks the other franchises'
+ * 2027 team seasons in franchise order
+ */
+export const completeFor = (franchise: number, rankings: BallotRankings = COMPLETE): BallotRankings =>
+    ({ ...rankings, 'gm-of-the-year': FRANCHISES.filter(id => id !== franchise).map(id => String(10 + id)) });

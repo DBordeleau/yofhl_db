@@ -59,6 +59,11 @@ test('the season before the live season is prepared and previewed as a rehearsal
     const briere = rehearsal.ballot!.find(award => award.award === 'danny-briere')!;
     assert.deepEqual(briere.candidates[0].team, { teamSeasonId: 1, franchiseId: 1, name: 'Old 1', abbreviation: 'O1', logo: '/logos/o1.png' });
     assert.deepEqual([briere.candidates[0].stats.playoffRounds?.points, briere.candidates[0].stats.final?.points], [40, 15]);
+    // GM of the Year's team summaries too, for 2025–26 (which the archive has no season before)
+    assert.deepEqual(rehearsal.gmOfTheYear?.candidates.map(candidate => [candidate.name, candidate.owner, candidate.summary]), [1, 2, 3, 4].map(id => [
+        `Old ${id}`, `Owner ${id}`,
+        { season: { wins: 10, losses: 5, ties: 1, fptsFor: 1000, playoffFinish: ['champion', 'finalist', 'missed', 'missed'][id - 1] }, previous: null },
+    ]));
 
     assert.equal(live.kind, 'live');
     assert.equal(live.vote?.rehearsal, false);
@@ -67,8 +72,8 @@ test('the season before the live season is prepared and previewed as a rehearsal
 test('only the season before the live season can be rehearsed', async t => {
     const { act, vote, fantrax, league } = await rehearsalLeague(t);
     assert.deepEqual(await act(() => vote.prepare({ seasonYear: 2025 })), { ok: false, reason: 'before-award-votes' });
-    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2025 })), { kind: null, vote: null, ballot: null, ballotStatus: null, voidBallots: null });
-    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2026 })), { kind: 'rehearsal', vote: null, ballot: null, ballotStatus: null, voidBallots: null });
+    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2025 })), { kind: null, vote: null, ballot: null, gmOfTheYear: null, ballotStatus: null, voidBallots: null });
+    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2026 })), { kind: 'rehearsal', vote: null, ballot: null, gmOfTheYear: null, ballotStatus: null, voidBallots: null });
 
     // once 2027–28 starts on Fantrax, 2026–27 is a live award vote and 2025–26 can no longer be rehearsed
     await league.client.exec(`

@@ -11,20 +11,41 @@ export const FIRST_AWARD_VOTE_SEASON = 2027;
 export const PLAYER_AWARD_IDS = ['wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere'] as const;
 export type PlayerAwardId = typeof PLAYER_AWARD_IDS[number];
 
-/** the points each rank of an individual voted award is worth on a ballot, first place first (GLOSSARY.md, "Tally") */
-export const PLAYER_AWARD_POINTS = [10, 7, 5, 3, 1] as const;
+/** the voted award for a franchise's season (GLOSSARY.md, "GM of the Year"), by its id in the award catalogue */
+export const GM_OF_THE_YEAR = 'gm-of-the-year';
+export type TeamAwardId = typeof GM_OF_THE_YEAR;
+
+/** every voted award, in ballot order: the individual awards, then GM of the Year */
+export const VOTED_AWARD_IDS = [...PLAYER_AWARD_IDS, GM_OF_THE_YEAR] as const;
+export type VotedAwardId = typeof VOTED_AWARD_IDS[number];
+
+const PLAYER_AWARD_POINTS = [10, 7, 5, 3, 1] as const;
 /**
- * how many candidates a ballot ranks for each individual voted award (all of them when it has fewer). An award with
- * fewer than five eligible candidates (the Teemu Trophy in a thin rookie year, the Danny Briere Award's finalists)
- * can't be filled five deep, so it ranks every candidate it has, and a complete ballot means every rank it has filled.
+ * The points each rank of a voted award is worth on a ballot, first place first (GLOSSARY.md, "Tally"): five deep for
+ * 10, 7, 5, 3 and 1 for an individual award, three deep for 5, 3 and 1 for GM of the Year. An award's depth is how
+ * many ranks it has. An award with fewer eligible candidates than that (the Teemu Trophy in a thin rookie year, the
+ * Danny Briere Award's finalists) can't be filled that deep, so it ranks every candidate it has, worth the first
+ * points, and a complete ballot means every rank it has filled.
  */
-export const PLAYER_AWARD_DEPTH = PLAYER_AWARD_POINTS.length;
+export const VOTED_AWARD_POINTS: Readonly<Record<VotedAwardId, readonly number[]>> = {
+    'wayne-gretzky': PLAYER_AWARD_POINTS,
+    'le-magnifique': PLAYER_AWARD_POINTS,
+    'bobby-orr': PLAYER_AWARD_POINTS,
+    hasek: PLAYER_AWARD_POINTS,
+    'teemu-selanne': PLAYER_AWARD_POINTS,
+    'danny-briere': PLAYER_AWARD_POINTS,
+    [GM_OF_THE_YEAR]: [5, 3, 1],
+};
 
 /**
- * A ballot's rankings: for each voted award, its candidates' player IDs from first place down. A draft may leave a
- * rank empty (null) or leave an award out; a submitted ballot fills every rank of every award on it.
+ * A ballot's rankings: for each voted award, its candidates from first place down: an individual award's player
+ * IDs, GM of the Year's team season IDs as decimal strings (teamCandidateId). A draft may leave a rank empty (null)
+ * or leave an award out; a submitted ballot fills every rank of every award on it.
  */
-export type BallotRankings = Partial<Record<PlayerAwardId, (string | null)[]>>;
+export type BallotRankings = Partial<Record<VotedAwardId, (string | null)[]>>;
+
+/** a GM of the Year candidate as a ballot ranks it: its team season's ID as a decimal string */
+export const teamCandidateId = (teamSeasonId: number) => String(teamSeasonId);
 
 /** the longest reason the admin may give for voiding a ballot, in characters: room for a few sentences, published with it */
 export const VOID_REASON_LENGTH = 500;
@@ -148,4 +169,41 @@ export interface BallotAward {
     /** how many candidates the list opens on, or null for all of them */
     shown: number | null;
     candidates: PlayerCandidate[];
+}
+
+/**
+ * How far a team season went in the championship bracket: won the Final, lost it, lost in the Semifinals, lost in a
+ * round before them (the Quarterfinals, or earlier in a season with more rounds), or never reached the bracket.
+ */
+export type PlayoffFinish = 'champion' | 'finalist' | 'semifinalist' | 'quarterfinalist' | 'missed';
+
+/** one team season's results, as GM of the Year's summary shows them */
+export interface TeamSeasonLine {
+    wins: number;
+    losses: number;
+    ties: number;
+    fptsFor: number;
+    playoffFinish: PlayoffFinish;
+}
+
+/** how a franchise's season went beside the season before, frozen when the award vote is prepared */
+export interface TeamSummary {
+    season: TeamSeasonLine;
+    /** null when the franchise didn't play the season before */
+    previous: TeamSeasonLine | null;
+}
+
+/** a GM of the Year candidate: a team season, under that season's identity and owner, from the frozen snapshot */
+export interface TeamCandidate extends CreditedTeam {
+    /** that season's owner's name, or null when the archive has none */
+    owner: string | null;
+    summary: TeamSummary;
+}
+
+/** GM of the Year on the ballot: every franchise taking part, by that season's team name */
+export interface TeamBallotAward {
+    award: TeamAwardId;
+    label: string;
+    honor: string;
+    candidates: TeamCandidate[];
 }

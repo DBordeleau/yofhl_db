@@ -1,31 +1,62 @@
 // A ballot's rules, pure and browser-safe so the ballot page can show what is left before submitting: which awards
 // a ballot ranks and how deep, reading rankings sent by the browser, and what keeps a ballot from being complete.
 // The candidate lists come from the frozen snapshot (ballot-snapshot.ts).
-import { PLAYER_AWARD_DEPTH, type BallotAward, type BallotRankings, type PlayerAwardId, type PlayerCandidate } from './model';
+import {
+    GM_OF_THE_YEAR, teamCandidateId, VOTED_AWARD_POINTS,
+    type BallotAward, type BallotRankings, type PlayerCandidate, type TeamBallotAward, type VotedAwardId,
+} from './model';
 
-/** one award a ballot ranks: its candidates' player IDs and how many ranks it has */
+/** one award a ballot ranks: its candidates (as BallotRankings has them) and how many ranks it has */
 export interface RankedAward {
-    award: PlayerAwardId;
-    /** five, or every candidate when the award has fewer */
+    award: VotedAwardId;
+    /** the award's depth, or every candidate when it has fewer */
     depth: number;
     candidates: readonly string[];
 }
 
 /** what keeps one award of a ballot from being complete: its empty ranks (from 1) and candidates ranked twice */
 export interface BallotProblem {
-    award: PlayerAwardId;
+    award: VotedAwardId;
     emptyRanks: number[];
     repeated: string[];
 }
 
-/** how many ranks an award with `candidates` candidates has on a ballot: five, or every candidate when it has fewer, since it can't be filled five deep */
-export const ballotDepth = (candidates: number) => Math.min(PLAYER_AWARD_DEPTH, candidates);
+/**
+ * how many ranks `award` has on a ballot with `candidates` candidates: its depth (VOTED_AWARD_POINTS), or every
+ * candidate when it has fewer, since it can't be filled that deep
+ */
+export const ballotDepth = (award: VotedAwardId, candidates: number) => Math.min(VOTED_AWARD_POINTS[award].length, candidates);
 
-/** the awards a ballot ranks, in ballot order: every award with a candidate */
-export function rankedAwards(ballot: BallotAward[]): RankedAward[] {
-    return ballot.filter(award => award.candidates.length > 0).map(award => ({
-        award: award.award, depth: ballotDepth(award.candidates.length), candidates: award.candidates.map(candidate => candidate.playerId),
-    }));
+/** GM of the Year as one franchise's owner ranks it: every candidate but its own team season, and how deep */
+export interface OwnerTeamAward extends TeamBallotAward {
+    depth: number;
+}
+
+/**
+ * GM of the Year as franchise `franchiseId`'s ballot has it, without the franchise's own team season (all of them
+ * with no franchise); null when it has no candidate left
+ */
+export function ownerTeamAward(award: TeamBallotAward | null, franchiseId: number | null): OwnerTeamAward | null {
+    const candidates = award?.candidates.filter(candidate => candidate.franchiseId !== franchiseId) ?? [];
+    return award && candidates.length ? { ...award, candidates, depth: ballotDepth(GM_OF_THE_YEAR, candidates.length) } : null;
+}
+
+/** the awards a ballot ranks, in ballot order: every individual award with a candidate, then GM of the Year if it has one */
+export function rankedAwards(ballot: BallotAward[], teamAward: OwnerTeamAward | null): RankedAward[] {
+    return [
+        ...ballot.filter(award => award.candidates.length > 0).map(award => ({
+            award: award.award, depth: ballotDepth(award.award, award.candidates.length), candidates: award.candidates.map(candidate => candidate.playerId),
+        })),
+        ...teamAward ? [{
+            award: teamAward.award, depth: teamAward.depth, candidates: teamAward.candidates.map(candidate => teamCandidateId(candidate.teamSeasonId)),
+        }] : [],
+    ];
+}
+
+/** whether rankings sent by the browser rank team season `teamSeasonId` for GM of the Year */
+export function ranksTeamSeason(value: unknown, teamSeasonId: number): boolean {
+    const ranks = typeof value === 'object' && value !== null ? (value as Record<string, unknown>)[GM_OF_THE_YEAR] : undefined;
+    return Array.isArray(ranks) && ranks.includes(teamCandidateId(teamSeasonId));
 }
 
 /**
@@ -76,7 +107,7 @@ export function shareCandidateLists(ballot: BallotAward[]): { awards: OwnerBallo
             keys.push(key);
             lists.push(candidates);
         }
-        return { ...award, depth: ballotDepth(candidates.length), list: keys.indexOf(key) };
+        return { ...award, depth: ballotDepth(award.award, candidates.length), list: keys.indexOf(key) };
     });
     return { awards, lists };
 }

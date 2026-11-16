@@ -2,8 +2,8 @@
 // its ballot lock and whether it has passed, every award with candidates and its candidate lists from the frozen
 // snapshot, the owner's own franchise's ballot (and no other's), and which franchises have submitted. Never cached.
 import { sql } from 'drizzle-orm';
-import { shareCandidateLists, type OwnerBallotAward } from './ballot';
-import { readBallotAwards } from './ballot-snapshot';
+import { ownerTeamAward, shareCandidateLists, type OwnerBallotAward, type OwnerTeamAward } from './ballot';
+import { readBallotAwards, readTeamBallotAward } from './ballot-snapshot';
 import { readBallotStatus, type BallotStatus } from './ballot-status';
 import type { BallotRankings, PlayerCandidate } from './model';
 import { isoTime } from './iso-time';
@@ -33,10 +33,12 @@ export type OwnerBallotView =
         ballotLock: string;
         /** whether the ballot lock has passed, by the database clock */
         locked: boolean;
-        /** the awards the ballot ranks, in ballot order */
+        /** the individual awards the ballot ranks, in ballot order */
         awards: OwnerBallotAward[];
         /** each award's candidates, at its `list`; awards with the same candidates share one */
         lists: PlayerCandidate[][];
+        /** GM of the Year, ranked last: every franchise taking part but the owner's own; null with no candidate */
+        gmOfTheYear: OwnerTeamAward | null;
         /** the active franchise the owner manages, or null for none */
         team: { franchiseId: number; name: string; abbreviation: string; logo: string | null } | null;
         /** the franchise's ballot, or null without a franchise */
@@ -66,6 +68,7 @@ export function createReadOwnerBallot({ db, ownerSession }: AwardVotePorts) {
             ballotLock: vote.ballotLock,
             locked: vote.locked,
             ...shareCandidateLists(await readBallotAwards(db, vote.seasonYear)),
+            gmOfTheYear: ownerTeamAward(await readTeamBallotAward(db, vote.seasonYear), team?.id ?? null),
             team: team && { franchiseId: team.id, name: team.name, abbreviation: team.abbreviation, logo: team.logo },
             ballot: team && {
                 draft: own?.draft ?? {},
