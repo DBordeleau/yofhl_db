@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { renderShareCard } from './render-card';
+import { artFor } from '../coachs-corner/cast';
+import { artUrl } from '../coachs-corner/media';
 import type { EpisodeShareCard, PlayerShareCard } from './model';
 
 const player: PlayerShareCard = {
@@ -23,7 +25,7 @@ function browser(t: TestContext, load: (font: string) => Promise<unknown[]>, { a
         font: '', fillText: t.mock.fn((text: string) => text), strokeText() {}, measureText: (text: string) => ({ width: text.length * 10 }),
         createLinearGradient: () => gradient, createRadialGradient: () => gradient,
         fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, arcTo() {}, arc() {}, closePath() {}, fill() {},
-        save() {}, restore() {}, translate() {}, scale() {}, rotate() {}, ellipse() {}, stroke() {}, drawImage: t.mock.fn(),
+        save() {}, restore() {}, translate() {}, scale() {}, rotate() {}, ellipse: t.mock.fn(), stroke() {}, drawImage: t.mock.fn(),
     };
     const canvas = { width: 0, height: 0, getContext: () => ctx, toBlob: t.mock.fn((done: BlobCallback) => done(png)) };
     class UnavailableImage {
@@ -76,14 +78,16 @@ test('episode PNG renders Don in the card wardrobe with the lapel poppy, with or
     await t.test('art unavailable', async t => {
         const { png, ctx } = browser(t, async () => []);
         assert.equal(await renderShareCard(remembrance), png);
-        assert.equal(ctx.drawImage.mock.callCount(), 0);
+        assert.equal(ctx.ellipse.mock.callCount(), 0, 'no poppy without a host to wear it');
     });
     await t.test('art loaded', async t => {
-        const { png, requested } = browser(t, async () => [], { art: 'loaded' });
+        const { png, ctx, requested } = browser(t, async () => [], { art: 'loaded' });
         assert.equal(await renderShareCard(remembrance), png);
         const hosts = requested.filter(src => src.includes('/don-') || src.includes('/ron-'));
         assert.equal(hosts.length, 2);
-        assert.ok(hosts.some(src => src.includes('/don-remembrance-stare')), hosts.join(', '));
+        const stare = new URL(artUrl(artFor('don', 'stare', { wardrobe: 'remembrance-2026', mouth: 'closed' })), 'https://www.yofhl.com').href;
+        assert.ok(hosts.includes(stare), hosts.join(', '));
+        assert.equal(ctx.ellipse.mock.callCount(), 2, 'one poppy on each host');
     });
 });
 

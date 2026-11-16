@@ -3,7 +3,7 @@
 import React from 'react';
 import { artUrl } from '@/lib/coachs-corner/media';
 import { POPPY, POPPY_TILT } from '@/lib/coachs-corner/poppy';
-import { artFor, lapelFor, mouthClipFor, type CharacterId, type Lapel, type LapelSpot, type Pose } from '@/lib/coachs-corner/cast';
+import { ART_FRAME, artFor, lapelFor, mouthClipFor, type CharacterId, type Lapel, type LapelSpot, type Pose } from '@/lib/coachs-corner/cast';
 
 const SIZES = '(max-width: 700px) 60vw, 42vw';
 
@@ -38,7 +38,7 @@ const HIDDEN_LAPEL = lapelFor('don', artFor('don', 'rest', { mouth: 'closed' }))
 export function Poppy({ spot, className }: { spot: LapelSpot | null; className?: string }) {
     const [x, y, s] = spot ?? HIDDEN_LAPEL;
     return (
-        <svg className={className} viewBox="0 0 1254 1254" data-lapel aria-hidden="true">
+        <svg className={className} viewBox={`0 0 ${ART_FRAME} ${ART_FRAME}`} data-lapel aria-hidden="true">
             <g style={{ transform: `translate(${x}px, ${y}px) scale(${s})`, opacity: spot ? 1 : 0 }}>
                 <g transform={`rotate(${POPPY_TILT})`}>
                     {POPPY.map((shape, index) => {
