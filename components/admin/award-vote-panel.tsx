@@ -1,18 +1,26 @@
 'use client';
 
 // The season's award vote in admin: preparing its ballot (batch after batch until done), opening voting and moving
-// the ballot lock, who has submitted, scoring the ballots and reviewing each award's tally, reopening voting, and
-// previewing the ballot as owners will see it. A rehearsal is marked as one throughout, and never opened.
+// the ballot lock, who has submitted, scoring the ballots and reviewing each award's tally, reopening voting, every
+// submitted ballot once the ballot lock has passed with voiding and restoring (ballot-review.tsx), and previewing
+// the ballot as owners will see it. A rehearsal is marked as one throughout, and never opened.
 import { useEffect, useState } from 'react';
 import { prepareAwardVote } from '@/app/admin/award-vote-actions';
 import { moveBallotLock, openVoting, publishAwardVote, reopenVoting, scoreBallots } from '@/app/admin/voting-actions';
 import CandidateList from '@/components/award-vote/candidate-list';
-import type { AwardTally, AwardVotePreview, ReadTalliesResult } from '@/lib/award-vote/create-award-vote';
+import type { AdminBallot, AwardTally, AwardVotePreview, ReadTalliesResult } from '@/lib/award-vote/create-award-vote';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
+import BallotReview from './ballot-review';
 
 type Tallies = Extract<ReadTalliesResult, { ok: true }>;
 
-export default function AwardVotePanel({ year, preview, tallies }: { year: number; preview: AwardVotePreview; tallies: Tallies | null }) {
+export default function AwardVotePanel({ year, preview, tallies, ballots = null }: {
+    year: number;
+    preview: AwardVotePreview;
+    tallies: Tallies | null;
+    /** every submitted ballot, once the ballot lock has passed; null before */
+    ballots?: AdminBallot[] | null;
+}) {
     const { pending, result, run } = useAdminAction({ refreshAfterError: true });
     const [progress, setProgress] = useState<string | null>(null);
     const { vote, ballot } = preview;
@@ -49,6 +57,7 @@ export default function AwardVotePanel({ year, preview, tallies }: { year: numbe
         {vote && !rehearsal && <Voting year={year} vote={vote} ballotStatus={preview.ballotStatus} />}
         {vote?.state === 'scored' && !rehearsal && <Publish year={year} />}
         {tallies && <TallyReview tallies={tallies} />}
+        {ballots && ballot && <BallotReview year={year} ballots={ballots} awards={ballot} published={vote?.state === 'published'} />}
         {ballot && <BallotPreview ballot={ballot} rehearsal={rehearsal} />}
     </div>;
 }

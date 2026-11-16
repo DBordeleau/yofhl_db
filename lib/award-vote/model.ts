@@ -22,6 +22,9 @@ export const PLAYER_AWARD_DEPTH = PLAYER_AWARD_POINTS.length;
  */
 export type BallotRankings = Partial<Record<PlayerAwardId, (string | null)[]>>;
 
+/** the longest reason the admin may give for voiding a ballot, in characters */
+export const VOID_REASON_LENGTH = 500;
+
 /**
  * A named stretch of the season a candidate's stats cover. The regular-season awards show `regularSeason`; the
  * Danny Briere Award shows `playoffRounds` (every playoff round, the Final included) and `final` (the Final alone).

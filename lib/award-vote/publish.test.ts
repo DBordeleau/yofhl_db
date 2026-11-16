@@ -126,6 +126,8 @@ test('once published, no write is accepted for the season, and its snapshot, tal
     assert.deepEqual(await submit(S2_FIRST), { ok: false, reason: 'not-open' });
     assert.deepEqual(await act(() => vote.scoreBallots({ seasonYear })), { ok: false, reason: 'not-open' });
     assert.deepEqual(await act(() => vote.reopenVoting({ seasonYear, ballotLock })), { ok: false, reason: 'not-scored' });
+    assert.deepEqual(await act(() => vote.voidBallot({ seasonYear, franchiseId: 2, reason: 'Bad faith.' })), { ok: false, reason: 'published' });
+    assert.deepEqual(await act(() => vote.restoreBallot({ seasonYear, franchiseId: 2 })), { ok: false, reason: 'published' });
     assert.deepEqual((await publish()).result, { ok: false, reason: 'not-scored' });
 
     assert.deepEqual({ preview: await admin(), tallies: await tallies(), page: await awardPage('Wayne Gretzky Award') }, before);

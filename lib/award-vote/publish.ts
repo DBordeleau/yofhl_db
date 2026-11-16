@@ -5,7 +5,7 @@
 //
 // After publishing nothing changes the season's award vote again: every other write requires an earlier state
 // (prepare, rookie changes and retrying lookups prepared; opening prepared; the ballot lock, ballots and scoring open;
-// reopening scored), and the hand-entry awards editor refuses the season. There is no un-publishing. Refused for a
+// reopening scored), voiding and restoring refuse a published vote, and the hand-entry awards editor refuses the season. There is no un-publishing. Refused for a
 // rehearsal (rehearsal.ts).
 //
 // Awards are keyed by catalogue ID here (lib/awards.ts) and by award type in the archive, matched by the catalogue

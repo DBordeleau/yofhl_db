@@ -35,6 +35,8 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
     const vote = await awardVote.readPreview({ seasonYear: season.year });
     const rookies = vote.kind ? await awardVote.readRookieReview({ seasonYear: season.year }) : null;
     const tallies = await awardVote.readTallies({ seasonYear: season.year });
+    // refused until the ballot lock has passed, so no rankings show while owners can still change them
+    const ballots = await awardVote.readBallots({ seasonYear: season.year });
     const rehearsal = vote.kind === 'rehearsal' || !!vote.vote?.rehearsal;
 
     return (
@@ -71,7 +73,8 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
                             ? 'A rehearsal of the award vote on this past season: prepare and preview a real ballot before the first live vote. It can never be opened, and owners never see it. Preparing again replaces it.'
                             : 'Prepare the ballot from Fantrax and the archive, then check it here as owners will see it. Preparing again replaces it.'}
                     >
-                        <AwardVotePanel year={season.year} preview={vote} tallies={tallies.ok ? tallies : null} />
+                        <AwardVotePanel year={season.year} preview={vote} tallies={tallies.ok ? tallies : null}
+                            ballots={ballots.ok ? ballots.ballots : null} />
                     </Section>
                 )}
                 {rookies && (

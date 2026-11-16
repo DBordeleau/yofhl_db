@@ -4,8 +4,9 @@
 // first-place votes, then second-place votes and so on through the award's depth; candidates level on all of them
 // share a place, the next place skipping as many as share it, and several at place one are all winners.
 //
-// Only scoring (and, once it lands, voiding or restoring a ballot) writes tallies, through `replaceTallies`, as part
-// of the one statement that also changes the award vote, so the tallies and the vote's state change together.
+// Only scoring, and voiding or restoring a ballot in a scored award vote (void-ballot.ts), write tallies, through
+// `replaceTallies`, as part of the one statement that also changes the award vote or the ballot, so the tallies and
+// what they are computed from change together.
 import { sql, type SQL } from 'drizzle-orm';
 import { PLAYER_AWARD_POINTS } from './model';
 
@@ -15,15 +16,19 @@ const POINTS = sql.raw(`array[${PLAYER_AWARD_POINTS.join(', ')}]::int[]`);
  * CTEs (to follow `with gate as (...)`, comma included by the caller) that replace `seasonYear`'s tallies with those
  * computed from its counting ballots, only when the CTE named `gate` returns a row. The new rows are upserted and the
  * rows no longer ranked deleted, so the two parts touch disjoint rows (docs/adr/0002).
+ *
+ * `counts` says which submitted ballots (`b`) count, by default those not void. Every part of a statement reads the
+ * ballots as they were before it, so a statement that voids or restores a ballot passes the condition as it leaves
+ * them.
  */
-export function replaceTallies(seasonYear: number, gate: SQL): SQL {
+export function replaceTallies(seasonYear: number, gate: SQL, counts: SQL = sql`b.void_reason is null`): SQL {
     return sql`
         tally_ranks as (
             select a.key as award, r.player_id, r.rank::int as rank
             from league.award_vote_ballots b
             cross join lateral jsonb_each(b.submitted) a
             cross join lateral jsonb_array_elements_text(a.value) with ordinality r(player_id, rank)
-            where b.season_year = ${seasonYear}::int and b.submitted is not null and b.void_reason is null and r.player_id is not null
+            where b.season_year = ${seasonYear}::int and b.submitted is not null and (${counts}) and r.player_id is not null
         ),
         tally_lines as (
             select c.award, c.player_id,
