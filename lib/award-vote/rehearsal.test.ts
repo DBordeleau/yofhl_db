@@ -135,6 +135,7 @@ test('a rehearsal is never published, nothing of it is public, and its season\'s
     setRegularSeason([skater('s1', 300)]);
     await prepareFully(2026);
     assert.deepEqual(await act(() => vote.publish({ seasonYear: 2026 })), { ok: false, reason: 'rehearsal' });
+    assert.deepEqual(await act(() => vote.refreshArchive({ seasonYear: 2026 })), { ok: false, reason: 'rehearsal' });
     assert.equal((await act(() => vote.readPreview({ seasonYear: 2026 }))).vote?.state, 'prepared');
     const visitor = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/season/[year]/ballots', fn)).result;
     assert.deepEqual(await visitor(() => vote.readPublishedBallots({ seasonYear: 2026 })), { ok: false, reason: 'not-published' });

@@ -23,19 +23,23 @@ const expire = (tags: readonly string[], { invalidate = revalidateTag }: EditOpt
     for (const tag of tags) invalidate(tag);
 };
 
-// `wrote` says from the statement's rows whether it changed anything; when it didn't (its own check refused it),
-// nothing is refreshed or expired.
-const writeAndRefresh = async <T = Record<string, unknown>>(kind: CuratedEdit, year: number, write: SQL, options: EditOptions,
-    wrote: (result: T[]) => boolean = () => true) => {
-    const result = await rows<T>(write);
-    if (!wrote(result)) return result;
+// Refreshes the views a kind of edit affects, in order, and expires its pages. A refresh failure comes after the
+// write has committed, so the pages are expired before rethrowing.
+const refreshAndExpire = async (kind: CuratedEdit, year: number, options: EditOptions) => {
     const { views, tags } = curatedEditEffects(kind, year);
-    // A refresh failure comes after the write has committed, so expire the pages before rethrowing.
     try {
         for (const view of inRefreshOrder(views)) await rows(sql`refresh materialized view league.${sql.identifier(view)}`);
     } finally {
         expire(tags, options);
     }
+};
+
+// `wrote` says from the statement's rows whether it changed anything; when it didn't (its own check refused it),
+// nothing is refreshed or expired.
+const writeAndRefresh = async <T = Record<string, unknown>>(kind: CuratedEdit, year: number, write: SQL, options: EditOptions,
+    wrote: (result: T[]) => boolean = () => true) => {
+    const result = await rows<T>(write);
+    if (wrote(result)) await refreshAndExpire(kind, year, options);
     return result;
 };
 
@@ -129,8 +133,7 @@ export interface PublishedWinners {
 // no roster spot at the end of the season) is added as a player under the name given, so publishing never stalls on
 // the archive and every award page shows them; the season sync keeps award players like any other from then on.
 //
-// Publishing can't be repeated, so if a view refresh fails after the commit the view stays one edit behind until the
-// next curated edit or import refreshes it.
+// Publishing can't be repeated, so if a view refresh fails after the commit, refreshPublishedWinners finishes it.
 export async function savePublishedWinners(year: number, { gate, winners }: PublishedWinners, options: EditOptions = {}):
     Promise<{ published: boolean }> {
     const [{ published }] = await writeAndRefresh<{ published: boolean }>('awardVotePublished', year, sql`
@@ -148,6 +151,13 @@ export async function savePublishedWinners(year: number, { gate, winners }: Publ
                        on conflict (season_year, award_type_id, player_id) do update set team_season_id = excluded.team_season_id)
         select exists (select 1 from gate) as published`, options, result => result[0].published);
     return { published };
+}
+
+// Runs a published award vote's refresh and expiry again (lib/award-vote/refresh-archive.ts): the recovery when a
+// view refresh failed after publishing committed (ADR 0002), since publishing itself can't be repeated. The caller
+// checks the season's award vote is published.
+export async function refreshPublishedWinners(year: number, options: EditOptions = {}): Promise<void> {
+    await refreshAndExpire('awardVotePublished', year, options);
 }
 
 // Corrects a playoff game. winner: 'score' follows the score, or a franchise id overrides it.

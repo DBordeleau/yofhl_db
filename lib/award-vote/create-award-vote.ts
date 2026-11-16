@@ -5,7 +5,7 @@
 //  - prepare (prepare.ts): build or rebuild a season's frozen candidate snapshot from Fantrax and the archive, in
 //    bounded batches that resume from recorded progress
 //  - readPreview (read-preview.ts): the admin's view of a season's award vote: its state, its ballot as owners will
-//    see it, from the snapshot, and which franchises have submitted a ballot
+//    see it, from the snapshot, which franchises have submitted a ballot, and which ballots are void
 //  - readRookieReview (read-rookie-review.ts): the Teemu Trophy's computed rookies, the young players the NHL
 //    lookup could not match or failed to look up, and the admin's changes
 //  - adjustRookie (adjust-rookie.ts): the admin adding a player to the rookies or removing one, before opening
@@ -23,8 +23,11 @@
 //  - readBallots (read-ballots.ts): the admin's read of every submitted ballot's rankings, once ballots stop changing
 //  - reopenVoting (reopen-voting.ts): the admin reopening a scored award vote with a new ballot lock
 //  - voidBallot and restoreBallot (void-ballot.ts): the admin throwing a submitted ballot out with a reason, and
-//    counting it again, after the ballot lock and before publishing; a scored vote's tallies follow at once
+//    counting it again: voiding after the ballot lock, restoring any time, both before publishing; a scored vote's
+//    tallies follow at once
 //  - publish (publish.ts): the admin writing a scored award vote's winners into the awards archive, for good
+//  - refreshArchive (refresh-archive.ts): the admin finishing a published vote's view refresh and page expiry again,
+//    when a refresh failed after publishing
 //  - readPublishedTallies (read-published-tallies.ts) and readPublishedBallots (read-published-ballots.ts): what
 //    visitors see once a vote is published, each award's tallies and each season's ballots; cached, and expired by
 //    publishing. Never before publishing, never a rehearsal. The admin reads above are not for public use.
@@ -51,6 +54,7 @@ import { createReadTallies } from './read-tallies';
 import { createScoreBallots } from './score-ballots';
 import { createRestoreBallot, createVoidBallot } from './void-ballot';
 import { createPublish } from './publish';
+import { createRefreshArchive } from './refresh-archive';
 import { createReadPublishedBallots } from './read-published-ballots';
 import { createReadPublishedTallies } from './read-published-tallies';
 
@@ -75,6 +79,7 @@ export type { ReopenVotingInput, ReopenVotingRejection, ReopenVotingResult } fro
 export type { ScoreBallotsInput, ScoreBallotsRejection, ScoreBallotsResult } from './score-ballots';
 export type { RestoreBallotInput, RestoreBallotRejection, RestoreBallotResult, VoidBallotInput, VoidBallotRejection, VoidBallotResult } from './void-ballot';
 export type { PublishInput, PublishRejection, PublishResult } from './publish';
+export type { RefreshArchiveInput, RefreshArchiveRejection, RefreshArchiveResult } from './refresh-archive';
 export type { PublicBallot, PublicBallotAward, PublicRankedPlayer, ReadPublishedBallotsInput, ReadPublishedBallotsRejection, ReadPublishedBallotsResult } from './read-published-ballots';
 export type { PublishedTally, ReadPublishedTalliesInput } from './read-published-tallies';
 export type { RetryFailedLookupsInput, RetryFailedLookupsRejection, RetryFailedLookupsResult } from './retry-failed-lookups';
@@ -101,6 +106,7 @@ export function createAwardVote(ports: AwardVotePorts) {
         voidBallot: createVoidBallot(ports),
         restoreBallot: createRestoreBallot(ports),
         publish: createPublish(ports),
+        refreshArchive: createRefreshArchive(ports),
         readPublishedTallies: createReadPublishedTallies(ports),
         readPublishedBallots: createReadPublishedBallots(ports),
     };

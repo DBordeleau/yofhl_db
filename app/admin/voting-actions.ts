@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import type { AdminActionResult } from '@/components/admin/admin-action';
 import { requireAdmin } from '@/lib/admin/auth';
 import { awardVote } from '@/lib/award-vote/award-vote';
-import type { MoveBallotLockRejection, OpenVotingRejection, PublishRejection, ReopenVotingRejection, ScoreBallotsRejection } from '@/lib/award-vote/create-award-vote';
+import type { MoveBallotLockRejection, OpenVotingRejection, PublishRejection, RefreshArchiveRejection, ReopenVotingRejection, ScoreBallotsRejection } from '@/lib/award-vote/create-award-vote';
 
 // Thin wrappers: the award vote module decides; these map its reasons to what the admin reads.
 
@@ -116,7 +116,28 @@ export async function publishAwardVote(seasonYear: number): Promise<AdminActionR
         return { message: 'Published. The winners are on every award page.' };
     } catch (error) {
         console.error(`Publishing the ${seasonYear} award vote failed:`, error);
-        // the winners may have been written before a view refresh failed; the page shows which
-        return { error: 'Publishing failed. Reload the page to see whether the vote was published.' };
+        // the winners may have been written before a view refresh failed; the page shows which, and offers to
+        // refresh the archive if they were
+        return { error: 'Publishing failed. Reload the page: if the award vote shows as published, refresh the archive.' };
+    }
+}
+
+const REFRESH_REFUSALS: Record<RefreshArchiveRejection, string> = {
+    rehearsal: 'A rehearsal is never published.',
+    'not-published': 'Only a published award vote’s archive can be refreshed.',
+};
+
+// The admin refreshing the archive's views and pages after a published award vote, when publishing's refresh failed.
+export async function refreshAwardVoteArchive(seasonYear: number): Promise<AdminActionResult> {
+    await requireAdmin();
+    if (!Number.isInteger(seasonYear)) return { error: 'Choose a valid season.' };
+    try {
+        const result = await awardVote.refreshArchive({ seasonYear });
+        if (!result.ok) return { error: REFRESH_REFUSALS[result.reason] };
+        revalidatePath(`/admin/seasons/${seasonYear}`);
+        return { message: 'Archive refreshed. Every award page shows the published winners.' };
+    } catch (error) {
+        console.error(`Refreshing the ${seasonYear} award vote's archive failed:`, error);
+        return { error: 'Could not refresh the archive. Try again.' };
     }
 }

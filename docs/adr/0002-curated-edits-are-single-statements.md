@@ -21,3 +21,4 @@ After the write commits, the edit refreshes its materialized views in dependency
 - Don't "fix" a curated edit back into a batch or a multi-statement sequence.
 - Writes whose parts depend on order, and so can't be one statement, use `writeInOrder()` instead ([ADR 0007](0007-ordered-writes-use-write-in-order.md)).
 - A failed refresh leaves the materialized view one edit behind until the next save or import refreshes it. The admin sees an error and saves again.
+- Publishing an award vote is the exception: it can't be repeated, so saving again isn't a recovery. If its refresh fails after the winners are written, the award vote panel's "Refresh archive" (`refreshArchive` in `lib/award-vote/refresh-archive.ts`) re-runs the same refresh and tag expiry for that season, as often as needed.

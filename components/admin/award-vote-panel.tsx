@@ -6,7 +6,7 @@
 // the ballot as owners will see it. A rehearsal is marked as one throughout, and never opened.
 import { useEffect, useState } from 'react';
 import { prepareAwardVote } from '@/app/admin/award-vote-actions';
-import { moveBallotLock, openVoting, publishAwardVote, reopenVoting, scoreBallots } from '@/app/admin/voting-actions';
+import { moveBallotLock, openVoting, publishAwardVote, refreshAwardVoteArchive, reopenVoting, scoreBallots } from '@/app/admin/voting-actions';
 import CandidateList from '@/components/award-vote/candidate-list';
 import type { AdminBallot, AwardTally, AwardVotePreview, ReadTalliesResult } from '@/lib/award-vote/create-award-vote';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
@@ -56,6 +56,7 @@ export default function AwardVotePanel({ year, preview, tallies, ballots = null 
         <AdminActionStatus pending={pending} pendingText={progress ?? 'Preparing…'} result={result} />
         {vote && !rehearsal && <Voting year={year} vote={vote} ballotStatus={preview.ballotStatus} />}
         {vote?.state === 'scored' && !rehearsal && <Publish year={year} />}
+        {vote?.state === 'published' && <RefreshArchive year={year} />}
         {tallies && <TallyReview tallies={tallies} />}
         {ballots && ballot && <BallotReview year={year} ballots={ballots} awards={ballot} published={vote?.state === 'published'} />}
         {!ballots && vote?.state === 'open' && preview.voidBallots && <VoidBallots year={year} ballots={preview.voidBallots} />}
@@ -204,5 +205,15 @@ function Publish({ year }: { year: number }) {
         <button type="button" className={ADMIN_BUTTON} disabled={pending} onClick={publish}>Publish winners</button>
         <p className="mt-2 text-sm text-ink-soft">Writes each award’s first-place finishers, co-winners included, onto every page that shows award winners. Final.</p>
         <AdminActionStatus pending={pending} pendingText="Publishing…" result={result} />
+    </div>;
+}
+
+/** re-running publishing's view refresh and page expiry, for when it failed after the winners were written */
+function RefreshArchive({ year }: { year: number }) {
+    const { pending, result, run } = useAdminAction();
+    return <div className="mt-6 border-t border-line pt-5">
+        <button type="button" className={ADMIN_BUTTON} disabled={pending} onClick={() => run(() => refreshAwardVoteArchive(year))}>Refresh archive</button>
+        <p className="mt-2 text-sm text-ink-soft">If publishing showed an error, this finishes updating the pages that show award winners. Safe to repeat.</p>
+        <AdminActionStatus pending={pending} pendingText="Refreshing…" result={result} />
     </div>;
 }

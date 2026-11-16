@@ -155,3 +155,28 @@ test('the hand-entry awards editor is read-only and refused for a season whose a
     assert.deepEqual(await saveAwards(2026, [{ award: 'Hasek Trophy', playerId: 's1' }], options), { ok: true, saved: 1 });
     assert.deepEqual(await awardPage('Hasek Trophy'), [[SEASON, 'Goalie g1', 'g1', null], [2026, 'Archive s1', 's1', 'Old 1']]);
 });
+
+test('if refreshing the archive fails after publishing, the admin refreshes it again, and only for a published award vote', async t => {
+    const { vote, league, publish, admin } = await scoredLeague(t);
+    const refreshArchive = () => league.runAsRoute('/admin/seasons/[year]', () => vote.refreshArchive({ seasonYear: SEASON }));
+    const careerAwards = async () => (await league.client.query<{ awards: number }>(
+        `select awards from league.player_careers where player_id = 's1'`)).rows[0]?.awards;
+    assert.deepEqual(await refreshArchive(), { result: { ok: false, reason: 'not-published' }, revalidatedTags: [] }, 'scored');
+
+    await league.client.exec(`refresh materialized view league.player_careers`);
+    assert.equal(await careerAwards(), 0);
+
+    // the careers view can't be refreshed while publishing: the winners are written, the view stays behind
+    await league.client.exec(`alter materialized view league.player_careers rename to player_careers_broken`);
+    await assert.rejects(publish(), /player_careers/);
+    await league.client.exec(`alter materialized view league.player_careers_broken rename to player_careers`);
+    assert.equal((await admin()).vote?.state, 'published');
+    assert.equal(await careerAwards(), 0);
+    assert.deepEqual((await publish()).result, { ok: false, reason: 'not-scored' }, 'publishing is never repeated');
+
+    const { result, revalidatedTags } = await refreshArchive();
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(revalidatedTags.toSorted(),
+        [`league:award-vote-ballots:${SEASON}`, 'league:award-vote-tallies', 'league:awards', 'league:players', 'league:records', 'league:season-leaderboard', `league:season:${SEASON}`]);
+    assert.equal(await careerAwards(), 1);
+});
