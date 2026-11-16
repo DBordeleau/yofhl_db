@@ -103,7 +103,7 @@ test('a rehearsal is refused everything past preparing, and the database never l
     }
 });
 
-test('a rehearsal is never opened, has no ballot lock to move, takes no ballot, is never scored or reopened, and owners never see it', async t => {
+test('a rehearsal is never opened, has no ballot lock to move, takes no ballot, is never scored, reopened, voided or restored, and owners never see it', async t => {
     const { act, vote, asOwner, signInAs, headerAnswer, setRegularSeason, prepareFully, fantraxIs2026 } = await rehearsalLeague(t);
     fantraxIs2026();
     setRegularSeason([skater('s1', 300)]);
@@ -117,6 +117,9 @@ test('a rehearsal is never opened, has no ballot lock to move, takes no ballot, 
     assert.deepEqual(await asOwner(() => vote.submitBallot({ seasonYear: 2026, rankings })), refused);
     assert.deepEqual(await act(() => vote.scoreBallots({ seasonYear: 2026 })), refused);
     assert.deepEqual(await act(() => vote.reopenVoting({ seasonYear: 2026, ballotLock: lockInHours(24) })), refused);
+    // refused as a rehearsal before anything else, even its missing reason
+    assert.deepEqual(await act(() => vote.voidBallot({ seasonYear: 2026, franchiseId: 1, reason: '' })), refused);
+    assert.deepEqual(await act(() => vote.restoreBallot({ seasonYear: 2026, franchiseId: 1 })), refused);
     assert.deepEqual(await act(() => vote.readTallies({ seasonYear: 2026 })), { ok: false, reason: 'not-scored' });
     assert.deepEqual(await act(() => vote.readBallots({ seasonYear: 2026 })), { ok: false, reason: 'not-locked' });
 
