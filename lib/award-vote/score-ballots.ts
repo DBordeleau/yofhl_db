@@ -1,5 +1,5 @@
 // Scoring: the admin turning an open award vote's submitted ballots into each voted award's tally (tally.ts). It is
-// allowed once every active franchise has submitted a ballot, or otherwise once the ballot lock has passed by the
+// allowed once every franchise taking part (voting-franchises.ts) has submitted a ballot, or otherwise once the ballot lock has passed by the
 // database clock; franchises with no submitted ballot then simply add nothing. Scoring again after reopening
 // replaces the tallies. Refused for a rehearsal (rehearsal.ts).
 import { sql } from 'drizzle-orm';
@@ -7,6 +7,7 @@ import type { AwardVoteState } from './model';
 import type { AwardVotePorts } from './ports';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
 import { replaceTallies } from './tally';
+import { votingFranchise } from './voting-franchises';
 
 export interface ScoreBallotsInput {
     seasonYear: number;
@@ -15,15 +16,15 @@ export interface ScoreBallotsInput {
 export type ScoreBallotsRejection = RehearsalRefusal
     /** never opened, or already scored or published */
     | 'not-open'
-    /** the ballot lock is still ahead and an active franchise has no submitted ballot */
+    /** the ballot lock is still ahead and a franchise taking part has no submitted ballot */
     | 'still-voting';
 
 export type ScoreBallotsResult = { ok: true } | { ok: false; reason: ScoreBallotsRejection };
 
-/** whether the award vote's ballots have stopped changing: its ballot lock has passed, or every active franchise has submitted */
+/** whether the award vote's ballots have stopped changing: its ballot lock has passed, or every franchise taking part has submitted */
 const ballotsSettled = (seasonYear: number) => sql`(clock_timestamp() >= v.ballot_lock or not exists (
     select 1 from league.franchises f
-    where f.folded_after_season is null
+    where ${votingFranchise(sql`f.id`, seasonYear)}
       and not exists (select 1 from league.award_vote_ballots b
                       where b.season_year = ${seasonYear}::int and b.franchise_id = f.id and b.submitted is not null)))`;
 

@@ -1,5 +1,5 @@
 // The public read of a season's ballots, for its ballots page, once its award vote is published: every franchise that
-// played the season, under that season's identity (season_teams) and owner, with its submitted rankings named from the
+// took part (voting-franchises.ts), under that season's identity (season_teams) and owner, with its submitted rankings named from the
 // snapshot. A void ballot shows with its reason; a franchise with no submitted ballot shows as not having voted. Drafts
 // never show. Nothing before publishing, and never a rehearsal. Cached until the season's vote is published.
 import { sql } from 'drizzle-orm';
@@ -9,6 +9,7 @@ import type { BallotRankings, CreditedTeam, PlayerAwardId } from './model';
 import type { AwardVotePorts } from './ports';
 import { publishedVote } from './read-published-tallies';
 import { awardDefinition, PLAYER_AWARD_RULES } from './voted-awards';
+import { votingFranchise } from './voting-franchises';
 
 export interface ReadPublishedBallotsInput {
     seasonYear: number;
@@ -69,7 +70,7 @@ export function createReadPublishedBallots({ db }: AwardVotePorts) {
                 left join league.owners o on o.id = t.owner_id
                 left join league.award_vote_ballots b
                        on b.season_year = st.season_year and b.franchise_id = st.franchise_id and b.submitted is not null
-                where st.season_year = ${seasonYear}
+                where st.season_year = ${seasonYear} and ${votingFranchise(sql`st.franchise_id`, seasonYear)}
                 order by st.name, st.franchise_id`),
             // the snapshot names every candidate; the archive or the ID stand in without it
             db.rows<{ id: string; name: string }>(sql`

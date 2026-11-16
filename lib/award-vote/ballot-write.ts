@@ -1,7 +1,8 @@
 // What saving a draft and submitting a ballot share, following Pick'em's owner writes: the rehearsal refusal first,
 // then the owner preamble (same origin, session, the vote being open and before its ballot lock, rate limit, the
 // team the owner manages), then one statement that rechecks against the database clock that the owner still manages
-// the franchise, the franchise is active, the vote is open (and not a rehearsal) and the ballot lock has not passed.
+// the franchise, the franchise takes part in the vote (voting-franchises.ts), the vote is open (and not a rehearsal)
+// and the ballot lock has not passed.
 // A ballot belongs to the franchise: whoever manages it at the time writes it.
 import { sql, type SQL } from 'drizzle-orm';
 import { TooManyAttemptsError, type OwnerPreambleRejection } from '@/lib/owner/create-owner-session';
@@ -10,6 +11,7 @@ import { readBallotAwards } from './ballot-snapshot';
 import type { AwardVoteState, BallotRankings } from './model';
 import type { AwardVotePorts } from './ports';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
+import { votingFranchise } from './voting-franchises';
 
 /** ballot writes share their own limit, high enough for an owner to rank every award one save at a time */
 const BALLOT_ACTION = { name: 'award-vote-ballot', attempts: 300 };
@@ -63,7 +65,7 @@ export async function startBallotWrite(ports: AwardVotePorts, input: BallotWrite
 
 /**
  * Write `writer`'s ballot in one statement, saving the draft and, with `submit`, submitting it, only while the owner
- * still manages the active franchise and the vote is open before its ballot lock, by the database clock
+ * still manages a franchise that takes part in the vote and the vote is open before its ballot lock, by the database clock
  */
 export async function writeBallot(ports: AwardVotePorts, seasonYear: number, writer: BallotWriter, submit: boolean):
     Promise<{ ok: true } | { ok: false; reason: 'no-team' | 'not-open' | 'locked' }> {
@@ -77,8 +79,9 @@ export async function writeBallot(ports: AwardVotePorts, seasonYear: number, wri
         : { columns: sql``, values: sql``, updates: sql`` };
     const [target] = await ports.db.rows<{ managed: boolean; open: boolean; unlocked: boolean }>(sql`
         with target as (
-            select (select f.id from league.franchises f join league.team_management m on m.franchise_id = f.id
-                    where f.id = ${writer.franchiseId}::int and f.folded_after_season is null and m.owner_uid = ${writer.uid}) as franchise_id,
+            select (select m.franchise_id from league.team_management m
+                    where m.franchise_id = ${writer.franchiseId}::int and m.owner_uid = ${writer.uid}
+                      and ${votingFranchise(sql`m.franchise_id`, seasonYear)}) as franchise_id,
                    coalesce((select v.state = 'open' and not v.rehearsal from league.award_votes v where v.season_year = ${seasonYear}::int), false) as open,
                    coalesce((select clock_timestamp() < v.ballot_lock from league.award_votes v where v.season_year = ${seasonYear}::int), false) as unlocked
         ), saved as (

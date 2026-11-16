@@ -19,6 +19,22 @@ test('scoring is refused while the ballot lock is ahead and a franchise has not 
     assert.ok(vote?.scoredAt && Math.abs(Date.parse(vote.scoredAt) - Date.now()) < 60_000, 'scored just now');
 });
 
+test("a franchise with no team season that season can't cast a ballot, isn't listed as yet to submit, and doesn't hold up scoring", async t => {
+    const { submitFor, signInAs, submit, headerAnswer, admin, score } = await votingLeague(t, {
+        // franchise 5 joins next season, and its owner already manages it on the site
+        arrange: async ({ league }) => { await league.client.exec(`
+            insert into league.franchises (id, display_name, first_season) values (5, 'Expansion', ${SEASON + 1});
+            insert into league.team_management (franchise_id, name, owner_uid, owner_email, version) values (5, 'Expansion', 'owner-5', 'owner5@example.test', 1);`); },
+    });
+    await signInAs('owner-5');
+    assert.equal((await headerAnswer()).awardVote, null, 'no nudge');
+    assert.deepEqual(await submit(COMPLETE), { ok: false, reason: 'no-team' });
+    assert.deepEqual((await admin()).ballotStatus?.map(item => item.franchise.id), FRANCHISES);
+
+    for (const franchise of FRANCHISES) await submitFor(franchise, COMPLETE);
+    assert.deepEqual(await score(), { ok: true }, 'every franchise that played the season has submitted');
+});
+
 /** franchise 2's ballot: level with COMPLETE at the top of the Wayne Gretzky Award */
 const SECOND: BallotRankings = {
     ...COMPLETE,

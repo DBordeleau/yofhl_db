@@ -1,8 +1,10 @@
-// Which franchises have submitted a ballot in a season's award vote: every active franchise, as it is named now,
+// Which franchises have submitted a ballot in a season's award vote: every franchise taking part
+// (voting-franchises.ts), as it is named now,
 // with its owner's name and whether its ballot is submitted. It says nothing about any ranking, so every signed-in
 // owner and the admin may read it; its callers check who asks.
 import { sql } from 'drizzle-orm';
 import type { AwardVoteDatabase } from './ports';
+import { votingFranchise } from './voting-franchises';
 
 export interface BallotStatus {
     franchise: { id: number; name: string; abbreviation: string; logo: string | null };
@@ -19,7 +21,7 @@ export async function readBallotStatus(db: AwardVoteDatabase, seasonYear: number
         from league.current_teams c
         left join league.team_seasons t on t.id = c.latest_team_season_id
         left join league.owners o on o.id = t.owner_id
-        where not c.defunct
+        where ${votingFranchise(sql`c.id`, seasonYear)}
         order by c.name, c.id`);
     return found.map(({ owner, submitted, ...franchise }) => ({ franchise, owner, submitted }));
 }
