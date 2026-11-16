@@ -186,6 +186,9 @@ export const resolveGesture = (who: CharacterId, name: string): string | null =>
 /** Wardrobe variants share the same physical action, camera direction and Foley. */
 export const gestureAction = (gesture: string) => gesture.slice(wardrobeIn(WARDROBES, gesture).prefix.length);
 
+/** the ID of the wardrobe a host's gesture is worn in, such as remembrance-2026 for remembrance-point */
+export const wardrobeOf = (who: CharacterId, gesture: string) => wardrobeIn(wardrobesOf(who), gesture).id;
+
 /** an action in the wardrobe another gesture is worn in, such as angry while holding remembrance-point */
 export const actionInWardrobeOf = (who: CharacterId, action: string, held: string) => {
     if (!(action in ACTIONS[who])) throw new Error(`${CAST[who].name} has no ${action} action`);

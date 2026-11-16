@@ -3,7 +3,8 @@ import { archivoItalic } from '@/components/coachs-corner/fonts';
 import NewEpisodeBadge from '@/components/coachs-corner/new-episode-badge';
 import type { EpisodeSummary } from '@/lib/data/coachs-corner';
 import { episodeLabel } from '@/lib/coachs-corner/episode-label';
-import { artFor } from '@/lib/coachs-corner/cast';
+import { Poppy } from '@/components/coachs-corner/artwork';
+import { artFor, lapelFor, type Lapel } from '@/lib/coachs-corner/cast';
 import { artUrl } from '@/lib/coachs-corner/media';
 import { episodeSeenKey } from '@/lib/coachs-corner/seen';
 import styles from './hero-studio.module.css';
@@ -23,8 +24,11 @@ const episodeTitle = (title: string) => {
 // eslint-disable-next-line @next/next/no-img-element
 const Host = ({ pose, className }: { pose: string; className: string }) => <img className={className} src={artUrl(pose, true)} alt="" width={640} height={640} loading="lazy" decoding="async" draggable={false} />;
 
-// The latest Coach's Corner episode on a hung studio monitor, Don and Ron at the desk below it.
-export default function HeroStudio({ episode }: { episode: EpisodeSummary }) {
+// The latest Coach's Corner episode on a hung studio monitor, Don and Ron at the desk below it,
+// Don in the wardrobe the episode opens in and both hosts in its lapel pin.
+export default function HeroStudio({ episode, wardrobe, lapel }: { episode: EpisodeSummary; wardrobe?: string; lapel?: Lapel }) {
+    const don = artFor('don', 'point', { wardrobe, mouth: 'open' });
+    const ron = artFor('ron', 'skeptical', { mouth: 'open' });
     const title = episodeTitle(episode.title);
     const length = runtime(episode.durationMs);
     const slot = episodeLabel(episode);
@@ -47,7 +51,11 @@ export default function HeroStudio({ episode }: { episode: EpisodeSummary }) {
             </span>
         </Link>
         <span className={styles.desk} aria-hidden="true" />
-        <Host pose={artFor('don', 'point', { mouth: 'open' })} className={`${styles.host} ${styles.don}`} />
-        <Host pose={artFor('ron', 'skeptical', { mouth: 'open' })} className={`${styles.host} ${styles.ron}`} />
+        <Host pose={don} className={`${styles.host} ${styles.don}`} />
+        <Host pose={ron} className={`${styles.host} ${styles.ron}`} />
+        {lapel === 'poppy' && <>
+            <Poppy spot={lapelFor('don', don)} className={`${styles.host} ${styles.don}`} />
+            <Poppy spot={lapelFor('ron', ron)} className={`${styles.host} ${styles.ron}`} />
+        </>}
     </div></div>;
 }
