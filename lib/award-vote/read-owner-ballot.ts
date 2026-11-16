@@ -6,6 +6,7 @@ import { shareCandidateLists, type OwnerBallotAward } from './ballot';
 import { readBallotAwards } from './ballot-snapshot';
 import { readBallotStatus, type BallotStatus } from './ballot-status';
 import type { BallotRankings, PlayerCandidate } from './model';
+import { isoTime } from './iso-time';
 import type { AwardVotePorts } from './ports';
 
 export interface ReadOwnerBallotInput {
@@ -47,8 +48,8 @@ export function createReadOwnerBallot({ db, ownerSession }: AwardVotePorts) {
     return async function readOwnerBallot({ seasonYear }: ReadOwnerBallotInput): Promise<OwnerBallotView> {
         const signedIn = await ownerSession.currentOwnerTeam();
         if (!signedIn) return { status: 'signed-out' };
-        const [vote] = await db.rows<{ seasonYear: number; ballotLock: number; locked: boolean }>(sql`
-            select season_year as "seasonYear", (extract(epoch from ballot_lock) * 1000)::float8 as "ballotLock",
+        const [vote] = await db.rows<{ seasonYear: number; ballotLock: string; locked: boolean }>(sql`
+            select season_year as "seasonYear", ${isoTime(sql`ballot_lock`)} as "ballotLock",
                    clock_timestamp() >= ballot_lock as locked
             from league.award_votes
             where state = 'open' and not rehearsal ${seasonYear === undefined ? sql`` : sql`and season_year = ${seasonYear}`}
@@ -56,20 +57,20 @@ export function createReadOwnerBallot({ db, ownerSession }: AwardVotePorts) {
         if (!vote) return { status: 'no-vote' };
 
         const { team } = signedIn;
-        const [own] = team ? await db.rows<{ draft: BallotRankings; submitted: BallotRankings | null; submittedAt: number | null }>(sql`
-            select draft, submitted, (extract(epoch from submitted_at) * 1000)::float8 as "submittedAt"
+        const [own] = team ? await db.rows<OwnBallot>(sql`
+            select draft, submitted, ${isoTime(sql`submitted_at`)} as "submittedAt"
             from league.award_vote_ballots where season_year = ${vote.seasonYear} and franchise_id = ${team.id}`) : [];
         return {
             status: 'ballot',
             seasonYear: vote.seasonYear,
-            ballotLock: new Date(vote.ballotLock).toISOString(),
+            ballotLock: vote.ballotLock,
             locked: vote.locked,
             ...shareCandidateLists(await readBallotAwards(db, vote.seasonYear)),
             team: team && { franchiseId: team.id, name: team.name, abbreviation: team.abbreviation, logo: team.logo },
             ballot: team && {
                 draft: own?.draft ?? {},
                 submitted: own?.submitted ?? null,
-                submittedAt: own?.submittedAt ? new Date(own.submittedAt).toISOString() : null,
+                submittedAt: own?.submittedAt ?? null,
             },
             ballotStatus: await readBallotStatus(db, vote.seasonYear),
         };

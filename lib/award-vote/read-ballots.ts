@@ -4,6 +4,7 @@
 // Admin only: its callers check who asks. Owners read only their own franchise's ballot (read-owner-ballot.ts).
 import { sql } from 'drizzle-orm';
 import type { BallotRankings } from './model';
+import { isoTime } from './iso-time';
 import type { AwardVotePorts } from './ports';
 import type { BallotStatus } from './ballot-status';
 
@@ -34,9 +35,9 @@ export function createReadBallots({ db }: AwardVotePorts) {
             select state in ('scored', 'published') or (state = 'open' and clock_timestamp() >= ballot_lock) as settled
             from league.award_votes where season_year = ${seasonYear}`);
         if (!vote?.settled) return { ok: false, reason: 'not-locked' };
-        const found = await db.rows<AdminBallot['franchise'] & Omit<AdminBallot, 'franchise' | 'submittedAt'> & { submittedAt: number }>(sql`
+        const found = await db.rows<AdminBallot['franchise'] & Omit<AdminBallot, 'franchise'>>(sql`
             select c.id, c.name, c.abbreviation, c.logo, o.name as owner, b.submitted as rankings,
-                   (extract(epoch from b.submitted_at) * 1000)::float8 as "submittedAt", b.void_reason as "voidReason"
+                   ${isoTime(sql`b.submitted_at`)} as "submittedAt", b.void_reason as "voidReason"
             from league.award_vote_ballots b
             join league.current_teams c on c.id = b.franchise_id
             left join league.team_seasons t on t.id = c.latest_team_season_id
@@ -46,7 +47,7 @@ export function createReadBallots({ db }: AwardVotePorts) {
         return {
             ok: true,
             ballots: found.map(({ id, name, abbreviation, logo, owner, rankings, submittedAt, voidReason }) => ({
-                franchise: { id, name, abbreviation, logo }, owner, rankings, submittedAt: new Date(submittedAt).toISOString(), voidReason,
+                franchise: { id, name, abbreviation, logo }, owner, rankings, submittedAt, voidReason,
             })),
         };
     };

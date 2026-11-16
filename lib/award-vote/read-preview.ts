@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm';
 import { readBallotAwards } from './ballot-snapshot';
 import { readBallotStatus, type BallotStatus } from './ballot-status';
 import type { AwardVoteState, BallotAward, PrepareProgress } from './model';
+import { isoTime } from './iso-time';
 import type { AwardVotePorts } from './ports';
 import { awardVoteKind, type AwardVoteKind } from './rehearsal';
 
@@ -50,25 +51,17 @@ export interface VoidBallot {
     voidReason: string;
 }
 
-const isoOrNull = (ms: number | null) => ms === null ? null : new Date(ms).toISOString();
-
 export function createReadPreview({ db }: AwardVotePorts) {
     return async function readPreview({ seasonYear }: ReadPreviewInput): Promise<AwardVotePreview> {
-        const [vote] = await db.rows<{
-            state: AwardVoteState; rehearsal: boolean; progress: PrepareProgress; preparedAt: number | null; ballotLock: number | null; openedAt: number | null;
-            scoredAt: number | null; publishedAt: number | null;
-        }>(sql`
-            select state, rehearsal, prepare_progress as progress, (extract(epoch from prepared_at) * 1000)::float8 as "preparedAt",
-                   (extract(epoch from ballot_lock) * 1000)::float8 as "ballotLock", (extract(epoch from opened_at) * 1000)::float8 as "openedAt",
-                   (extract(epoch from scored_at) * 1000)::float8 as "scoredAt", (extract(epoch from published_at) * 1000)::float8 as "publishedAt"
+        const [vote] = await db.rows<Omit<AwardVoteSummary, 'seasonYear' | 'prepareStartedAt'> & { progress: PrepareProgress }>(sql`
+            select state, rehearsal, prepare_progress as progress, ${isoTime(sql`prepared_at`)} as "preparedAt",
+                   ${isoTime(sql`ballot_lock`)} as "ballotLock", ${isoTime(sql`opened_at`)} as "openedAt",
+                   ${isoTime(sql`scored_at`)} as "scoredAt", ${isoTime(sql`published_at`)} as "publishedAt"
             from league.award_votes where season_year = ${seasonYear}`);
         const kind = await awardVoteKind(db, seasonYear);
         if (!vote) return { kind, vote: null, ballot: null, ballotStatus: null, voidBallots: null };
-        const summary: AwardVoteSummary = {
-            seasonYear, state: vote.state, rehearsal: vote.rehearsal, prepareStartedAt: vote.progress.startedAt,
-            preparedAt: isoOrNull(vote.preparedAt), ballotLock: isoOrNull(vote.ballotLock), openedAt: isoOrNull(vote.openedAt),
-            scoredAt: isoOrNull(vote.scoredAt), publishedAt: isoOrNull(vote.publishedAt),
-        };
+        const { progress, ...times } = vote;
+        const summary: AwardVoteSummary = { seasonYear, prepareStartedAt: progress.startedAt, ...times };
         if (summary.preparedAt === null) return { kind, vote: summary, ballot: null, ballotStatus: null, voidBallots: null };
         const opened = vote.state !== 'prepared';
         return {
