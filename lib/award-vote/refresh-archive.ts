@@ -6,7 +6,7 @@
 import { sql } from 'drizzle-orm';
 import { refreshPublishedWinners } from '@/lib/data/curated-edits';
 import type { AwardVotePorts } from './ports';
-import { publishedVote } from './read-published-tallies';
+import { publishedVote } from './published-vote';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
 
 export interface RefreshArchiveInput {
