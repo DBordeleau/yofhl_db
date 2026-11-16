@@ -51,7 +51,8 @@ export function createReadTallies({ db }: AwardVotePorts) {
             order by t.place, coalesce(s.name, p.name, t.player_id), t.player_id`);
         const tallies = PLAYER_AWARD_RULES.map(({ award }): AwardTally => ({
             award, label: awardDefinition(award).label,
-            lines: found.filter(line => line.award === award).map(({ award: _, ...line }) => line),
+            lines: found.filter(line => line.award === award)
+                .map(({ playerId, name, points, votes, place }) => ({ playerId, name, points, votes, place })),
         })).filter(tally => tally.lines.length > 0);
         return { ok: true, counted: vote.counted, tallies };
     };

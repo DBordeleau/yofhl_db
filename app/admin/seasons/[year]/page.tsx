@@ -34,6 +34,7 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
     // from 2026–27 on, and for the season before the live season as a rehearsal
     const vote = await awardVote.readPreview({ seasonYear: season.year });
     const rookies = vote.kind ? await awardVote.readRookieReview({ seasonYear: season.year }) : null;
+    const tallies = await awardVote.readTallies({ seasonYear: season.year });
     const rehearsal = vote.kind === 'rehearsal' || !!vote.vote?.rehearsal;
 
     return (
@@ -70,7 +71,7 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
                             ? 'A rehearsal of the award vote on this past season: prepare and preview a real ballot before the first live vote. It can never be opened, and owners never see it. Preparing again replaces it.'
                             : 'Prepare the ballot from Fantrax and the archive, then check it here as owners will see it. Preparing again replaces it.'}
                     >
-                        <AwardVotePanel year={season.year} preview={vote} />
+                        <AwardVotePanel year={season.year} preview={vote} tallies={tallies.ok ? tallies : null} />
                     </Section>
                 )}
                 {rookies && (
