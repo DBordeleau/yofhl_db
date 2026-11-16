@@ -99,6 +99,7 @@ export async function reopenVoting(seasonYear: number, ballotLock: string): Prom
 const PUBLISH_REFUSALS: Record<PublishRejection, string> = {
     rehearsal: 'A rehearsal is never published.',
     'not-scored': 'Only a scored award vote can be published, and only once.',
+    'no-tally': 'No ballot counted, so there are no winners to publish.',
 };
 
 // The admin publishing a scored award vote's winners into the archive. There is no un-publishing.

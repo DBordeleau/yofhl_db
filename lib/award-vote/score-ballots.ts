@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import type { AwardVoteState } from './model';
 import type { AwardVotePorts } from './ports';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
-import { replaceTallies } from './tally';
+import { lockAwardVote, replaceTallies } from './tally';
 import { votingFranchise } from './voting-franchises';
 
 export interface ScoreBallotsInput {
@@ -42,15 +42,15 @@ export function createScoreBallots({ db }: AwardVotePorts) {
         const refused = await refusal(seasonYear);
         if (refused) return { ok: false, reason: refused };
 
-        // one statement: the vote becomes scored only while open, not a rehearsal and settled, and its tallies are
-        // replaced only when it does
-        const scored = await db.rows(sql`
+        // one statement, once the vote is locked (lockAwardVote): the vote becomes scored only while open, not a
+        // rehearsal and settled, and its tallies are replaced only when it does
+        const [, scored] = await db.writeInOrder([lockAwardVote(seasonYear), sql`
             with scored as (
                 update league.award_votes v set state = 'scored', scored_at = clock_timestamp(), updated_at = now()
                 where v.season_year = ${seasonYear} and v.state = 'open' and not v.rehearsal and ${ballotsSettled(seasonYear)}
                 returning v.season_year
             ), ${replaceTallies(seasonYear, sql`scored`)}
-            select 1 from scored`);
+            select 1 from scored`]);
         if (scored.length) return { ok: true };
         return { ok: false, reason: (await refusal(seasonYear)) ?? 'not-open' };
     };

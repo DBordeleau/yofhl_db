@@ -77,13 +77,23 @@ export async function writeBallot(ports: AwardVotePorts, seasonYear: number, wri
             updates: sql`, submitted = excluded.submitted, submitted_at = excluded.submitted_at, submitted_by_uid = excluded.submitted_by_uid`,
         }
         : { columns: sql``, values: sql``, updates: sql`` };
+    // The vote's row is read `for share`, so the write waits for a scoring, voiding, restoring, reopening or moving of
+    // the ballot lock in progress (each locks the row) and then reads the row as it left it: under READ COMMITTED a
+    // locking read that finds a row changed by a transaction it waited for rechecks its WHERE against the row's new
+    // version and returns that version, so a vote no longer open gives no row. Scoring locks
+    // the row before it reads the ballots (lockAwardVote in tally.ts), so a ballot written here is either in its tally
+    // or refused as no longer open.
     const [target] = await ports.db.rows<{ managed: boolean; open: boolean; unlocked: boolean }>(sql`
-        with target as (
+        with vote as (
+            select true as open, clock_timestamp() < v.ballot_lock as unlocked
+            from league.award_votes v where v.season_year = ${seasonYear}::int and v.state = 'open' and not v.rehearsal
+            for share
+        ), target as (
             select (select m.franchise_id from league.team_management m
                     where m.franchise_id = ${writer.franchiseId}::int and m.owner_uid = ${writer.uid}
                       and ${votingFranchise(sql`m.franchise_id`, seasonYear)}) as franchise_id,
-                   coalesce((select v.state = 'open' and not v.rehearsal from league.award_votes v where v.season_year = ${seasonYear}::int), false) as open,
-                   coalesce((select clock_timestamp() < v.ballot_lock from league.award_votes v where v.season_year = ${seasonYear}::int), false) as unlocked
+                   coalesce((select open from vote), false) as open,
+                   coalesce((select unlocked from vote), false) as unlocked
         ), saved as (
             insert into league.award_vote_ballots (season_year, franchise_id, draft, draft_saved_at${submitted.columns})
             select ${seasonYear}::int, franchise_id, ${rankings}::jsonb, clock_timestamp()${submitted.values}
