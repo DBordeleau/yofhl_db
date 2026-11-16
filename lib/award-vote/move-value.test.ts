@@ -117,6 +117,25 @@ test("a move between the draft and opening night counts from the season's first 
     assert.deepEqual((await summaryOf(1))?.trades.map(trade => trade.received), [[{ kind: 'player', playerId: 'early', name: 'Archive early', moveValue: 10, team: 'Club 4' }]]);
 });
 
+test("a move after the regular season's last day is left out of the summary", async t => {
+    const { claimed, dropped, traded, scoredOn, prepareFully, summaryOf } = await movesLeague(t);
+    await claimed('late', 2, '2026-11-01');
+    // the day after the regular season ends: playoffs
+    await dropped('late', 2, '2026-11-02');
+    await claimed('playoff', 2, '2026-11-02');
+    await traded('dealt', 3, 2, '2026-11-03');
+    scoredOn('2026-11-01', [['late', 4]]);
+    assert.equal((await prepareFully()).result.ok, true);
+    assert.deepEqual(await summaryOf(2), {
+        trades: [],
+        claims: [{ playerId: 'late', name: 'Archive late', occurredOn: '2026-11-01', moveValue: 4 }],
+        drops: [],
+        otherMoves: null,
+        draftClass: [],
+    });
+    assert.deepEqual((await summaryOf(3))?.trades, []);
+});
+
 test("a franchise's five most valuable claims and five costliest drops are shown in full, and the rest in one line with a count and net FPts", async t => {
     const { claimed, dropped, scoredOn, prepareFully, summaryOf } = await movesLeague(t);
     // claims c1..c7 on October 13, worth 70, 60, ... 10; drops d1..d6 on October 13, costing 6, 5, ... 1

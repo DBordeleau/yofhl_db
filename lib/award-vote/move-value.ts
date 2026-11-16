@@ -9,6 +9,7 @@
 //  - A claim or a trade is worth what the player scored at the franchise receiving them, until they next left it;
 //    the franchise that traded them away lost the same.
 //  - A drop costs what the player scored from the drop until the regular season ended or that franchise got them back.
+// Only moves up to the regular season's last day count: one made in the playoffs is left out.
 import type { DateRange, DraftedPlayer, FreeAgentMove, TradedAsset, TradeSummary, TransactionSummary } from './model';
 
 /** one asset of one of the season's transactions, as imported */
@@ -61,7 +62,7 @@ export function transactionSummaries({ regularSeason, moves, dailyPoints, draft 
             .reduce((sum, { points }) => sum + points, 0));
     };
 
-    const ordered = [...moves].sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt) || a.sourceRow - b.sourceRow);
+    const ordered = moves.filter(move => move.occurredOn <= regularSeason.endDate).sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt) || a.sourceRow - b.sourceRow);
     const afterSeason = dayAfter(regularSeason.endDate);
     /**
      * the move value of the player move at `index` in `ordered`: until the player next left the receiving franchise,
