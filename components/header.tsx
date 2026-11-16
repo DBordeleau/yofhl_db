@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AwardType, BannerSeason } from "@/lib/data/league";
 import type { SeasonArchive } from "@/lib/seasons";
-import { AWARDS, awardHref, getAwardDefinition } from "@/lib/awards";
+import { awardHref, getAwardDefinition } from "@/lib/awards";
 import { formatFpts, seasonLabel } from "@/lib/league";
 import { playerHref } from "@/lib/player-url";
 import { TrophyArt } from '@/components/trophy-icons';
@@ -31,6 +31,8 @@ export interface NavFranchise { id: number; name: string; abbreviation: string; 
 export interface NavData {
     latestCoachsCornerEpisode: string | null;
     awards: AwardType[];
+    /** the catalogue's listed awards (getListedAwards), each described by its honor */
+    listedAwards: AwardType[];
     seasonArchive: SeasonArchive<BannerSeason>;
     franchises: NavFranchise[];
     allTime: NavLeader[];
@@ -47,7 +49,7 @@ const MENUS: { id: Menu; label: string }[] = [
 
 const chevron = <svg className={styles.chevron} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>;
 
-const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime, singleSeason, latestCoachsCornerEpisode }) => {
+const Header: React.FC<NavData> = ({ awards, listedAwards, seasonArchive, franchises, allTime, singleSeason, latestCoachsCornerEpisode }) => {
     const pathname = usePathname();
     const owner = useOwnerNavigation();
     const [open, setOpen] = useState<Menu | null>(null);
@@ -72,7 +74,7 @@ const Header: React.FC<NavData> = ({ awards, seasonArchive, franchises, allTime,
     );
 
     const awardItems = [
-        ...AWARDS.map((award) => ({ name: award.name, label: award.label, description: award.honor, href: awardHref(award.name) })),
+        ...listedAwards.map((award) => ({ ...award, href: awardHref(award.name) })),
         ...awards.filter((award) => !getAwardDefinition(award.name)).map((award) => ({ name: award.name, label: award.label, description: award.description, href: awardHref(award.name) })),
     ];
     // the rafters, newest champion first; a season in progress has no banner yet

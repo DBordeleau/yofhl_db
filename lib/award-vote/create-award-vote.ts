@@ -35,7 +35,8 @@
 // become tallies in tally.ts. Every operation past preparing refuses a rehearsal first (rehearsal.ts).
 //
 // Which seasons may have an award vote, and the rehearsal, is in rehearsal.ts. Who is a candidate for each award and which stats they show is in voted-awards.ts; the season's date ranges in
-// season-dates.ts; listing a ballot award's candidates (top 50, sorting, search) in candidate-list.ts.
+// season-dates.ts; listing a ballot award's candidates (top 50, sorting, search) in candidate-list.ts. GM of the Year's
+// candidates, every franchise taking part with its team summary, are in team-summary.ts.
 import { createAdjustRookie } from './adjust-rookie';
 import { createReadBallotNudge } from './read-ballot-nudge';
 import { createReadOwnerBallot } from './read-owner-ballot';
@@ -60,28 +61,28 @@ import { createReadPublishedTallies } from './read-published-tallies';
 
 export type { AwardVoteClock, AwardVoteDatabase, AwardVoteFantrax, AwardVoteLeagueInfo, AwardVoteNhl, AwardVoteOwnerSession, AwardVotePorts, AwardVoteRange, NhlLookupPlayer, NhlPlayerRecord } from './ports';
 export type { AdjustRookieInput, AdjustRookieRejection, AdjustRookieResult } from './adjust-rookie';
-export type { BallotProblem, OwnerBallotAward, RankedAward } from './ballot';
+export type { BallotProblem, OwnerBallotAward, OwnerTeamAward, RankedAward } from './ballot';
 export type { BallotStatus } from './ballot-status';
 export type { BallotWriteRejection } from './ballot-write';
 export type { BallotNudge, ReadBallotNudgeInput } from './read-ballot-nudge';
 export type { OwnBallot, OwnerBallotView, ReadOwnerBallotInput } from './read-owner-ballot';
 export type { SaveDraftInput, SaveDraftRejection, SaveDraftResult } from './save-draft';
 export type { SubmitBallotInput, SubmitBallotRejection, SubmitBallotResult } from './submit-ballot';
-export type { AwardVoteState, BallotAward, BallotRankings, CreditedTeam, PlayerAwardId, PlayerCandidate, StatLine, StatSetName } from './model';
+export type { AwardVoteState, BallotAward, BallotRankings, CreditedTeam, PlayerAwardId, PlayerCandidate, PlayoffFinish, StatLine, StatSetName, TeamAwardId, TeamBallotAward, TeamCandidate, TeamSeasonLine, TeamSummary, TradedAsset, TradeSummary, TransactionSummary, FreeAgentMove, DraftedPlayer, VotedAwardId } from './model';
 export type { MoveBallotLockInput, MoveBallotLockRejection, MoveBallotLockResult } from './move-ballot-lock';
 export type { OpenVotingInput, OpenVotingRejection, OpenVotingResult } from './open-voting';
 export type { PrepareInput, PrepareRejection, PrepareResult } from './prepare';
 export type { AwardVotePreview, AwardVoteSummary, ReadPreviewInput, VoidBallot } from './read-preview';
 export type { ReadRookieReviewInput, RookieReview, RookieReviewPlayer } from './read-rookie-review';
 export type { AdminBallot, ReadBallotsInput, ReadBallotsRejection, ReadBallotsResult } from './read-ballots';
-export type { AwardTally, ReadTalliesInput, ReadTalliesRejection, ReadTalliesResult, TallyLine } from './read-tallies';
+export type { AwardTally, PlayerAwardTally, ReadTalliesInput, ReadTalliesRejection, ReadTalliesResult, TallyLine, TeamAwardTally, TeamTallyLine } from './read-tallies';
 export type { ReopenVotingInput, ReopenVotingRejection, ReopenVotingResult } from './reopen-voting';
 export type { ScoreBallotsInput, ScoreBallotsRejection, ScoreBallotsResult } from './score-ballots';
 export type { RestoreBallotInput, RestoreBallotRejection, RestoreBallotResult, VoidBallotInput, VoidBallotRejection, VoidBallotResult } from './void-ballot';
 export type { PublishInput, PublishRejection, PublishResult } from './publish';
 export type { RefreshArchiveInput, RefreshArchiveRejection, RefreshArchiveResult } from './refresh-archive';
-export type { PublicBallot, PublicBallotAward, PublicRankedPlayer, ReadPublishedBallotsInput, ReadPublishedBallotsRejection, ReadPublishedBallotsResult } from './read-published-ballots';
-export type { PublishedTally, ReadPublishedTalliesInput } from './read-published-tallies';
+export type { PublicBallot, PublicBallotAward, PublicBallotRanking, PublicRankedPlayer, PublicRankedTeam, ReadPublishedBallotsInput, ReadPublishedBallotsRejection, ReadPublishedBallotsResult } from './read-published-ballots';
+export type { PublishedTally, PublishedTallyLine, ReadPublishedTalliesInput } from './read-published-tallies';
 export type { RetryFailedLookupsInput, RetryFailedLookupsRejection, RetryFailedLookupsResult } from './retry-failed-lookups';
 export type { SeasonDates } from './season-dates';
 export type { AwardVoteKind, RehearsalRefusal } from './rehearsal';

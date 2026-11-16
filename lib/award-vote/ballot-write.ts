@@ -6,8 +6,8 @@
 // A ballot belongs to the franchise: whoever manages it at the time writes it.
 import { sql, type SQL } from 'drizzle-orm';
 import { TooManyAttemptsError, type OwnerPreambleRejection } from '@/lib/owner/create-owner-session';
-import { rankedAwards, readRankings, type RankedAward } from './ballot';
-import { readBallotAwards } from './ballot-snapshot';
+import { ownerTeamAward, rankedAwards, ranksTeamSeason, readRankings, type RankedAward } from './ballot';
+import { readBallotAwards, readTeamBallotAward } from './ballot-snapshot';
 import type { AwardVoteState, BallotRankings } from './model';
 import type { AwardVotePorts } from './ports';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
@@ -23,7 +23,9 @@ export type BallotWriteRejection = RehearsalRefusal | OwnerPreambleRejection
     | 'locked'
     | 'rate-limited'
     /** the rankings are not rankings of the ballot's candidates */
-    | 'invalid-ballot';
+    | 'invalid-ballot'
+    /** the rankings rank the owner's own franchise for GM of the Year */
+    | 'own-franchise';
 
 export interface BallotWriteInput {
     seasonYear: number;
@@ -57,7 +59,11 @@ export async function startBallotWrite(ports: AwardVotePorts, input: BallotWrite
     }
     if (!start.ok) return start;
     // the snapshot is frozen while the vote is open
-    const awards = rankedAwards(await readBallotAwards(db, seasonYear));
+    const teamAward = await readTeamBallotAward(db, seasonYear);
+    // the franchise's own team season isn't among its GM of the Year candidates, and a ballot ranking it is refused
+    const own = teamAward?.candidates.find(candidate => candidate.franchiseId === start.team.id);
+    if (own && ranksTeamSeason(input.rankings, own.teamSeasonId)) return { ok: false, reason: 'own-franchise' };
+    const awards = rankedAwards(await readBallotAwards(db, seasonYear), ownerTeamAward(teamAward, start.team.id));
     const rankings = readRankings(input.rankings, awards);
     if (!rankings) return { ok: false, reason: 'invalid-ballot' };
     return { ok: true, writer: { uid: start.actor.uid, franchiseId: start.team.id, rankings, awards } };

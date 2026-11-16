@@ -12,7 +12,7 @@ interface TrophyArtProps {
 
 export function TrophyArt({ award, title, className = 'h-20 w-20', sizes = '80px', priority = false }: TrophyArtProps) {
     const definition = getAwardDefinition(award);
-    if (!definition) return <FaTrophy className={className} title={title} aria-hidden={title ? undefined : true} />;
+    if (!definition?.image) return <FaTrophy className={className} title={title} aria-hidden={title ? undefined : true} />;
     return (
         <Image
             src={definition.image}

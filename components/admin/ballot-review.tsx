@@ -7,16 +7,32 @@
 import { useState } from 'react';
 import { restoreBallot, voidBallot } from '@/app/admin/ballot-void-actions';
 import type { AdminBallot, BallotAward, VoidBallot } from '@/lib/award-vote/create-award-vote';
-import { VOID_REASON_LENGTH } from '@/lib/award-vote/model';
+import { teamCandidateId, VOID_REASON_LENGTH, type TeamBallotAward, type VotedAwardId } from '@/lib/award-vote/model';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
 
-export default function BallotReview({ year, ballots, awards, published }: {
+/** a voted award as a ballot's rankings name it: its label and its candidates' names, by their ranking */
+interface NamedAward {
+    award: VotedAwardId;
+    label: string;
+    names: Map<string, string>;
+}
+
+export default function BallotReview({ year, ballots, awards: playerAwards, gmOfTheYear, published }: {
     year: number;
     ballots: AdminBallot[];
-    /** the ballot's awards, in ballot order, for their labels and candidates' names */
+    /** the ballot's individual awards, in ballot order, for their labels and candidates' names */
     awards: BallotAward[];
+    /** GM of the Year, ranked last, for its candidates' names */
+    gmOfTheYear: TeamBallotAward | null;
     published: boolean;
 }) {
+    const awards: NamedAward[] = [
+        ...playerAwards.map(award => ({ award: award.award, label: award.label, names: new Map(award.candidates.map(candidate => [candidate.playerId, candidate.name])) })),
+        ...gmOfTheYear ? [{
+            award: gmOfTheYear.award, label: gmOfTheYear.label,
+            names: new Map(gmOfTheYear.candidates.map(candidate => [teamCandidateId(candidate.teamSeasonId), candidate.name])),
+        }] : [],
+    ];
     const counting = ballots.filter(ballot => !ballot.voidReason).length;
     return <div className="mt-6 border-t border-line pt-5">
         <h3 className="font-wide text-base font-extrabold uppercase">Ballots</h3>
@@ -33,7 +49,7 @@ export default function BallotReview({ year, ballots, awards, published }: {
     </div>;
 }
 
-function SubmittedBallot({ year, ballot, awards, published }: { year: number; ballot: AdminBallot; awards: BallotAward[]; published: boolean }) {
+function SubmittedBallot({ year, ballot, awards, published }: { year: number; ballot: AdminBallot; awards: NamedAward[]; published: boolean }) {
     const { pending, result, run } = useAdminAction();
     const [voiding, setVoiding] = useState(false);
     const [reason, setReason] = useState('');
@@ -60,17 +76,15 @@ function SubmittedBallot({ year, ballot, awards, published }: { year: number; ba
         <details className="mt-1 text-sm">
             <summary className="cursor-pointer font-bold text-rink-blue">Rankings</summary>
             <dl className={`mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-[auto_1fr] ${voidReason ? 'text-ink-soft' : ''}`}>
-                {awards.filter(award => ballot.rankings[award.award]?.length).map(award => {
-                    const names = new Map(award.candidates.map(candidate => [candidate.playerId, candidate.name]));
-                    return <div key={award.award} className="contents">
-                        <dt className="font-bold">{award.label}</dt>
+                {awards.filter(award => ballot.rankings[award.award]?.length).map(({ award, label, names }) =>
+                    <div key={award} className="contents">
+                        <dt className="font-bold">{label}</dt>
                         <dd>
                             <ol className="list-inside list-decimal">
-                                {ballot.rankings[award.award]!.map((playerId, rank) => <li key={rank}>{playerId ? names.get(playerId) ?? playerId : '—'}</li>)}
+                                {ballot.rankings[award]!.map((candidate, rank) => <li key={rank}>{candidate ? names.get(candidate) ?? candidate : '—'}</li>)}
                             </ol>
                         </dd>
-                    </div>;
-                })}
+                    </div>)}
             </dl>
         </details>
         {!published && <div className="mt-2">

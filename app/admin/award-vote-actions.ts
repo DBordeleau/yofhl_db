@@ -13,6 +13,7 @@ const CARRY_ON = 'Prepare again to carry on from where it stopped.';
 const REFUSALS: Record<PrepareRejection, (message: string) => string> = {
     'before-award-votes': () => 'Award votes start with the 2026–27 season; only the season before the live season can be rehearsed.',
     'no-champion': () => 'This season has no champion yet. Sync or import the Final first.',
+    'no-transactions': () => 'This season has no imported transactions. Import its trades and free-agent claims first.',
     'no-fantrax-league': () => 'This season has no Fantrax league. Add its fantrax block to league/league.yml and run the season import.',
     'not-prepared': () => 'Voting has opened, so this ballot can no longer be prepared.',
     'fantrax-failed': message => `Fantrax failed: ${message}. ${CARRY_ON}`,

@@ -2,7 +2,7 @@
 // ballot lock, the owner who manages the franchise at the time, and who can read what.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { awardVoteLeague, COMPLETE, goalie, lockInHours, SEASON, skater, votingLeague } from './testing/award-vote-league';
+import { awardVoteLeague, COMPLETE, completeFor, goalie, lockInHours, SEASON, skater, votingLeague } from './testing/award-vote-league';
 
 test('the ballot shows every voted award with candidates, its ballot lock and each candidate list once', async t => {
     const { signInAs, read, admin } = await votingLeague(t);
@@ -40,7 +40,7 @@ test('an award with no candidates is left off the ballot, and a ballot is comple
     assert.ok(view.status === 'ballot');
     assert.deepEqual(view.awards.map(award => [award.award, award.depth]), [['wayne-gretzky', 3], ['le-magnifique', 3], ['hasek', 1]]);
     assert.deepEqual(await asOwner(() => vote.submitBallot({
-        seasonYear: SEASON, rankings: { 'wayne-gretzky': ['s1', 's2', 'g1'], 'le-magnifique': ['g1', 's1', 's2'], hasek: ['g1'] },
+        seasonYear: SEASON, rankings: { 'wayne-gretzky': ['s1', 's2', 'g1'], 'le-magnifique': ['g1', 's1', 's2'], hasek: ['g1'], 'gm-of-the-year': ['12', '13', '14'] },
     })), { ok: true });
 });
 
@@ -198,10 +198,10 @@ test("a ballot's rankings are readable only by its own franchise; who has submit
     ];
     assert.deepEqual(view.ballotStatus, status);
     // nothing else in the read carries another franchise's rankings
-    assert.deepEqual(Object.keys(view).sort(), ['awards', 'ballot', 'ballotLock', 'ballotStatus', 'lists', 'locked', 'seasonYear', 'status', 'team']);
+    assert.deepEqual(Object.keys(view).sort(), ['awards', 'ballot', 'ballotLock', 'ballotStatus', 'gmOfTheYear', 'lists', 'locked', 'seasonYear', 'status', 'team']);
     const preview = await admin();
     assert.deepEqual(preview.ballotStatus, status);
-    assert.deepEqual(Object.keys(preview).sort(), ['ballot', 'ballotStatus', 'kind', 'voidBallots', 'vote']);
+    assert.deepEqual(Object.keys(preview).sort(), ['ballot', 'ballotStatus', 'gmOfTheYear', 'kind', 'voidBallots', 'vote']);
 });
 
 test('once the admin moves a passed ballot lock later, owners can change and submit their ballots again', async t => {
@@ -214,6 +214,6 @@ test('once the admin moves a passed ballot lock later, owners can change and sub
     assert.deepEqual(await act(() => vote.moveBallotLock({ seasonYear: SEASON, ballotLock })), { ok: true });
     assert.deepEqual(await headerAnswer().then(answer => answer.awardVote), { seasonYear: SEASON, ballotLock });
     assert.deepEqual(await saveDraft({ hasek: ['g1'] }), { ok: true });
-    assert.deepEqual(await submit(COMPLETE), { ok: true });
-    assert.deepEqual((await ownBallot())?.submitted, COMPLETE);
+    assert.deepEqual(await submit(completeFor(2)), { ok: true });
+    assert.deepEqual((await ownBallot())?.submitted, completeFor(2));
 });

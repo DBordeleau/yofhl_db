@@ -1,3 +1,5 @@
+import { GM_OF_THE_YEAR } from './award-vote/model';
+
 export interface AwardDefinition {
     id: string;
     /** Preserve the database name so existing winner records and URLs keep working. */
@@ -6,10 +8,18 @@ export interface AwardDefinition {
     scope: 'team' | 'player';
     honor: string;
     description: string;
-    image: string;
+    /** its trophy art, or null for one with no art yet (the trophy components show a plain trophy) */
+    image: string | null;
+    /**
+     * false for an award the league owner hasn't released: it is on the award vote's ballot and in its tallies, but
+     * no list of awards shows it (navigation, the award gallery, search, the award API, share cards, trophy shelves and
+     * the franchise trophy case; see listedAwards). Its own award page still shows its published winners.
+     */
+    released?: false;
 }
 
-export const AWARDS: readonly AwardDefinition[] = [
+/** every award, released or not */
+export const AWARD_CATALOGUE: readonly AwardDefinition[] = [
     {
         id: 'jagr-cup', name: 'Jagr Cup', label: 'Jagr Cup', scope: 'team', honor: 'League champion',
         description: 'The highest honour in YOFHL. The Jagr Cup belongs to the team that wins the championship playoffs and finishes the season on top.',
@@ -50,13 +60,35 @@ export const AWARDS: readonly AwardDefinition[] = [
         description: 'Presented to YOFHL’s Rookie of the Year. It recognises the newcomer who makes the strongest first impression with an outstanding debut season.',
         image: '/trophies/teemu-selanne.webp',
     },
+    // a voted award still being tried out: its name and art are placeholders until the league owner releases it
+    {
+        id: GM_OF_THE_YEAR, name: 'GM of the Year', label: 'GM of the Year', scope: 'team', honor: 'Best-run franchise',
+        description: 'Awarded to the franchise that was best run over the season, judged on its draft, its moves and how the team finished.',
+        image: null, released: false,
+    },
 ];
+
+/** the team awards an award vote decides: no winner until one of its tallies is published */
+const VOTED_TEAM_AWARDS: ReadonlySet<string> = new Set([GM_OF_THE_YEAR]);
+
+/**
+ * the awards lists of awards show (navigation, the award gallery, search, the award API, the franchise trophy case):
+ * the released ones in `catalogue`, a team award decided by an award vote only once one of its tallies is published
+ * (`published`, by catalogue ID)
+ */
+export function listedAwards(published: ReadonlySet<string>, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): AwardDefinition[] {
+    return catalogue.filter(award => award.released !== false && (!VOTED_TEAM_AWARDS.has(award.id) || published.has(award.id)));
+}
+
+/** the released awards with trophy art, in catalogue order: player trophy shelves and share cards; lists of every award use listedAwards */
+export const AWARDS: readonly (AwardDefinition & { image: string })[] =
+    AWARD_CATALOGUE.filter((award): award is AwardDefinition & { image: string } => award.released !== false && award.image !== null);
 
 const normalize = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 export function getAwardDefinition(name: string): AwardDefinition | undefined {
     const key = normalize(name);
-    return AWARDS.find((award) => [award.id, award.name, award.label].some((alias) => normalize(alias) === key));
+    return AWARD_CATALOGUE.find((award) => [award.id, award.name, award.label].some((alias) => normalize(alias) === key));
 }
 
 // award names are stored with spaces; URLs use underscores (/awards/Wayne_Gretzky_Award)

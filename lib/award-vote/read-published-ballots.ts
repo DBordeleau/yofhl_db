@@ -1,15 +1,15 @@
 // The public read of a season's ballots, for its ballots page, once its award vote is published: every franchise that
-// took part (voting-franchises.ts), under that season's identity (season_teams) and owner, with its submitted rankings named from the
-// snapshot. A void ballot shows with its reason; a franchise with no submitted ballot shows as not having voted. Drafts
+// took part (voting-franchises.ts), under that season's identity (season_teams) and owner, with its submitted rankings:
+// players named from the snapshot, and GM of the Year's team seasons under their identity that season. A void ballot shows with its reason; a franchise with no submitted ballot shows as not having voted. Drafts
 // never show. Nothing before publishing, and never a rehearsal. Cached until the season's vote is published.
 import { sql } from 'drizzle-orm';
 import { leagueTags } from '@/lib/data/cache-tags';
 import { cached } from '@/lib/data/db';
-import type { BallotRankings, CreditedTeam, PlayerAwardId } from './model';
-import { rankedPlayerName } from './ballot-snapshot';
+import { GM_OF_THE_YEAR, VOTED_AWARD_IDS, type BallotRankings, type CreditedTeam, type PlayerAwardId, type TeamAwardId, type VotedAwardId } from './model';
+import { rankedPlayerName, seasonOwner, seasonTeamColumns } from './ballot-snapshot';
 import type { AwardVotePorts } from './ports';
-import { publishedVote } from './read-published-tallies';
-import { awardDefinition, PLAYER_AWARD_RULES } from './voted-awards';
+import { publishedVote } from './published-vote';
+import { awardDefinition } from './voted-awards';
 import { votingFranchise } from './voting-franchises';
 
 export interface ReadPublishedBallotsInput {
@@ -18,6 +18,12 @@ export interface ReadPublishedBallotsInput {
 
 /** a ranked player on a public ballot; null for a rank left empty */
 export type PublicRankedPlayer = { playerId: string; name: string } | null;
+
+/** a ranked team season on a public ballot, as it was that season; null for a rank left empty */
+export type PublicRankedTeam = CreditedTeam | null;
+
+/** one award a public ballot ranked */
+export type PublicBallotRanking = { award: PlayerAwardId; players: PublicRankedPlayer[] } | { award: TeamAwardId; teams: PublicRankedTeam[] };
 
 /** one franchise's ballot on the ballots page */
 export interface PublicBallot {
@@ -30,12 +36,12 @@ export interface PublicBallot {
     /** why the ballot is void, or null when it counts (or there is none) */
     voidReason: string | null;
     /** each award it ranked, in ballot order; empty when it didn't vote */
-    rankings: { award: PlayerAwardId; players: PublicRankedPlayer[] }[];
+    rankings: PublicBallotRanking[];
 }
 
 /** an award on the season's ballots, and how deep it was ranked */
 export interface PublicBallotAward {
-    award: PlayerAwardId;
+    award: VotedAwardId;
     label: string;
     depth: number;
 }
@@ -62,13 +68,11 @@ export function createReadPublishedBallots({ db }: AwardVotePorts) {
         const [vote] = await db.rows<{ published: boolean }>(sql`
             select ${publishedVote} as published from league.award_votes v where v.season_year = ${seasonYear}`);
         if (!vote?.published) return { ok: false, reason: 'not-published' };
-        const [teams, players] = await Promise.all([
+        const [teams, players, rankedTeams] = await Promise.all([
             db.rows<BallotRow>(sql`
-                select st.team_season_id as "teamSeasonId", st.franchise_id as "franchiseId", st.name, st.abbreviation, st.logo,
-                       o.name as owner, b.submitted as rankings, b.void_reason as "voidReason"
+                select ${seasonTeamColumns}, o.name as owner, b.submitted as rankings, b.void_reason as "voidReason"
                 from league.season_teams st
-                join league.team_seasons t on t.id = st.team_season_id
-                left join league.owners o on o.id = t.owner_id
+                ${seasonOwner}
                 left join league.award_vote_ballots b
                        on b.season_year = st.season_year and b.franchise_id = st.franchise_id and b.submitted is not null
                 where st.season_year = ${seasonYear} and ${votingFranchise(sql`st.franchise_id`, seasonYear)}
@@ -77,10 +81,17 @@ export function createReadPublishedBallots({ db }: AwardVotePorts) {
                 select r.id, ${rankedPlayerName(seasonYear, sql`r.id`)} as name
                 from (select distinct jsonb_array_elements_text(ranks.value) as id
                       from league.award_vote_ballots b, jsonb_each(b.submitted) ranks
-                      where b.season_year = ${seasonYear} and b.submitted is not null) r`),
+                      where b.season_year = ${seasonYear} and b.submitted is not null and ranks.key <> ${GM_OF_THE_YEAR}) r`),
+            db.rows<CreditedTeam>(sql`
+                select ${seasonTeamColumns}
+                from league.season_teams st
+                where st.team_season_id in (select jsonb_array_elements_text(b.submitted -> ${GM_OF_THE_YEAR})::int
+                                            from league.award_vote_ballots b
+                                            where b.season_year = ${seasonYear} and b.submitted is not null)`),
         ]);
         const names = new Map(players.map(player => [player.id, player.name]));
-        const awards = PLAYER_AWARD_RULES.map(({ award }): PublicBallotAward => ({
+        const seasonTeams = new Map(rankedTeams.map(team => [String(team.teamSeasonId), team]));
+        const awards = VOTED_AWARD_IDS.map((award): PublicBallotAward => ({
             award, label: awardDefinition(award).label,
             depth: Math.max(0, ...teams.map(team => team.rankings?.[award]?.length ?? 0)),
         })).filter(award => award.depth > 0);
@@ -90,9 +101,11 @@ export function createReadPublishedBallots({ db }: AwardVotePorts) {
             awards,
             ballots: teams.map(({ rankings, owner, voidReason, ...team }): PublicBallot => ({
                 team, owner, voted: rankings !== null, voidReason,
-                rankings: awards.flatMap(({ award }) => {
+                rankings: awards.flatMap(({ award }): PublicBallotRanking[] => {
                     const ranked = rankings?.[award];
-                    return ranked ? [{ award, players: ranked.map(id => id === null ? null : { playerId: id, name: names.get(id) ?? id }) }] : [];
+                    if (!ranked) return [];
+                    if (award === GM_OF_THE_YEAR) return [{ award, teams: ranked.map(id => id === null ? null : seasonTeams.get(id) ?? null) }];
+                    return [{ award, players: ranked.map(id => id === null ? null : { playerId: id, name: names.get(id) ?? id }) }];
                 }),
             })),
         };

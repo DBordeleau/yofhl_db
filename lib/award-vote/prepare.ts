@@ -1,13 +1,15 @@
 // Preparing a season's award vote: building its frozen candidate snapshot. Allowed for a season year from 2027, or
-// for the season before the live season as a rehearsal (rehearsal.ts), that has a champion, while the vote is still
+// for the season before the live season as a rehearsal (rehearsal.ts), that has a champion and imported
+// transactions (GM of the Year's transaction summary is built from them), while the vote is still
 // only prepared. Each call runs steps in order until its time budget is
 // spent or it has read Fantrax for a step, recording each step as done in the same statement as its write, so the
 // next call resumes where this one stopped; the admin page calls again until it is done. The call after a finished prepare starts over, replacing
 // the snapshot, as does a call asking to start over an unfinished one. Nothing runs unless the admin asks.
 //
 // The steps (prepare-steps.ts): the season's dates from its own Fantrax league info, then each stat set's Fantrax
-// reads (with the finalists' daily rosters over the Final read before the Danny Briere Award's), then the young
-// players' NHL lookups, then each award's candidates from the stored stats and the archive.
+// reads (with the finalists' daily rosters over the Final read before the Danny Briere Award's), then each
+// regular-season day's fantasy points for move value, then the young players' NHL lookups, then each award's
+// candidates from the stored stats and the archive.
 import { sql } from 'drizzle-orm';
 import type { AwardVoteState, PrepareProgress } from './model';
 import type { AwardVotePorts } from './ports';
@@ -20,7 +22,7 @@ export interface PrepareInput {
     startOver?: boolean;
 }
 
-export type PrepareRejection = 'before-award-votes' | 'no-champion' | 'no-fantrax-league' | 'not-prepared' | 'fantrax-failed';
+export type PrepareRejection = 'before-award-votes' | 'no-champion' | 'no-transactions' | 'no-fantrax-league' | 'not-prepared' | 'fantrax-failed';
 
 export type PrepareResult =
     | { ok: true; done: boolean; stepsDone: number; steps: number }
@@ -42,6 +44,8 @@ export const PREPARE_BUDGET_MS = 25_000;
 
 interface SeasonCheck {
     champion: boolean;
+    /** whether the season's trades and free-agent moves are imported, which GM of the Year's summary is built from */
+    transactions: boolean;
     leagueId: string | null;
     state: AwardVoteState | null;
     progress: PrepareProgress | null;
@@ -56,20 +60,24 @@ export function createPrepare(ports: AwardVotePorts) {
         const [season] = await db.rows<SeasonCheck>(sql`
             select r.champion_team_season_id is not null as champion, v.state, v.prepare_progress as progress,
                    v.prepared_at is not null as finished,
+                   exists (select 1 from league.transaction_events e where e.season_year = y.year) as transactions,
                    (select min(ft.fantrax_league_id) from league.fantrax_teams ft where ft.season_year = ${seasonYear}) as "leagueId"
             from (select ${seasonYear}::int as year) y
             left join league.season_results r on r.season_year = y.year
             left join league.award_votes v on v.season_year = y.year`);
         if (!season.champion) return { ok: false, reason: 'no-champion' };
+        if (!season.transactions) return { ok: false, reason: 'no-transactions' };
         if (season.leagueId === null) return { ok: false, reason: 'no-fantrax-league' };
         if (season.state !== null && season.state !== 'prepared') return { ok: false, reason: 'not-prepared' };
 
         const started = clock.now();
         let progress = season.progress && !season.finished && !startOver ? season.progress : await start(seasonYear, kind === 'rehearsal', new Date(started).toISOString());
         if (!progress) return { ok: false, reason: 'not-prepared' };
-        const steps = prepareSteps(ports, { seasonYear, leagueId: season.leagueId });
-        for (let ran = 0; progress.done.length < steps.length && clock.now() - started < PREPARE_BUDGET_MS; ran++) {
-            const step = steps.find(({ name }) => !progress!.done.includes(name))!;
+        // the list grows once the season's dates are read (a step per regular-season day)
+        const stepsFor = prepareSteps(ports, { seasonYear, leagueId: season.leagueId });
+        const steps = () => stepsFor(progress!.dates);
+        for (let ran = 0; progress.done.length < steps().length && clock.now() - started < PREPARE_BUDGET_MS; ran++) {
+            const step = steps().find(({ name }) => !progress!.done.includes(name))!;
             // a step that reads Fantrax runs only first in a call (see PREPARE_BUDGET_MS)
             if (step.readsFantrax && ran > 0) break;
             try {
@@ -85,7 +93,8 @@ export function createPrepare(ports: AwardVotePorts) {
             }
             if (step.readsFantrax) break;
         }
-        return { ok: true, done: progress.done.length === steps.length, stepsDone: progress.done.length, steps: steps.length };
+        const total = steps().length;
+        return { ok: true, done: progress.done.length === total, stepsDone: progress.done.length, steps: total };
     };
 
     /** start a prepare over: the season's snapshot goes, and its progress starts empty; null if the vote is no longer prepared */
@@ -95,6 +104,12 @@ export function createPrepare(ports: AwardVotePorts) {
             with old_snapshot as (
                 -- its stats and candidates go with it
                 delete from league.award_vote_players
+                where season_year = ${seasonYear} and (select state from league.award_votes where season_year = ${seasonYear}) = 'prepared'
+            ), old_daily_points as (
+                delete from league.award_vote_daily_points
+                where season_year = ${seasonYear} and (select state from league.award_votes where season_year = ${seasonYear}) = 'prepared'
+            ), old_team_seasons as (
+                delete from league.award_vote_team_seasons
                 where season_year = ${seasonYear} and (select state from league.award_votes where season_year = ${seasonYear}) = 'prepared'
             ), vote as (
                 insert into league.award_votes (season_year, rehearsal, prepare_progress) values (${seasonYear}, ${rehearsal}, ${JSON.stringify(progress)}::jsonb)

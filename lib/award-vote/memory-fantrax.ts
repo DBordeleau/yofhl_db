@@ -1,9 +1,9 @@
-// The award vote's Fantrax reads, in memory. A test changes what Fantrax says by changing `state`: its skater and
-// goalie tables are kept per date range, so a read of any range the test hasn't set fails, as an unexpected
-// request would. A read fails while its name is in `down`, and reads of any other league or season fail, as
-// Fantrax's would. `onRead` runs before every read (a test's clock can advance there, as a slow Fantrax's would).
-// A skater or goalie table is one page unless `pageSize` is set; a read of a later page is named with its number.
-import type { AwardVoteFantrax, AwardVoteLeagueInfo, AwardVoteRange, FantraxDayRosters, RangedGoalie, RangedPage, RangedSkater } from './ports';
+// The award vote's Fantrax reads, in memory. A test changes what Fantrax says by changing `state`: its skater,
+// goalie and all-positions points tables are kept per date range, so a read of any range the test hasn't set fails,
+// as an unexpected request would. A read fails while its name is in `down`, and reads of any other league or season
+// fail, as Fantrax's would. `onRead` runs before every read (a test's clock can advance there, as a slow Fantrax's
+// would). A table is one page unless `pageSize` is set; a read of a later page is named with its number.
+import type { AwardVoteFantrax, AwardVoteLeagueInfo, AwardVoteRange, FantraxDayRosters, RangedGoalie, RangedPage, RangedPlayer, RangedSkater } from './ports';
 
 export type MemoryAwardVoteRead = keyof AwardVoteFantrax;
 
@@ -17,9 +17,11 @@ export interface MemoryAwardVoteFantraxState {
     skaters: Record<string, RangedSkater[]>;
     /** Fantrax's goalie table over each date range, by `rangeKey` */
     goalies: Record<string, RangedGoalie[]>;
+    /** Fantrax's all-positions points table over each date range (a single day, for move value), by `rangeKey` */
+    points: Record<string, RangedPlayer[]>;
     /** each roster period's rosters, by roster period number */
     rosters: Record<number, FantraxDayRosters>;
-    /** rows per page of a skater or goalie table; the whole table by default */
+    /** rows per page of a skater, goalie or points table; the whole table by default */
     pageSize?: number;
     /** reads that fail */
     down: Set<MemoryAwardVoteRead>;
@@ -38,7 +40,7 @@ export function createMemoryAwardVoteFantrax(state: MemoryAwardVoteFantraxState)
         if (answer === undefined) return Promise.reject(new Error(`Fantrax has no ${name} for ${asked}`));
         return Promise.resolve(structuredClone(answer));
     };
-    const ranged = <T>(name: 'skaters' | 'goalies', range: AwardVoteRange, page: number, tables: Record<string, T[]>) =>
+    const ranged = <T>(name: 'skaters' | 'goalies' | 'points', range: AwardVoteRange, page: number, tables: Record<string, T[]>) =>
         read<RangedPage<T>>(name, range.leagueId, page > 1 ? `${rangeKey(range)} page ${page}` : rangeKey(range), () => {
             const table = range.seasonYear === state.leagueInfo.seasonYear ? tables[rangeKey(range)] : undefined;
             if (!table) return undefined;
@@ -50,6 +52,7 @@ export function createMemoryAwardVoteFantrax(state: MemoryAwardVoteFantraxState)
         leagueInfo: leagueId => read('leagueInfo', leagueId, '', () => state.leagueInfo),
         skaters: (range, page) => ranged('skaters', range, page, state.skaters),
         goalies: (range, page) => ranged('goalies', range, page, state.goalies),
+        points: (range, page) => ranged('points', range, page, state.points),
         dayRosters: (leagueId, rosterPeriod) => read('dayRosters', leagueId, String(rosterPeriod), () => state.rosters[rosterPeriod]),
     };
 }

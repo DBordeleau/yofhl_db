@@ -8,7 +8,9 @@ import { useEffect, useState } from 'react';
 import { prepareAwardVote } from '@/app/admin/award-vote-actions';
 import { moveBallotLock, openVoting, publishAwardVote, refreshAwardVoteArchive, reopenVoting, scoreBallots } from '@/app/admin/voting-actions';
 import CandidateList from '@/components/award-vote/candidate-list';
+import TeamCandidateList from '@/components/award-vote/team-candidate-list';
 import type { AdminBallot, AwardTally, AwardVotePreview, ReadTalliesResult } from '@/lib/award-vote/create-award-vote';
+import { GM_OF_THE_YEAR } from '@/lib/award-vote/model';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
 import BallotReview, { VoidBallots } from './ballot-review';
 
@@ -58,9 +60,9 @@ export default function AwardVotePanel({ year, preview, tallies, ballots = null 
         {vote?.state === 'scored' && !rehearsal && <Publish year={year} />}
         {vote?.state === 'published' && <RefreshArchive year={year} />}
         {tallies && <TallyReview tallies={tallies} />}
-        {ballots && ballot && <BallotReview year={year} ballots={ballots} awards={ballot} published={vote?.state === 'published'} />}
+        {ballots && ballot && <BallotReview year={year} ballots={ballots} awards={ballot} gmOfTheYear={preview.gmOfTheYear} published={vote?.state === 'published'} />}
         {!ballots && vote?.state === 'open' && preview.voidBallots && <VoidBallots year={year} ballots={preview.voidBallots} />}
-        {ballot && <BallotPreview ballot={ballot} rehearsal={rehearsal} />}
+        {ballot && <BallotPreview ballot={ballot} gmOfTheYear={preview.gmOfTheYear} rehearsal={rehearsal} />}
     </div>;
 }
 
@@ -124,14 +126,20 @@ function Voting({ year, vote, ballotStatus }: {
     </div>;
 }
 
-function BallotPreview({ ballot, rehearsal }: { ballot: NonNullable<AwardVotePreview['ballot']>; rehearsal: boolean }) {
-    const [selected, setSelected] = useState(ballot[0]?.award);
-    const award = ballot.find(item => item.award === selected) ?? ballot[0];
+/** the ballot as owners will see it, GM of the Year last with every franchise (each owner's leaves out their own) */
+function BallotPreview({ ballot, gmOfTheYear, rehearsal }: {
+    ballot: NonNullable<AwardVotePreview['ballot']>;
+    gmOfTheYear: AwardVotePreview['gmOfTheYear'];
+    rehearsal: boolean;
+}) {
+    const tabs = [...ballot, ...gmOfTheYear ? [gmOfTheYear] : []];
+    const [selected, setSelected] = useState(tabs[0]?.award);
+    const award = tabs.find(item => item.award === selected) ?? tabs[0];
     if (!award) return null;
     return <div className="mt-6">
         <h3 className="font-wide text-base font-extrabold uppercase">{rehearsal ? 'Rehearsal ballot preview' : 'Ballot preview'}</h3>
         <div role="tablist" aria-label="Voted awards" className="mt-3 flex flex-wrap gap-2">
-            {ballot.map(item => <button key={item.award} type="button" role="tab" aria-selected={item.award === award.award}
+            {tabs.map(item => <button key={item.award} type="button" role="tab" aria-selected={item.award === award.award}
                 onClick={() => setSelected(item.award)}
                 className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${item.award === award.award ? 'border-ink bg-ink text-white' : 'border-line-strong bg-white hover:border-ink'}`}>
                 {item.label}
@@ -139,7 +147,9 @@ function BallotPreview({ ballot, rehearsal }: { ballot: NonNullable<AwardVotePre
         </div>
         <div role="tabpanel" className="mt-4">
             <p className="mb-3 text-sm text-ink-soft">{award.honor}</p>
-            <CandidateList key={award.award} award={award} />
+            {award.award === GM_OF_THE_YEAR
+                ? <TeamCandidateList candidates={award.candidates} />
+                : <CandidateList key={award.award} award={award} />}
         </div>
     </div>;
 }
@@ -166,8 +176,12 @@ function TallyReview({ tallies }: { tallies: Tallies }) {
 }
 
 function AwardTallyTable({ tally }: { tally: AwardTally }) {
-    const winners = tally.lines.filter(line => line.place === 1);
-    const depth = tally.lines[0]?.votes.length ?? 0;
+    // GM of the Year ranks team seasons, named with that season's owner
+    const lines = tally.award === GM_OF_THE_YEAR
+        ? tally.lines.map(({ team, owner, ...line }) => ({ ...line, key: String(team.teamSeasonId), name: owner ? `${team.name} (${owner})` : team.name }))
+        : tally.lines.map(({ playerId, ...line }) => ({ ...line, key: playerId }));
+    const winners = lines.filter(line => line.place === 1);
+    const depth = lines[0]?.votes.length ?? 0;
     return <div className="mt-4">
         <h4 className="text-sm font-bold">{tally.label}</h4>
         <p className="text-sm">{winners.length > 1 ? 'Winners' : 'Winner'}: <span className="font-bold">{winners.map(line => line.name).join(', ')}</span></p>
@@ -176,13 +190,13 @@ function AwardTallyTable({ tally }: { tally: AwardTally }) {
                 <thead>
                     <tr className="border-b border-line text-left text-ink-soft">
                         <th className="py-1 pr-3 font-bold">Place</th>
-                        <th className="py-1 pr-3 font-bold">Player</th>
+                        <th className="py-1 pr-3 font-bold">{tally.award === GM_OF_THE_YEAR ? 'Team' : 'Player'}</th>
                         <th className="py-1 pr-3 text-right font-bold">Pts</th>
                         {ORDINALS.slice(0, depth).map(ordinal => <th key={ordinal} className="py-1 pr-3 text-right font-bold">{ordinal}</th>)}
                     </tr>
                 </thead>
                 <tbody>
-                    {tally.lines.map(line => <tr key={line.playerId} className="border-b border-line/60">
+                    {lines.map(line => <tr key={line.key} className="border-b border-line/60">
                         <td className="py-1 pr-3 tabular-nums">{line.place}</td>
                         <td className={`py-1 pr-3 ${line.place === 1 ? 'font-bold' : ''}`}>{line.name}</td>
                         <td className="py-1 pr-3 text-right tabular-nums">{line.points}</td>

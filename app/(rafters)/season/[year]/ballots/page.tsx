@@ -42,8 +42,8 @@ export default async function SeasonBallotsPage({ params }: { params: Promise<{ 
                                     <div key={ranking.award}>
                                         <h3 className="text-[11px] font-bold uppercase tracking-[.12em] text-ink-muted">{page.awards.find(award => award.award === ranking.award)?.label}</h3>
                                         <ol className="mt-1 text-sm">
-                                            {ranking.players.map((player, rank) => (
-                                                <li key={rank} className="flex gap-2"><span className="tabular w-4 shrink-0 text-ink-muted">{rank + 1}</span>{player?.name ?? '—'}</li>
+                                            {('teams' in ranking ? ranking.teams : ranking.players).map((ranked, rank) => (
+                                                <li key={rank} className="flex gap-2"><span className="tabular w-4 shrink-0 text-ink-muted">{rank + 1}</span>{ranked?.name ?? '—'}</li>
                                             ))}
                                         </ol>
                                     </div>

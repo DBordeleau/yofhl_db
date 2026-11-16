@@ -4,6 +4,8 @@ import { publishedOnly } from './league';
 import { leagueTags } from './cache-tags';
 import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
+import { AWARD_CATALOGUE, listedAwards, type AwardDefinition } from '@/lib/awards';
+import { publishedTeamAwardWinners } from '@/lib/award-vote/published-vote';
 import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/development';
 
 // Draft and transaction rows show each team's season identity, not the name Fantrax recorded.
@@ -11,8 +13,8 @@ import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/dev
 const seasonTeamJson = (season: string, franchise: string, recorded: string) => sql.raw(`jsonb_build_object('id', ${franchise},
     'name', coalesce(${season}.name, ${recorded}), 'abbreviation', ${season}.abbreviation, 'logo', ${season}.logo)`);
 
-const getFranchiseHonorRows = cached(async (id: number): Promise<FranchiseHonors> => {
-    const [primeMinisters, awards] = await Promise.all([
+const getFranchiseHonorRows = cached(async (id: number): Promise<Omit<FranchiseHonors, 'teamAwards'> & { votedWins: { award: string; year: number }[] }> => {
+    const [primeMinisters, awards, votedWins] = await Promise.all([
         rows<FranchiseHonors['primeMinisters'][number]>(sql`
             select t.season_year as year, t.fpts_for::float8 as points
             from league.team_seasons t
@@ -28,14 +30,29 @@ const getFranchiseHonorRows = cached(async (id: number): Promise<FranchiseHonors
             join league.players p on p.id = a.player_id
             where t.franchise_id = ${id}
             order by a.season_year desc, at.sort_order, p.name`),
+        // a team award's winners are its published tallies' place-one team seasons (never a rehearsal's)
+        rows<{ award: string; year: number }>(sql`
+            select w.award, w.season_year as year
+            from ${publishedTeamAwardWinners} w
+            join league.team_seasons t on t.id = w.team_season_id
+            where t.franchise_id = ${id}
+            order by w.season_year desc`),
     ]);
-    return { primeMinisters, awards };
-}, 'franchise-honors-v2', [leagueTags.awards, leagueTags.pointsLeaders]);
+    return { primeMinisters, awards, votedWins };
+}, 'franchise-honors-v3', [leagueTags.awards, leagueTags.pointsLeaders, leagueTags.awardVoteTallies]);
 
-/** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
-export async function getFranchiseHonors(id: number): Promise<FranchiseHonors> {
-    const honors = getFranchiseHonorRows(id);
-    return { ...await honors, primeMinisters: await publishedOnly(honors.then(({ primeMinisters }) => primeMinisters), win => win.year) };
+/**
+ * A season still being played has a points leader but no Prime Minister's Trophy until it is published. A team award
+ * an award vote decides is in the trophy case only once listed (lib/awards.ts listedAwards); `catalogue` is the award
+ * catalogue, in tests a released one.
+ */
+export async function getFranchiseHonors(id: number, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<FranchiseHonors> {
+    const { primeMinisters, awards, votedWins } = await getFranchiseHonorRows(id);
+    const teamAwards = listedAwards(new Set(votedWins.map(win => win.award)), catalogue).flatMap(award => {
+        const years = votedWins.filter(win => win.award === award.id).map(win => win.year);
+        return years.length ? [{ id: award.id, name: award.name, label: award.label, honor: award.honor, years }] : [];
+    });
+    return { primeMinisters: await publishedOnly(primeMinisters, win => win.year), awards, teamAwards };
 }
 
 export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`

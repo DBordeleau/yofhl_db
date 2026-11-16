@@ -1,7 +1,7 @@
 // The ballot's awards and their candidates, read only from a season's frozen snapshot: what the admin's preview and
 // the owners' ballot both show. It checks nothing about who asks; its callers do.
 import { sql, type SQL } from 'drizzle-orm';
-import type { BallotAward, CreditedTeam, PlayerAwardId, PlayerCandidate } from './model';
+import { GM_OF_THE_YEAR, type BallotAward, type CreditedTeam, type PlayerAwardId, type PlayerCandidate, type TeamBallotAward, type TeamCandidate } from './model';
 import type { AwardVoteDatabase } from './ports';
 import { awardDefinition, PLAYER_AWARD_RULES, STAT_SETS } from './voted-awards';
 
@@ -45,4 +45,28 @@ export function rankedPlayerName(seasonYear: number | SQL, playerId: SQL): SQL {
     const year = typeof seasonYear === 'number' ? sql`${seasonYear}::int` : seasonYear;
     return sql`coalesce((select s.name from league.award_vote_players s where s.season_year = ${year} and s.player_id = ${playerId}),
                         (select p.name from league.players p where p.id = ${playerId}), ${playerId})`;
+}
+
+/** a CreditedTeam's columns from `st`, a team season's identity that season (league.season_teams, docs/adr/0001) */
+export const seasonTeamColumns = sql`st.team_season_id as "teamSeasonId", st.franchise_id as "franchiseId", st.name, st.abbreviation, st.logo`;
+
+/** joins `o`, the owner of team season `st` (league.season_teams) that season, not the franchise's owner now: select `o.name as owner` */
+export const seasonOwner = sql`join league.team_seasons owned on owned.id = st.team_season_id
+    left join league.owners o on o.id = owned.owner_id`;
+
+/**
+ * GM of the Year on the ballot, from the snapshot: every team season taking part, under that season's identity
+ * (season_teams) and owner, by name; null for a snapshot without them (none prepared, or no franchise taking part)
+ */
+export async function readTeamBallotAward(db: AwardVoteDatabase, seasonYear: number): Promise<TeamBallotAward | null> {
+    const candidates = await db.rows<TeamCandidate>(sql`
+        select ${seasonTeamColumns}, o.name as owner, c.summary
+        from league.award_vote_team_seasons c
+        join league.season_teams st on st.team_season_id = c.team_season_id
+        ${seasonOwner}
+        where c.season_year = ${seasonYear}
+        order by st.name, st.team_season_id`);
+    if (!candidates.length) return null;
+    const { label, honor } = awardDefinition(GM_OF_THE_YEAR);
+    return { award: GM_OF_THE_YEAR, label, honor, candidates };
 }

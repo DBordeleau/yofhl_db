@@ -49,6 +49,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
         draft: () => history.getSeasonDraft(2026), franchiseDraft: () => history.getFranchiseDraft(1),
         history: () => history.getHistory({ franchiseId: 1 }), historySeasons: () => history.getHistorySeasons({ franchiseId: 1 }),
         rivalries: getRivalryData, branding: getTeamBranding, records: getRecordSource, discovery: getSearchDirectory,
+        listedAwards: () => league.getListedAwards(),
     };
     const expectMisses = async (expected: string[]) => {
         const misses = [];
@@ -123,7 +124,6 @@ test('curated edits expire exactly the cached readers that show their data', asy
     assert.equal(directory.find(row => row.kind === 'players' && row.id === 'plain')?.title, 'Plain ID');
     assert.equal(directory.find(row => row.id === 'plain')?.subtitle, 'No career statistics yet');
     assert.equal((await searchPublicDirectory({ q: 'Former Owner', type: 'all', page: 1 })).total, 0);
-    assert.equal(directory.filter(row => row.kind === 'awards').length, AWARDS.length);
     for (const award of AWARDS) {
         for (const q of [award.name, award.label, award.id]) {
             const response = await searchPublicDirectory({ q, type: 'awards', page: 1 });
@@ -133,6 +133,11 @@ test('curated edits expire exactly the cached readers that show their data', asy
     }
     const awardResults = (await searchPublicDirectory({ q: 'gretzky', type: 'all', page: 1 })).groups.find(group => group.kind === 'awards')!;
     assert.equal(awardResults.results[0].id, 'wayne-gretzky');
+    // GM of the Year is in the award catalogue, unreleased: search doesn't list it, and the award API has no such award
+    for (const q of ['GM of the Year', 'gm-of-the-year']) {
+        assert.equal((await searchPublicDirectory({ q, type: 'awards', page: 1 })).total, 0, q);
+    }
+    assert.equal(await league.getAwardWinners('GM of the Year'), null);
     assert(directory.some(row => row.kind === 'seasons' && row.id === '2020'));
     assert(!directory.some(row => row.kind === 'seasons' && row.id === '2027'), 'incomplete seasons cannot link to a 404 page');
 

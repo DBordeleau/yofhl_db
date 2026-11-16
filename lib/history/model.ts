@@ -41,4 +41,6 @@ export interface SeasonDraftSelection extends DraftSelection {
 export interface FranchiseHonors {
     primeMinisters: { year: number; points: number }[];
     awards: { year: number; name: string; label: string; description: string; playerId: string; player: string }[];
+    /** the listed team awards an award vote decides (GM of the Year) the franchise has won, in catalogue order, each with its seasons newest first */
+    teamAwards: { id: string; name: string; label: string; honor: string; years: number[] }[];
 }

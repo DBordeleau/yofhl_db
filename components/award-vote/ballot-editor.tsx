@@ -6,9 +6,11 @@
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
 import CandidateList from '@/components/award-vote/candidate-list';
+import TeamCandidateList from '@/components/award-vote/team-candidate-list';
 import type { BallotActionResult } from '@/app/owner/ballot/actions';
-import { ballotProblems, withCandidates, type BallotProblem, type RankedAward } from '@/lib/award-vote/ballot';
-import type { BallotRankings, OwnerBallotView, PlayerAwardId } from '@/lib/award-vote/create-award-vote';
+import { ballotProblems, rankedAwards, withCandidates, type BallotProblem, type RankedAward } from '@/lib/award-vote/ballot';
+import type { BallotRankings, OwnerBallotView } from '@/lib/award-vote/create-award-vote';
+import { teamCandidateId, type VotedAwardId } from '@/lib/award-vote/model';
 import { refreshOwnerNavigation } from '@/lib/owner/navigation';
 
 type View = Extract<OwnerBallotView, { status: 'ballot' }>;
@@ -27,15 +29,19 @@ const filledOut = (rankings: BallotRankings, awards: RankedAward[]): BallotRanki
 
 export default function BallotEditor({ view, saveAction, submitAction }: { view: View; saveAction: Action; submitAction: Action }) {
     const awards = useMemo(() => view.awards.map(award => withCandidates(award, view.lists)), [view]);
-    const ranked: RankedAward[] = useMemo(() => awards.map(award => ({
-        award: award.award, depth: award.depth, candidates: award.candidates.map(candidate => candidate.playerId),
-    })), [awards]);
-    const names = useMemo(() => new Map(view.lists.flat().map(candidate => [candidate.playerId, candidate.name])), [view]);
+    const gm = view.gmOfTheYear;
+    // GM of the Year ranks last, by team season
+    const tabs: { award: VotedAwardId; label: string; honor: string; depth: number }[] = useMemo(() => [...awards, ...gm ? [gm] : []], [awards, gm]);
+    const ranked: RankedAward[] = useMemo(() => rankedAwards(awards, gm), [awards, gm]);
+    const names = useMemo(() => new Map([
+        ...view.lists.flat().map(candidate => [candidate.playerId, candidate.name] as const),
+        ...(gm?.candidates ?? []).map(candidate => [teamCandidateId(candidate.teamSeasonId), candidate.name] as const),
+    ]), [view, gm]);
 
     const [draft, setDraft] = useState(() => filledOut(view.ballot?.draft ?? {}, ranked));
     const [submitted, setSubmitted] = useState(view.ballot?.submitted ? filledOut(view.ballot.submitted, ranked) : null);
     const [submittedAt, setSubmittedAt] = useState(view.ballot?.submittedAt ?? null);
-    const [selected, setSelected] = useState<PlayerAwardId | undefined>(awards[0]?.award);
+    const [selected, setSelected] = useState<VotedAwardId | undefined>(tabs[0]?.award);
     const [error, setError] = useState<{ message: string; fix?: string } | null>(null);
     const [problems, setProblems] = useState<BallotProblem[] | null>(null);
     const [submitting, setSubmitting] = useState(false);
@@ -43,16 +49,17 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
     const saves = useRef(0);
 
     const editable = !view.locked && view.ballot !== null;
-    const award = awards.find(item => item.award === selected) ?? awards[0];
+    const tab = tabs.find(item => item.award === selected) ?? tabs[0];
+    const award = awards.find(item => item.award === tab?.award);
     const changed = submitted !== null && JSON.stringify(submitted) !== JSON.stringify(draft);
 
     const refused = (result: Exclude<BallotActionResult, { ok: true }>) => setError({ message: result.error, fix: result.fix });
 
-    /** put `playerId` at `rank` (from 1) of `awardId`, or take them off it with null */
-    async function rank(awardId: PlayerAwardId, playerId: string, rankTo: number | null) {
+    /** put `candidate` (a player ID, or a team season's for GM of the Year) at `rank` (from 1) of `awardId`, or take them off it with null */
+    async function rank(awardId: VotedAwardId, candidate: string, rankTo: number | null) {
         if (!editable) return;
-        const ranks = (draft[awardId] ?? []).map(id => id === playerId ? null : id);
-        if (rankTo !== null) ranks[rankTo - 1] = playerId;
+        const ranks = (draft[awardId] ?? []).map(id => id === candidate ? null : id);
+        if (rankTo !== null) ranks[rankTo - 1] = candidate;
         const next = { ...draft, [awardId]: ranks };
         setDraft(next);
         setError(null);
@@ -88,8 +95,19 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
         refreshOwnerNavigation();
     }
 
+    /** the rank picker on a candidate's row */
+    const rankPicker = (awardId: VotedAwardId, depth: number, candidate: string, name: string) => {
+        const at = (draft[awardId] ?? []).indexOf(candidate);
+        return <select aria-label={`Rank ${name}`} value={at === -1 ? '' : at + 1}
+            onChange={event => void rank(awardId, candidate, event.target.value ? Number(event.target.value) : null)}
+            className="h-11 rounded-lg border border-line-strong bg-white px-2 text-sm">
+            <option value="">–</option>
+            {Array.from({ length: depth }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}
+        </select>;
+    };
+
     const describe = (problem: BallotProblem) => {
-        const label = awards.find(item => item.award === problem.award)?.label ?? problem.award;
+        const label = tabs.find(item => item.award === problem.award)?.label ?? problem.award;
         const parts = [
             problem.emptyRanks.length ? `${problem.emptyRanks.length > 1 ? 'ranks' : 'rank'} ${list(problem.emptyRanks)} empty` : '',
             problem.repeated.length ? `${list(problem.repeated.map(id => names.get(id) ?? id))} ranked more than once` : '',
@@ -109,35 +127,30 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
         {!view.ballot && <p className="mt-3 text-sm"><Link href="/owner" className="font-bold text-rink-blue hover:underline">Claim your team</Link> to cast a ballot.</p>}
 
         <div role="tablist" aria-label="Voted awards" className="mt-5 flex flex-wrap gap-2">
-            {awards.map(item => {
+            {tabs.map(item => {
                 const filled = (draft[item.award] ?? []).filter(Boolean).length;
-                return <button key={item.award} type="button" role="tab" aria-selected={item.award === award?.award} onClick={() => setSelected(item.award)}
-                    className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${item.award === award?.award ? 'border-ink bg-ink text-white' : 'border-line-strong bg-white hover:border-ink'}`}>
+                return <button key={item.award} type="button" role="tab" aria-selected={item.award === tab?.award} onClick={() => setSelected(item.award)}
+                    className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${item.award === tab?.award ? 'border-ink bg-ink text-white' : 'border-line-strong bg-white hover:border-ink'}`}>
                     {item.label} <span className="font-normal">{filled}/{item.depth}</span>
                 </button>;
             })}
         </div>
 
-        {award && <div role="tabpanel" className="mt-4">
-            <p className="text-sm text-ink-soft">{award.honor}</p>
+        {tab && <div role="tabpanel" className="mt-4">
+            <p className="text-sm text-ink-soft">{tab.honor}</p>
             <ol className="mt-3 grid gap-1 text-sm sm:max-w-md">
-                {(draft[award.award] ?? []).map((playerId, index) => <li key={index} className="flex min-h-11 items-center gap-3 border-b border-line/60">
+                {(draft[tab.award] ?? []).map((candidate, index) => <li key={index} className="flex min-h-11 items-center gap-3 border-b border-line/60">
                     <span className="w-6 font-bold">{index + 1}</span>
-                    <span className={`flex-1 ${playerId ? 'font-semibold' : 'text-ink-soft'}`}>{playerId ? names.get(playerId) ?? playerId : 'Empty'}</span>
-                    {playerId && editable && <button type="button" className="min-h-11 px-2 text-sm font-bold text-rink-blue hover:underline"
-                        onClick={() => void rank(award.award, playerId, null)}>Clear<span className="sr-only"> rank {index + 1}</span></button>}
+                    <span className={`flex-1 ${candidate ? 'font-semibold' : 'text-ink-soft'}`}>{candidate ? names.get(candidate) ?? candidate : 'Empty'}</span>
+                    {candidate && editable && <button type="button" className="min-h-11 px-2 text-sm font-bold text-rink-blue hover:underline"
+                        onClick={() => void rank(tab.award, candidate, null)}>Clear<span className="sr-only"> rank {index + 1}</span></button>}
                 </li>)}
             </ol>
             <div className="mt-5">
-                <CandidateList key={award.award} award={award} action={editable ? candidate => {
-                    const at = (draft[award.award] ?? []).indexOf(candidate.playerId);
-                    return <select aria-label={`Rank ${candidate.name}`} value={at === -1 ? '' : at + 1}
-                        onChange={event => void rank(award.award, candidate.playerId, event.target.value ? Number(event.target.value) : null)}
-                        className="h-11 rounded-lg border border-line-strong bg-white px-2 text-sm">
-                        <option value="">–</option>
-                        {Array.from({ length: award.depth }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}
-                    </select>;
-                } : undefined} />
+                {award
+                    ? <CandidateList key={award.award} award={award} action={editable ? candidate => rankPicker(award.award, award.depth, candidate.playerId, candidate.name) : undefined} />
+                    : gm && <TeamCandidateList candidates={gm.candidates}
+                        action={editable ? candidate => rankPicker(gm.award, gm.depth, teamCandidateId(candidate.teamSeasonId), candidate.name) : undefined} />}
             </div>
         </div>}
 

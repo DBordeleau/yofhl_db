@@ -23,7 +23,7 @@ import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 import type { TeamColours } from '@/lib/team-branding';
 import type { DraftDevelopmentFacts } from '@/lib/draft/development';
 import type { SavedLiveSeason } from '@/lib/fantrax/fantrax-client';
-import type { AwardVoteState, BallotRankings, PlayerAwardId, PrepareProgress, RookieAdjustments, StatLine, StatSetName } from '@/lib/award-vote/model';
+import type { AwardVoteState, BallotRankings, PlayerAwardId, PrepareProgress, RookieAdjustments, StatLine, StatSetName, TeamAwardId, TeamSummary } from '@/lib/award-vote/model';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -428,7 +428,7 @@ export const awardVotes = league.table('award_votes', {
 ]);
 
 // One franchise's ballot in a season's award vote (GLOSSARY.md, "Ballot"), cast by whoever manages the franchise.
-// Rankings are player IDs per award (BallotRankings), so a ballot references neither the snapshot's players nor its
+// Rankings are player IDs per award, team season IDs for GM of the Year (BallotRankings), so a ballot references neither the snapshot's players nor its
 // candidates, and nothing that replaces the snapshot reaches it; nor does deleting an award vote cascade to it.
 // draft is the owner's working copy, which never counts; submitted is the last complete ballot submitted, with when
 // and by which owner account. A void ballot has its reason and when it was voided.
@@ -503,6 +503,46 @@ export const awardVoteTallies = league.table('award_vote_tallies', {
     check('award_vote_tallies_award', sql`${t.award} in ('wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere')`),
     check('award_vote_tallies_place', sql`${t.place} >= 1`),
     check('award_vote_tallies_votes', sql`cardinality(${t.votes}) between 1 and 5`),
+]);
+
+// The frozen snapshot's GM of the Year candidates: every team season taking part in the vote, with its summary (how
+// its season went beside the season before) as it was when the vote was prepared. Like the player snapshot it goes
+// with the award vote, and preparing again replaces it.
+export const awardVoteTeamSeasons = league.table('award_vote_team_seasons', {
+    seasonYear: integer('season_year').notNull().references(() => awardVotes.seasonYear, { onDelete: 'cascade' }),
+    teamSeasonId: integer('team_season_id').notNull().references(() => teamSeasons.id),
+    franchiseId: integer('franchise_id').notNull().references(() => franchises.id),
+    summary: jsonb('summary').$type<TeamSummary>().notNull(),
+}, (t) => [primaryKey({ columns: [t.seasonYear, t.teamSeasonId] })]);
+
+// The snapshot's fantasy points per player and regular-season day, read for move value (GLOSSARY.md): only the
+// players in the season's transactions, and only days they scored on. GM of the Year's transaction summary is
+// written from it. Players are not referenced, as in award_vote_players; it goes with the award vote, and preparing
+// again replaces it.
+export const awardVoteDailyPoints = league.table('award_vote_daily_points', {
+    seasonYear: integer('season_year').notNull().references(() => awardVotes.seasonYear, { onDelete: 'cascade' }),
+    playerId: text('player_id').notNull(),
+    // the Eastern game date
+    day: date('day').notNull(),
+    points: fpts('points').notNull(),
+}, (t) => [primaryKey({ columns: [t.seasonYear, t.playerId, t.day] })]);
+
+// A season's GM of the Year tally, as award_vote_tallies is each individual award's: one row per ranked team season
+// with its points, votes at each rank (three deep) and place. Kept for good: deleting an award vote does not cascade
+// to it, and re-preparing the snapshot never touches it. Indexed by team season for its finishes.
+export const awardVoteTeamTallies = league.table('award_vote_team_tallies', {
+    seasonYear: integer('season_year').notNull().references(() => awardVotes.seasonYear),
+    award: text('award').$type<TeamAwardId>().notNull(),
+    teamSeasonId: integer('team_season_id').notNull().references(() => teamSeasons.id),
+    points: integer('points').notNull(),
+    votes: integer('votes').array().notNull(),
+    place: smallint('place').notNull(),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.award, t.teamSeasonId] }),
+    index('award_vote_team_tallies_team_season').on(t.teamSeasonId, t.place),
+    check('award_vote_team_tallies_award', sql`${t.award} in ('gm-of-the-year')`),
+    check('award_vote_team_tallies_place', sql`${t.place} >= 1`),
+    check('award_vote_team_tallies_votes', sql`cardinality(${t.votes}) between 1 and 3`),
 ]);
 
 // ---- derived, refreshed after every import or curated edit (SQL lives in the views migration) ----

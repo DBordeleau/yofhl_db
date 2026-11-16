@@ -3,7 +3,7 @@
 // code), the NHL's player search and profiles (nhl-lookup.ts), the app's database and the owner session.
 import { rows, writeInOrder } from '@/lib/data/db';
 import { createFantraxClient } from '@/lib/fantrax/fantrax-client';
-import { findByDateSeasonCode, loadRangedGoaliePage, loadRangedSkaterPage } from '@/lib/fantrax/ranged-stats';
+import { findByDateSeasonCode, loadRangedGoaliePage, loadRangedPointsPage, loadRangedSkaterPage } from '@/lib/fantrax/ranged-stats';
 import { ownerSession } from '@/lib/owner/owner-session';
 import { createAwardVote } from './create-award-vote';
 import { createNhlLookup } from './nhl-lookup';
@@ -33,6 +33,7 @@ export const awardVote = createAwardVote({
         },
         skaters: async (range, page) => loadRangedSkaterPage(await rangedRead(range), page),
         goalies: async (range, page) => loadRangedGoaliePage(await rangedRead(range), page),
+        points: async (range, page) => loadRangedPointsPage(await rangedRead(range), page),
         dayRosters: (leagueId, rosterPeriod) => client.dayRosters(leagueId, rosterPeriod),
     },
     nhl: createNhlLookup(),

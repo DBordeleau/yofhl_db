@@ -3,10 +3,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { BallotRankings } from './model';
-import { COMPLETE, SEASON, votingLeague } from './testing/award-vote-league';
+import { COMPLETE, completeFor, playerTally, SEASON, votingLeague } from './testing/award-vote-league';
 
 /** franchise 2's ballot: s2 first for the Wayne Gretzky Award */
-const SECOND: BallotRankings = { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] };
+const SECOND: BallotRankings = completeFor(2, { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] });
 
 async function voidingLeague(t: Parameters<typeof votingLeague>[0]) {
     const league = await votingLeague(t);
@@ -26,8 +26,8 @@ async function voidingLeague(t: Parameters<typeof votingLeague>[0]) {
 
 test('once the ballot lock passes, the admin voids a submitted ballot with a reason, and scoring leaves it out', async t => {
     const { submitFor, ballotLockPasses, voidBallot, voidReasons, score, tallies } = await voidingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
     await ballotLockPasses();
     assert.deepEqual(await voidBallot(2, '  Ranked only his own players.  '), { ok: true });
     assert.deepEqual(await voidReasons(), [[1, null], [2, 'Ranked only his own players.']]);
@@ -36,14 +36,14 @@ test('once the ballot lock passes, the admin voids a submitted ballot with a rea
     const result = await tallies();
     assert.ok(result.ok);
     assert.equal(result.counted, 1);
-    assert.deepEqual(result.tallies.find(tally => tally.award === 'wayne-gretzky')?.lines.map(line => [line.playerId, line.points]),
+    assert.deepEqual(playerTally(result.tallies, 'wayne-gretzky')?.lines.map(line => [line.playerId, line.points]),
         [['s1', 10], ['s2', 7], ['s3', 5], ['s4', 3], ['s5', 1]]);
 });
 
 test('voiding is refused before the ballot lock, without a reason, for a franchise with no submitted ballot, and for a void ballot', async t => {
     const { submitFor, signInAs, saveDraft, ballotLockPasses, voidBallot, voidReasons } = await voidingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
     await signInAs('owner-3');
     await saveDraft({ hasek: ['g5'] });
     assert.deepEqual(await voidBallot(2, 'Bad faith.'), { ok: false, reason: 'not-locked' });
@@ -65,7 +65,7 @@ test('voiding is refused before the ballot lock, without a reason, for a franchi
 async function gretzky(tallies: Awaited<ReturnType<typeof voidingLeague>>['tallies']) {
     const result = await tallies();
     assert.ok(result.ok, 'the admin reads the tallies');
-    const lines = result.tallies.find(tally => tally.award === 'wayne-gretzky')?.lines.map(line => [line.playerId, line.points, line.votes, line.place]);
+    const lines = playerTally(result.tallies, 'wayne-gretzky')?.lines.map(line => [line.playerId, line.points, line.votes, line.place]);
     return { counted: result.counted, lines };
 }
 
@@ -95,9 +95,9 @@ const WITHOUT_SECOND = {
 
 test('voiding a ballot in a scored award vote recomputes every tally and its places at once', async t => {
     const { submitFor, ballotLockPasses, score, tallies, voidBallot, admin } = await voidingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
-    await submitFor(3, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
+    await submitFor(3, completeFor(3, SECOND));
     await ballotLockPasses();
     await score();
     assert.deepEqual(await gretzky(tallies), SCORED);
@@ -109,9 +109,9 @@ test('voiding a ballot in a scored award vote recomputes every tally and its pla
 
 test('restoring a void ballot clears its reason and counts it again, recomputing the tallies of a scored award vote', async t => {
     const { submitFor, ballotLockPasses, score, tallies, voidBallot, restoreBallot, voidReasons } = await voidingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
-    await submitFor(3, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
+    await submitFor(3, completeFor(3, SECOND));
     await ballotLockPasses();
     assert.deepEqual(await restoreBallot(2), { ok: false, reason: 'not-void' });
     assert.deepEqual(await restoreBallot(4), { ok: false, reason: 'no-ballot' });
@@ -132,16 +132,16 @@ test('restoring a void ballot clears its reason and counts it again, recomputing
 
 test('before the first ballot lock no ballot is void, so there is nothing to restore', async t => {
     const { submitFor, restoreBallot } = await voidingLeague(t);
-    await submitFor(1, COMPLETE);
+    await submitFor(1, completeFor(1));
     assert.deepEqual(await restoreBallot(1), { ok: false, reason: 'not-void' });
     assert.deepEqual(await restoreBallot(2), { ok: false, reason: 'no-ballot' });
 });
 
 test('after reopening, the admin can restore a void ballot before the new ballot lock, though not void another, and it counts when scored again', async t => {
     const { submitFor, ballotLockPasses, score, reopen, tallies, voidBallot, restoreBallot, voidReasons, admin } = await voidingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
-    await submitFor(3, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
+    await submitFor(3, completeFor(3, SECOND));
     await ballotLockPasses();
     await score();
     await voidBallot(2, 'Bad faith.');
@@ -160,9 +160,9 @@ test('after reopening, the admin can restore a void ballot before the new ballot
 
 test('once published, a ballot can be neither voided nor restored, and the tallies stay as published', async t => {
     const { league, submitFor, ballotLockPasses, score, tallies, voidBallot, restoreBallot, voidReasons } = await voidingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
-    await submitFor(3, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
+    await submitFor(3, completeFor(3, SECOND));
     await ballotLockPasses();
     await score();
     await voidBallot(3, 'Copied franchise 2.');
@@ -178,9 +178,9 @@ test('once published, a ballot can be neither voided nor restored, and the talli
 
 test('after reopening, a void ballot stays void: its owner can still change it, and it adds nothing until restored after the new ballot lock', async t => {
     const { submitFor, signInAs, submit, ownBallot, ballotLockPasses, score, reopen, tallies, voidBallot, restoreBallot, voidReasons } = await voidingLeague(t);
-    await submitFor(1, COMPLETE);
-    await submitFor(2, SECOND);
-    await submitFor(3, SECOND);
+    await submitFor(1, completeFor(1));
+    await submitFor(2, completeFor(2, SECOND));
+    await submitFor(3, completeFor(3, SECOND));
     await ballotLockPasses();
     await score();
     await voidBallot(2, 'Bad faith.');
