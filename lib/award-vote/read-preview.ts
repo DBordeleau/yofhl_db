@@ -24,6 +24,8 @@ export interface AwardVoteSummary {
     ballotLock: string | null;
     /** when voting opened, or null before opening */
     openedAt: string | null;
+    /** when the ballots were last scored, or null before scoring */
+    scoredAt: string | null;
 }
 
 export interface AwardVotePreview {
@@ -43,15 +45,18 @@ export function createReadPreview({ db }: AwardVotePorts) {
     return async function readPreview({ seasonYear }: ReadPreviewInput): Promise<AwardVotePreview> {
         const [vote] = await db.rows<{
             state: AwardVoteState; rehearsal: boolean; progress: PrepareProgress; preparedAt: number | null; ballotLock: number | null; openedAt: number | null;
+            scoredAt: number | null;
         }>(sql`
             select state, rehearsal, prepare_progress as progress, (extract(epoch from prepared_at) * 1000)::float8 as "preparedAt",
-                   (extract(epoch from ballot_lock) * 1000)::float8 as "ballotLock", (extract(epoch from opened_at) * 1000)::float8 as "openedAt"
+                   (extract(epoch from ballot_lock) * 1000)::float8 as "ballotLock", (extract(epoch from opened_at) * 1000)::float8 as "openedAt",
+                   (extract(epoch from scored_at) * 1000)::float8 as "scoredAt"
             from league.award_votes where season_year = ${seasonYear}`);
         const kind = await awardVoteKind(db, seasonYear);
         if (!vote) return { kind, vote: null, ballot: null, ballotStatus: null };
         const summary: AwardVoteSummary = {
             seasonYear, state: vote.state, rehearsal: vote.rehearsal, prepareStartedAt: vote.progress.startedAt,
             preparedAt: isoOrNull(vote.preparedAt), ballotLock: isoOrNull(vote.ballotLock), openedAt: isoOrNull(vote.openedAt),
+            scoredAt: isoOrNull(vote.scoredAt),
         };
         if (summary.preparedAt === null) return { kind, vote: summary, ballot: null, ballotStatus: null };
         return {

@@ -424,6 +424,7 @@ export const awardVotes = league.table('award_votes', {
     check('award_votes_state', sql`${t.state} in ('prepared', 'open', 'scored', 'published')`),
     check('award_votes_rehearsal_prepared', sql`not ${t.rehearsal} or ${t.state} = 'prepared'`),
     check('award_votes_opened', sql`${t.state} = 'prepared' or (${t.ballotLock} is not null and ${t.openedAt} is not null and ${t.preparedAt} is not null)`),
+    check('award_votes_scored', sql`${t.state} not in ('scored', 'published') or ${t.scoredAt} is not null`),
 ]);
 
 // One franchise's ballot in a season's award vote (GLOSSARY.md, "Ballot"), cast by whoever manages the franchise.
@@ -482,6 +483,26 @@ export const awardVoteCandidates = league.table('award_vote_candidates', {
     primaryKey({ columns: [t.seasonYear, t.award, t.playerId] }),
     foreignKey({ name: 'award_vote_candidates_player', columns: [t.seasonYear, t.playerId], foreignColumns: [awardVotePlayers.seasonYear, awardVotePlayers.playerId] }).onDelete('cascade'),
     check('award_vote_candidates_award', sql`${t.award} in ('wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere')`),
+]);
+
+// A season's tally for each individual voted award (GLOSSARY.md, "Tally"): one row per ranked candidate with their
+// points, their votes at each rank (first place first, as deep as the award's ballot) and their place, which level
+// candidates share (place 1 wins). Only scoring writes it, replacing the season's rows. Kept for good: player IDs are
+// bare and reference neither the archive's players nor the snapshot, which re-preparing replaces, and deleting an
+// award vote does not cascade to it. Indexed by player for "this player's top-three finishes".
+export const awardVoteTallies = league.table('award_vote_tallies', {
+    seasonYear: integer('season_year').notNull().references(() => awardVotes.seasonYear),
+    award: text('award').$type<PlayerAwardId>().notNull(),
+    playerId: text('player_id').notNull(),
+    points: integer('points').notNull(),
+    votes: integer('votes').array().notNull(),
+    place: smallint('place').notNull(),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.award, t.playerId] }),
+    index('award_vote_tallies_player').on(t.playerId, t.place),
+    check('award_vote_tallies_award', sql`${t.award} in ('wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere')`),
+    check('award_vote_tallies_place', sql`${t.place} >= 1`),
+    check('award_vote_tallies_votes', sql`cardinality(${t.votes}) between 1 and 5`),
 ]);
 
 // ---- derived, refreshed after every import or curated edit (SQL lives in the views migration) ----
