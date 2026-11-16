@@ -2,55 +2,7 @@
 // ballot lock, the owner who manages the franchise at the time, and who can read what.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { rangeKey } from './memory-fantrax';
-import type { BallotRankings } from './model';
-import { awardVoteLeague, FINAL, goalie, nhlRecord, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
-
-/**
- * A league with voting open on a ballot of: skaters s1–s6, defensemen d1–d5, goalies g1–g5 and rookies r1–r2 for the
- * Wayne Gretzky Award and Le Magnifique; d1–d5 for the Bobby Orr Award; g1–g5 for the Hasek Trophy; r1–r2 for the
- * Teemu Trophy; and s1–s2, on champion franchise 1's roster through the Final, for the Danny Briere Award. The
- * archive has s1 on franchise 1's roster at the end of the season.
- */
-async function votingLeague(t: Parameters<typeof awardVoteLeague>[0], options: { open?: boolean } = {}) {
-    const harness = await awardVoteLeague(t);
-    const { fantrax, nhl, setRegularSeason, endedSeasonWith, openVoting, prepareFully } = harness;
-    const ids = (prefix: string, count: number) => Array.from({ length: count }, (_, index) => `${prefix}${index + 1}`);
-    setRegularSeason([
-        ...ids('s', 6).map((id, index) => skater(id, 400 - index * 10)),
-        ...ids('d', 5).map((id, index) => skater(id, 250 - index * 10, { positions: 'D' })),
-        ...ids('r', 2).map((id, index) => skater(id, 150 - index * 10, { age: 21 })),
-    ], ids('g', 5).map((id, index) => goalie(id, 300 - index * 10)));
-    nhl.players.r1 = nhlRecord();
-    nhl.players.r2 = nhlRecord([], '2004-03-01', 8480001);
-    fantrax.skaters[rangeKey(PLAYOFF_ROUNDS)] = [skater('s1', 40), skater('s2', 30)];
-    fantrax.skaters[rangeKey(FINAL)] = [skater('s1', 15), skater('s2', 10)];
-    for (const period of ROSTER_PERIODS.slice(-7)) fantrax.rosters[period.number].fx1.push({ id: 's1', status: 'ACTIVE' }, { id: 's2', status: 'ACTIVE' });
-    await endedSeasonWith('s1', 1);
-    if (options.open ?? true) await openVoting(); else await prepareFully();
-    const { act, asOwner, vote } = harness;
-    const saveDraft = (rankings: unknown) => asOwner(() => vote.saveDraft({ seasonYear: SEASON, rankings }));
-    const submit = (rankings: unknown) => asOwner(() => vote.submitBallot({ seasonYear: SEASON, rankings }));
-    const read = () => asOwner(() => vote.readOwnerBallot({}));
-    /** the signed-in owner's own ballot */
-    const ownBallot = async () => {
-        const view = await read();
-        assert.equal(view.status, 'ballot');
-        return view.status === 'ballot' ? view.ballot : null;
-    };
-    const admin = () => act(() => vote.readPreview({ seasonYear: SEASON }));
-    return { ...harness, saveDraft, submit, read, ownBallot, admin };
-}
-
-/** a complete ballot for the voting league, which ranks franchise 1's s1 */
-const COMPLETE: BallotRankings = {
-    'wayne-gretzky': ['s1', 's2', 's3', 's4', 's5'],
-    'le-magnifique': ['g1', 's1', 'd1', 's2', 's3'],
-    'bobby-orr': ['d1', 'd2', 'd3', 'd4', 'd5'],
-    hasek: ['g1', 'g2', 'g3', 'g4', 'g5'],
-    'teemu-selanne': ['r1', 'r2'],
-    'danny-briere': ['s2', 's1'],
-};
+import { awardVoteLeague, COMPLETE, goalie, SEASON, skater, votingLeague } from './testing/award-vote-league';
 
 test('the ballot shows every voted award with candidates, its ballot lock and each candidate list once', async t => {
     const { signInAs, read, admin } = await votingLeague(t);

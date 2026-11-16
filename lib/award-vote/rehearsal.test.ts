@@ -98,12 +98,12 @@ test('a rehearsal is refused everything past preparing, and the database never l
 
     for (const state of ['open', 'scored', 'published']) {
         await assert.rejects(league.client.query(`
-            update league.award_votes set state = '${state}', ballot_lock = now() + interval '1 day', opened_at = now()
+            update league.award_votes set state = '${state}', ballot_lock = now() + interval '1 day', opened_at = now(), scored_at = now()
             where season_year = 2026`), /award_votes_rehearsal_prepared/);
     }
 });
 
-test('a rehearsal is never opened, has no ballot lock to move and takes no ballot, and owners never see it', async t => {
+test('a rehearsal is never opened, has no ballot lock to move, takes no ballot, is never scored or reopened, and owners never see it', async t => {
     const { act, vote, asOwner, signInAs, headerAnswer, setRegularSeason, prepareFully, fantraxIs2026 } = await rehearsalLeague(t);
     fantraxIs2026();
     setRegularSeason([skater('s1', 300)]);
@@ -115,6 +115,10 @@ test('a rehearsal is never opened, has no ballot lock to move and takes no ballo
     const rankings = { 'wayne-gretzky': ['s1'], 'le-magnifique': ['s1'] };
     assert.deepEqual(await asOwner(() => vote.saveDraft({ seasonYear: 2026, rankings })), refused);
     assert.deepEqual(await asOwner(() => vote.submitBallot({ seasonYear: 2026, rankings })), refused);
+    assert.deepEqual(await act(() => vote.scoreBallots({ seasonYear: 2026 })), refused);
+    assert.deepEqual(await act(() => vote.reopenVoting({ seasonYear: 2026, ballotLock: lockInHours(24) })), refused);
+    assert.deepEqual(await act(() => vote.readTallies({ seasonYear: 2026 })), { ok: false, reason: 'not-scored' });
+    assert.deepEqual(await act(() => vote.readBallots({ seasonYear: 2026 })), { ok: false, reason: 'not-locked' });
 
     assert.equal((await act(() => vote.readPreview({ seasonYear: 2026 }))).vote?.state, 'prepared');
     assert.deepEqual(await asOwner(() => vote.readOwnerBallot({ seasonYear: 2026 })), { status: 'no-vote' });
