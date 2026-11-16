@@ -10,7 +10,8 @@ export interface AwardDefinition {
     image: string | null;
     /**
      * false for an award the league owner hasn't released: it is on the award vote's ballot and in its tallies, but
-     * no list of awards shows it (navigation, the award gallery, search, the award API, share cards, trophy shelves)
+     * no list of awards shows it (navigation, the award gallery, search, the award API, share cards, trophy shelves and
+     * the franchise trophy case; see listedAwards). Its own award page still shows its published winners.
      */
     released?: false;
 }
@@ -65,7 +66,19 @@ export const AWARD_CATALOGUE: readonly AwardDefinition[] = [
     },
 ];
 
-/** the awards every list of awards shows: the released ones */
+/** the team awards an award vote decides: no winner until one of its tallies is published */
+const VOTED_TEAM_AWARDS: ReadonlySet<string> = new Set(['gm-of-the-year']);
+
+/**
+ * the awards lists of awards show (navigation, the award gallery, search, the award API, the franchise trophy case):
+ * the released ones in `catalogue`, a team award decided by an award vote only once one of its tallies is published
+ * (`published`, by catalogue ID)
+ */
+export function listedAwards(published: ReadonlySet<string>, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): AwardDefinition[] {
+    return catalogue.filter(award => award.released !== false && (!VOTED_TEAM_AWARDS.has(award.id) || published.has(award.id)));
+}
+
+/** the released awards with trophy art, in catalogue order: player trophy shelves and share cards; lists of every award use listedAwards */
 export const AWARDS: readonly (AwardDefinition & { image: string })[] =
     AWARD_CATALOGUE.filter((award): award is AwardDefinition & { image: string } => award.released !== false && award.image !== null);
 

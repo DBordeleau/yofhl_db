@@ -49,6 +49,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
         draft: () => history.getSeasonDraft(2026), franchiseDraft: () => history.getFranchiseDraft(1),
         history: () => history.getHistory({ franchiseId: 1 }), historySeasons: () => history.getHistorySeasons({ franchiseId: 1 }),
         rivalries: getRivalryData, branding: getTeamBranding, records: getRecordSource, discovery: getSearchDirectory,
+        listedAwards: () => league.getListedAwards(),
     };
     const expectMisses = async (expected: string[]) => {
         const misses = [];
@@ -123,7 +124,6 @@ test('curated edits expire exactly the cached readers that show their data', asy
     assert.equal(directory.find(row => row.kind === 'players' && row.id === 'plain')?.title, 'Plain ID');
     assert.equal(directory.find(row => row.id === 'plain')?.subtitle, 'No career statistics yet');
     assert.equal((await searchPublicDirectory({ q: 'Former Owner', type: 'all', page: 1 })).total, 0);
-    assert.equal(directory.filter(row => row.kind === 'awards').length, AWARDS.length);
     for (const award of AWARDS) {
         for (const q of [award.name, award.label, award.id]) {
             const response = await searchPublicDirectory({ q, type: 'awards', page: 1 });

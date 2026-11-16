@@ -1,11 +1,11 @@
 import { publicJson } from '@/lib/public-json';
 import { NextResponse } from 'next/server';
-import { getAwardWinners } from '@/lib/data/league';
+import { getListedAwardWinners } from '@/lib/data/league';
 import { awardFromSlug } from '@/lib/awards';
 
 // GET /api/awards/:slug — every winner of one award, e.g. /api/awards/Wayne_Gretzky_Award
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
-    const data = await getAwardWinners(awardFromSlug((await params).slug));
+    const data = await getListedAwardWinners(awardFromSlug((await params).slug));
     if (!data) return NextResponse.json({ error: 'Award not found' }, { status: 404 });
     return publicJson(data);
 }

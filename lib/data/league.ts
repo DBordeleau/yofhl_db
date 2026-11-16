@@ -3,6 +3,7 @@ import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import type { SeasonIdentity } from '../team-identity';
 import { isPublished, seasonArchive } from '../seasons';
+import { AWARD_CATALOGUE, listedAwards, type AwardDefinition } from '../awards';
 
 // Every query the site makes. Each is cached until the next import or admin edit (see ./db).
 // Field names in PascalCase match what the existing table components already expect.
@@ -186,6 +187,35 @@ export const getAwardTypes = cached(
     () => rows<AwardType>(sql`select name, label, description from league.award_types order by sort_order`),
     'award-types',
 );
+
+/** the catalogue IDs of the team awards with a published award vote tally (never a rehearsal's) */
+const getPublishedTeamAwards = cached(
+    async () => (await rows<{ award: string }>(sql`
+        select distinct t.award from league.award_vote_team_tallies t
+        join league.award_votes v on v.season_year = t.season_year
+        where v.state = 'published' and not v.rehearsal`)).map(row => row.award),
+    'published-team-awards',
+    [leagueTags.awardVoteTallies],
+);
+
+/** the awards lists of awards show (lib/awards.ts listedAwards); `catalogue` is the award catalogue, in tests a released one */
+export async function getListedAwards(catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<AwardDefinition[]> {
+    return listedAwards(new Set(await getPublishedTeamAwards()), catalogue);
+}
+
+/** the award API's list: the archive's award types, then each listed team award an award vote decides */
+export async function getListedAwardTypes(catalogue?: readonly AwardDefinition[]): Promise<AwardType[]> {
+    const [types, listed] = await Promise.all([getAwardTypes(), getListedAwards(catalogue)]);
+    return [...types, ...listed.filter(award => award.id === 'gm-of-the-year')
+        .map(award => ({ name: award.name, label: award.label, description: award.description }))];
+}
+
+/** the award API's winners of one award by name: an archive award type's, or a listed GM of the Year's; null for any other */
+export async function getListedAwardWinners(name: string, catalogue?: readonly AwardDefinition[]): Promise<{ award: AwardType; winners: AwardWinner[] } | null> {
+    const award = (await getListedAwards(catalogue)).find(award => award.id === 'gm-of-the-year' && award.name === name);
+    if (!award) return getAwardWinners(name);
+    return { award: { name: award.name, label: award.label, description: award.description }, winners: await getTeamAwardWinners('gm-of-the-year') };
+}
 
 export const getAllTimeLeaderboard = cached(async (position: string, page: number, q: string): Promise<LeaderboardPage> => {
     const pos = toPosition(position);
@@ -411,13 +441,29 @@ export const getAwardWinners = cached(async (name: string) => {
     return { award, winners };
 }, 'award-winners-v2', [leagueTags.awards]);
 
-// Team honours use the same championship and scoring records as franchise trophy cases.
-const getTeamAwardRows = cached(async (award: 'jagr-cup' | 'prime-minister') => {
-    const criterion = award === 'jagr-cup'
-        ? sql`exists (select 1 from league.season_results r where r.champion_team_season_id = t.id)`
-        : sql`not exists (select 1 from league.team_seasons other
+/** a team honour: one of the team awards in the catalogue (lib/awards.ts) */
+export type TeamAward = 'jagr-cup' | 'prime-minister' | 'gm-of-the-year';
+
+// Team honours use the same championship and scoring records as franchise trophy cases. GM of the Year's winners are
+// the place-one team seasons of its published tallies (never a rehearsal's), co-winners each their own row; it is
+// never in the player-keyed awards table.
+const teamAwardCriterion = (award: TeamAward) => {
+    switch (award) {
+        case 'jagr-cup': return sql`exists (select 1 from league.season_results r where r.champion_team_season_id = t.id)`;
+        case 'prime-minister': return sql`not exists (select 1 from league.team_seasons other
               where other.season_year = t.season_year and other.franchise_id <> t.franchise_id
                 and other.fpts_for >= t.fpts_for)`;
+        case 'gm-of-the-year': return sql`exists (select 1 from league.award_vote_team_tallies tally
+              join league.award_votes v on v.season_year = tally.season_year
+              where tally.team_season_id = t.id and tally.award = ${award} and tally.place = 1
+                and v.state = 'published' and not v.rehearsal)`;
+    }
+};
+const teamAwardTags = (award: TeamAward) =>
+    [award === 'jagr-cup' ? leagueTags.cups : award === 'prime-minister' ? leagueTags.pointsLeaders : leagueTags.awardVoteTallies];
+
+const getTeamAwardRows = cached(async (award: TeamAward) => {
+    const criterion = teamAwardCriterion(award);
     return rows<AwardWinner>(sql`
         select t.season_year as "Year", st.name as "Winner", '' as "PlayerID",
                st.name as "Team", t.franchise_id as "TeamID", o.name as "Owner", st.logo as "TeamLogo",
@@ -427,11 +473,11 @@ const getTeamAwardRows = cached(async (award: 'jagr-cup' | 'prime-minister') => 
         join league.season_teams st on st.team_season_id = t.id
         left join league.owners o on o.id = t.owner_id
         where ${criterion}
-        order by t.season_year desc`);
-}, 'team-award-winners-v3', award => [award === 'jagr-cup' ? leagueTags.cups : leagueTags.pointsLeaders]);
+        order by t.season_year desc, st.name`);
+}, 'team-award-winners-v4', teamAwardTags);
 
 /** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
-export async function getTeamAwardWinners(award: 'jagr-cup' | 'prime-minister'): Promise<AwardWinner[]> {
+export async function getTeamAwardWinners(award: TeamAward): Promise<AwardWinner[]> {
     return publishedOnly(getTeamAwardRows(award), winner => winner.Year);
 }
 
