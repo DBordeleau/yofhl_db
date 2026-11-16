@@ -5,8 +5,10 @@ import { sql } from 'drizzle-orm';
 import { leagueTags } from '@/lib/data/cache-tags';
 import { cached } from '@/lib/data/db';
 import type { PlayerAwardId } from './model';
+import { rankedPlayerName } from './ballot-snapshot';
 import type { AwardVotePorts } from './ports';
 import type { TallyLine } from './read-tallies';
+import { countedBallot } from './tally';
 
 export interface ReadPublishedTalliesInput {
     award: PlayerAwardId;
@@ -28,15 +30,12 @@ export function createReadPublishedTallies({ db }: AwardVotePorts) {
     const read = cached(async (award: PlayerAwardId): Promise<PublishedTally[]> => {
         const found = await db.rows<TallyLine & { seasonYear: number; counted: number }>(sql`
             select t.season_year as "seasonYear",
-                   (select count(*)::int from league.award_vote_ballots b
-                    where b.season_year = v.season_year and b.submitted is not null and b.void_reason is null) as counted,
-                   t.player_id as "playerId", coalesce(s.name, p.name, t.player_id) as name, t.points, t.votes, t.place
+                   (select count(*)::int from league.award_vote_ballots b where b.season_year = v.season_year and ${countedBallot}) as counted,
+                   t.player_id as "playerId", ${rankedPlayerName(sql`t.season_year`, sql`t.player_id`)} as name, t.points, t.votes, t.place
             from league.award_vote_tallies t
             join league.award_votes v on v.season_year = t.season_year
-            left join league.award_vote_players s on s.season_year = t.season_year and s.player_id = t.player_id
-            left join league.players p on p.id = t.player_id
             where t.award = ${award} and ${publishedVote}
-            order by t.season_year desc, t.place, coalesce(s.name, p.name, t.player_id), t.player_id`);
+            order by t.season_year desc, t.place, name, t.player_id`);
         const tallies: PublishedTally[] = [];
         for (const { seasonYear, counted, playerId, name, points, votes, place } of found) {
             let tally = tallies.at(-1);

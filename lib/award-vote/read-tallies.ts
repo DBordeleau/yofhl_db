@@ -4,7 +4,9 @@
 // never widens what owners or the public read.
 import { sql } from 'drizzle-orm';
 import type { AwardVoteState, PlayerAwardId } from './model';
+import { rankedPlayerName } from './ballot-snapshot';
 import type { AwardVotePorts } from './ports';
+import { countedBallot } from './tally';
 import { awardDefinition, PLAYER_AWARD_RULES } from './voted-awards';
 
 export interface ReadTalliesInput {
@@ -37,18 +39,14 @@ export type ReadTalliesResult = { ok: true; /** the ballots that counted */ coun
 export function createReadTallies({ db }: AwardVotePorts) {
     return async function readTallies({ seasonYear }: ReadTalliesInput): Promise<ReadTalliesResult> {
         const [vote] = await db.rows<{ state: AwardVoteState; counted: number }>(sql`
-            select state, (select count(*)::int from league.award_vote_ballots b
-                           where b.season_year = v.season_year and b.submitted is not null and b.void_reason is null) as counted
+            select state, (select count(*)::int from league.award_vote_ballots b where b.season_year = v.season_year and ${countedBallot}) as counted
             from league.award_votes v where v.season_year = ${seasonYear}`);
         if (!vote || (vote.state !== 'scored' && vote.state !== 'published')) return { ok: false, reason: 'not-scored' };
-        // the snapshot names the player; it is frozen once voting opens, and the archive or the ID stand in without it
         const found = await db.rows<TallyLine & { award: PlayerAwardId }>(sql`
-            select t.award, t.player_id as "playerId", coalesce(s.name, p.name, t.player_id) as name, t.points, t.votes, t.place
+            select t.award, t.player_id as "playerId", ${rankedPlayerName(sql`t.season_year`, sql`t.player_id`)} as name, t.points, t.votes, t.place
             from league.award_vote_tallies t
-            left join league.award_vote_players s on s.season_year = t.season_year and s.player_id = t.player_id
-            left join league.players p on p.id = t.player_id
             where t.season_year = ${seasonYear}
-            order by t.place, coalesce(s.name, p.name, t.player_id), t.player_id`);
+            order by t.place, name, t.player_id`);
         const tallies = PLAYER_AWARD_RULES.map(({ award }): AwardTally => ({
             award, label: awardDefinition(award).label,
             lines: found.filter(line => line.award === award)

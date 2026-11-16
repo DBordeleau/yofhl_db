@@ -10,6 +10,9 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { PLAYER_AWARD_POINTS } from './model';
 
+/** the ballots (`b`) that count: submitted, and not void. A draft never counts */
+export const countedBallot = sql`b.submitted is not null and b.void_reason is null`;
+
 const POINTS = sql.raw(`array[${PLAYER_AWARD_POINTS.join(', ')}]::int[]`);
 
 /**
@@ -17,11 +20,11 @@ const POINTS = sql.raw(`array[${PLAYER_AWARD_POINTS.join(', ')}]::int[]`);
  * computed from its counting ballots, only when the CTE named `gate` returns a row. The new rows are upserted and the
  * rows no longer ranked deleted, so the two parts touch disjoint rows (docs/adr/0002).
  *
- * `counts` says which submitted ballots (`b`) count, by default those not void. Every part of a statement reads the
+ * `counts` says which submitted ballots (`b`) count, by default `countedBallot`. Every part of a statement reads the
  * ballots as they were before it, so a statement that voids or restores a ballot passes the condition as it leaves
  * them.
  */
-export function replaceTallies(seasonYear: number, gate: SQL, counts: SQL = sql`b.void_reason is null`): SQL {
+export function replaceTallies(seasonYear: number, gate: SQL, counts: SQL = countedBallot): SQL {
     return sql`
         tally_ranks as (
             select a.key as award, r.player_id, r.rank::int as rank

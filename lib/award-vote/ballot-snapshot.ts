@@ -1,6 +1,6 @@
 // The ballot's awards and their candidates, read only from a season's frozen snapshot: what the admin's preview and
 // the owners' ballot both show. It checks nothing about who asks; its callers do.
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import type { BallotAward, CreditedTeam, PlayerAwardId, PlayerCandidate } from './model';
 import type { AwardVoteDatabase } from './ports';
 import { awardDefinition, PLAYER_AWARD_RULES, STAT_SETS } from './voted-awards';
@@ -35,4 +35,14 @@ export async function readBallotAwards(db: AwardVoteDatabase, seasonYear: number
                 .sort((a, b) => points(b) - points(a) || a.name.localeCompare(b.name) || a.playerId.localeCompare(b.playerId)),
         };
     });
+}
+
+/**
+ * the name a ranked player goes by in `seasonYear`'s tallies and ballots: the snapshot's, which is frozen once voting
+ * opens, then the archive's, then their ID (`playerId` is an SQL expression)
+ */
+export function rankedPlayerName(seasonYear: number | SQL, playerId: SQL): SQL {
+    const year = typeof seasonYear === 'number' ? sql`${seasonYear}::int` : seasonYear;
+    return sql`coalesce((select s.name from league.award_vote_players s where s.season_year = ${year} and s.player_id = ${playerId}),
+                        (select p.name from league.players p where p.id = ${playerId}), ${playerId})`;
 }

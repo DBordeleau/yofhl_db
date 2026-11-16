@@ -13,6 +13,7 @@
 import { sql } from 'drizzle-orm';
 import { savePublishedWinners } from '@/lib/data/curated-edits';
 import { PLAYER_AWARD_IDS, type AwardVoteState } from './model';
+import { rankedPlayerName } from './ballot-snapshot';
 import type { AwardVotePorts } from './ports';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
 import { awardDefinition } from './voted-awards';
@@ -62,9 +63,9 @@ export function createPublish({ db }: AwardVotePorts) {
                         and not exists (select 1 from ${placeOne(seasonYear)} where winner.award_type_id is null)
                       returning season_year`,
             // the snapshot names every ranked player and credits each candidate's team season
-            winners: sql`select winner.award_type_id, winner.player_id, coalesce(p.name, winner.player_id) as name, c.team_season_id
+            winners: sql`select winner.award_type_id, winner.player_id, ${rankedPlayerName(sql`winner.season_year`, sql`winner.player_id`)} as name,
+                                c.team_season_id
                          from ${placeOne(seasonYear)}
-                         left join league.award_vote_players p on p.season_year = winner.season_year and p.player_id = winner.player_id
                          left join league.award_vote_candidates c
                                 on c.season_year = winner.season_year and c.award = winner.award and c.player_id = winner.player_id`,
         });
