@@ -18,7 +18,7 @@ export interface BallotProblem {
     repeated: string[];
 }
 
-/** how many ranks an award with `candidates` candidates has on a ballot */
+/** how many ranks an award with `candidates` candidates has on a ballot: five, or every candidate when it has fewer, since it can't be filled five deep */
 export const ballotDepth = (candidates: number) => Math.min(PLAYER_AWARD_DEPTH, candidates);
 
 /** the awards a ballot ranks, in ballot order: every award with a candidate */
