@@ -6,7 +6,8 @@ import { createMemoryIdentity, createMemoryRequest, createMemoryStorage } from '
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryAwardVoteFantrax, rangeKey, type MemoryAwardVoteFantraxState } from '../memory-fantrax';
 import { createMemoryNhl, type MemoryNhlState } from '../memory-nhl';
-import type { BallotRankings } from '../model';
+import { PLAYER_AWARD_IDS, type BallotRankings } from '../model';
+import { awardDefinition } from '../voted-awards';
 import type { FantraxRosterPeriod, FantraxWeek, NhlPlayerRecord, RangedGoalie, RangedSkater } from '../ports';
 
 export const SEASON = 2027;
@@ -74,7 +75,8 @@ export const savePercentageGoalie = (id: string, points: number, more: Partial<R
 // Franchises 1–4, owned by Owner 1–4. The 2025–26 season (2026) names franchise N "Old N" in team season N and is
 // published: franchise 1 beat franchise 2. The 2026–27 season (2027) names franchise N "Club N" (CN,
 // /logos/cN.png) in team season 10 + N; with `champion`, franchise 1 beat franchise 2 in its Final. Fantrax team fxN
-// of league27 is franchise N in 2027. The owner account owner-N manages franchise N on the site.
+// of league27 is franchise N in 2027. The owner account owner-N manages franchise N on the site. The archive's award
+// types are the six voted awards, by their catalogue names.
 const seed = (champion: boolean) => `
     insert into league.seasons values (2026, '2025–26', 'complete'), (${SEASON}, '2026–27', 'complete');
     insert into league.franchises (id, display_name, first_season) values ${FRANCHISES.map(id => `(${id}, 'Franchise ${id}', 2020)`).join(', ')};
@@ -89,6 +91,8 @@ const seed = (champion: boolean) => `
         values ${FRANCHISES.map(id => `(${SEASON}, '${LEAGUE_ID}', 'fx${id}', ${id})`).join(', ')};
     insert into league.team_management (franchise_id, owner_uid, owner_email, version)
         values ${FRANCHISES.map(id => `(${id}, 'owner-${id}', 'owner${id}@example.test', 1)`).join(', ')};
+    insert into league.award_types (name, label, description, sort_order)
+        values ${PLAYER_AWARD_IDS.map((award, index) => `('${awardDefinition(award).name}', '${awardDefinition(award).label}', 'Voted', ${index + 1})`).join(', ')};
 `;
 
 const HOUR = 3600_000;
@@ -208,6 +212,8 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
  * the NHL's record of a player: born `birthDate` (a 22-year-old in 2026–27 unless given), with `[season, games]`
  * NHL regular-season games per season (e.g. `[20252026, 12]`)
  */
+export type AwardVoteLeague = Awaited<ReturnType<typeof awardVoteLeague>>;
+
 export const nhlRecord = (seasons: [number, number][] = [], birthDate = '2004-03-01', nhlId = 8480000): NhlPlayerRecord =>
     ({ nhlId, birthDate, seasons: seasons.map(([season, games]) => ({ season, games })) });
 
@@ -215,9 +221,10 @@ export const nhlRecord = (seasons: [number, number][] = [], birthDate = '2004-03
  * A league with voting open on a ballot of: skaters s1–s6, defensemen d1–d5, goalies g1–g5 and rookies r1–r2 for the
  * Wayne Gretzky Award and Le Magnifique; d1–d5 for the Bobby Orr Award; g1–g5 for the Hasek Trophy; r1–r2 for the
  * Teemu Trophy; and s1–s2, on champion franchise 1's roster through the Final, for the Danny Briere Award. The
- * archive has s1 on franchise 1's roster at the end of the season. With `open: false` it is only prepared.
+ * archive has s1 on franchise 1's roster at the end of the season. With `open: false` it is only prepared. `arrange`
+ * changes the archive or Fantrax before preparing.
  */
-export async function votingLeague(t: TestContext, options: { open?: boolean } = {}) {
+export async function votingLeague(t: TestContext, options: { open?: boolean; arrange?: (harness: AwardVoteLeague) => Promise<void> } = {}) {
     const harness = await awardVoteLeague(t);
     const { fantrax, nhl, setRegularSeason, endedSeasonWith, openVoting, prepareFully } = harness;
     const ids = (prefix: string, count: number) => Array.from({ length: count }, (_, index) => `${prefix}${index + 1}`);
@@ -232,6 +239,7 @@ export async function votingLeague(t: TestContext, options: { open?: boolean } =
     fantrax.skaters[rangeKey(FINAL)] = [skater('s1', 15), skater('s2', 10)];
     for (const period of ROSTER_PERIODS.slice(-7)) fantrax.rosters[period.number].fx1.push({ id: 's1', status: 'ACTIVE' }, { id: 's2', status: 'ACTIVE' });
     await endedSeasonWith('s1', 1);
+    await options.arrange?.(harness);
     if (options.open ?? true) await openVoting(); else await prepareFully();
     const { act, asOwner, signInAs, vote } = harness;
     const saveDraft = (rankings: unknown) => asOwner(() => vote.saveDraft({ seasonYear: SEASON, rankings }));
@@ -258,7 +266,12 @@ export async function votingLeague(t: TestContext, options: { open?: boolean } =
     const tallies = () => act(() => vote.readTallies({ seasonYear: SEASON }));
     /** the admin's read of every submitted ballot's rankings */
     const ballots = () => act(() => vote.readBallots({ seasonYear: SEASON }));
-    return { ...harness, saveDraft, submit, read, ownBallot, admin, submitFor, score, reopen, tallies, ballots };
+    /** the admin presses "Publish"; with the cache tags it expired */
+    const publish = async () => {
+        const { result, revalidatedTags } = await harness.league.runAsRoute('/admin/seasons/[year]', () => vote.publish({ seasonYear: SEASON }));
+        return { result, revalidatedTags };
+    };
+    return { ...harness, saveDraft, submit, read, ownBallot, admin, submitFor, score, reopen, tallies, ballots, publish };
 }
 
 /** a complete ballot for the voting league, which ranks franchise 1's s1 */

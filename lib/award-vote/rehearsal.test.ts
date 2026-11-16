@@ -126,6 +126,22 @@ test('a rehearsal is never opened, has no ballot lock to move, takes no ballot, 
     assert.equal((await headerAnswer()).awardVote, null);
 });
 
+test('a rehearsal is never published, and its season\'s awards stay hand-entered', async t => {
+    const { act, vote, setRegularSeason, prepareFully, fantraxIs2026, league } = await rehearsalLeague(t);
+    fantraxIs2026();
+    setRegularSeason([skater('s1', 300)]);
+    await prepareFully(2026);
+    assert.deepEqual(await act(() => vote.publish({ seasonYear: 2026 })), { ok: false, reason: 'rehearsal' });
+    assert.equal((await act(() => vote.readPreview({ seasonYear: 2026 }))).vote?.state, 'prepared');
+
+    await league.client.exec(`
+        insert into league.players (id, name) values ('s1', 'Archive s1');
+        insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
+            values ('s1', 2026, 3, 'EDM', '{C}', 100, 10);`);
+    const { saveAwards } = await import('@/lib/data/curated-edits');
+    assert.deepEqual(await saveAwards(2026, [{ award: 'Wayne Gretzky Award', playerId: 's1' }], { invalidate: () => {} }), { ok: true, saved: 1 });
+});
+
 test('a rehearsal can be prepared again, replacing its snapshot and staying a rehearsal', async t => {
     const { act, vote, setRegularSeason, prepareFully, fantraxIs2026, clock } = await rehearsalLeague(t);
     fantraxIs2026();

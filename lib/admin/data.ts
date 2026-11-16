@@ -40,6 +40,8 @@ export interface SeasonAdmin {
     roster: AdminPlayer[];
     suggestions: AdminPlayer[]; // champion's end-of-season roster not yet on the ring list
     awards: AdminAward[];
+    /** the season's award vote is published: its winners are the vote's, and the awards editor is read-only */
+    awardVotePublished: boolean;
     games: AdminGame[];
 }
 
@@ -56,9 +58,10 @@ export const getSeasonSyncStatus = async (year?: number): Promise<SeasonSyncStat
 };
 
 export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> => {
-    const [season] = await rows<{ year: number; label: string; playoffStatus: 'complete' | 'cancelled'; champion_id: number | null; champion_name: string | null; champion_abbr: string | null }>(sql`
+    const [season] = await rows<{ year: number; label: string; playoffStatus: 'complete' | 'cancelled'; champion_id: number | null; champion_name: string | null; champion_abbr: string | null; award_vote_published: boolean }>(sql`
         select s.year, s.label, s.playoff_status as "playoffStatus",
-               t.id as champion_id, t.name as champion_name, t.abbreviation as champion_abbr
+               t.id as champion_id, t.name as champion_name, t.abbreviation as champion_abbr,
+               exists (select 1 from league.award_votes v where v.season_year = s.year and v.state = 'published') as award_vote_published
         from league.seasons s
         left join league.season_results r on r.season_year = s.year
         left join league.team_seasons t on t.id = r.champion_team_season_id
@@ -92,9 +95,10 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
             left join league.awards a on a.award_type_id = at.id and a.season_year = ${year}
             left join league.players p on p.id = a.player_id
             left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = ${year}
-            left join league.team_seasons t on t.id = ps.team_season_id
+            -- the team the award credits (a published award vote's may not be the end-of-season one)
+            left join league.team_seasons t on t.id = coalesce(a.team_season_id, ps.team_season_id)
             where ${season.playoffStatus} = 'complete' or at.name <> ${PLAYOFF_AWARD}
-            order by at.sort_order`),
+            order by at.sort_order, p.name`),
         rows<{
             id: number; round: number; bracket: 'championship' | 'consolation'; slot: number; note: string | null; winner: number | null;
             a_id: number; a_name: string; a_score: number; h_id: number; h_name: string; h_score: number;
@@ -122,6 +126,7 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
         champion: season.champion_id ? { teamSeasonId: season.champion_id, name: season.champion_name!, abbreviation: season.champion_abbr! } : null,
         roster,
         suggestions,
+        awardVotePublished: season.award_vote_published,
         awards: awards.map((a) => ({
             name: a.name,
             label: a.label,

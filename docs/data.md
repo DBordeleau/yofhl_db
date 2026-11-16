@@ -206,7 +206,7 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | `seasons`, `team_seasons`, `players`, `player_seasons`, `matchups` | Season data and playoff brackets, from the season import or, for the season being played, the season sync. A player season's goals, assists, shots, hits and blocks (its skater categories, 0026) are written only by the season sync and are null for goalies and every season before 2027. From 2027 `matchups` also holds the season sync's regular-season games (`stage = 'regular'`, `round` the week number); one row per season, stage, round and pair of team seasons (0027) |
 | `weeks` | Each season's Fantrax weeks with their start and end times (`starts_at`, `ends_at`), written by the season sync from 2027 (0027). `ends_at` is the week's last second: Fantrax's end, a second before the next week's first game, or for an end at midnight Eastern the last second of that day |
 | `franchises`, `owners`, `award_types` | Identities and definitions synced from league configuration |
-| `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections |
+| `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections. From 2027 a season's award winners are its published award vote's (co-winners each a row, credited to the team the vote credits), and the hand-entry editor is read-only for that season |
 | `transaction_events`, `transaction_assets`, `draft_picks` | Historical moves and draft slots with source references |
 | `draft_lotteries` | Event snapshots, version, schedule, cancellation, and saved winner |
 | `pickem_picks` | Each Pick'em entry's Pick'em pick per week and matchup (migration 0018) |
