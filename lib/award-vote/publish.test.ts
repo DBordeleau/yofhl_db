@@ -107,6 +107,23 @@ test('publishing is refused, naming them, while the archive is missing an award 
     assert.deepEqual(await awardPage('Teemu Trophy'), [[SEASON, 'Skater r1', 'r1', null]]);
 });
 
+test('publishing is refused while no ballot counts, so the award vote has no tally, and the hand-entry awards editor still saves', async t => {
+    const harness = await votingLeague(t);
+    const { publish, score, ballotLockPasses, admin, league } = harness;
+    const awardPage = await awardPages(harness);
+    // no franchise submitted before the ballot lock
+    await ballotLockPasses();
+    assert.deepEqual(await score(), { ok: true });
+
+    assert.deepEqual(await publish(), { result: { ok: false, reason: 'no-tally' }, revalidatedTags: [] });
+    assert.equal((await admin()).vote?.state, 'scored');
+
+    const { saveAwards } = await import('@/lib/data/curated-edits');
+    const options = { invalidate: (tag: string) => league.expire(tag) };
+    assert.deepEqual(await saveAwards(SEASON, [{ award: 'Hasek Trophy', playerId: 's1' }], options), { ok: true, saved: 1 });
+    assert.deepEqual(await awardPage('Hasek Trophy'), [[SEASON, 'Archive s1', 's1', 'Club 1']]);
+});
+
 test('once published, no write is accepted for the season, and its snapshot, tallies and winners stay as published', async t => {
     const { publish, act, vote, signInAs, saveDraft, submit, admin, tallies, awardPage } = await scoredLeague(t);
     assert.deepEqual((await publish()).result, { ok: true });

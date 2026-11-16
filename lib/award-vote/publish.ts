@@ -3,6 +3,11 @@
 // the team season the frozen snapshot credits them to, through the curated edit that the awards archive's pages are
 // refreshed and expired by (lib/data/curated-edits.ts). The vote becomes published in the same statement.
 //
+// Publishing is refused while the award vote has no tally at all (no ballot counted when it was scored): it would write
+// no winners and still close the hand-entry awards editor for the season, for good. An award with no tally in a vote
+// that has others is published without winners, keeping any hand-entered ones (an award with no candidates is left off
+// the ballot).
+//
 // After publishing nothing changes the season's award vote again: every other write requires an earlier state
 // (prepare, rookie changes and retrying lookups prepared; opening prepared; the ballot lock, ballots and scoring open;
 // reopening scored), voiding and restoring refuse a published vote, and the hand-entry awards editor refuses the season. There is no un-publishing. Refused for a
@@ -24,7 +29,9 @@ export interface PublishInput {
 
 export type PublishRejection = RehearsalRefusal
     /** not scored: never opened, open again, or already published */
-    | 'not-scored';
+    | 'not-scored'
+    /** scored with no ballot counting, so no award has a tally */
+    | 'no-tally';
 
 export type PublishResult = { ok: true }
     | { ok: false; reason: PublishRejection }
@@ -43,10 +50,15 @@ const placeOne = (seasonYear: number) => sql`(
     left join league.award_types ty on ty.name = names.name
     where t.season_year = ${seasonYear} and t.place = 1) as winner`;
 
+/** whether the season's award vote has any tally line */
+const anyTally = (seasonYear: number) => sql`exists (select 1 from league.award_vote_tallies t where t.season_year = ${seasonYear})`;
+
 export function createPublish({ db }: AwardVotePorts) {
     async function refusal(seasonYear: number): Promise<Exclude<PublishResult, { ok: true }> | null> {
         const [vote] = await db.rows<{ state: AwardVoteState }>(sql`select state from league.award_votes where season_year = ${seasonYear}`);
         if (!vote || vote.state !== 'scored') return { ok: false, reason: 'not-scored' };
+        const [{ tallied }] = await db.rows<{ tallied: boolean }>(sql`select ${anyTally(seasonYear)} as tallied`);
+        if (!tallied) return { ok: false, reason: 'no-tally' };
         const missing = await db.rows<{ name: string }>(sql`select distinct winner.award_name as name from ${placeOne(seasonYear)} where winner.award_type_id is null order by 1`);
         return missing.length ? { ok: false, reason: 'missing-award-type', awardTypes: missing.map(row => row.name) } : null;
     }
@@ -59,7 +71,7 @@ export function createPublish({ db }: AwardVotePorts) {
 
         const { published } = await savePublishedWinners(seasonYear, {
             gate: sql`update league.award_votes set state = 'published', published_at = clock_timestamp(), updated_at = now()
-                      where season_year = ${seasonYear} and state = 'scored' and not rehearsal
+                      where season_year = ${seasonYear} and state = 'scored' and not rehearsal and ${anyTally(seasonYear)}
                         and not exists (select 1 from ${placeOne(seasonYear)} where winner.award_type_id is null)
                       returning season_year`,
             // the snapshot names every ranked player and credits each candidate's team season
