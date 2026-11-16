@@ -63,6 +63,16 @@ test('lists of awards show GM of the Year only once it is released and one of it
     assert.deepEqual(await listed(RELEASED), { gallery: true, search: true, api: true, winners: [[SEASON, 'Club 1', 'Owner 1']] }, 'released, published');
 });
 
+test("the award API finds a listed GM of the Year's winners by any spelling of its name the catalogue knows", async t => {
+    const { route, publish } = await scoredLeague(t);
+    const league = await import('@/lib/data/league');
+    assert.deepEqual((await publish()).result, { ok: true });
+    for (const name of ['GM of the Year', 'gm of the year', 'gm-of-the-year']) {
+        const winners = await route('/api/awards/[slug]', () => league.getListedAwardWinners(name, RELEASED));
+        assert.deepEqual(winners?.winners.map(winner => [winner.Year, winner.Winner]), [[SEASON, 'Club 1']], name);
+    }
+});
+
 test("a GM of the Year win is in the winning franchise's trophy case once it is released", async t => {
     const { route, publish } = await scoredLeague(t, SHARED);
     const { getFranchiseHonors } = await import('@/lib/data/history');
