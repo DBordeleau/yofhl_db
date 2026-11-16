@@ -22,8 +22,10 @@
 //  - readTallies (read-tallies.ts): the admin's read of a scored award vote's tallies
 //  - readBallots (read-ballots.ts): the admin's read of every submitted ballot's rankings, once ballots stop changing
 //  - reopenVoting (reopen-voting.ts): the admin reopening a scored award vote with a new ballot lock
+//  - voidBallot and restoreBallot (void-ballot.ts): the admin throwing a submitted ballot out with a reason, and
+//    counting it again, after the ballot lock and before publishing; a scored vote's tallies follow at once
 // A ballot's rules (its awards and depths, reading rankings, what makes it complete) are in ballot.ts; how ballots
-// become tallies in tally.ts. Voiding and publishing come later; each must refuse a rehearsal first (rehearsal.ts).
+// become tallies in tally.ts. Publishing comes later; it must refuse a rehearsal first (rehearsal.ts).
 //
 // Which seasons may have an award vote, and the rehearsal, is in rehearsal.ts. Who is a candidate for each award and which stats they show is in voted-awards.ts; the season's date ranges in
 // season-dates.ts; listing a ballot award's candidates (top 50, sorting, search) in candidate-list.ts.
@@ -43,6 +45,7 @@ import { createRetryFailedLookups } from './retry-failed-lookups';
 import { createReadBallots } from './read-ballots';
 import { createReadTallies } from './read-tallies';
 import { createScoreBallots } from './score-ballots';
+import { createRestoreBallot, createVoidBallot } from './void-ballot';
 
 export type { AwardVoteClock, AwardVoteDatabase, AwardVoteFantrax, AwardVoteLeagueInfo, AwardVoteNhl, AwardVoteOwnerSession, AwardVotePorts, AwardVoteRange, NhlLookupPlayer, NhlPlayerRecord } from './ports';
 export type { AdjustRookieInput, AdjustRookieRejection, AdjustRookieResult } from './adjust-rookie';
@@ -63,6 +66,7 @@ export type { AdminBallot, ReadBallotsInput, ReadBallotsRejection, ReadBallotsRe
 export type { AwardTally, ReadTalliesInput, ReadTalliesRejection, ReadTalliesResult, TallyLine } from './read-tallies';
 export type { ReopenVotingInput, ReopenVotingRejection, ReopenVotingResult } from './reopen-voting';
 export type { ScoreBallotsInput, ScoreBallotsRejection, ScoreBallotsResult } from './score-ballots';
+export type { RestoreBallotInput, RestoreBallotRejection, RestoreBallotResult, VoidBallotInput, VoidBallotRejection, VoidBallotResult } from './void-ballot';
 export type { RetryFailedLookupsInput, RetryFailedLookupsRejection, RetryFailedLookupsResult } from './retry-failed-lookups';
 export type { SeasonDates } from './season-dates';
 export type { AwardVoteKind, RehearsalRefusal } from './rehearsal';
@@ -84,6 +88,8 @@ export function createAwardVote(ports: AwardVotePorts) {
         readTallies: createReadTallies(ports),
         readBallots: createReadBallots(ports),
         reopenVoting: createReopenVoting(ports),
+        voidBallot: createVoidBallot(ports),
+        restoreBallot: createRestoreBallot(ports),
     };
 }
 
