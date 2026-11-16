@@ -5,6 +5,7 @@ import { leagueTags } from './cache-tags';
 import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
 import { AWARD_CATALOGUE, listedAwards, type AwardDefinition } from '@/lib/awards';
+import { publishedTeamAwardWinners } from '@/lib/award-vote/published-vote';
 import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/development';
 
 // Draft and transaction rows show each team's season identity, not the name Fantrax recorded.
@@ -31,12 +32,11 @@ const getFranchiseHonorRows = cached(async (id: number): Promise<Omit<FranchiseH
             order by a.season_year desc, at.sort_order, p.name`),
         // a team award's winners are its published tallies' place-one team seasons (never a rehearsal's)
         rows<{ award: string; year: number }>(sql`
-            select tally.award, tally.season_year as year
-            from league.award_vote_team_tallies tally
-            join league.award_votes v on v.season_year = tally.season_year
-            join league.team_seasons t on t.id = tally.team_season_id
-            where t.franchise_id = ${id} and tally.place = 1 and v.state = 'published' and not v.rehearsal
-            order by tally.season_year desc`),
+            select w.award, w.season_year as year
+            from ${publishedTeamAwardWinners} w
+            join league.team_seasons t on t.id = w.team_season_id
+            where t.franchise_id = ${id}
+            order by w.season_year desc`),
     ]);
     return { primeMinisters, awards, votedWins };
 }, 'franchise-honors-v3', [leagueTags.awards, leagueTags.pointsLeaders, leagueTags.awardVoteTallies]);

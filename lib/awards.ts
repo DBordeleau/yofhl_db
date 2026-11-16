@@ -1,3 +1,5 @@
+import { GM_OF_THE_YEAR } from './award-vote/model';
+
 export interface AwardDefinition {
     id: string;
     /** Preserve the database name so existing winner records and URLs keep working. */
@@ -60,14 +62,14 @@ export const AWARD_CATALOGUE: readonly AwardDefinition[] = [
     },
     // a voted award still being tried out: its name and art are placeholders until the league owner releases it
     {
-        id: 'gm-of-the-year', name: 'GM of the Year', label: 'GM of the Year', scope: 'team', honor: 'Best-run franchise',
+        id: GM_OF_THE_YEAR, name: 'GM of the Year', label: 'GM of the Year', scope: 'team', honor: 'Best-run franchise',
         description: 'Awarded to the franchise that was best run over the season, judged on its draft, its moves and how the team finished.',
         image: null, released: false,
     },
 ];
 
 /** the team awards an award vote decides: no winner until one of its tallies is published */
-const VOTED_TEAM_AWARDS: ReadonlySet<string> = new Set(['gm-of-the-year']);
+const VOTED_TEAM_AWARDS: ReadonlySet<string> = new Set([GM_OF_THE_YEAR]);
 
 /**
  * the awards lists of awards show (navigation, the award gallery, search, the award API, the franchise trophy case):

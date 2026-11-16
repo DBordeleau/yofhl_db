@@ -10,6 +10,7 @@ import { moveBallotLock, openVoting, publishAwardVote, refreshAwardVoteArchive, 
 import CandidateList from '@/components/award-vote/candidate-list';
 import TeamCandidateList from '@/components/award-vote/team-candidate-list';
 import type { AdminBallot, AwardTally, AwardVotePreview, ReadTalliesResult } from '@/lib/award-vote/create-award-vote';
+import { GM_OF_THE_YEAR } from '@/lib/award-vote/model';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
 import BallotReview, { VoidBallots } from './ballot-review';
 
@@ -146,7 +147,7 @@ function BallotPreview({ ballot, gmOfTheYear, rehearsal }: {
         </div>
         <div role="tabpanel" className="mt-4">
             <p className="mb-3 text-sm text-ink-soft">{award.honor}</p>
-            {award.award === 'gm-of-the-year'
+            {award.award === GM_OF_THE_YEAR
                 ? <TeamCandidateList candidates={award.candidates} />
                 : <CandidateList key={award.award} award={award} />}
         </div>
@@ -176,7 +177,7 @@ function TallyReview({ tallies }: { tallies: Tallies }) {
 
 function AwardTallyTable({ tally }: { tally: AwardTally }) {
     // GM of the Year ranks team seasons, named with that season's owner
-    const lines = tally.award === 'gm-of-the-year'
+    const lines = tally.award === GM_OF_THE_YEAR
         ? tally.lines.map(({ team, owner, ...line }) => ({ ...line, key: String(team.teamSeasonId), name: owner ? `${team.name} (${owner})` : team.name }))
         : tally.lines.map(({ playerId, ...line }) => ({ ...line, key: playerId }));
     const winners = lines.filter(line => line.place === 1);
@@ -189,7 +190,7 @@ function AwardTallyTable({ tally }: { tally: AwardTally }) {
                 <thead>
                     <tr className="border-b border-line text-left text-ink-soft">
                         <th className="py-1 pr-3 font-bold">Place</th>
-                        <th className="py-1 pr-3 font-bold">{tally.award === 'gm-of-the-year' ? 'Team' : 'Player'}</th>
+                        <th className="py-1 pr-3 font-bold">{tally.award === GM_OF_THE_YEAR ? 'Team' : 'Player'}</th>
                         <th className="py-1 pr-3 text-right font-bold">Pts</th>
                         {ORDINALS.slice(0, depth).map(ordinal => <th key={ordinal} className="py-1 pr-3 text-right font-bold">{ordinal}</th>)}
                     </tr>
