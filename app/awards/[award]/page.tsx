@@ -5,7 +5,7 @@ import AwardTable from '@/components/award-table';
 import RinkDivider from '@/components/rink-divider';
 import { TrophyArt } from '@/components/trophy-icons';
 import { AWARDS, awardFromSlug, awardHref, awardSlug, getAwardDefinition } from '@/lib/awards';
-import { getAwardTypes, getAwardWinners, getTeamAwardWinners } from '@/lib/data/league';
+import { getAwardTypes, getAwardWinners, getListedAwards, getTeamAwardWinners, type AwardWinner } from '@/lib/data/league';
 import { seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import ExploreNext from '@/components/explore-next';
@@ -29,14 +29,20 @@ export async function generateMetadata({ params }: { params: Promise<{ award: st
 export default async function AwardPage({ params }: { params: Promise<{ award: string }> }) {
     const name = awardFromSlug((await params).award);
     const definition = getAwardDefinition(name);
-    const teamAward = definition?.id === 'jagr-cup' || definition?.id === 'prime-minister' ? definition.id : null;
+    const teamAward = definition?.id === 'jagr-cup' || definition?.id === 'prime-minister' || definition?.id === 'gm-of-the-year' ? definition.id : null;
     const data = teamAward && definition
         ? { award: { name: definition.name, label: definition.label, description: definition.honor }, winners: await getTeamAwardWinners(teamAward) }
         : await getAwardWinners(definition?.name ?? name);
-    if (!data) notFound();
+    // GM of the Year's page, reachable by its URL, exists once a winner is published, released or not
+    if (!data || (teamAward === 'gm-of-the-year' && !data.winners.length)) notFound();
+    // share cards only for an award lists show: not GM of the Year until it is released
+    const listed = !definition || (await getListedAwards()).some(award => award.id === definition.id);
     const { award, winners } = data;
     const latest = winners[0];
-    const latestHref = latest?.PlayerID ? playerHref(latest.PlayerID) : latest?.TeamID ? `/teams/${latest.TeamID}` : null;
+    const winnerHref = (winner: AwardWinner) => winner.PlayerID ? playerHref(winner.PlayerID) : winner.TeamID ? `/teams/${winner.TeamID}` : null;
+    const latestHref = latest ? winnerHref(latest) : null;
+    // a shared award: every winner of the latest season
+    const latestWinners = latest ? winners.filter(winner => winner.Year === latest.Year) : [];
     const label = definition?.label ?? award.label;
     const latestSeason = latest && (await getSeasonArchive()).published.find(season => season.year === latest.Year);
     const href = awardHref(award.name);
@@ -58,9 +64,15 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                         <h1 className="font-wide mt-3 text-3xl font-extrabold uppercase leading-tight md:text-[40px] lg:text-[48px]">{label}</h1>
                         <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[#D8E2EF] md:mx-0 md:text-base">{definition?.description ?? award.description}</p>
                         {latest && <div className="mt-6 border-t border-white/15 pt-5">
-                            <p className="text-[11px] font-bold uppercase tracking-[.15em] text-gold-light">Latest winner · {seasonLabel(latest.Year)}</p>
-                            <p className="mt-2 text-xl font-extrabold">{latestHref ? <Link href={latestHref} className="underline-offset-4 hover:text-gold-light hover:underline">{latest.Winner} <Arrow /></Link> : latest.Winner}</p>
-                            {!teamAward && latest.Team && <p className="mt-1 text-sm text-[#AFC0D8]">{latest.Team}</p>}
+                            <p className="text-[11px] font-bold uppercase tracking-[.15em] text-gold-light">{latestWinners.length > 1 ? 'Latest winners' : 'Latest winner'} · {seasonLabel(latest.Year)}</p>
+                            {latestWinners.map(winner => {
+                                const href = winnerHref(winner);
+                                return <div key={`${winner.PlayerID}-${winner.TeamID}`}>
+                                    <p className="mt-2 text-xl font-extrabold">{href ? <Link href={href} className="underline-offset-4 hover:text-gold-light hover:underline">{winner.Winner} <Arrow /></Link> : winner.Winner}</p>
+                                    {!teamAward && winner.Team && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Team}</p>}
+                                    {teamAward === 'gm-of-the-year' && winner.Owner && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Owner}</p>}
+                                </div>;
+                            })}
                         </div>}
                     </div>
                 </div>
@@ -73,7 +85,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                     <span className="text-xs font-semibold text-ink-muted">{winners.length} awarded</span>
                 </div>
                 <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'}
-                    award={{ id: definition?.id ?? null, name: award.name, label, honor: definition?.honor ?? award.description, image: definition?.image ?? null }} />
+                    award={listed ? { id: definition?.id ?? null, name: award.name, label, honor: definition?.honor ?? award.description, image: definition?.image ?? null } : undefined} />
             </section>
             {tallies.length > 0 && <section className="mx-auto mt-10 max-w-board" aria-labelledby="tallies-title">
                 <h2 id="tallies-title" className="font-wide mb-4 px-1 text-xl font-extrabold uppercase md:text-2xl">Tallies</h2>

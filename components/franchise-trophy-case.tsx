@@ -66,6 +66,18 @@ export default function FranchiseTrophyCase({ franchiseId, championships, finals
                         </div>
                     </div>
 
+                    {honors.teamAwards.map((award) => <div key={award.id} className={css.teamAward}>
+                        <span className={css.artWrap}><TrophyArt award={award.name} className={css.art} sizes="120px" /></span>
+                        <div className="min-w-0">
+                            <p className={`${css.count} champion-count`}>{award.years.length}</p>
+                            <h3 className={css.name}><Link href={awardHref(award.name)} className="hover:underline">{award.label}</Link></h3>
+                            <p className={css.honor}>{award.honor}</p>
+                            <div className={css.slabs}>
+                                {award.years.map((year) => <Link key={year} href={teamSeasonHref(year, franchiseId)} className={`${styles.slab} ${styles.slabGold}`}>{seasonLabel(year)}</Link>)}
+                            </div>
+                        </div>
+                    </div>)}
+
                     {lostFinal && (
                         <div id="finals-history" className={css.finals}>
                             <h3 className={css.rowLabel}>Finals</h3>
