@@ -1,11 +1,12 @@
 // Voiding (GLOSSARY.md, "Void ballot"): the admin throwing out a franchise's submitted ballot with a written reason,
-// so it adds nothing to any tally, and restoring it, which clears the reason and counts it again. Both are allowed
+// so it adds nothing to any tally, and restoring it, which clears the reason and counts it again. Voiding is allowed
 // only once ballots have stopped changing and before publishing: while open with the ballot lock passed by the
-// database clock, or scored. In a scored award vote the same statement recomputes every tally (tally.ts).
+// database clock, or scored. Restoring is allowed any time before publishing, including while a reopened vote is
+// before its new ballot lock. In a scored award vote the same statement recomputes every tally (tally.ts).
 //
 // Reopening leaves a void ballot void: its owner can still change it until the new ballot lock, and it stays void
-// (adding nothing) until the admin restores it once that lock has passed. Owners are not told a ballot is void
-// before publishing, and it still shows as submitted. Both are refused for a rehearsal (rehearsal.ts).
+// (adding nothing) until the admin restores it. Owners are not told a ballot is void before publishing, and it
+// still shows as submitted. Both are refused for a rehearsal (rehearsal.ts).
 import { sql, type SQL } from 'drizzle-orm';
 import { VOID_REASON_LENGTH, type AwardVoteState } from './model';
 import type { AwardVotePorts } from './ports';
@@ -26,13 +27,13 @@ export interface RestoreBallotInput {
 
 /** why a ballot can't be voided or restored now, whichever is asked */
 type WindowRejection =
-    /** never opened, or open with the ballot lock still ahead */
-    | 'not-locked'
     | 'published'
     /** the franchise has no submitted ballot */
     | 'no-ballot';
 
 export type VoidBallotRejection = RehearsalRefusal | WindowRejection
+    /** never opened, or open with the ballot lock still ahead */
+    | 'not-locked'
     /** empty once trimmed, or longer than VOID_REASON_LENGTH */
     | 'invalid-reason'
     | 'already-void';
@@ -44,11 +45,12 @@ export type RestoreBallotRejection = RehearsalRefusal | WindowRejection
 export type VoidBallotResult = { ok: true } | { ok: false; reason: VoidBallotRejection };
 export type RestoreBallotResult = { ok: true } | { ok: false; reason: RestoreBallotRejection };
 
-/** the award vote `v` once its ballots have stopped changing and before publishing: open with the ballot lock passed, or scored */
-const changeable = sql`not v.rehearsal and (v.state = 'scored' or (v.state = 'open' and clock_timestamp() >= v.ballot_lock))`;
-
 /** what voiding or restoring does to the franchise's ballot */
-interface Change {
+interface Change<Closed extends string> {
+    /** when the award vote `v` allows it */
+    window: SQL;
+    /** why it is refused outside its window, before publishing */
+    closed: Closed;
     /** the ballot's state that the change needs: counting to void it, void to restore it */
     needsVoid: boolean;
     /** the columns it sets */
@@ -57,35 +59,41 @@ interface Change {
     counts: (franchiseId: number) => SQL;
 }
 
-const VOIDING = (reason: string): Change => ({
+const VOIDING = (reason: string): Change<'not-locked'> => ({
+    // once ballots have stopped changing: open with the ballot lock passed, or scored
+    window: sql`not v.rehearsal and (v.state = 'scored' or (v.state = 'open' and clock_timestamp() >= v.ballot_lock))`,
+    closed: 'not-locked',
     needsVoid: false,
     set: sql`void_reason = ${reason}, voided_at = clock_timestamp()`,
     counts: franchiseId => sql`b.void_reason is null and b.franchise_id <> ${franchiseId}::int`,
 });
 
-const RESTORING: Change = {
+const RESTORING: Change<'no-ballot'> = {
+    // any time before publishing; never opened means no submitted ballot
+    window: sql`not v.rehearsal and v.state in ('open', 'scored')`,
+    closed: 'no-ballot',
     needsVoid: true,
     set: sql`void_reason = null, voided_at = null`,
     counts: franchiseId => sql`b.void_reason is null or b.franchise_id = ${franchiseId}::int`,
 };
 
 /** why the change can't be made to `franchiseId`'s ballot now ('wrong-state' when the ballot is already as it would leave it), or null */
-async function refusal(db: AwardVotePorts['db'], seasonYear: number, franchiseId: number, change: Change)
-    : Promise<WindowRejection | 'wrong-state' | null> {
+async function refusal<Closed extends string>(db: AwardVotePorts['db'], seasonYear: number, franchiseId: number, change: Change<Closed>)
+    : Promise<WindowRejection | Closed | 'wrong-state' | null> {
     const [found] = await db.rows<{ state: AwardVoteState; changeable: boolean; submitted: boolean; void: boolean }>(sql`
-        select v.state, ${changeable} as changeable,
+        select v.state, ${change.window} as changeable,
                coalesce(b.submitted is not null, false) as submitted, coalesce(b.void_reason is not null, false) as void
         from league.award_votes v
         left join league.award_vote_ballots b on b.season_year = v.season_year and b.franchise_id = ${franchiseId}::int
         where v.season_year = ${seasonYear}::int`);
     if (found?.state === 'published') return 'published';
-    if (!found?.changeable) return 'not-locked';
+    if (!found?.changeable) return change.closed;
     if (!found.submitted) return 'no-ballot';
     return found.void === change.needsVoid ? null : 'wrong-state';
 }
 
 /** makes `change` to `franchiseId`'s ballot, recomputing the tallies if the vote is scored; or says why not */
-async function changeBallot(db: AwardVotePorts['db'], seasonYear: number, franchiseId: number, change: Change) {
+async function changeBallot<Closed extends string>(db: AwardVotePorts['db'], seasonYear: number, franchiseId: number, change: Change<Closed>) {
     const refused = await refusal(db, seasonYear, franchiseId, change);
     if (refused) return refused;
     // one statement: the ballot changes only while changeable, and a scored vote's tallies are recomputed with it
@@ -94,13 +102,13 @@ async function changeBallot(db: AwardVotePorts['db'], seasonYear: number, franch
             update league.award_vote_ballots b set ${change.set}
             from league.award_votes v
             where b.season_year = ${seasonYear}::int and b.franchise_id = ${franchiseId}::int and b.submitted is not null
-              and (b.void_reason is not null) = ${change.needsVoid} and v.season_year = b.season_year and ${changeable}
+              and (b.void_reason is not null) = ${change.needsVoid} and v.season_year = b.season_year and ${change.window}
             returning v.state
         ), scored as (select 1 from changed where state = 'scored'),
         ${replaceTallies(seasonYear, sql`scored`, change.counts(franchiseId))}
         select 1 from changed`);
     if (changed.length) return null;
-    return (await refusal(db, seasonYear, franchiseId, change)) ?? 'not-locked';
+    return (await refusal(db, seasonYear, franchiseId, change)) ?? change.closed;
 }
 
 export function createVoidBallot({ db }: AwardVotePorts) {

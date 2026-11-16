@@ -67,7 +67,7 @@ export type { AwardVoteState, BallotAward, BallotRankings, CreditedTeam, PlayerA
 export type { MoveBallotLockInput, MoveBallotLockRejection, MoveBallotLockResult } from './move-ballot-lock';
 export type { OpenVotingInput, OpenVotingRejection, OpenVotingResult } from './open-voting';
 export type { PrepareInput, PrepareRejection, PrepareResult } from './prepare';
-export type { AwardVotePreview, AwardVoteSummary, ReadPreviewInput } from './read-preview';
+export type { AwardVotePreview, AwardVoteSummary, ReadPreviewInput, VoidBallot } from './read-preview';
 export type { ReadRookieReviewInput, RookieReview, RookieReviewPlayer } from './read-rookie-review';
 export type { AdminBallot, ReadBallotsInput, ReadBallotsRejection, ReadBallotsResult } from './read-ballots';
 export type { AwardTally, ReadTalliesInput, ReadTalliesRejection, ReadTalliesResult, TallyLine } from './read-tallies';

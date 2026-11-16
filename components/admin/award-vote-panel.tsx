@@ -10,7 +10,7 @@ import { moveBallotLock, openVoting, publishAwardVote, reopenVoting, scoreBallot
 import CandidateList from '@/components/award-vote/candidate-list';
 import type { AdminBallot, AwardTally, AwardVotePreview, ReadTalliesResult } from '@/lib/award-vote/create-award-vote';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
-import BallotReview from './ballot-review';
+import BallotReview, { VoidBallots } from './ballot-review';
 
 type Tallies = Extract<ReadTalliesResult, { ok: true }>;
 
@@ -58,6 +58,7 @@ export default function AwardVotePanel({ year, preview, tallies, ballots = null 
         {vote?.state === 'scored' && !rehearsal && <Publish year={year} />}
         {tallies && <TallyReview tallies={tallies} />}
         {ballots && ballot && <BallotReview year={year} ballots={ballots} awards={ballot} published={vote?.state === 'published'} />}
+        {!ballots && vote?.state === 'open' && preview.voidBallots && <VoidBallots year={year} ballots={preview.voidBallots} />}
         {ballot && <BallotPreview ballot={ballot} rehearsal={rehearsal} />}
     </div>;
 }

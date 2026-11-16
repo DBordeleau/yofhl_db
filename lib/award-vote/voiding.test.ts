@@ -1,4 +1,4 @@
-// Voiding a submitted ballot with a reason once the ballot lock has passed, and restoring it, until publishing: a void
+// Voiding a submitted ballot with a reason once the ballot lock has passed, and restoring it any time before publishing: a void
 // ballot adds nothing to any tally, and voiding or restoring in a scored award vote recomputes the tallies.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -130,10 +130,32 @@ test('restoring a void ballot clears its reason and counts it again, recomputing
     assert.deepEqual(await restoreBallot(2), { ok: false, reason: 'not-void' });
 });
 
-test('restoring is refused before the ballot lock', async t => {
+test('before the first ballot lock no ballot is void, so there is nothing to restore', async t => {
     const { submitFor, restoreBallot } = await voidingLeague(t);
     await submitFor(1, COMPLETE);
-    assert.deepEqual(await restoreBallot(1), { ok: false, reason: 'not-locked' });
+    assert.deepEqual(await restoreBallot(1), { ok: false, reason: 'not-void' });
+    assert.deepEqual(await restoreBallot(2), { ok: false, reason: 'no-ballot' });
+});
+
+test('after reopening, the admin can restore a void ballot before the new ballot lock, though not void another, and it counts when scored again', async t => {
+    const { submitFor, ballotLockPasses, score, reopen, tallies, voidBallot, restoreBallot, voidReasons, admin } = await voidingLeague(t);
+    await submitFor(1, COMPLETE);
+    await submitFor(2, SECOND);
+    await submitFor(3, SECOND);
+    await ballotLockPasses();
+    await score();
+    await voidBallot(2, 'Bad faith.');
+    assert.deepEqual(await reopen(), { ok: true });
+
+    assert.deepEqual(await voidBallot(1, 'Bad faith.'), { ok: false, reason: 'not-locked' });
+    // the admin can't read the rankings until the new ballot lock, but sees which ballots are void and why
+    assert.deepEqual((await admin()).voidBallots?.map(ballot => [ballot.franchise.id, ballot.voidReason]), [[2, 'Bad faith.']]);
+    assert.deepEqual(await restoreBallot(2), { ok: true });
+    assert.deepEqual((await admin()).voidBallots, []);
+    await ballotLockPasses();
+    assert.deepEqual(await voidReasons(), [[1, null], [2, null], [3, null]]);
+    await score();
+    assert.deepEqual(await gretzky(tallies), SCORED);
 });
 
 test('once published, a ballot can be neither voided nor restored, and the tallies stay as published', async t => {
@@ -164,9 +186,8 @@ test('after reopening, a void ballot stays void: its owner can still change it, 
     await voidBallot(2, 'Bad faith.');
     assert.deepEqual(await reopen(), { ok: true });
 
-    // while owners can change their ballots again, nothing is voided or restored
+    // while owners can change their ballots again, nothing is voided
     assert.deepEqual(await voidBallot(1, 'Bad faith.'), { ok: false, reason: 'not-locked' });
-    assert.deepEqual(await restoreBallot(2), { ok: false, reason: 'not-locked' });
     // franchise 2 changes its ballot to rank s3 first
     const changed: BallotRankings = { ...SECOND, 'wayne-gretzky': ['s3', 's2', 's1', 's4', 's5'] };
     await signInAs('owner-2');

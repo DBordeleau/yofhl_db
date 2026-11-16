@@ -67,8 +67,8 @@ test('the season before the live season is prepared and previewed as a rehearsal
 test('only the season before the live season can be rehearsed', async t => {
     const { act, vote, fantrax, league } = await rehearsalLeague(t);
     assert.deepEqual(await act(() => vote.prepare({ seasonYear: 2025 })), { ok: false, reason: 'before-award-votes' });
-    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2025 })), { kind: null, vote: null, ballot: null, ballotStatus: null });
-    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2026 })), { kind: 'rehearsal', vote: null, ballot: null, ballotStatus: null });
+    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2025 })), { kind: null, vote: null, ballot: null, ballotStatus: null, voidBallots: null });
+    assert.deepEqual(await act(() => vote.readPreview({ seasonYear: 2026 })), { kind: 'rehearsal', vote: null, ballot: null, ballotStatus: null, voidBallots: null });
 
     // once 2027–28 starts on Fantrax, 2026–27 is a live award vote and 2025–26 can no longer be rehearsed
     await league.client.exec(`

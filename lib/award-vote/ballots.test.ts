@@ -201,5 +201,5 @@ test("a ballot's rankings are readable only by its own franchise; who has submit
     assert.deepEqual(Object.keys(view).sort(), ['awards', 'ballot', 'ballotLock', 'ballotStatus', 'lists', 'locked', 'seasonYear', 'status', 'team']);
     const preview = await admin();
     assert.deepEqual(preview.ballotStatus, status);
-    assert.deepEqual(Object.keys(preview).sort(), ['ballot', 'ballotStatus', 'kind', 'vote']);
+    assert.deepEqual(Object.keys(preview).sort(), ['ballot', 'ballotStatus', 'kind', 'voidBallots', 'vote']);
 });

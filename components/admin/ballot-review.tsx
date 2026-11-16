@@ -2,10 +2,11 @@
 
 // Every submitted ballot's rankings in admin, once ballots have stopped changing (the award vote module refuses the
 // read before the ballot lock), with void ballots marked and their reasons; voiding with a reason and restoring
-// until the award vote is published.
+// until the award vote is published. Before the ballot lock (a reopened vote's new one), only the void ballots and
+// their reasons show (VoidBallots), so the admin can still restore one.
 import { useState } from 'react';
 import { restoreBallot, voidBallot } from '@/app/admin/ballot-void-actions';
-import type { AdminBallot, BallotAward } from '@/lib/award-vote/create-award-vote';
+import type { AdminBallot, BallotAward, VoidBallot } from '@/lib/award-vote/create-award-vote';
 import { VOID_REASON_LENGTH } from '@/lib/award-vote/model';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
 
@@ -90,5 +91,30 @@ function SubmittedBallot({ year, ballot, awards, published }: { year: number; ba
                     : <button type="button" className="min-h-11 text-sm font-bold text-rink-red hover:underline" onClick={() => setVoiding(true)}>Void ballot…</button>}
             <AdminActionStatus pending={pending} pendingText={voidReason ? 'Restoring…' : 'Voiding…'} result={result} />
         </div>}
+    </>;
+}
+
+/** the void ballots, without their rankings, while owners can still change their ballots: each can be restored */
+export function VoidBallots({ year, ballots }: { year: number; ballots: VoidBallot[] }) {
+    if (!ballots.length) return null;
+    return <div className="mt-6 border-t border-line pt-5">
+        <h3 className="font-wide text-base font-extrabold uppercase">Void ballots</h3>
+        <ul className="mt-2">
+            {ballots.map(ballot => <li key={ballot.franchise.id} className="border-b border-line/60 py-3">
+                <RestorableBallot year={year} ballot={ballot} />
+            </li>)}
+        </ul>
+    </div>;
+}
+
+function RestorableBallot({ year, ballot }: { year: number; ballot: VoidBallot }) {
+    const { pending, result, run } = useAdminAction();
+    return <>
+        <p className="text-sm"><span className="font-bold">{ballot.franchise.name}</span></p>
+        <p className="mt-1 text-sm"><span className="font-bold">Reason: </span>{ballot.voidReason}</p>
+        <div className="mt-2">
+            <button type="button" className={ADMIN_BUTTON} disabled={pending} onClick={() => run(() => restoreBallot(year, ballot.franchise.id))}>Restore ballot</button>
+            <AdminActionStatus pending={pending} pendingText="Restoring…" result={result} />
+        </div>
     </>;
 }

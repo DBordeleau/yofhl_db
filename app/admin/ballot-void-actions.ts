@@ -20,7 +20,6 @@ const VOID_REFUSALS: Record<VoidBallotRejection, string> = {
 
 const RESTORE_REFUSALS: Record<RestoreBallotRejection, string> = {
     rehearsal: 'A rehearsal has no ballots.',
-    'not-locked': 'Ballots can only be restored once the ballot lock has passed.',
     published: 'The award vote is published, so its ballots can no longer change.',
     'no-ballot': 'That franchise has no submitted ballot.',
     'not-void': 'That ballot already counts.',
