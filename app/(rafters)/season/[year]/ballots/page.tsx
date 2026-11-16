@@ -3,8 +3,6 @@ import { notFound } from 'next/navigation';
 import Arrow from '@/components/arrow';
 import TeamBadge from '@/components/team-badge';
 import { awardVote } from '@/lib/award-vote/award-vote';
-import { awardDefinition } from '@/lib/award-vote/voted-awards';
-import { awardHref } from '@/lib/awards';
 import { seasonLabel } from '@/lib/league';
 
 export async function generateMetadata({ params }: { params: Promise<{ year: string }> }) {
@@ -26,7 +24,6 @@ export default async function SeasonBallotsPage({ params }: { params: Promise<{ 
             <Link href={`/season/${seasonYear}`} className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink-muted hover:text-rink-blue"><Arrow direction="left" /> {seasonLabel(seasonYear)} season</Link>
             <div className="mb-6 px-1">
                 <h1 className="font-wide text-2xl font-extrabold uppercase md:text-3xl">{seasonLabel(seasonYear)} award ballots</h1>
-                <p className="mt-1 text-sm text-ink-muted">{page.counted} {page.counted === 1 ? 'ballot' : 'ballots'} counted. Awards: {page.awards.map((award, index) => <span key={award.award}>{index > 0 && ', '}<Link href={awardHref(awardDefinition(award.award).name)} className="underline-offset-[3px] hover:text-rink-blue hover:underline">{award.label}</Link></span>)}.</p>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {page.ballots.map(ballot => (

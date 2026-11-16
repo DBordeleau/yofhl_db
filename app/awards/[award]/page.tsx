@@ -40,7 +40,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
     const label = definition?.label ?? award.label;
     const latestSeason = latest && (await getSeasonArchive()).published.find(season => season.year === latest.Year);
     const href = awardHref(award.name);
-    // a voted award's published tallies, newest first; none for every other award and every season without a vote
+    // a voted award's published tallies, newest first; none for every other award and every season without a published award vote
     const votedAward = PLAYER_AWARD_IDS.find((id): id is PlayerAwardId => id === definition?.id);
     const tallies = votedAward ? await awardVote.readPublishedTallies({ award: votedAward }) : [];
 
@@ -76,7 +76,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                     award={{ id: definition?.id ?? null, name: award.name, label, honor: definition?.honor ?? award.description, image: definition?.image ?? null }} />
             </section>
             {tallies.length > 0 && <section className="mx-auto mt-10 max-w-board" aria-labelledby="tallies-title">
-                <h2 id="tallies-title" className="font-wide mb-4 px-1 text-xl font-extrabold uppercase md:text-2xl">Voting</h2>
+                <h2 id="tallies-title" className="font-wide mb-4 px-1 text-xl font-extrabold uppercase md:text-2xl">Tallies</h2>
                 <div className="grid gap-6">
                     {tallies.map(tally => <PublishedTallyTable key={tally.seasonYear} tally={tally} />)}
                 </div>

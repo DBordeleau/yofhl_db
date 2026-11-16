@@ -11,9 +11,7 @@ export default function PublishedTallyTable({ tally }: { tally: PublishedTally }
         <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
             <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-ink px-3.5 py-3 md:px-6">
                 <h3 className="font-bold">{seasonLabel(tally.seasonYear)}</h3>
-                <span className="text-xs font-semibold text-ink-muted">
-                    {tally.counted} {tally.counted === 1 ? 'ballot' : 'ballots'} · <Link href={`/season/${tally.seasonYear}/ballots`} className="underline-offset-[3px] hover:text-rink-blue hover:underline">See every ballot</Link>
-                </span>
+                <Link href={`/season/${tally.seasonYear}/ballots`} className="text-xs font-semibold text-ink-muted underline-offset-[3px] hover:text-rink-blue hover:underline">See every ballot</Link>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">

@@ -2,7 +2,7 @@
 
 // Every submitted ballot's rankings in admin, once ballots have stopped changing (the award vote module refuses the
 // read before the ballot lock), with void ballots marked and their reasons; voiding with a reason and restoring
-// until the award vote is published. Before the ballot lock (a reopened vote's new one), only the void ballots and
+// until the award vote is published. Before the ballot lock (a reopened award vote's new one), only the void ballots and
 // their reasons show (VoidBallots), so the admin can still restore one.
 import { useState } from 'react';
 import { restoreBallot, voidBallot } from '@/app/admin/ballot-void-actions';
