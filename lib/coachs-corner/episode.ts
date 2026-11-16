@@ -1,4 +1,5 @@
 import { compileAudioCues, type AudioCue } from './audio-cues';
+import { wardrobeOf } from './cast';
 import { episodeLabel } from './episode-label';
 import { pullQuote, type PullQuote } from './pull-quote';
 import { graphicPlayers, parseScript, playerRefs, refKey, statsSeason, type Diagnostic, type Meta, type PlayerRef, type TeamRef } from './script';
@@ -12,6 +13,15 @@ import { INTRO_MS } from './transport';
 
 /** Before the first play the studio shows its opening picture, the set as the segment begins, not the bumper. */
 export const OPENING_PICTURE_MS = 5999;
+
+/**
+ * Don's wardrobe as his first line's first word is said, so its own gesture counts even after an inline
+ * pause. With no line of his, the episode's first line; with no lines at all, normal.
+ */
+const openingWardrobe = (timeline: Timeline) => {
+    const first = timeline.lines.find(line => line.speaker === 'don') ?? timeline.lines[0];
+    return wardrobeOf('don', first ? frameAt(timeline, first.words[0]?.t ?? first.t0).hosts.don.gesture : 'rest');
+};
 
 export interface ScriptSummary {
     title: string;
@@ -33,6 +43,8 @@ export interface Episode {
     timeline: Timeline;
     audioCues: AudioCue[];
     openingPicture: Frame;
+    /** Don's wardrobe as his first line starts, for the title card, bumper, closing card and home hero; later changes are a reveal */
+    openingWardrobe: string;
     pullQuote: PullQuote | null;
     /** the episode's schedule slot: "Pilot" or "Week N" */
     label: string | null;
@@ -62,6 +74,7 @@ export function episodeFrom(source: string, { slug, teams }: EpisodeOptions = {}
         meta, diagnostics, hasErrors: diagnostics.some(d => d.severity === 'error'), timeline,
         audioCues: compileAudioCues(timeline),
         openingPicture: frameAt(timeline, OPENING_PICTURE_MS),
+        openingWardrobe: openingWardrobe(timeline),
         pullQuote: pullQuote(script),
         label: episodeLabel({ slug: slug ?? '', week: meta.week ?? null }),
         playerRefs: players,

@@ -12,7 +12,8 @@ import SectionLink from '@/components/home/section-link';
 import { fantraxLeagueUrl } from '@/lib/fantrax/config';
 import { fantraxLeagueIdOf, getLiveSeason } from '@/lib/fantrax/live-season';
 import { shortDate } from '@/lib/live-season-display';
-import { getPublishedEpisodes } from '@/lib/data/coachs-corner';
+import { getPublishedEpisode, getPublishedEpisodes } from '@/lib/data/coachs-corner';
+import { episodeFrom } from '@/lib/coachs-corner/episode';
 import { formatFpts, seasonLabel } from '@/lib/league';
 import { livePickemWeeks } from '@/lib/pickem/model';
 import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
@@ -37,6 +38,9 @@ export default async function HomePage() {
     const leaders = live?.leaders.status === 'available' ? live.leaders.value : null;
     const rosterStats = live?.rosterStats.status === 'available' ? live.rosterStats.value : null;
     const latestEpisode = episodes[0];
+    // the hero dresses the hosts as the episode opens; it goes through the same cache as the episode page
+    const latestFull = latestEpisode && await getPublishedEpisode(latestEpisode.slug).catch(error => { console.error("Coach's Corner episode unavailable:", error); return null; });
+    const compiled = latestFull ? episodeFrom(latestFull.script, { slug: latestFull.slug }) : null;
     const opening = live?.weeks[0];
     const preseason = opening?.phase === 'upcoming';
     const season = live ? seasonLabel(live.seasonYear) : 'Current season';
@@ -57,7 +61,7 @@ export default async function HomePage() {
                     <h1 id="home-heading">YOFHL <span>{season}</span></h1>
                     <div className={styles.heroActions}><Link href="/stats/all-time/all" className={styles.historyButton}>Explore league history <Arrow /></Link><SectionLink href="#current-season" className={styles.seasonButton}>Current season <Arrow direction="down" /></SectionLink></div>
                 </div>
-                {latestEpisode ? <HeroStudio episode={latestEpisode} /> : null}
+                {latestEpisode ? <HeroStudio episode={latestEpisode} wardrobe={compiled?.openingWardrobe} lapel={compiled?.meta.lapel} /> : null}
                 <div className={styles.heroArt}>
                     <TrophyArt award="Jagr Cup" className={styles.heroTrophy} sizes="(max-width: 360px) 150px, (max-width: 600px) 190px, (max-width: 800px) 280px, (max-width: 1100px) 330px, (min-width: 1800px) 430px, 390px" priority title="The Jagr Cup" />
                 </div>

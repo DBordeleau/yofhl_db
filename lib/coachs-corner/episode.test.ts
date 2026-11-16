@@ -55,6 +55,36 @@ test('the opening picture is the set as the segment begins, set by cues before t
     assert.equal(reacting.openingPicture.hosts.don.reaction, null);
 });
 
+test('the opening wardrobe is the one Don is in as his first line starts', () => {
+    assert.equal(episodeFrom(`${head}[don: point]
+DON: Hi.`).openingWardrobe, 'normal');
+    assert.equal(episodeFrom(`${head}[don: halloween-stare]
+RON: Evening.`).openingWardrobe, 'halloween-2026');
+    assert.equal(episodeFrom(`${head}[don: remembrance-rest]
+DON: Hi.`).openingWardrobe, 'remembrance-2026');
+    // the first line's own gesture counts, with no cue ahead of it
+    const named = episodeFrom(`${head}DON (alternate-3-point): Hi.`);
+    assert.deepEqual(named.diagnostics, []);
+    assert.equal(named.openingWardrobe, 'alternate-suit-3');
+    assert.equal(episodeFrom(`${head}DON (halloween-point): [400ms] Boo.`).openingWardrobe, 'halloween-2026');
+    // Ron speaking first doesn't pin Don to the wardrobe he sat in before his first line
+    assert.equal(episodeFrom(`${head}RON: Evening.
+
+DON (halloween-point): Boo.`).openingWardrobe, 'halloween-2026');
+    // a change partway through is a reveal, not the opening
+    assert.equal(episodeFrom(`${head}[don: alternate-1-stare]
+DON: Hi.
+
+RON: Hello.
+
+DON (halloween-point): Surprise!`).openingWardrobe, 'alternate-suit-1');
+    assert.equal(episodeFrom(`${head}DON: Hi.
+
+DON (halloween-point): Surprise!`).openingWardrobe, 'normal');
+    assert.equal(episodeFrom(`${head}[don: halloween-stare]`).openingWardrobe, 'normal');
+    assert.equal(episodeFrom(PILOT_SCRIPT).openingWardrobe, 'normal');
+});
+
 test('the pull quote prefers the longest all-caps yell, then any yell, then a short first line; player refs come from graphics come from the same script', () => {
     const episode = episodeFrom(PILOT_SCRIPT);
     assert.deepEqual(episode.pullQuote, { who: 'don', text: 'I KNOW IT’S A KEEPER LEAGUE, RON.' });

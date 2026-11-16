@@ -271,20 +271,21 @@ const clock = (ms: number) => {
     return `${over ? '+' : ''}${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
-// The title card is always drawn in the normal wardrobe.
-const LOCKUP = { don: artFor('don', 'thumbs', { mouth: 'closed' }), ron: artFor('ron', 'rest', { mouth: 'closed' }) };
+const LOCKUP_RON = artFor('ron', 'rest', { mouth: 'closed' });
 
+// Don gives his thumbs-up in the wardrobe he opens the episode in, so the card doesn't spoil a later change.
 function Lockup({ episode }: { episode: Episode }) {
-    const { meta, label: slot } = episode;
+    const { meta, label: slot, openingWardrobe } = episode;
+    const don = artFor('don', 'thumbs', { wardrobe: openingWardrobe, mouth: 'closed' });
     return (
         <>
             <i className={styles.bumperRed} />
             <i className={styles.bumperNavy} />
-            <Artwork className={styles.bumperDon} pose={LOCKUP.don} smallOnly />
-            <Artwork className={styles.bumperRon} pose={LOCKUP.ron} smallOnly />
+            <Artwork className={styles.bumperDon} pose={don} smallOnly />
+            <Artwork className={styles.bumperRon} pose={LOCKUP_RON} smallOnly />
             {meta.lapel === 'poppy' && <>
-                <Poppy className={styles.bumperDon} spot={lapelFor('don', LOCKUP.don)} />
-                <Poppy className={styles.bumperRon} spot={lapelFor('ron', LOCKUP.ron)} />
+                <Poppy className={styles.bumperDon} spot={lapelFor('don', don)} />
+                <Poppy className={styles.bumperRon} spot={lapelFor('ron', LOCKUP_RON)} />
             </>}
             <div className={styles.bumperType}>
                 <b>Coach&rsquo;s</b>
