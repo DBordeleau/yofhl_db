@@ -9,8 +9,46 @@ import { formatFpts } from '@/lib/league';
 
 type Picks = Record<string, AdminPlayer | null>;
 
+// The season's award winners: editable, one per award, unless the season's award vote is published, when they are
+// the vote's (co-winners included) and only shown.
+const AwardsEditor: FC<{ year: number; awards: AdminAward[]; published?: boolean }> = ({ published = false, ...props }) =>
+    published ? <PublishedAwards awards={props.awards} /> : <EditableAwards {...props} />;
+
+const PublishedAwards: FC<{ awards: AdminAward[] }> = ({ awards }) => {
+    // a published award has a row per co-winner
+    const byAward = new Map<string, { award: AdminAward; winners: AdminPlayer[] }>();
+    for (const award of awards) {
+        const entry = byAward.get(award.name) ?? { award, winners: [] };
+        if (award.winner) entry.winners.push(award.winner);
+        byAward.set(award.name, entry);
+    }
+    return (
+        <div className="flex flex-col gap-3">
+            <p className="text-sm text-ink-soft">This season&apos;s award vote is published, so these are its winners and can&apos;t be changed here.</p>
+            <ul className="grid gap-3 md:grid-cols-2">
+                {[...byAward.values()].map(({ award, winners }) => (
+                    <li key={award.name} className="rounded-2xl border border-line bg-white p-4">
+                        <div className="flex items-baseline justify-between gap-3">
+                            <span className="font-bold">{award.label}</span>
+                            <span className="text-xs font-bold uppercase tracking-[.12em] text-ink-faint">{award.description}</span>
+                        </div>
+                        {winners.length ? winners.map((winner) => (
+                            <div key={winner.id} className="mt-3 flex min-h-11 items-center rounded-xl bg-award-single px-3">
+                                <span className="min-w-0 flex-1">
+                                    <span className="block truncate font-bold">{winner.name}</span>
+                                    <span className="text-xs font-semibold text-ink-muted">{winner.positions} · {winner.team} · {formatFpts(winner.fpts)} FPts</span>
+                                </span>
+                            </div>
+                        )) : <p className="mt-3 text-sm font-semibold text-ink-faint">No winner</p>}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 // one winner per award for the season
-const AwardsEditor: FC<{ year: number; awards: AdminAward[] }> = ({ year, awards }) => {
+const EditableAwards: FC<{ year: number; awards: AdminAward[] }> = ({ year, awards }) => {
     const initial: Picks = Object.fromEntries(awards.map((a) => [a.name, a.winner]));
     const [saved, setSaved] = useState<Picks>(initial);
     const [picks, setPicks] = useState<Picks>(initial);

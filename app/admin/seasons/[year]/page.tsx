@@ -86,7 +86,7 @@ export default async function AdminSeason({ params }: { params: Promise<{ year: 
                     </Section>
                 )}
                 <Section title="Awards" description={playoffs ? undefined : 'The playoffs were cancelled this season, so there is no Playoff MVP.'}>
-                    <AwardsEditor year={season.year} awards={season.awards} />
+                    <AwardsEditor year={season.year} awards={season.awards} published={season.awardVotePublished} />
                 </Section>
                 {playoffs && (
                     <Section
