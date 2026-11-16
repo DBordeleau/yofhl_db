@@ -50,8 +50,8 @@ test('once voting is open, preparing again, starting over, rookie changes and re
     assert.equal((await act(() => vote.readRookieReview({ seasonYear: SEASON })))!.adjustable, false);
 });
 
-test('the admin moves the ballot lock later while voting is open, never earlier, and not once it has passed', async t => {
-    const { act, vote, setRegularSeason, prepareFully, ballotLockPasses } = await awardVoteLeague(t);
+test('the admin moves the ballot lock later while voting is open, never earlier and never into the past', async t => {
+    const { act, vote, league, setRegularSeason, prepareFully, ballotLockPasses } = await awardVoteLeague(t);
     const move = (ballotLock: string) => act(() => vote.moveBallotLock({ seasonYear: SEASON, ballotLock }));
     setRegularSeason([skater('s1', 300)]);
     await prepareFully();
@@ -67,6 +67,14 @@ test('the admin moves the ballot lock later while voting is open, never earlier,
     assert.deepEqual(await move('soon'), { ok: false, reason: 'invalid-lock' });
     assert.equal((await act(() => vote.readPreview({ seasonYear: SEASON }))).vote?.ballotLock, later);
 
+    // the ballot lock passed two hours ago
+    await league.client.exec(`update league.award_votes set ballot_lock = clock_timestamp() - interval '2 hours' where season_year = ${SEASON}`);
+    assert.deepEqual(await move(lockInHours(-1)), { ok: false, reason: 'lock-passed' }, 'later than the passed lock, but still past');
+    const reopened = lockInHours(72);
+    assert.deepEqual(await move(reopened), { ok: true }, 'voting is still open once the ballot lock passes');
+    assert.equal((await act(() => vote.readPreview({ seasonYear: SEASON }))).vote?.ballotLock, reopened);
+
     await ballotLockPasses();
-    assert.deepEqual(await move(lockInHours(72)), { ok: false, reason: 'locked' });
+    assert.deepEqual(await act(() => vote.scoreBallots({ seasonYear: SEASON })), { ok: true });
+    assert.deepEqual(await move(lockInHours(96)), { ok: false, reason: 'not-open' }, 'scored');
 });

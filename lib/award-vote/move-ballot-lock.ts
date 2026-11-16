@@ -1,6 +1,7 @@
-// Moving the ballot lock: the admin giving owners more time while voting is open. The new ballot lock must be later
-// than the current one, and the current one must not have passed by the database clock: once it has, ballots have
-// stopped changing, and letting owners back in is reopening (after scoring). Refused for a rehearsal (rehearsal.ts).
+// Moving the ballot lock: the admin giving owners more time while voting is open, even once the current ballot lock
+// has passed ("locked" is never stored: it is open with the lock past). The new ballot lock must be later than the
+// current one and still ahead by the database clock. After scoring, letting owners back in is reopening. Refused for a
+// rehearsal (rehearsal.ts).
 import { sql } from 'drizzle-orm';
 import type { AwardVoteState } from './model';
 import { ballotLockTime } from './open-voting';
@@ -15,22 +16,22 @@ export interface MoveBallotLockInput {
 
 export type MoveBallotLockRejection = RehearsalRefusal
     | 'not-open'
-    /** the ballot lock has passed */
-    | 'locked'
     /** the new ballot lock is not later than the current one */
     | 'not-later'
+    /** the new ballot lock is not ahead by the database clock */
+    | 'lock-passed'
     | 'invalid-lock';
 
 export type MoveBallotLockResult = { ok: true } | { ok: false; reason: MoveBallotLockRejection };
 
 export function createMoveBallotLock({ db }: AwardVotePorts) {
     async function refusal(seasonYear: number, ballotLock: string): Promise<MoveBallotLockRejection | null> {
-        const [vote] = await db.rows<{ state: AwardVoteState; locked: boolean; later: boolean }>(sql`
-            select state, clock_timestamp() >= ballot_lock as locked, ${ballotLock}::timestamptz > ballot_lock as later
+        const [vote] = await db.rows<{ state: AwardVoteState; later: boolean; ahead: boolean }>(sql`
+            select state, ${ballotLock}::timestamptz > ballot_lock as later, ${ballotLock}::timestamptz > clock_timestamp() as ahead
             from league.award_votes where season_year = ${seasonYear}`);
         if (!vote || vote.state !== 'open') return 'not-open';
-        if (vote.locked) return 'locked';
-        return vote.later ? null : 'not-later';
+        if (!vote.later) return 'not-later';
+        return vote.ahead ? null : 'lock-passed';
     }
 
     return async function moveBallotLock(input: MoveBallotLockInput): Promise<MoveBallotLockResult> {
@@ -45,7 +46,7 @@ export function createMoveBallotLock({ db }: AwardVotePorts) {
         const moved = await db.rows(sql`
             update league.award_votes set ballot_lock = ${ballotLock}::timestamptz, updated_at = now()
             where season_year = ${seasonYear} and state = 'open' and not rehearsal
-                and clock_timestamp() < ballot_lock and ${ballotLock}::timestamptz > ballot_lock
+                and ${ballotLock}::timestamptz > ballot_lock and ${ballotLock}::timestamptz > clock_timestamp()
             returning 1`);
         if (moved.length) return { ok: true };
         return { ok: false, reason: (await refusal(seasonYear, ballotLock)) ?? 'not-open' };

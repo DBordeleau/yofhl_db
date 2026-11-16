@@ -18,8 +18,8 @@ const OPEN_REFUSALS: Record<OpenVotingRejection, string> = {
 const MOVE_REFUSALS: Record<MoveBallotLockRejection, string> = {
     rehearsal: 'A rehearsal has no ballot lock.',
     'not-open': 'Voting is not open.',
-    locked: 'The ballot lock has passed, so ballots have stopped changing.',
     'not-later': 'The new ballot lock must be later than the current one.',
+    'lock-passed': 'Choose a ballot lock in the future.',
     'invalid-lock': 'Choose a ballot lock date and time.',
 };
 
