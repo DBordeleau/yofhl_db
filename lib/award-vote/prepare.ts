@@ -96,6 +96,9 @@ export function createPrepare(ports: AwardVotePorts) {
                 -- its stats and candidates go with it
                 delete from league.award_vote_players
                 where season_year = ${seasonYear} and (select state from league.award_votes where season_year = ${seasonYear}) = 'prepared'
+            ), old_team_seasons as (
+                delete from league.award_vote_team_seasons
+                where season_year = ${seasonYear} and (select state from league.award_votes where season_year = ${seasonYear}) = 'prepared'
             ), vote as (
                 insert into league.award_votes (season_year, rehearsal, prepare_progress) values (${seasonYear}, ${rehearsal}, ${JSON.stringify(progress)}::jsonb)
                 on conflict (season_year) do update

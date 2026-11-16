@@ -133,6 +133,11 @@ test('curated edits expire exactly the cached readers that show their data', asy
     }
     const awardResults = (await searchPublicDirectory({ q: 'gretzky', type: 'all', page: 1 })).groups.find(group => group.kind === 'awards')!;
     assert.equal(awardResults.results[0].id, 'wayne-gretzky');
+    // GM of the Year is in the award catalogue, unreleased: search doesn't list it, and the award API has no such award
+    for (const q of ['GM of the Year', 'gm-of-the-year']) {
+        assert.equal((await searchPublicDirectory({ q, type: 'awards', page: 1 })).total, 0, q);
+    }
+    assert.equal(await league.getAwardWinners('GM of the Year'), null);
     assert(directory.some(row => row.kind === 'seasons' && row.id === '2020'));
     assert(!directory.some(row => row.kind === 'seasons' && row.id === '2027'), 'incomplete seasons cannot link to a 404 page');
 

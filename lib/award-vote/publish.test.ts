@@ -3,10 +3,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { BallotRankings } from './model';
-import { COMPLETE, FRANCHISES, lockInHours, SEASON, votingLeague, type AwardVoteLeague } from './testing/award-vote-league';
+import { COMPLETE, completeFor, FRANCHISES, lockInHours, SEASON, votingLeague, type AwardVoteLeague } from './testing/award-vote-league';
 
 /** franchises 2 and 4's ballot: s2 above s1 for the Wayne Gretzky Award, leaving the two level */
-const S2_FIRST: BallotRankings = { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] };
+const S2_FIRST: BallotRankings = completeFor(2, { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] });
 
 /** an award page's winners, as [season, winner, player, team] by player, read through the page's cache */
 async function awardPages({ league }: AwardVoteLeague) {
@@ -21,10 +21,10 @@ async function awardPages({ league }: AwardVoteLeague) {
 /** a league with every franchise's ballot submitted and scored */
 async function scoredLeague(t: Parameters<typeof votingLeague>[0], options: Parameters<typeof votingLeague>[1] = {}) {
     const harness = await votingLeague(t, options);
-    await harness.submitFor(1, COMPLETE);
-    await harness.submitFor(2, S2_FIRST);
-    await harness.submitFor(3, COMPLETE);
-    await harness.submitFor(4, S2_FIRST);
+    await harness.submitFor(1, completeFor(1));
+    await harness.submitFor(2, completeFor(2, S2_FIRST));
+    await harness.submitFor(3, completeFor(3));
+    await harness.submitFor(4, completeFor(4, S2_FIRST));
     assert.deepEqual(await harness.score(), { ok: true });
     return { ...harness, awardPage: await awardPages(harness) };
 }
@@ -78,7 +78,7 @@ test('publishing is refused until the award vote is scored, and while voting is 
     const notScored = { result: { ok: false, reason: 'not-scored' }, revalidatedTags: [] };
     assert.deepEqual(await publish(), notScored, 'prepared');
     await openVoting();
-    for (const franchise of FRANCHISES) await submitFor(franchise, COMPLETE);
+    for (const franchise of FRANCHISES) await submitFor(franchise, completeFor(franchise));
     assert.deepEqual(await publish(), notScored, 'open');
     assert.deepEqual(await score(), { ok: true });
     assert.deepEqual(await reopen(), { ok: true });

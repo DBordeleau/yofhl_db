@@ -1,6 +1,7 @@
 // Submitting a ballot: the owner's complete rankings, which count, saved as their draft too. Refused, naming what is
 // missing, unless every rank of every award on the ballot is filled and no candidate is ranked twice in one award
-// (every ranked player being one of the award's frozen candidates is checked for drafts and ballots alike). A
+// (every ranked candidate being one of the award's frozen candidates, and GM of the Year not ranking the owner's own
+// franchise, are checked for drafts and ballots alike). A
 // submitted ballot can be changed and submitted again until the ballot lock. The writes' rules are in
 // ballot-write.ts.
 import { ballotProblems, type BallotProblem } from './ballot';

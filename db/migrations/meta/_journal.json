@@ -218,6 +218,13 @@
       "when": 1794786727629,
       "tag": "0030_award_vote_tallies",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794795536848,
+      "tag": "0031_award_vote_gm_of_the_year",
+      "breakpoints": true
     }
   ]
 }

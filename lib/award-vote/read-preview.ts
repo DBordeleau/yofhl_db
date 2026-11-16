@@ -3,9 +3,9 @@
 // owners will see it, read only from the frozen snapshot, and which ballots are void and why (never their rankings,
 // so the admin can restore one before a reopened vote's new ballot lock). Admin only: it returns rehearsals.
 import { sql } from 'drizzle-orm';
-import { readBallotAwards } from './ballot-snapshot';
+import { readBallotAwards, readTeamBallotAward } from './ballot-snapshot';
 import { readBallotStatus, type BallotStatus } from './ballot-status';
-import type { AwardVoteState, BallotAward, PrepareProgress } from './model';
+import type { AwardVoteState, BallotAward, PrepareProgress, TeamBallotAward } from './model';
 import { isoTime } from './iso-time';
 import type { AwardVotePorts } from './ports';
 import { awardVoteKind, type AwardVoteKind } from './rehearsal';
@@ -37,8 +37,10 @@ export interface AwardVotePreview {
     kind: AwardVoteKind | null;
     /** null for a season never prepared */
     vote: AwardVoteSummary | null;
-    /** the ballot's awards in order, or null until a prepare has finished */
+    /** the ballot's individual awards in order, or null until a prepare has finished */
     ballot: BallotAward[] | null;
+    /** GM of the Year, the ballot's last award, with every team season taking part; null until a prepare has finished */
+    gmOfTheYear: TeamBallotAward | null;
     /** which franchises have submitted a ballot, without their rankings; null before voting opens */
     ballotStatus: BallotStatus[] | null;
     /** every void ballot's franchise and reason, without its rankings; null before voting opens */
@@ -59,13 +61,13 @@ export function createReadPreview({ db }: AwardVotePorts) {
                    ${isoTime(sql`scored_at`)} as "scoredAt", ${isoTime(sql`published_at`)} as "publishedAt"
             from league.award_votes where season_year = ${seasonYear}`);
         const kind = await awardVoteKind(db, seasonYear);
-        if (!vote) return { kind, vote: null, ballot: null, ballotStatus: null, voidBallots: null };
+        if (!vote) return { kind, vote: null, ballot: null, gmOfTheYear: null, ballotStatus: null, voidBallots: null };
         const { progress, ...times } = vote;
         const summary: AwardVoteSummary = { seasonYear, prepareStartedAt: progress.startedAt, ...times };
-        if (summary.preparedAt === null) return { kind, vote: summary, ballot: null, ballotStatus: null, voidBallots: null };
+        if (summary.preparedAt === null) return { kind, vote: summary, ballot: null, gmOfTheYear: null, ballotStatus: null, voidBallots: null };
         const opened = vote.state !== 'prepared';
         return {
-            kind, vote: summary, ballot: await readBallotAwards(db, seasonYear),
+            kind, vote: summary, ballot: await readBallotAwards(db, seasonYear), gmOfTheYear: await readTeamBallotAward(db, seasonYear),
             ballotStatus: opened ? await readBallotStatus(db, seasonYear) : null,
             voidBallots: opened ? await readVoidBallots(db, seasonYear) : null,
         };

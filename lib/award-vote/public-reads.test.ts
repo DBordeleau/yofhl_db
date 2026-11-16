@@ -3,10 +3,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { BallotRankings, PlayerAwardId } from './model';
-import { COMPLETE, SEASON, votingLeague } from './testing/award-vote-league';
+import { COMPLETE, completeFor, SEASON, votingLeague } from './testing/award-vote-league';
 
 /** franchise 2's ballot: s2 first for the Wayne Gretzky Award */
-const SECOND: BallotRankings = { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] };
+const SECOND: BallotRankings = completeFor(2, { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] });
 
 /** a voting league with public reads run as the public pages run them, through their cache */
 async function publicLeague(t: Parameters<typeof votingLeague>[0]) {
@@ -20,9 +20,9 @@ async function publicLeague(t: Parameters<typeof votingLeague>[0]) {
             .map(tally => [tally.seasonYear, tally.counted, tally.lines.map(line => [line.playerId, line.name, line.place, line.points, line.votes])]);
     /** franchises 1–3 submit, franchise 4 doesn't, the lock passes and franchise 2's ballot is voided, then it's scored */
     const scoreWithVoid = async () => {
-        await harness.submitFor(1, COMPLETE);
-        await harness.submitFor(2, SECOND);
-        await harness.submitFor(3, COMPLETE);
+        await harness.submitFor(1, completeFor(1));
+        await harness.submitFor(2, completeFor(2, SECOND));
+        await harness.submitFor(3, completeFor(3));
         await harness.ballotLockPasses();
         assert.deepEqual(await harness.act(() => vote.voidBallot({ seasonYear: SEASON, franchiseId: 2, reason: 'Ranked only his own players.' })), { ok: true });
         assert.deepEqual(await harness.score(), { ok: true });
@@ -37,7 +37,7 @@ test('nothing about an award vote is public before it is published: no tallies, 
         assert.deepEqual(await awardPage('wayne-gretzky'), [], when);
     };
     await nothing('open');
-    await submitFor(1, COMPLETE);
+    await submitFor(1, completeFor(1));
     await nothing('a ballot submitted');
     await scoreWithVoid();
     await nothing('scored');

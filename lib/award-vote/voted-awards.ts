@@ -2,7 +2,7 @@
 // award to the vote is adding its rule here (and a prepare step for any stat set it needs that isn't read yet).
 // The order here is the ballot's.
 import { getAwardDefinition } from '@/lib/awards';
-import type { DateRange, PlayerAwardId, StatLine, StatSetName } from './model';
+import type { DateRange, PlayerAwardId, StatLine, StatSetName, VotedAwardId } from './model';
 import type { SeasonDates } from './season-dates';
 
 /** a snapshot player as the eligibility rules see them */
@@ -77,7 +77,7 @@ export const PLAYER_AWARD_RULES: readonly PlayerAwardRule[] = [
 ];
 
 /** an award's catalogue entry (lib/awards.ts), which every voted award has */
-export function awardDefinition(award: PlayerAwardId) {
+export function awardDefinition(award: VotedAwardId) {
     const definition = getAwardDefinition(award);
     if (!definition) throw new Error(`The award catalogue has no ${award}`);
     return definition;

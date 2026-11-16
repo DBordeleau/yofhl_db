@@ -7,14 +7,15 @@
 //  - rookies: the NHL's record of each player at the candidate floor young enough by Fantrax's age to be a rookie,
 //    a few at a time with a pause between, and whether the Calder rule (calder.ts) admits them; a player whose
 //    lookup fails is recorded as failed and tried again on a later call, up to NHL_LOOKUP_ATTEMPTS in all
-//  - candidates: each award's eligible players (voted-awards.ts), each with its credited team season, and the
-//    prepare's finish
+//  - candidates: each award's eligible players (voted-awards.ts), each with its credited team season, GM of the
+//    Year's team seasons with their summaries (team-summary.ts), and the prepare's finish
 // Each step's write is conditional on the progress being what this call read, so two prepares never interleave.
 import { sql, type SQL } from 'drizzle-orm';
 import { calderEligible, mightBeCalderEligible } from './calder';
 import { lookupFailed, type GoalieLine, type PrepareProgress, type RookieAdjustments, type RookieLookup, type SkaterLine, type StatSetName } from './model';
 import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, RangedSkater } from './ports';
 import { seasonDates, type SeasonDates } from './season-dates';
+import { writeTeamSeasons } from './team-summary';
 import { CANDIDATE_FPTS_FLOOR, PLAYER_AWARD_RULES, ROOKIE_STAT_SET, STAT_SETS, type SnapshotPlayer } from './voted-awards';
 
 /** a failed or unexpected Fantrax read, which the admin is told about (by `reason`) and can retry */
@@ -247,6 +248,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                         limit 1
                     ) last_move on true
                     where exists (select 1 from claim)`,
+                ...writeTeamSeasons(seasonYear),
             ]);
         },
     };
