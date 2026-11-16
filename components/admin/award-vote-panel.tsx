@@ -5,7 +5,7 @@
 // previewing the ballot as owners will see it. A rehearsal is marked as one throughout, and never opened.
 import { useEffect, useState } from 'react';
 import { prepareAwardVote } from '@/app/admin/award-vote-actions';
-import { moveBallotLock, openVoting, reopenVoting, scoreBallots } from '@/app/admin/voting-actions';
+import { moveBallotLock, openVoting, publishAwardVote, reopenVoting, scoreBallots } from '@/app/admin/voting-actions';
 import CandidateList from '@/components/award-vote/candidate-list';
 import type { AwardTally, AwardVotePreview, ReadTalliesResult } from '@/lib/award-vote/create-award-vote';
 import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
@@ -37,6 +37,7 @@ export default function AwardVotePanel({ year, preview, tallies }: { year: numbe
             {vote.openedAt && <><dt className="font-bold">Opened</dt><dd>{easternTime(vote.openedAt)}</dd></>}
             {vote.ballotLock && <><dt className="font-bold">Ballot lock</dt><dd>{easternTime(vote.ballotLock)}</dd></>}
             {vote.scoredAt && <><dt className="font-bold">Scored</dt><dd>{easternTime(vote.scoredAt)}</dd></>}
+            {vote.publishedAt && <><dt className="font-bold">Published</dt><dd>{easternTime(vote.publishedAt)}</dd></>}
         </dl>}
         {(!vote || vote.state === 'prepared') && <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" className={ADMIN_BUTTON} disabled={pending} onClick={() => prepare()}>
@@ -46,6 +47,7 @@ export default function AwardVotePanel({ year, preview, tallies }: { year: numbe
         </div>}
         <AdminActionStatus pending={pending} pendingText={progress ?? 'Preparing…'} result={result} />
         {vote && !rehearsal && <Voting year={year} vote={vote} ballotStatus={preview.ballotStatus} />}
+        {vote?.state === 'scored' && !rehearsal && <Publish year={year} />}
         {tallies && <TallyReview tallies={tallies} />}
         {ballot && <BallotPreview ballot={ballot} rehearsal={rehearsal} />}
     </div>;
@@ -178,5 +180,19 @@ function AwardTallyTable({ tally }: { tally: AwardTally }) {
                 </tbody>
             </table>
         </div>
+    </div>;
+}
+
+/** publishing a scored award vote's winners into the archive, after a confirmation, since it can't be undone */
+function Publish({ year }: { year: number }) {
+    const { pending, result, run } = useAdminAction();
+    const publish = () => {
+        if (!window.confirm('Publish the winners? They replace any winners entered by hand, voting can no longer be reopened, and this can’t be undone.')) return;
+        run(() => publishAwardVote(year));
+    };
+    return <div className="mt-6 border-t border-line pt-5">
+        <button type="button" className={ADMIN_BUTTON} disabled={pending} onClick={publish}>Publish winners</button>
+        <p className="mt-2 text-sm text-ink-soft">Writes each award’s first-place finishers, co-winners included, onto every page that shows award winners. Final.</p>
+        <AdminActionStatus pending={pending} pendingText="Publishing…" result={result} />
     </div>;
 }
