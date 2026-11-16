@@ -3,10 +3,10 @@
 // lock, and the tallies stay stored, unread, until scoring again replaces them. The snapshot stays frozen (prepare,
 // rookie changes and retrying lookups all require prepared). Refused for a rehearsal (rehearsal.ts).
 import { sql } from 'drizzle-orm';
+import { changeBallotLock, type BallotLockChangeResult } from './ballot-lock';
 import type { AwardVoteState } from './model';
-import { ballotLockTime } from './open-voting';
 import type { AwardVotePorts } from './ports';
-import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
+import type { RehearsalRefusal } from './rehearsal';
 
 export interface ReopenVotingInput {
     seasonYear: number;
@@ -20,7 +20,7 @@ export type ReopenVotingRejection = RehearsalRefusal
     | 'lock-passed'
     | 'invalid-lock';
 
-export type ReopenVotingResult = { ok: true } | { ok: false; reason: ReopenVotingRejection };
+export type ReopenVotingResult = BallotLockChangeResult<ReopenVotingRejection>;
 
 export function createReopenVoting({ db }: AwardVotePorts) {
     async function refusal(seasonYear: number, ballotLock: string): Promise<ReopenVotingRejection | null> {
@@ -31,19 +31,13 @@ export function createReopenVoting({ db }: AwardVotePorts) {
     }
 
     return async function reopenVoting(input: ReopenVotingInput): Promise<ReopenVotingResult> {
-        const { seasonYear } = input;
-        const rehearsal = await rehearsalRefusal(db, seasonYear);
-        if (rehearsal) return { ok: false, reason: rehearsal };
-        const ballotLock = ballotLockTime(input.ballotLock);
-        if (!ballotLock) return { ok: false, reason: 'invalid-lock' };
-        const refused = await refusal(seasonYear, ballotLock);
-        if (refused) return { ok: false, reason: refused };
-
-        const reopened = await db.rows(sql`
-            update league.award_votes set state = 'open', ballot_lock = ${ballotLock}::timestamptz, updated_at = now()
-            where season_year = ${seasonYear} and state = 'scored' and not rehearsal and ${ballotLock}::timestamptz > clock_timestamp()
-            returning 1`);
-        if (reopened.length) return { ok: true };
-        return { ok: false, reason: (await refusal(seasonYear, ballotLock)) ?? 'not-scored' };
+        return changeBallotLock(db, input, {
+            refusal,
+            write: (seasonYear, ballotLock) => sql`
+                update league.award_votes set state = 'open', ballot_lock = ${ballotLock}::timestamptz, updated_at = now()
+                where season_year = ${seasonYear} and state = 'scored' and not rehearsal and ${ballotLock}::timestamptz > clock_timestamp()
+                returning 1`,
+            fallback: 'not-scored',
+        });
     };
 }
