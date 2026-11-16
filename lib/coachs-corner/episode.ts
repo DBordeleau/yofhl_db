@@ -14,9 +14,12 @@ import { INTRO_MS } from './transport';
 /** Before the first play the studio shows its opening picture, the set as the segment begins, not the bumper. */
 export const OPENING_PICTURE_MS = 5999;
 
-/** Don's wardrobe as the first line's first word is said, so its own gesture counts even after an inline pause */
+/**
+ * Don's wardrobe as his first line's first word is said, so its own gesture counts even after an inline
+ * pause. With no line of his, the episode's first line; with no lines at all, normal.
+ */
 const openingWardrobe = (timeline: Timeline) => {
-    const first = timeline.lines[0];
+    const first = timeline.lines.find(line => line.speaker === 'don') ?? timeline.lines[0];
     return wardrobeOf('don', first ? frameAt(timeline, first.words[0]?.t ?? first.t0).hosts.don.gesture : 'rest');
 };
 
@@ -40,7 +43,7 @@ export interface Episode {
     timeline: Timeline;
     audioCues: AudioCue[];
     openingPicture: Frame;
-    /** Don's wardrobe as the first line starts, for the title card, bumper, closing card and home hero; later changes are a reveal */
+    /** Don's wardrobe as his first line starts, for the title card, bumper, closing card and home hero; later changes are a reveal */
     openingWardrobe: string;
     pullQuote: PullQuote | null;
     /** the episode's schedule slot: "Pilot" or "Week N" */

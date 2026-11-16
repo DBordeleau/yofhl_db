@@ -245,7 +245,7 @@ What the studio shows before the first play: the set as the segment begins, from
 _Avoid_: poster frame
 
 **Opening wardrobe**:
-The wardrobe Don is in as an episode's first line starts. The title card, bumper, closing card and home page studio draw him in it, so a later change stays a reveal.
+The wardrobe Don is in as his first line of an episode starts (the episode's first line if he has none). The title card, bumper, closing card and home page studio draw him in it, so a later change stays a reveal.
 _Avoid_: episode suit, cover wardrobe
 
 **Host**:
