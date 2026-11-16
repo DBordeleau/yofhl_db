@@ -225,6 +225,13 @@
       "when": 1794795536848,
       "tag": "0031_award_vote_gm_of_the_year",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794797927978,
+      "tag": "0032_award_vote_daily_points",
+      "breakpoints": true
     }
   ]
 }

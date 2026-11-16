@@ -12,7 +12,7 @@ test("a season whose league scores SV% but no GA or SV prepares, and its goalies
         savePercentageGoalie('g1', 450, { name: 'Andrei Vasilevskiy', perGame: 9.38, gamesPlayed: 48, wins: 33, overtimeLosses: 3, savePercentage: 0.915, shutouts: 2 }),
         savePercentageGoalie('g2', 412, { name: 'Jeremy Swayman', savePercentage: 0.921 }),
     ]);
-    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
+    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 31, steps: 31 });
     const ballot = (await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot!;
     const hasek = ballot.find(award => award.award === 'hasek')!;
     assert.deepEqual(hasek.candidates[0].stats.regularSeason,
@@ -43,14 +43,14 @@ test('an unfinished prepare that stopped at the goalie step carries on, or start
     fantrax.down.add('goalies');
     assert.equal((await prepareFully()).result.ok, false);
     fantrax.down.clear();
-    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 10, steps: 10 });
+    assert.deepEqual((await prepareFully()).result, { ok: true, done: true, stepsDone: 31, steps: 31 });
     const ballot = async () => (await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot!;
     assert.equal((await ballot()).find(award => award.award === 'hasek')!.candidates[0].stats.regularSeason?.group, 'goalie');
 
     fantrax.down.add('goalies');
     await prepareFully();
     fantrax.down.clear();
-    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON, startOver: true })), { ok: true, done: false, stepsDone: 1, steps: 10 });
+    assert.deepEqual(await act(() => vote.prepare({ seasonYear: SEASON, startOver: true })), { ok: true, done: false, stepsDone: 1, steps: 31 });
     assert.equal((await prepareFully()).result.ok, true);
     const hasek = (await ballot()).find(award => award.award === 'hasek')!;
     assert.deepEqual(candidateColumns(hasek).map(column => column.label), ['FPts', 'FP/G', 'GP', 'W', 'OL+ShL', 'SV%', 'SHO']);

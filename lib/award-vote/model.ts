@@ -191,6 +191,64 @@ export interface TeamSummary {
     season: TeamSeasonLine;
     /** null when the franchise didn't play the season before */
     previous: TeamSeasonLine | null;
+    /** its moves that season, ranked by move value */
+    transactions: TransactionSummary;
+}
+
+/**
+ * A franchise's moves in one season, as GM of the Year's summary shows them (GLOSSARY.md, "Move value"): every trade
+ * in full, its five most valuable free-agent claims and five costliest drops with the rest in one line, and its draft
+ * class. Keeper decisions are not shown. Fantasy points are rounded to the hundredth.
+ */
+export interface TransactionSummary {
+    /** in the order they were made */
+    trades: TradeSummary[];
+    /** the five most valuable claims, most valuable first */
+    claims: FreeAgentMove[];
+    /** the five costliest drops (a drop's move value is what it cost), costliest first */
+    drops: FreeAgentMove[];
+    /** every other claim and drop: how many, and the claims' move value less the drops'; null when there are none */
+    otherMoves: { count: number; netFpts: number } | null;
+    /** the franchise's picks in that season's draft, in draft order */
+    draftClass: DraftedPlayer[];
+}
+
+/** one trade the franchise made, from its side */
+export interface TradeSummary {
+    /** the Eastern date it was made, `YYYY-MM-DD` */
+    occurredOn: string;
+    /** what the franchise got */
+    received: TradedAsset[];
+    /** what it gave up */
+    sent: TradedAsset[];
+}
+
+/**
+ * A player or draft pick in a trade. A player carries their move value at the franchise that received them: gained by
+ * it, lost by the one that sent them. A pick shows its label only. `team` is the other franchise in the asset's move
+ * (the sender of an asset received, the receiver of one sent), by that season's team name.
+ */
+export type TradedAsset =
+    | { kind: 'player'; playerId: string; name: string; moveValue: number; team: string }
+    | { kind: 'pick'; label: string; team: string };
+
+/** a free-agent claim or drop, with its move value */
+export interface FreeAgentMove {
+    playerId: string;
+    name: string;
+    /** the Eastern date it was made, `YYYY-MM-DD` */
+    occurredOn: string;
+    moveValue: number;
+}
+
+/** a player the franchise drafted that season, with their regular-season FPts */
+export interface DraftedPlayer {
+    overall: number;
+    round: number;
+    pick: number;
+    playerId: string;
+    name: string;
+    fpts: number;
 }
 
 /** a GM of the Year candidate: a team season, under that season's identity and owner, from the frozen snapshot */

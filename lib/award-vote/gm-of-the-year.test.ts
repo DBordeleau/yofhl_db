@@ -2,7 +2,7 @@
 // season before; ranking three other franchises on a ballot; and its 5-3-1 tally.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { awardVoteLeague, COMPLETE, completeFor, SEASON, skater, votingLeague } from './testing/award-vote-league';
+import { awardVoteLeague, BASELINE_TRADE, COMPLETE, completeFor, SEASON, skater, votingLeague } from './testing/award-vote-league';
 
 // The 2027 championship bracket the voting league's seed leaves (franchise 1, team season 11, beat franchise 2 in
 // the Final, round 3), filled in: franchise 3 lost in the Semifinals and franchise 4 in the Quarterfinals. A
@@ -24,22 +24,31 @@ test("preparing stores each franchise's record, FPts for and playoff finish for 
     assert.equal(gmOfTheYear?.award, 'gm-of-the-year');
     assert.equal(gmOfTheYear?.label, 'GM of the Year');
     const line = (wins: number, losses: number, ties: number, fptsFor: number, playoffFinish: string) => ({ wins, losses, ties, fptsFor, playoffFinish });
+    // the only move is the seeded pick from franchise 4 to franchise 3 (move-value.test.ts covers the rest)
+    const empty = { trades: [], claims: [], drops: [], otherMoves: null, draftClass: [] };
+    const pick = (team: string) => ({ kind: 'pick', label: BASELINE_TRADE, team });
     assert.deepEqual(gmOfTheYear?.candidates, [
         {
             teamSeasonId: 11, franchiseId: 1, name: 'Club 1', abbreviation: 'C1', logo: '/logos/c1.png', owner: 'Owner 1',
-            summary: { season: line(12, 3, 1, 1234.5, 'champion'), previous: line(10, 5, 1, 1000, 'champion') },
+            summary: { season: line(12, 3, 1, 1234.5, 'champion'), previous: line(10, 5, 1, 1000, 'champion'), transactions: empty },
         },
         {
             teamSeasonId: 12, franchiseId: 2, name: 'Club 2', abbreviation: 'C2', logo: '/logos/c2.png', owner: 'Owner 2',
-            summary: { season: line(10, 5, 1, 1000, 'finalist'), previous: line(10, 5, 1, 1000, 'finalist') },
+            summary: { season: line(10, 5, 1, 1000, 'finalist'), previous: line(10, 5, 1, 1000, 'finalist'), transactions: empty },
         },
         {
             teamSeasonId: 13, franchiseId: 3, name: 'Club 3', abbreviation: 'C3', logo: '/logos/c3.png', owner: 'Owner 3',
-            summary: { season: line(10, 5, 1, 1000, 'semifinalist'), previous: line(6, 9, 1, 987.25, 'missed') },
+            summary: {
+                season: line(10, 5, 1, 1000, 'semifinalist'), previous: line(6, 9, 1, 987.25, 'missed'),
+                transactions: { ...empty, trades: [{ occurredOn: '2026-10-12', received: [pick('Club 4')], sent: [] }] },
+            },
         },
         {
             teamSeasonId: 14, franchiseId: 4, name: 'Club 4', abbreviation: 'C4', logo: '/logos/c4.png', owner: 'Owner 4',
-            summary: { season: line(10, 5, 1, 1000, 'quarterfinalist'), previous: line(10, 5, 1, 1000, 'missed') },
+            summary: {
+                season: line(10, 5, 1, 1000, 'quarterfinalist'), previous: line(10, 5, 1, 1000, 'missed'),
+                transactions: { ...empty, trades: [{ occurredOn: '2026-10-12', received: [], sent: [pick('Club 3')] }] },
+            },
         },
     ]);
 });

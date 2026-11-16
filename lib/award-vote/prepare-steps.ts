@@ -4,18 +4,21 @@
 //  - one read per stat set any award shows and position group: the players with fantasy points over its days (and,
 //    once the Final's rosters are read, everyone on them whatever their points), a page of Fantrax's table at a time
 //  - final rosters, before the Danny Briere Award's stat sets: both finalists' daily rosters over the Final
+//  - move values, one per regular-season day once the dates are known: that day's all-positions fantasy points
+//    (award_vote_daily_points), a page of Fantrax's table at a time, for the players in the season's transactions
 //  - rookies: the NHL's record of each player at the candidate floor young enough by Fantrax's age to be a rookie,
 //    a few at a time with a pause between, and whether the Calder rule (calder.ts) admits them; a player whose
 //    lookup fails is recorded as failed and tried again on a later call, up to NHL_LOOKUP_ATTEMPTS in all
 //  - candidates: each award's eligible players (voted-awards.ts), each with its credited team season, GM of the
-//    Year's team seasons with their summaries (team-summary.ts), and the prepare's finish
+//    Year's team seasons with their summaries and transaction summaries (team-summary.ts, move-value.ts), and the
+//    prepare's finish
 // Each step's write is conditional on the progress being what this call read, so two prepares never interleave.
 import { sql, type SQL } from 'drizzle-orm';
 import { calderEligible, mightBeCalderEligible } from './calder';
-import { lookupFailed, type GoalieLine, type PrepareProgress, type RookieAdjustments, type RookieLookup, type SkaterLine, type StatSetName } from './model';
-import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, RangedSkater } from './ports';
+import { lookupFailed, type DateRange, type GoalieLine, type PrepareProgress, type RookieAdjustments, type RookieLookup, type SkaterLine, type StatLine, type StatSetName } from './model';
+import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, RangedPage, RangedPlayer, RangedSkater } from './ports';
 import { seasonDates, type SeasonDates } from './season-dates';
-import { writeTeamSeasons } from './team-summary';
+import { readTransactionSummaries, writeTeamSeasons } from './team-summary';
 import { CANDIDATE_FPTS_FLOOR, PLAYER_AWARD_RULES, ROOKIE_STAT_SET, STAT_SETS, type SnapshotPlayer } from './voted-awards';
 
 /** a failed or unexpected Fantrax read, which the admin is told about (by `reason`) and can retry */
@@ -30,6 +33,9 @@ export const PREPARE_STEPS = { dates: 'dates', finalRosters: 'final rosters', ro
 
 /** the id of a stat set's read for one position group, e.g. `regularSeason skaters` */
 export const statSetStep = (statSet: StatSetName, group: Group) => `${statSet} ${group}s`;
+
+/** the id of one regular-season day's points read for move value, e.g. `move values 2026-10-12` */
+export const moveValueStep = (day: string) => `move values ${day}`;
 
 /** how many young players one run of the rookies step looks up, all at once */
 export const NHL_LOOKUPS_AT_ONCE = 3;
@@ -51,6 +57,12 @@ export interface PrepareStep {
 
 type Group = 'skater' | 'goalie';
 
+/** a player in a stat set's table, with their line */
+interface StatSetRow {
+    player: RangedPlayer;
+    line: StatLine;
+}
+
 /** daily roster reads made at once, as the season sync's championship roster makes them */
 const ROSTER_READS_AT_ONCE = 7;
 
@@ -67,7 +79,11 @@ const goalieLine = (player: RangedGoalie): GoalieLine => ({
 });
 const positionsOf = (positions: string) => positions.split(',').map(position => position.trim()).filter(Boolean);
 
-export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seasonYear, leagueId }: { seasonYear: number; leagueId: string }): PrepareStep[] {
+/**
+ * The steps of one prepare call, given the season's dates once its first step has read them (the list grows by a
+ * step per regular-season day then). Build them once per call: the rookies step remembers who it looked up.
+ */
+export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seasonYear, leagueId }: { seasonYear: number; leagueId: string }): (dates: SeasonDates | null) => PrepareStep[] {
     const read = <T>(fn: () => Promise<T>) => fn().catch(error => { throw new ReadFailure('fantrax-failed', error); });
 
     /**
@@ -109,50 +125,85 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
         },
     };
 
+    /**
+     * Step `step`'s next page of a Fantrax table over `range` (`readPage`), written by `writes` (CTE bodies that may
+     * use `claim`); the step is done after its last page. A table whose size changes between pages is read again
+     * from its first, rewriting what the earlier pages wrote.
+     */
+    async function readNextPage<Row>(progress: PrepareProgress, step: string, range: DateRange, table: string,
+        readPage: (page: number) => Promise<RangedPage<Row>>, writes: (rows: Row[]) => SQL[]) {
+        const sofar = progress.pagesRead?.step === step ? progress.pagesRead : null;
+        const page = (sofar?.read ?? 0) + 1;
+        const { players, pages, total } = await readPage(page);
+        if (sofar && (pages !== sofar.pages || total !== sofar.total)) {
+            console.error(`Fantrax's ${range.startDate}..${range.endDate} ${table} table changed between pages; reading it again`);
+            const restarted = { ...progress };
+            delete restarted.pagesRead;
+            return advance(progress, restarted);
+        }
+        if (page < pages) return advance(progress, { ...progress, pagesRead: { step, read: page, pages, total } }, {}, writes(players));
+        return markDone(progress, step, {}, writes(players));
+    }
+
     const statSetRead = (statSet: StatSetName, group: Group): PrepareStep => ({
         name: statSetStep(statSet, group),
         readsFantrax: true,
         run: async progress => {
-            const step = statSetStep(statSet, group);
             const range = { leagueId, seasonYear, ...STAT_SETS[statSet].range(progress.dates!) };
-            const sofar = progress.pagesRead?.step === step ? progress.pagesRead : null;
-            const page = (sofar?.read ?? 0) + 1;
-            const table = group === 'skater'
-                ? await read(async () => {
+            const readPage = (page: number) => read(async (): Promise<RangedPage<StatSetRow>> => {
+                if (group === 'skater') {
                     const { players, ...size } = await fantrax.skaters(range, page);
-                    return { ...size, lines: players.map(player => ({ player, line: skaterLine(player) })) };
-                })
-                : await read(async () => {
-                    const { players, ...size } = await fantrax.goalies(range, page);
-                    return { ...size, lines: players.map(player => ({ player, line: goalieLine(player) })) };
-                });
-            if (sofar && (table.pages !== sofar.pages || table.total !== sofar.total)) {
-                // its pages no longer line up, so it is read again from the first, rewriting what the earlier pages wrote
-                console.error(`Fantrax's ${range.startDate}..${range.endDate} ${group} table changed between pages; reading it again`);
-                const restarted = { ...progress };
-                delete restarted.pagesRead;
-                return advance(progress, restarted);
-            }
-            const lines = table.lines;
-            const rostered = progress.finalRosters ?? {};
-            const payload = JSON.stringify(lines.filter(({ player, line }) => line.points !== 0 || player.id in rostered).map(({ player, line }) => ({
-                playerId: player.id, name: player.name, positions: positionsOf(player.positions), nhlTeam: player.nhlTeam, age: player.age, line,
-            })));
-            const writes = [
-                sql`insert into league.award_vote_players (season_year, player_id, name, positions, nhl_team, age)
-                    select ${seasonYear}, p."playerId", p.name, p.positions, p."nhlTeam", p.age
-                    from jsonb_to_recordset(${payload}::jsonb) as p("playerId" text, name text, positions text[], "nhlTeam" text, age smallint)
-                    where exists (select 1 from claim)
-                    on conflict (season_year, player_id) do update
-                    set name = excluded.name, positions = excluded.positions, nhl_team = excluded.nhl_team, age = excluded.age`,
-                sql`insert into league.award_vote_stats (season_year, player_id, stat_set, line)
-                    select ${seasonYear}, p."playerId", ${statSet}, p.line
-                    from jsonb_to_recordset(${payload}::jsonb) as p("playerId" text, line jsonb)
-                    where exists (select 1 from claim)
-                    on conflict (season_year, player_id, stat_set) do update set line = excluded.line`,
-            ];
-            if (page < table.pages) return advance(progress, { ...progress, pagesRead: { step, read: page, pages: table.pages, total: table.total } }, {}, writes);
-            return markDone(progress, step, {}, writes);
+                    return { ...size, players: players.map(player => ({ player, line: skaterLine(player) })) };
+                }
+                const { players, ...size } = await fantrax.goalies(range, page);
+                return { ...size, players: players.map(player => ({ player, line: goalieLine(player) })) };
+            });
+            return readNextPage(progress, statSetStep(statSet, group), range, group, readPage, lines => statSetWrites(progress, statSet, lines));
+        },
+    });
+
+    /** the writes of a page of stat set `statSet`'s table */
+    function statSetWrites(progress: PrepareProgress, statSet: StatSetName, lines: StatSetRow[]) {
+        const rostered = progress.finalRosters ?? {};
+        const payload = JSON.stringify(lines.filter(({ player, line }) => line.points !== 0 || player.id in rostered).map(({ player, line }) => ({
+            playerId: player.id, name: player.name, positions: positionsOf(player.positions), nhlTeam: player.nhlTeam, age: player.age, line,
+        })));
+        return [
+            sql`insert into league.award_vote_players (season_year, player_id, name, positions, nhl_team, age)
+                select ${seasonYear}, p."playerId", p.name, p.positions, p."nhlTeam", p.age
+                from jsonb_to_recordset(${payload}::jsonb) as p("playerId" text, name text, positions text[], "nhlTeam" text, age smallint)
+                where exists (select 1 from claim)
+                on conflict (season_year, player_id) do update
+                set name = excluded.name, positions = excluded.positions, nhl_team = excluded.nhl_team, age = excluded.age`,
+            sql`insert into league.award_vote_stats (season_year, player_id, stat_set, line)
+                select ${seasonYear}, p."playerId", ${statSet}, p.line
+                from jsonb_to_recordset(${payload}::jsonb) as p("playerId" text, line jsonb)
+                where exists (select 1 from claim)
+                on conflict (season_year, player_id, stat_set) do update set line = excluded.line`,
+        ];
+    }
+
+    // One regular-season day's fantasy points, for move value: kept only for the players in the season's
+    // transactions, and only where they scored.
+    const dayRead = (day: string): PrepareStep => ({
+        name: moveValueStep(day),
+        readsFantrax: true,
+        run: async progress => {
+            const range = { leagueId, seasonYear, startDate: day, endDate: day };
+            const readPage = (page: number) => read(async () => {
+                const { players, ...size } = await fantrax.points(range, page);
+                return { ...size, players: players.filter(player => player.points !== 0).map(player => ({ playerId: player.id, points: player.points })) };
+            });
+            return readNextPage(progress, moveValueStep(day), range, 'all-positions', readPage, scores => [
+                sql`insert into league.award_vote_daily_points (season_year, player_id, day, points)
+                    select ${seasonYear}, p."playerId", ${day}::date, p.points
+                    from jsonb_to_recordset(${JSON.stringify(scores)}::jsonb) as p("playerId" text, points numeric)
+                    where exists (select 1 from claim) and p."playerId" in (
+                        select a.player_id from league.transaction_assets a
+                        join league.transaction_events e on e.id = a.event_id
+                        where e.season_year = ${seasonYear} and a.player_id is not null)
+                    on conflict (season_year, player_id, day) do update set points = excluded.points`,
+            ]);
         },
     });
 
@@ -225,6 +276,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                 players.filter(player => rule.eligible(player, context)).map(player => ({
                     award: rule.award, playerId: player.playerId, ruleCredits: rule.credit !== undefined, teamSeasonId: rule.credit?.(player, context) ?? null,
                 }))));
+            const transactions = await readTransactionSummaries(db, seasonYear, progress.dates!.regularSeason);
             // the admin's changes can't move while the candidates are written from them
             const guard = sql`rookie_adjustments = ${JSON.stringify(adjustments)}::jsonb`;
             return markDone(progress, PREPARE_STEPS.candidates, { preparedAt: new Date(clock.now()).toISOString(), guard }, [
@@ -248,7 +300,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                         limit 1
                     ) last_move on true
                     where exists (select 1 from claim)`,
-                ...writeTeamSeasons(seasonYear),
+                ...writeTeamSeasons(seasonYear, transactions),
             ]);
         },
     };
@@ -293,14 +345,28 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
     // keep every rostered player, scored or not.
     const rosterStatSets = new Set(PLAYER_AWARD_RULES.filter(rule => rule.credit).flatMap(rule => rule.statSets));
     const firstRosterStatSet = statSets.find(statSet => rosterStatSets.has(statSet));
-    return [
+    const readSteps = [
         dates,
         ...statSets.flatMap(statSet => [
             ...statSet === firstRosterStatSet ? [finalRosters] : [],
             statSetRead(statSet, 'skater'),
             statSetRead(statSet, 'goalie'),
         ]),
+    ];
+    // the days' reads are known once the season's dates are
+    return seasonDates => [
+        ...readSteps,
+        ...seasonDates ? daysOf(seasonDates.regularSeason).map(dayRead) : [],
         rookies,
         candidates,
     ];
+}
+
+/** every calendar day of `range`, `YYYY-MM-DD` */
+function daysOf({ startDate, endDate }: DateRange) {
+    const days: string[] = [];
+    for (let day = Date.parse(`${startDate}T00:00:00Z`); day <= Date.parse(`${endDate}T00:00:00Z`); day += 86_400_000) {
+        days.push(new Date(day).toISOString().slice(0, 10));
+    }
+    return days;
 }

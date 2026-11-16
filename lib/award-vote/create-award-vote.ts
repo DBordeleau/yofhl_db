@@ -68,7 +68,7 @@ export type { BallotNudge, ReadBallotNudgeInput } from './read-ballot-nudge';
 export type { OwnBallot, OwnerBallotView, ReadOwnerBallotInput } from './read-owner-ballot';
 export type { SaveDraftInput, SaveDraftRejection, SaveDraftResult } from './save-draft';
 export type { SubmitBallotInput, SubmitBallotRejection, SubmitBallotResult } from './submit-ballot';
-export type { AwardVoteState, BallotAward, BallotRankings, CreditedTeam, PlayerAwardId, PlayerCandidate, PlayoffFinish, StatLine, StatSetName, TeamAwardId, TeamBallotAward, TeamCandidate, TeamSeasonLine, TeamSummary, VotedAwardId } from './model';
+export type { AwardVoteState, BallotAward, BallotRankings, CreditedTeam, PlayerAwardId, PlayerCandidate, PlayoffFinish, StatLine, StatSetName, TeamAwardId, TeamBallotAward, TeamCandidate, TeamSeasonLine, TeamSummary, TradedAsset, TradeSummary, TransactionSummary, FreeAgentMove, DraftedPlayer, VotedAwardId } from './model';
 export type { MoveBallotLockInput, MoveBallotLockRejection, MoveBallotLockResult } from './move-ballot-lock';
 export type { OpenVotingInput, OpenVotingRejection, OpenVotingResult } from './open-voting';
 export type { PrepareInput, PrepareRejection, PrepareResult } from './prepare';
