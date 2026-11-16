@@ -133,7 +133,7 @@ export interface PublishedWinners {
 // next curated edit or import refreshes it.
 export async function savePublishedWinners(year: number, { gate, winners }: PublishedWinners, options: EditOptions = {}):
     Promise<{ published: boolean }> {
-    const [{ published }] = await writeAndRefresh<{ published: boolean }>('awards', year, sql`
+    const [{ published }] = await writeAndRefresh<{ published: boolean }>('awardVote', year, sql`
         with gate as (${gate}),
              winners as (select w.award_type_id, w.player_id, w.name, w.team_season_id from (${winners}) w
                          where exists (select 1 from gate)),

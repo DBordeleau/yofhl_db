@@ -129,13 +129,16 @@ test('a rehearsal is never opened, has no ballot lock to move, takes no ballot, 
     assert.equal((await headerAnswer()).awardVote, null);
 });
 
-test('a rehearsal is never published, and its season\'s awards stay hand-entered', async t => {
+test('a rehearsal is never published, nothing of it is public, and its season\'s awards stay hand-entered', async t => {
     const { act, vote, setRegularSeason, prepareFully, fantraxIs2026, league } = await rehearsalLeague(t);
     fantraxIs2026();
     setRegularSeason([skater('s1', 300)]);
     await prepareFully(2026);
     assert.deepEqual(await act(() => vote.publish({ seasonYear: 2026 })), { ok: false, reason: 'rehearsal' });
     assert.equal((await act(() => vote.readPreview({ seasonYear: 2026 }))).vote?.state, 'prepared');
+    const visitor = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/season/[year]/ballots', fn)).result;
+    assert.deepEqual(await visitor(() => vote.readPublishedBallots({ seasonYear: 2026 })), { ok: false, reason: 'not-published' });
+    assert.deepEqual(await visitor(() => vote.readPublishedTallies({ award: 'wayne-gretzky' })), []);
 
     await league.client.exec(`
         insert into league.players (id, name) values ('s1', 'Archive s1');
