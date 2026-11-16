@@ -1,7 +1,8 @@
 import { formatFpts, positionNames, seasonLabel } from '../league';
 import { fallbackColours, suggestedPalettes, type TeamColours } from '../team-branding';
 import { artworkBounds } from '../team-logo';
-import { artFor } from '../coachs-corner/cast';
+import { artFor, lapelFor, type CharacterId, type LapelSpot, type Pose } from '../coachs-corner/cast';
+import { POPPY, POPPY_TILT } from '../coachs-corner/poppy';
 import { artUrl } from '../coachs-corner/media';
 import { CARD_HEIGHT, CARD_WIDTH } from './dimensions';
 import { SHARE_SITE, type ComparisonShareCard, type PlayerShareCard, type SeasonShareCard, type ShareCard, type ShareTeam,
@@ -645,6 +646,34 @@ async function drawSteal(kit: Kit, card: StealShareCard) {
 }
 
 // ---------- Coach's Corner episode ----------
+const HOST_SIZE = 600;
+/** host art is drawn in a 1254 px square frame; lapel spots are in that frame */
+const ART_FRAME = 1254;
+
+/** The player's lapel poppy (lib/coachs-corner/poppy.ts) over a host drawn at x, y in a size × size box. */
+function drawPoppy(ctx: CanvasRenderingContext2D, spot: LapelSpot | null, x: number, y: number, size: number) {
+    if (!spot) return;
+    const [sx, sy, scale] = spot;
+    const k = size / ART_FRAME;
+    ctx.save();
+    ctx.translate(x + sx * k, y + sy * k); ctx.scale(scale * k, scale * k); ctx.rotate(POPPY_TILT * Math.PI / 180);
+    for (const shape of POPPY) {
+        ctx.globalAlpha = 1;
+        if (shape.kind === 'path') {
+            ctx.globalAlpha = shape.strokeOpacity ?? 1;
+            ctx.strokeStyle = shape.stroke; ctx.lineWidth = shape.strokeWidth; ctx.lineCap = 'round';
+            ctx.stroke(new Path2D(shape.d));
+            continue;
+        }
+        ctx.beginPath();
+        if (shape.kind === 'ellipse') { ctx.globalAlpha = shape.fillOpacity; ctx.ellipse(shape.cx, shape.cy, shape.rx, shape.ry, 0, 0, Math.PI * 2); }
+        else ctx.arc(shape.cx, shape.cy, shape.r, 0, Math.PI * 2);
+        ctx.fillStyle = shape.fill; ctx.fill();
+        if (shape.kind === 'circle' && shape.stroke) { ctx.strokeStyle = shape.stroke; ctx.lineWidth = shape.strokeWidth ?? 1; ctx.stroke(); }
+    }
+    ctx.restore();
+}
+
 async function drawEpisode(kit: Kit, card: EpisodeShareCard) {
     const { ctx } = kit;
     ctx.fillStyle = vertical(ctx, 0, H, [[0, '#0a1324'], [.6, NAVY], [1, '#07101e']]); ctx.fillRect(0, 0, W, H);
@@ -685,14 +714,19 @@ async function drawEpisode(kit: Kit, card: EpisodeShareCard) {
         text(kit, `— ${speaker === 'don' ? 'Don' : 'Ron'}`, PAD + 48, y + height - 30, { size: 18, weight: 850, spacing: .16, upper: true, colour: '#b00d28' });
     }
 
-    // The speaker yells; the other host takes it in.
-    const [don, ron] = await Promise.all([
-        loadImage(artUrl(speaker === 'don' ? artFor('don', 'angry', { mouth: 'open' }) : artFor('don', 'stare', { mouth: 'closed' }))),
-        loadImage(artUrl(speaker === 'ron' ? artFor('ron', 'rest', { mouth: 'open' }) : artFor('ron', 'skeptical', { mouth: 'open' }))),
-    ]);
+    // The speaker yells; the other host takes it in. Don is in the episode's opening wardrobe; Ron has only the normal one.
+    const wardrobe = card.wardrobe;
+    const donPose = speaker === 'don' ? artFor('don', 'angry', { wardrobe, mouth: 'open' }) : artFor('don', 'stare', { wardrobe, mouth: 'closed' });
+    const ronPose = speaker === 'ron' ? artFor('ron', 'rest', { mouth: 'open' }) : artFor('ron', 'skeptical', { mouth: 'open' });
+    const [don, ron] = await Promise.all([loadImage(artUrl(donPose)), loadImage(artUrl(ronPose))]);
     const hostTop = Math.max(800, y + 250);
-    if (ron) shadowed(ctx, 30, 10, 'rgba(0,0,0,.5)', () => ctx.drawImage(ron, 500, hostTop + 10, 600, 600));
-    if (don) shadowed(ctx, 30, 10, 'rgba(0,0,0,.5)', () => ctx.drawImage(don, -30, hostTop, 600, 600));
+    const host = (who: CharacterId, pose: Pose, image: HTMLImageElement | null, x: number, top: number) => {
+        if (!image) return;
+        shadowed(ctx, 30, 10, 'rgba(0,0,0,.5)', () => ctx.drawImage(image, x, top, HOST_SIZE, HOST_SIZE));
+        if (card.lapel === 'poppy') drawPoppy(ctx, lapelFor(who, pose), x, top, HOST_SIZE);
+    };
+    host('ron', ronPose, ron, 500, hostTop + 10);
+    host('don', donPose, don, -30, hostTop);
     const desk = Math.min(1190, hostTop + 380);
     ctx.fillStyle = vertical(ctx, desk, H, [[0, '#16233b'], [1, '#08101f']]); ctx.fillRect(0, desk, W, H - desk);
     ctx.fillStyle = RED; ctx.fillRect(0, desk, W, 5);

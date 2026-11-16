@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { renderShareCard } from './render-card';
-import type { PlayerShareCard } from './model';
+import type { EpisodeShareCard, PlayerShareCard } from './model';
 
 const player: PlayerShareCard = {
     kind: 'player', href: '/player/04alw', title: 'Cale Makar', summary: 'Player career card',
@@ -9,27 +9,39 @@ const player: PlayerShareCard = {
     totalFPts: 3298.75, fpg: 6.91, seasons: 7, cups: 2,
     seasonPoints: [{ year: 2026, value: 506.5, champion: false }], trophies: [],
 };
+const remembrance: EpisodeShareCard = {
+    kind: 'episode', href: '/coachs-corner/2027-week-3-recap', title: "Coach's Corner Week 3: Recap", summary: 'Episode card',
+    episode: 'Recap', week: 3, label: 'Week 3', aired: '2026-11-09T12:00:00Z', runtimeMs: 60000,
+    quote: { who: 'ron', text: 'We will remember them.' }, wardrobe: 'remembrance-2026', lapel: 'poppy',
+};
 
 // Exercise the public renderer with browser API doubles. Pixel output is checked in the browser.
-function browser(t: TestContext, load: (font: string) => Promise<unknown[]>) {
+function browser(t: TestContext, load: (font: string) => Promise<unknown[]>, { art = 'unavailable' }: { art?: 'loaded' | 'unavailable' } = {}) {
     const png = new Blob(['encoded canvas'], { type: 'image/png' });
     const gradient = { addColorStop() {} };
     const ctx = {
         font: '', fillText: t.mock.fn((text: string) => text), strokeText() {}, measureText: (text: string) => ({ width: text.length * 10 }),
         createLinearGradient: () => gradient, createRadialGradient: () => gradient,
         fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, arcTo() {}, arc() {}, closePath() {}, fill() {},
-        save() {}, restore() {}, translate() {}, scale() {},
+        save() {}, restore() {}, translate() {}, scale() {}, rotate() {}, ellipse() {}, stroke() {}, drawImage: t.mock.fn(),
     };
     const canvas = { width: 0, height: 0, getContext: () => ctx, toBlob: t.mock.fn((done: BlobCallback) => done(png)) };
     class UnavailableImage {
         onerror: (() => void) | null = null;
         set src(_value: string) { queueMicrotask(() => this.onerror?.()); }
     }
+    const requested: string[] = [];
+    class LoadedImage {
+        onload: (() => void) | null = null;
+        width = 640; height = 640;
+        set src(value: string) { requested.push(value); queueMicrotask(() => this.onload?.()); }
+    }
     const globals = {
         document: { body: {}, fonts: { load }, createElement: () => canvas },
         window: { location: { origin: 'https://www.yofhl.com' } },
         getComputedStyle: () => ({ fontFamily: 'Archivo, sans-serif' }),
-        Image: UnavailableImage,
+        Image: art === 'loaded' ? LoadedImage : UnavailableImage,
+        Path2D: class { constructor(readonly d: string) {} },
     };
     for (const [name, value] of Object.entries(globals)) {
         const previous = Object.getOwnPropertyDescriptor(globalThis, name);
@@ -39,7 +51,7 @@ function browser(t: TestContext, load: (font: string) => Promise<unknown[]>) {
             else Reflect.deleteProperty(globalThis, name);
         });
     }
-    return { png, canvas, ctx };
+    return { png, canvas, ctx, requested };
 }
 
 test('share PNG still renders when a custom font download fails', async t => {
@@ -58,6 +70,21 @@ test('share PNG renders with loaded fonts and unavailable optional artwork', asy
     assert.equal(await renderShareCard(player), png);
     assert.equal(load.mock.callCount(), 4);
     assert.deepEqual([canvas.width, canvas.height], [1080, 1350]);
+});
+
+test('episode PNG renders Don in the card wardrobe with the lapel poppy, with or without host art', async t => {
+    await t.test('art unavailable', async t => {
+        const { png, ctx } = browser(t, async () => []);
+        assert.equal(await renderShareCard(remembrance), png);
+        assert.equal(ctx.drawImage.mock.callCount(), 0);
+    });
+    await t.test('art loaded', async t => {
+        const { png, requested } = browser(t, async () => [], { art: 'loaded' });
+        assert.equal(await renderShareCard(remembrance), png);
+        const hosts = requested.filter(src => src.includes('/don-') || src.includes('/ron-'));
+        assert.equal(hosts.length, 2);
+        assert.ok(hosts.some(src => src.includes('/don-remembrance-stare')), hosts.join(', '));
+    });
 });
 
 test('share PNG does not wait indefinitely for a stalled font download', async t => {

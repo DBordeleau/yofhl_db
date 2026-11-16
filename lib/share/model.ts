@@ -1,6 +1,8 @@
 import type { PlayerProfile, FranchiseDetail, BannerSeason, FranchiseCard, LeaderRow, AwardWinner } from '../data/league';
 import { seasonLabel, splitPositions, winPercentage } from '../league';
 import { episodeLabel } from '../coachs-corner/episode-label';
+import type { Episode } from '../coachs-corner/episode';
+import type { Lapel } from '../coachs-corner/cast';
 import { playerHref } from '../player-url';
 import { AWARDS, awardHref, getAwardDefinition } from '../awards';
 import { comparisonChart, type ComparisonChart, type ComparisonPlayer } from '../compare/model';
@@ -57,6 +59,8 @@ export interface AwardShareCard extends CardBase {
 export interface EpisodeShareCard extends CardBase {
     kind: 'episode'; episode: string; week: number | null; label: string | null; aired: string | null; runtimeMs: number;
     quote: { who: 'don' | 'ron'; text: string } | null;
+    /** Don's opening wardrobe, as on the title card; Ron is always in the normal wardrobe */
+    wardrobe: string; lapel: Lapel | null;
 }
 export type ShareCard = PlayerShareCard | TeamShareCard | SeasonShareCard | ComparisonShareCard | VersusShareCard | StealShareCard | AwardShareCard | EpisodeShareCard;
 
@@ -154,14 +158,16 @@ export function awardShareCard(award: ShareAward, winner: AwardWinner, winners: 
         count, short: (award.id && SHORT_AWARD[award.id]) ?? award.label };
 }
 
-/** A Coach's Corner episode; the quote comes from `pullQuote` on the server so the script parser stays out of this module. */
+/** A Coach's Corner episode, dressed from its compiled Episode so the script parser stays out of this module. */
 export function episodeShareCard(episode: { slug: string; title: string; week: number | null; publishedAt: string | null; durationMs: number },
-    quote: EpisodeShareCard['quote']): EpisodeShareCard {
+    compiled: Pick<Episode, 'pullQuote' | 'openingWardrobe'> & { meta: Pick<Episode['meta'], 'lapel'> }): EpisodeShareCard {
     const label = episodeLabel(episode);
     const week = label ? `${label}: ` : '';
+    const quote = compiled.pullQuote;
     return { kind: 'episode', title: `Coach's Corner ${week}${episode.title}`, href: `/coachs-corner/${episode.slug}`,
         summary: `Coach's Corner, ${week}${episode.title}.${quote ? ` ${quote.who === 'don' ? 'Don' : 'Ron'}: “${quote.text}”` : ''}`,
-        episode: episode.title, week: episode.week, label, aired: episode.publishedAt, runtimeMs: episode.durationMs, quote };
+        episode: episode.title, week: episode.week, label, aired: episode.publishedAt, runtimeMs: episode.durationMs,
+        quote, wardrobe: compiled.openingWardrobe, lapel: compiled.meta.lapel ?? null };
 }
 
 export function shareUrl(href: string, origin: string) {
