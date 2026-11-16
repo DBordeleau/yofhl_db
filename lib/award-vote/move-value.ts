@@ -120,8 +120,8 @@ export function transactionSummaries({ regularSeason, moves, dailyPoints, draft 
         summary.drops = dropped.slice(0, MOVES_SHOWN);
         const [otherClaims, otherDrops] = [claimed.slice(MOVES_SHOWN), dropped.slice(MOVES_SHOWN)];
         const count = otherClaims.length + otherDrops.length;
-        const net = otherClaims.reduce((sum, move) => sum + move.moveValue, 0) - otherDrops.reduce((sum, move) => sum + move.moveValue, 0);
-        summary.otherMoves = count ? { count, netFpts: hundredths(net) } : null;
+        const moveValue = otherClaims.reduce((sum, move) => sum + move.moveValue, 0) - otherDrops.reduce((sum, move) => sum + move.moveValue, 0);
+        summary.otherMoves = count ? { count, moveValue: hundredths(moveValue) } : null;
     }
     for (const { franchiseId, ...pick } of [...draft].sort((a, b) => a.overall - b.overall)) summaryOf(franchiseId).draftClass.push(pick);
     return summaries;

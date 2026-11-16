@@ -136,7 +136,7 @@ test("a move after the regular season's last day is left out of the summary", as
     assert.deepEqual((await summaryOf(3))?.trades, []);
 });
 
-test("a franchise's five most valuable claims and five costliest drops are shown in full, and the rest in one line with a count and net FPts", async t => {
+test("a franchise's five most valuable claims and five costliest drops are shown in full, and the rest in one line with a count and their move value, claims less drops", async t => {
     const { claimed, dropped, scoredOn, prepareFully, summaryOf } = await movesLeague(t);
     // claims c1..c7 on October 13, worth 70, 60, ... 10; drops d1..d6 on October 13, costing 6, 5, ... 1
     const claims = [70, 60, 50, 40, 30, 20, 10];
@@ -149,7 +149,7 @@ test("a franchise's five most valuable claims and five costliest drops are shown
     assert.deepEqual(summary?.claims.map(move => [move.playerId, move.moveValue]), [['c1', 70], ['c2', 60], ['c3', 50], ['c4', 40], ['c5', 30]]);
     assert.deepEqual(summary?.drops.map(move => [move.playerId, move.moveValue]), [['d1', 6], ['d2', 5], ['d3', 4], ['d4', 3], ['d5', 2]]);
     // c6 and c7 gained 30, d6 cost 1
-    assert.deepEqual(summary?.otherMoves, { count: 3, netFpts: 29 });
+    assert.deepEqual(summary?.otherMoves, { count: 3, moveValue: 29 });
 });
 
 test("the draft class lists the franchise's picks that season in draft order with each player's regular-season FPts, a pick who never scored at nothing", async t => {

@@ -208,7 +208,7 @@ export interface TransactionSummary {
     /** the five costliest drops (a drop's move value is what it cost), costliest first */
     drops: FreeAgentMove[];
     /** every other claim and drop: how many, and the claims' move value less the drops'; null when there are none */
-    otherMoves: { count: number; netFpts: number } | null;
+    otherMoves: { count: number; moveValue: number } | null;
     /** the franchise's picks in that season's draft, in draft order */
     draftClass: DraftedPlayer[];
 }
