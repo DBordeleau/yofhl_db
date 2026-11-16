@@ -1,10 +1,10 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
-import { getFranchiseCards, getSeasonArchive } from './league';
+import { getFranchiseCards, getListedAwards, getSeasonArchive } from './league';
 import { leagueTags } from './cache-tags';
 import { playerHref } from '../player-url';
 import { seasonLabel } from '../league';
-import { AWARDS, awardHref } from '../awards';
+import { awardHref, type AwardDefinition } from '../awards';
 import { normalizeSearch, searchDirectory, type SearchEntry, type SearchState } from '../search/model';
 
 // Cache one public directory, not an unbounded set of arbitrary query strings.
@@ -39,10 +39,6 @@ export const getSearchDirectory = cached(async (): Promise<SearchEntry[]> => {
                     .map(text => ({ text, note: `Also recorded as ${text}` }))),
         });
     }
-    for (const award of AWARDS) {
-        entries.push({ kind: 'awards', id: award.id, title: award.label, subtitle: award.honor,
-            href: awardHref(award.name), aliases: [{ text: award.name }, { text: award.id }] });
-    }
     // oldest first, the order search has always listed seasons in
     for (const season of [...seasons.published].reverse()) {
         entries.push({ kind: 'seasons', id: String(season.year), title: seasonLabel(season.year),
@@ -54,8 +50,14 @@ export const getSearchDirectory = cached(async (): Promise<SearchEntry[]> => {
     return entries;
 }, 'search-directory', [leagueTags.discovery]);
 
-export async function searchPublicDirectory(state: SearchState) {
+/** the award entries: the listed awards (getListedAwards), outside the cached directory so publishing an award vote lists GM of the Year */
+const awardEntries = (awards: readonly AwardDefinition[]): SearchEntry[] => awards.map(award => ({ kind: 'awards', id: award.id,
+    title: award.label, subtitle: award.honor, href: awardHref(award.name), aliases: [{ text: award.name }, { text: award.id }] }));
+
+/** `catalogue` is the award catalogue, in tests a released one */
+export async function searchPublicDirectory(state: SearchState, catalogue?: readonly AwardDefinition[]) {
     // Empty search must not wake the database.
     if (normalizeSearch(state.q).length < 2) return searchDirectory([], state);
-    return searchDirectory(await getSearchDirectory(), state);
+    const [directory, awards] = await Promise.all([getSearchDirectory(), getListedAwards(catalogue)]);
+    return searchDirectory([...directory, ...awardEntries(awards)], state);
 }
