@@ -35,7 +35,7 @@ export default function ShowPage({ episode, compiled, episodes, teams, players, 
 
                 <EpisodePlayer key={episodeSeenKey(episode)} episodeKey={episodeSeenKey(episode)} script={episode.script} slug={episode.slug} teams={teams} players={players} banners={banners}
                     nextHref={previous ? `/coachs-corner/${previous.slug}` : undefined}
-                    share={episodeShareCard({ ...episode, durationMs: compiled.summary.runtime }, compiled.pullQuote)} />
+                    share={episodeShareCard({ ...episode, durationMs: compiled.summary.runtime }, compiled)} />
             </div>
         </main>
     );

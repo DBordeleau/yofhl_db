@@ -20,7 +20,7 @@ export default function LocalDraftPreview({ slug, script, episode, teams, player
     // the card this episode will share once published, dated the way the pilot is
     const share = useMemo(() => episodeShareCard({
         slug, title: summary.title, week: summary.week, publishedAt: scriptAirDate(summary.date), durationMs: summary.runtime,
-    }, episode.pullQuote), [slug, summary, episode]);
+    }, episode), [slug, summary, episode]);
     const lines = useMemo(() => script.split(/\r?\n/), [script]);
     const seconds = Math.round(report.segmentSeconds);
     const playLine = (sourceLine: number) => {

@@ -76,7 +76,9 @@ const MOUTH_CLIPS: Record<CharacterId, Record<string, string>> = {
     ron: { talk: 'ellipse(14% 8% at 45% 43%)' },
 };
 
-/** where a poppy sits over a host's heart (the wearer's left lapel), as [x, y, scale] in the 1254 px frame */
+/** the square frame every host image is drawn in, at its full 1254 px size */
+export const ART_FRAME = 1254;
+/** where a poppy sits over a host's heart (the wearer's left lapel), as [x, y, scale] in the ART_FRAME */
 export type LapelSpot = [number, number, number];
 // Every wardrobe shares its pose's geometry. Keyed by the normal pose's art suffix; null where
 // Don's hand covers that lapel while he grabs the mic.

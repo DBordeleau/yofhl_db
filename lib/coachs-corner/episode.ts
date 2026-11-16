@@ -43,7 +43,7 @@ export interface Episode {
     timeline: Timeline;
     audioCues: AudioCue[];
     openingPicture: Frame;
-    /** Don's wardrobe as his first line starts, for the title card, bumper, closing card and home hero; later changes are a reveal */
+    /** Don's wardrobe as his first line starts, for the title card, bumper, closing card, home hero and share card; later changes are a reveal */
     openingWardrobe: string;
     pullQuote: PullQuote | null;
     /** the episode's schedule slot: "Pilot" or "Week N" */

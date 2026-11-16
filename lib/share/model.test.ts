@@ -3,7 +3,8 @@ import test from 'node:test';
 import type { BannerSeason, FranchiseCard, FranchiseDetail, PlayerProfile } from '../data/league';
 import { comparisonChart } from '../compare/model';
 import type { RankedPick } from '../draft/hindsight';
-import { awardShareCard, comparisonShareCard, playerShareCard, seasonShareCard, shareUrl, stealShareCard, teamComparisonShareCard, teamShareCard } from './model';
+import { episodeFrom } from '../coachs-corner/episode';
+import { awardShareCard, comparisonShareCard, episodeShareCard, playerShareCard, seasonShareCard, shareUrl, stealShareCard, teamComparisonShareCard, teamShareCard } from './model';
 import type { RivalryGame } from '../rivalries/model';
 
 test('player card uses the displayed archive totals and groups trophies, and cancelled seasons never invent champions', () => {
@@ -70,4 +71,31 @@ test('award card counts repeat wins up to that season and keeps the season conte
     assert.deepEqual([card.count, card.short, card.fpts, card.href], [2, 'Gretzky', 600, '/awards/Wayne_Gretzky_Award']);
     assert.equal(card.team?.logo, '/vwizlogo.png');
     assert.equal(awardShareCard(award, winners[0], winners, 'player').count, 3);
+});
+
+test('episode card dresses Don in the opening wardrobe and carries its lapel', () => {
+    const listing = { slug: '2027-week-3-recap', title: 'Recap', week: 3, publishedAt: '2026-11-09T12:00:00Z', durationMs: 60000 };
+    const compiled = episodeFrom(`---
+title: Recap
+week: 3
+lapel: poppy
+---
+DON (remembrance-point): WE WILL REMEMBER THEM!
+
+DON (point): Back to hockey.`);
+    const card = episodeShareCard(listing, compiled);
+    assert.equal(card.wardrobe, 'remembrance-2026');
+    assert.equal(card.lapel, 'poppy');
+    assert.deepEqual(card.quote, compiled.pullQuote);
+
+    const plain = episodeShareCard(listing, episodeFrom(`---
+title: Recap
+week: 3
+---
+DON: Hello.`));
+    assert.equal(plain.wardrobe, 'normal');
+    assert.equal(plain.lapel, null);
+    assert.deepEqual(plain, { kind: 'episode', title: "Coach's Corner Week 3: Recap", href: '/coachs-corner/2027-week-3-recap',
+        summary: "Coach's Corner, Week 3: Recap.", episode: 'Recap', week: 3, label: 'Week 3', aired: '2026-11-09T12:00:00Z',
+        runtimeMs: 60000, quote: null, wardrobe: 'normal', lapel: null });
 });

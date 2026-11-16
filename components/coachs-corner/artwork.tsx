@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { artUrl } from '@/lib/coachs-corner/media';
-import { artFor, lapelFor, mouthClipFor, type CharacterId, type Lapel, type LapelSpot, type Pose } from '@/lib/coachs-corner/cast';
+import { POPPY, POPPY_TILT } from '@/lib/coachs-corner/poppy';
+import { ART_FRAME, artFor, lapelFor, mouthClipFor, type CharacterId, type Lapel, type LapelSpot, type Pose } from '@/lib/coachs-corner/cast';
 
 const SIZES = '(max-width: 700px) 60vw, 42vw';
 
@@ -37,25 +38,16 @@ const HIDDEN_LAPEL = lapelFor('don', artFor('don', 'rest', { mouth: 'closed' }))
 export function Poppy({ spot, className }: { spot: LapelSpot | null; className?: string }) {
     const [x, y, s] = spot ?? HIDDEN_LAPEL;
     return (
-        <svg className={className} viewBox="0 0 1254 1254" data-lapel aria-hidden="true">
+        <svg className={className} viewBox={`0 0 ${ART_FRAME} ${ART_FRAME}`} data-lapel aria-hidden="true">
             <g style={{ transform: `translate(${x}px, ${y}px) scale(${s})`, opacity: spot ? 1 : 0 }}>
-                <g transform="rotate(-14)">
-                    <ellipse cx="5" cy="8" rx="40" ry="38" fill="#000" fillOpacity=".3" />
-                    <g fill="#1a1012">
-                        <circle cx="-14" cy="-14" r="27" /><circle cx="14" cy="-14" r="27" />
-                        <circle cx="-14" cy="14" r="27" /><circle cx="14" cy="14" r="27" />
-                    </g>
-                    <circle cx="-14" cy="-14" r="22" fill="#b10e25" />
-                    <circle cx="14" cy="-14" r="22" fill="#b10e25" />
-                    <path d="M0 -31V-12" stroke="#1a1012" strokeWidth="4" strokeLinecap="round" />
-                    <circle cx="-14" cy="14" r="22" fill="#e11a33" stroke="#1a1012" strokeWidth="4" />
-                    <circle cx="14" cy="14" r="22" fill="#e11a33" stroke="#1a1012" strokeWidth="4" />
-                    <g fill="none" stroke="#ff8a93" strokeWidth="4" strokeLinecap="round">
-                        <path d="M-29 10q3-9 12-11" /><path d="M2 8q4-8 12-9" />
-                        <path d="M-27 -20q4-8 12-9" strokeOpacity=".55" />
-                    </g>
-                    <circle r="11" fill="#111" />
-                    <circle cx="-3" cy="-4" r="3.5" fill="#5c5c5c" />
+                <g transform={`rotate(${POPPY_TILT})`}>
+                    {POPPY.map((shape, index) => {
+                        switch (shape.kind) {
+                            case 'ellipse': return <ellipse key={index} cx={shape.cx} cy={shape.cy} rx={shape.rx} ry={shape.ry} fill={shape.fill} fillOpacity={shape.fillOpacity} />;
+                            case 'circle': return <circle key={index} cx={shape.cx} cy={shape.cy} r={shape.r} fill={shape.fill} stroke={shape.stroke} strokeWidth={shape.strokeWidth} />;
+                            case 'path': return <path key={index} d={shape.d} fill="none" stroke={shape.stroke} strokeWidth={shape.strokeWidth} strokeOpacity={shape.strokeOpacity} strokeLinecap="round" />;
+                        }
+                    })}
                 </g>
             </g>
         </svg>
