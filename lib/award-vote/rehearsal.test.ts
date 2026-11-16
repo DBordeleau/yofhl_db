@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rangeKey } from './memory-fantrax';
+import { GM_OF_THE_YEAR } from './model';
 import { awardVoteLeague, BASELINE_TRADE, FINAL, FRANCHISES, goalie, lockInHours, nhlRecord, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
 
 // The rehearsal: the season before the live season (2026 here, the live season being 2027) prepared and previewed
@@ -165,6 +166,7 @@ test('a rehearsal is never published, nothing of it is public, and its season\'s
     const visitor = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/season/[year]/ballots', fn)).result;
     assert.deepEqual(await visitor(() => vote.readPublishedBallots({ seasonYear: 2026 })), { ok: false, reason: 'not-published' });
     assert.deepEqual(await visitor(() => vote.readPublishedTallies({ award: 'wayne-gretzky' })), []);
+    assert.deepEqual(await visitor(() => vote.readPublishedTallies({ award: GM_OF_THE_YEAR })), []);
 
     await league.client.exec(`
         insert into league.players (id, name) values ('s1', 'Archive s1');

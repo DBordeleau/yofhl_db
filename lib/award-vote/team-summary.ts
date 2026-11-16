@@ -42,7 +42,8 @@ const takingPart = (seasonYear: number) => sql`select t.id from league.team_seas
 
 /**
  * Every franchise's transaction summary for `seasonYear` (move-value.ts), from the season's imported transactions
- * and draft, the snapshot's daily points over `regularSeason` and its regular-season stats.
+ * and draft, the snapshot's daily points over `regularSeason` and its regular-season stats. A trade partner goes by
+ * its name that season (league.season_teams, docs/adr/0001).
  */
 export async function readTransactionSummaries(db: AwardVoteDatabase, seasonYear: number, regularSeason: DateRange) {
     const [moves, dailyPoints, draft] = await Promise.all([
@@ -53,8 +54,8 @@ export async function readTransactionSummaries(db: AwardVoteDatabase, seasonYear
                    coalesce(f.name, a.from_name) as "fromName", coalesce(t.name, a.to_name) as "toName"
             from league.transaction_assets a
             join league.transaction_events e on e.id = a.event_id
-            left join league.team_seasons f on f.season_year = e.season_year and f.franchise_id = a.from_franchise_id
-            left join league.team_seasons t on t.season_year = e.season_year and t.franchise_id = a.to_franchise_id
+            left join league.season_teams f on f.season_year = e.season_year and f.franchise_id = a.from_franchise_id
+            left join league.season_teams t on t.season_year = e.season_year and t.franchise_id = a.to_franchise_id
             where e.season_year = ${seasonYear}`),
         db.rows<{ playerId: string; day: string; points: number }>(sql`
             select player_id as "playerId", to_char(day, 'YYYY-MM-DD') as day, points::float8 as points

@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { restoreBallot, voidBallot } from '@/app/admin/ballot-void-actions';
 import type { AdminBallot, BallotAward, VoidBallot } from '@/lib/award-vote/create-award-vote';
 import { teamCandidateId, VOID_REASON_LENGTH, type TeamBallotAward, type VotedAwardId } from '@/lib/award-vote/model';
+import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
 
 /** a voted award as a ballot's rankings name it: its label and its candidates' names, by their ranking */
 interface NamedAward {
@@ -15,7 +16,6 @@ interface NamedAward {
     label: string;
     names: Map<string, string>;
 }
-import { ADMIN_BUTTON, AdminActionStatus, easternTime, useAdminAction } from './admin-action';
 
 export default function BallotReview({ year, ballots, awards: playerAwards, gmOfTheYear, published }: {
     year: number;

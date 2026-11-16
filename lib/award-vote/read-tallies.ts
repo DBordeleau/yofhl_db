@@ -4,7 +4,7 @@
 // asks, and it never widens what owners or the public read.
 import { sql } from 'drizzle-orm';
 import { GM_OF_THE_YEAR, type AwardVoteState, type CreditedTeam, type PlayerAwardId, type TeamAwardId } from './model';
-import { rankedPlayerName } from './ballot-snapshot';
+import { rankedPlayerName, seasonOwner, seasonTeamColumns } from './ballot-snapshot';
 import type { AwardVotePorts } from './ports';
 import { countedBallot } from './tally';
 import { awardDefinition, PLAYER_AWARD_RULES } from './voted-awards';
@@ -53,7 +53,10 @@ export type ReadTalliesRejection = 'not-scored';
 export type ReadTalliesResult = { ok: true; /** the ballots that counted */ counted: number; tallies: AwardTally[] }
     | { ok: false; reason: ReadTalliesRejection };
 
-type TeamTallyRow = CreditedTeam & Omit<TeamTallyLine, 'team'>;
+/** a TeamTallyLine as one row: the team's columns (seasonTeamColumns) beside the line's */
+export type TeamTallyRow = CreditedTeam & Omit<TeamTallyLine, 'team'>;
+
+export const teamTallyLine = ({ owner, points, votes, place, ...team }: TeamTallyRow): TeamTallyLine => ({ team, owner, points, votes, place });
 
 export function createReadTallies({ db }: AwardVotePorts) {
     return async function readTallies({ seasonYear }: ReadTalliesInput): Promise<ReadTalliesResult> {
@@ -68,12 +71,10 @@ export function createReadTallies({ db }: AwardVotePorts) {
                 where t.season_year = ${seasonYear}
                 order by t.place, name, t.player_id`),
             db.rows<TeamTallyRow>(sql`
-                select st.team_season_id as "teamSeasonId", st.franchise_id as "franchiseId", st.name, st.abbreviation, st.logo,
-                       o.name as owner, t.points, t.votes, t.place
+                select ${seasonTeamColumns}, o.name as owner, t.points, t.votes, t.place
                 from league.award_vote_team_tallies t
                 join league.season_teams st on st.team_season_id = t.team_season_id
-                join league.team_seasons ts on ts.id = t.team_season_id
-                left join league.owners o on o.id = ts.owner_id
+                ${seasonOwner}
                 where t.season_year = ${seasonYear} and t.award = ${GM_OF_THE_YEAR}
                 order by t.place, st.name, t.team_season_id`),
         ]);
@@ -84,7 +85,7 @@ export function createReadTallies({ db }: AwardVotePorts) {
         }));
         tallies.push({
             award: GM_OF_THE_YEAR, label: awardDefinition(GM_OF_THE_YEAR).label,
-            lines: teams.map(({ owner, points, votes, place, ...team }) => ({ team, owner, points, votes, place })),
+            lines: teams.map(teamTallyLine),
         });
         return { ok: true, counted: vote.counted, tallies: tallies.filter(tally => tally.lines.length > 0) };
     };

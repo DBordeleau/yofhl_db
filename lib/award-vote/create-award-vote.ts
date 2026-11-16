@@ -81,8 +81,8 @@ export type { ScoreBallotsInput, ScoreBallotsRejection, ScoreBallotsResult } fro
 export type { RestoreBallotInput, RestoreBallotRejection, RestoreBallotResult, VoidBallotInput, VoidBallotRejection, VoidBallotResult } from './void-ballot';
 export type { PublishInput, PublishRejection, PublishResult } from './publish';
 export type { RefreshArchiveInput, RefreshArchiveRejection, RefreshArchiveResult } from './refresh-archive';
-export type { PublicBallot, PublicBallotAward, PublicRankedPlayer, ReadPublishedBallotsInput, ReadPublishedBallotsRejection, ReadPublishedBallotsResult } from './read-published-ballots';
-export type { PublishedTally, ReadPublishedTalliesInput } from './read-published-tallies';
+export type { PublicBallot, PublicBallotAward, PublicBallotRanking, PublicRankedPlayer, PublicRankedTeam, ReadPublishedBallotsInput, ReadPublishedBallotsRejection, ReadPublishedBallotsResult } from './read-published-ballots';
+export type { PublishedTally, PublishedTallyLine, ReadPublishedTalliesInput } from './read-published-tallies';
 export type { RetryFailedLookupsInput, RetryFailedLookupsRejection, RetryFailedLookupsResult } from './retry-failed-lookups';
 export type { SeasonDates } from './season-dates';
 export type { AwardVoteKind, RehearsalRefusal } from './rehearsal';

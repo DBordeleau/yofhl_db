@@ -8,7 +8,7 @@ import Arrow from '@/components/arrow';
 
 export const metadata: Metadata = {
     title: 'League awards · YOFHL',
-    description: 'Explore the eight YOFHL trophies, what they honour, and the teams and players who have won them.',
+    description: 'Explore the YOFHL trophies, what they honour, and the teams and players who have won them.',
 };
 
 export default async function AwardsPage() {

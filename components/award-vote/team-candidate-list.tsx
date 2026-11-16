@@ -65,7 +65,7 @@ function TransactionLines({ transactions }: { transactions: TransactionSummary }
         <MoveList label="Drops" moves={drops} sign={-1} />
         {otherMoves && <div>
             <dt className="text-xs uppercase text-ink-soft">Other claims and drops</dt>
-            <dd>{otherMoves.count}, net {signed(otherMoves.netFpts)}</dd>
+            <dd>{otherMoves.count} {otherMoves.count === 1 ? 'move' : 'moves'}, {signed(otherMoves.moveValue)} FPts</dd>
         </div>}
         {draftClass.length > 0 && <div>
             <dt className="text-xs uppercase text-ink-soft">Draft</dt>

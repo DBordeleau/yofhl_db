@@ -9,6 +9,7 @@
 //  - A claim or a trade is worth what the player scored at the franchise receiving them, until they next left it;
 //    the franchise that traded them away lost the same.
 //  - A drop costs what the player scored from the drop until the regular season ended or that franchise got them back.
+// Only moves up to the regular season's last day count: one made in the playoffs is left out.
 import type { DateRange, DraftedPlayer, FreeAgentMove, TradedAsset, TradeSummary, TransactionSummary } from './model';
 
 /** one asset of one of the season's transactions, as imported */
@@ -61,7 +62,7 @@ export function transactionSummaries({ regularSeason, moves, dailyPoints, draft 
             .reduce((sum, { points }) => sum + points, 0));
     };
 
-    const ordered = [...moves].sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt) || a.sourceRow - b.sourceRow);
+    const ordered = moves.filter(move => move.occurredOn <= regularSeason.endDate).sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt) || a.sourceRow - b.sourceRow);
     const afterSeason = dayAfter(regularSeason.endDate);
     /**
      * the move value of the player move at `index` in `ordered`: until the player next left the receiving franchise,
@@ -119,8 +120,8 @@ export function transactionSummaries({ regularSeason, moves, dailyPoints, draft 
         summary.drops = dropped.slice(0, MOVES_SHOWN);
         const [otherClaims, otherDrops] = [claimed.slice(MOVES_SHOWN), dropped.slice(MOVES_SHOWN)];
         const count = otherClaims.length + otherDrops.length;
-        const net = otherClaims.reduce((sum, move) => sum + move.moveValue, 0) - otherDrops.reduce((sum, move) => sum + move.moveValue, 0);
-        summary.otherMoves = count ? { count, netFpts: hundredths(net) } : null;
+        const moveValue = otherClaims.reduce((sum, move) => sum + move.moveValue, 0) - otherDrops.reduce((sum, move) => sum + move.moveValue, 0);
+        summary.otherMoves = count ? { count, moveValue: hundredths(moveValue) } : null;
     }
     for (const { franchiseId, ...pick } of [...draft].sort((a, b) => a.overall - b.overall)) summaryOf(franchiseId).draftClass.push(pick);
     return summaries;
