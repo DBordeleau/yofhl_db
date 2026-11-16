@@ -11,7 +11,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { VOID_REASON_LENGTH, type AwardVoteState } from './model';
 import type { AwardVotePorts } from './ports';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
-import { replaceTallies } from './tally';
+import { lockAwardVote, replaceTallies } from './tally';
 
 export interface VoidBallotInput {
     seasonYear: number;
@@ -96,8 +96,9 @@ async function refusal<Closed extends string>(db: AwardVotePorts['db'], seasonYe
 async function changeBallot<Closed extends string>(db: AwardVotePorts['db'], seasonYear: number, franchiseId: number, change: Change<Closed>) {
     const refused = await refusal(db, seasonYear, franchiseId, change);
     if (refused) return refused;
-    // one statement: the ballot changes only while changeable, and a scored vote's tallies are recomputed with it
-    const changed = await db.rows(sql`
+    // one statement, once the vote is locked (lockAwardVote): the ballot changes only while changeable, and a scored
+    // vote's tallies are recomputed with it
+    const [, changed] = await db.writeInOrder([lockAwardVote(seasonYear), sql`
         with changed as (
             update league.award_vote_ballots b set ${change.set}
             from league.award_votes v
@@ -106,7 +107,7 @@ async function changeBallot<Closed extends string>(db: AwardVotePorts['db'], sea
             returning v.state
         ), scored as (select 1 from changed where state = 'scored'),
         ${replaceTallies(seasonYear, sql`scored`, change.counts(franchiseId))}
-        select 1 from changed`);
+        select 1 from changed`]);
     if (changed.length) return null;
     return (await refusal(db, seasonYear, franchiseId, change)) ?? change.closed;
 }
