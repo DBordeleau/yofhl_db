@@ -58,7 +58,7 @@ test('publishing shows each award\'s tally on its award page, and expires the pa
 
     const { result, revalidatedTags } = await publish();
     assert.deepEqual(result, { ok: true });
-    assert.ok(revalidatedTags.includes(`league:award-vote:${SEASON}`), 'the season\'s ballots page');
+    assert.ok(revalidatedTags.includes(`league:award-vote-ballots:${SEASON}`), 'the season\'s ballots page');
     assert.ok(revalidatedTags.includes('league:award-vote-tallies'), 'the award pages\' tallies');
 
     // franchise 2's void ballot counts for nothing and franchise 4 didn't vote: two ballots counted

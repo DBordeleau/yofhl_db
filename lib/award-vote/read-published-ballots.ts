@@ -98,7 +98,7 @@ export function createReadPublishedBallots({ db }: AwardVotePorts) {
                 }),
             })),
         };
-    }, 'award-vote-published-ballots', (seasonYear: number) => [leagueTags.awardVote(seasonYear)]);
+    }, 'award-vote-published-ballots', (seasonYear: number) => [leagueTags.awardVoteBallots(seasonYear)]);
     return async function readPublishedBallots({ seasonYear }: ReadPublishedBallotsInput): Promise<ReadPublishedBallotsResult> {
         return read(seasonYear);
     };

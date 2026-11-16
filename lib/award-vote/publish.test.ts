@@ -37,7 +37,7 @@ test('publishing writes every award\'s place-one candidates into the archive, co
     const { result, revalidatedTags } = await publish();
     assert.deepEqual(result, { ok: true });
     assert.deepEqual(revalidatedTags.toSorted(),
-        ['league:award-vote-tallies', `league:award-vote:${SEASON}`,'league:awards', 'league:players', 'league:records', 'league:season-leaderboard', `league:season:${SEASON}`]);
+        [`league:award-vote-ballots:${SEASON}`, 'league:award-vote-tallies', 'league:awards', 'league:players', 'league:records', 'league:season-leaderboard', `league:season:${SEASON}`]);
     const { vote } = await admin();
     assert.equal(vote?.state, 'published');
     assert.ok(vote?.publishedAt && Math.abs(Date.parse(vote.publishedAt) - Date.now()) < 60_000, 'published just now');

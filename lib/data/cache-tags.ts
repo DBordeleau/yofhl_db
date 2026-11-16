@@ -22,7 +22,7 @@ export const leagueTags = {
     /** a published award vote's tallies, which every voted award's page reads */
     awardVoteTallies: 'league:award-vote-tallies',
     /** a season's published award vote: its ballots page */
-    awardVote: (year: number) => `league:award-vote:${year}`,
+    awardVoteBallots: (year: number) => `league:award-vote-ballots:${year}`,
     season: (year: number) => `league:season:${year}`,
     franchise: (id: number) => `league:franchise:${id}`,
 };
@@ -53,9 +53,9 @@ export function seasonSyncEffects(changes: readonly SeasonSyncChange[], year: nu
     return { views: [...new Set(effects.flatMap(effect => effect.views))], tags: [...new Set(effects.flatMap(effect => effect.tags))] };
 }
 
-// 'awardVote' is publishing an award vote (lib/award-vote/publish.ts): its winners are an awards edit, and its
+// 'awardVotePublished' is publishing an award vote (lib/award-vote/publish.ts): its winners are an awards edit, and its
 // tallies and ballots become public.
-export type CuratedEdit = 'roster' | 'awards' | 'awardVote' | 'matchup';
+export type CuratedEdit = 'roster' | 'awards' | 'awardVotePublished' | 'matchup';
 export function curatedEditEffects(kind: CuratedEdit, year: number): { views: MaterializedView[]; tags: string[] } {
     switch (kind) {
         case 'roster': return {
@@ -66,9 +66,9 @@ export function curatedEditEffects(kind: CuratedEdit, year: number): { views: Ma
             views: ['player_careers'],
             tags: [leagueTags.season(year), leagueTags.seasonLeaderboard, leagueTags.players, leagueTags.awards, leagueTags.records],
         };
-        case 'awardVote': {
+        case 'awardVotePublished': {
             const { views, tags } = curatedEditEffects('awards', year);
-            return { views, tags: [...tags, leagueTags.awardVoteTallies, leagueTags.awardVote(year)] };
+            return { views, tags: [...tags, leagueTags.awardVoteTallies, leagueTags.awardVoteBallots(year)] };
         }
         case 'matchup': return {
             views: ['franchise_records', 'season_results'],
