@@ -183,7 +183,7 @@ One voted award's scored result: every ranked candidate's points, first-place vo
 _Avoid_: results, score, count
 
 **Move value**:
-The fantasy points a player scored from the day a franchise acquired them until they next left its roster or the regular season ended: gained by the franchise that got them, lost by the one that gave them up. Bench days count. It is what GM of the Year's transaction summary ranks moves by.
+The fantasy points a player scored from the day a franchise acquired them until they next left its roster or the regular season ended: gained by the franchise that got them, lost by the one that gave them up. Bench days count. A day's points go to whoever holds the player after that day's moves, and a move before the season's first day counts from it. A drop's move value is what it cost: the points the player scored from the drop until the regular season ended or the franchise got them back. It is what GM of the Year's transaction summary ranks moves by.
 _Avoid_: impact, worth, net points
 
 ## Coach's Corner

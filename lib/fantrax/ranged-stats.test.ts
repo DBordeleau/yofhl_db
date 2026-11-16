@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { findByDateSeasonCode, loadRangedGoalies, loadRangedPoints, loadRangedSkaterPage, loadRangedSkaters } from './ranged-stats';
+import { findByDateSeasonCode, loadRangedGoalies, loadRangedPoints, loadRangedPointsPage, loadRangedSkaterPage, loadRangedSkaters } from './ranged-stats';
 import type { Fetcher } from './leaders';
 
 // Recorded signed-out answers to ranged getPlayerStats requests against the 2026-27 league (lib/fantrax/fixtures),
@@ -89,6 +89,22 @@ test("an all-positions single day returns each player's fantasy points without c
     assert.deepEqual(players[0], { id: '042t5', name: 'Tage Thompson', positions: 'C,RW', nhlTeam: 'BUF', age: 29, points: 25.25, perGame: 25.25 });
     assert.equal(requests[0].positionOrGroup, 'ALL');
     assert.equal(requests[0].scoringCategoryType, '5');
+});
+
+test('one page of an all-positions single day is read on its own, with the size of the whole table', async () => {
+    const { fetcher, requests } = fantrax('ranged-all-day');
+    const day = { ...regularSeason, startDate: '2026-01-15', endDate: '2026-01-15' };
+    const page = await loadRangedPointsPage(day, 1, { fetcher, pageSize: 20 });
+    assert.deepEqual([page.pages, page.total, page.players.length], [1, 20, 20]);
+    assert.deepEqual(page.players[1], { id: '03924', name: 'Jack Eichel', positions: 'C', nhlTeam: 'VGK', age: 30, points: 17.25, perGame: 17.25 });
+    assert.deepEqual([requests[0].positionOrGroup, requests[0].startDate, requests[0].endDate, requests[0].pageNumber], ['ALL', '2026-01-15', '2026-01-15', '1']);
+});
+
+test('a season-to-date answer to an all-positions single day throws, as does an answer for another day', async () => {
+    // Fantrax's recorded answer to a single day sent as 01/15/2026: by-date code and timeframe, but the whole season's dates and totals
+    const day = { ...regularSeason, startDate: '2026-01-15', endDate: '2026-01-15' };
+    await assert.rejects(loadRangedPointsPage(day, 1, { fetcher: fantrax('ranged-season-to-date').fetcher, pageSize: 20 }), /dates/);
+    await assert.rejects(loadRangedPointsPage({ ...day, startDate: '2026-01-16', endDate: '2026-01-16' }, 1, { fetcher: fantrax('ranged-all-day').fetcher, pageSize: 20 }), /dates/);
 });
 
 test('a range beyond one page is read in full, page by page', async () => {

@@ -2,7 +2,7 @@
 // in-memory Fantrax (memory-fantrax.ts) and NHL lookup (memory-nhl.ts), a fake clock, and the app's own database
 // handle pointed at a disposable league.
 import type { rows, writeInOrder } from '@/lib/data/db';
-import type { RangedGoalie, RangedPage, RangedSkater } from '@/lib/fantrax/ranged-stats';
+import type { RangedGoalie, RangedPage, RangedPlayer, RangedSkater } from '@/lib/fantrax/ranged-stats';
 // a type only: the owner session reads the award vote for its header nudge (read-ballot-nudge.ts), so importing its
 // value here would be a cycle
 import type { OwnerSession } from '@/lib/owner/create-owner-session';
@@ -38,6 +38,11 @@ export interface AwardVoteFantrax {
     skaters(range: AwardVoteRange, page: number): Promise<RangedPage<RangedSkater>>;
     /** one page (from 1) of every NHL goalie's totals over the range, scored or not, fantasy points descending */
     goalies(range: AwardVoteRange, page: number): Promise<RangedPage<RangedGoalie>>;
+    /**
+     * one page (from 1) of every NHL player's fantasy points over the range (a single day, for move value), without
+     * games played or categories, fantasy points descending
+     */
+    points(range: AwardVoteRange, page: number): Promise<RangedPage<RangedPlayer>>;
     /** every team's roster on one past daily roster period, by Fantrax team ID */
     dayRosters(leagueId: string, rosterPeriod: number): Promise<FantraxDayRosters>;
 }

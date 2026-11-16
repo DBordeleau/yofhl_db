@@ -9,7 +9,7 @@ import { createMemoryNhl, type MemoryNhlState } from '../memory-nhl';
 import { PLAYER_AWARD_IDS, type BallotRankings, type PlayerAwardId } from '../model';
 import type { AwardTally, PlayerAwardTally } from '../read-tallies';
 import { awardDefinition } from '../voted-awards';
-import type { FantraxRosterPeriod, FantraxWeek, NhlPlayerRecord, RangedGoalie, RangedSkater } from '../ports';
+import type { FantraxRosterPeriod, FantraxWeek, NhlPlayerRecord, RangedGoalie, RangedPlayer, RangedSkater } from '../ports';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -24,6 +24,8 @@ export const REGULAR_SEASON = { startDate: '2026-10-12', endDate: '2026-11-01' }
 export const PLAYOFF_ROUNDS = { startDate: '2026-11-02', endDate: '2026-11-22' };
 /** week 6 */
 export const FINAL = { startDate: '2026-11-16', endDate: '2026-11-22' };
+/** the regular season's 21 days, October 12 to November 1, 2026 */
+export const REGULAR_SEASON_DAYS = Array.from({ length: 21 }, (_, day) => new Date(Date.UTC(2026, 9, 12 + day)).toISOString().slice(0, 10));
 
 const EASTERN = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
@@ -77,8 +79,9 @@ export const savePercentageGoalie = (id: string, points: number, more: Partial<R
 // published: franchise 1 beat franchise 2. The 2026–27 season (2027) names franchise N "Club N" (CN,
 // /logos/cN.png) in team season 10 + N; with `champion`, franchise 1 beat franchise 2 in its Final. Fantrax team fxN
 // of league27 is franchise N in 2027. The owner account owner-N manages franchise N on the site. The archive's award
-// types are the six voted awards, by their catalogue names.
-const seed = (champion: boolean) => `
+// types are the six voted awards, by their catalogue names. With `transactions`, each season has imported
+// transactions: franchise 4 traded franchise 3 a 2028 ninth-round pick on its first day (BASELINE_TRADE).
+const seed = (champion: boolean, transactions: boolean) => `
     insert into league.seasons values (2026, '2025–26', 'complete'), (${SEASON}, '2026–27', 'complete');
     insert into league.franchises (id, display_name, first_season) values ${FRANCHISES.map(id => `(${id}, 'Franchise ${id}', 2020)`).join(', ')};
     insert into league.owners (id, name) values ${FRANCHISES.map(id => `(${id}, 'Owner ${id}')`).join(', ')};
@@ -94,7 +97,15 @@ const seed = (champion: boolean) => `
         values ${FRANCHISES.map(id => `(${id}, 'owner-${id}', 'owner${id}@example.test', 1)`).join(', ')};
     insert into league.award_types (name, label, description, sort_order)
         values ${PLAYER_AWARD_IDS.map((award, index) => `('${awardDefinition(award).name}', '${awardDefinition(award).label}', 'Voted', ${index + 1})`).join(', ')};
+    ${transactions ? [2026, SEASON].map(year => `
+        insert into league.transaction_events (id, season_year, kind, occurred_at, occurred_on, source_file, source_time)
+            values ('baseline-${year}', ${year}, 'trade', '2026-10-12T17:00:00Z', '2026-10-12', 'trades.csv', '12:00PM');
+        insert into league.transaction_assets (id, event_id, player_id, label, asset_kind, action, from_franchise_id, to_franchise_id, from_name, to_name, source_row)
+            values ('baseline-${year}-1', 'baseline-${year}', null, '${BASELINE_TRADE}', 'pick', 'trade', 4, 3, 'Club 4', 'Club 3', 0);`).join('') : ''}
 `;
+
+/** the pick each season's seeded trade sent from franchise 4 to franchise 3 */
+export const BASELINE_TRADE = '2028 Draft Pick, Round 9 (Club 4)';
 
 const HOUR = 3600_000;
 /**
@@ -110,6 +121,7 @@ export function fantraxState(): MemoryAwardVoteFantraxState {
         // no one has played over any stretch until a test says so
         skaters: { [rangeKey(REGULAR_SEASON)]: [], [rangeKey(PLAYOFF_ROUNDS)]: [], [rangeKey(FINAL)]: [] },
         goalies: { [rangeKey(REGULAR_SEASON)]: [], [rangeKey(PLAYOFF_ROUNDS)]: [], [rangeKey(FINAL)]: [] },
+        points: Object.fromEntries(REGULAR_SEASON_DAYS.map(day => [rangeKey({ startDate: day, endDate: day }), []])),
         rosters: Object.fromEntries(ROSTER_PERIODS.map(period => [period.number, Object.fromEntries(FRANCHISES.map(id => [`fx${id}`, []]))])),
         down: new Set(),
         reads: [],
@@ -119,8 +131,8 @@ export function fantraxState(): MemoryAwardVoteFantraxState {
 /** after the 2027 Final */
 export const AFTER_FINAL = Date.parse('2026-11-25T12:00:00Z');
 
-export async function awardVoteLeague(t: TestContext, options: { champion?: boolean } = {}) {
-    const league = await disposableLeague(t, { app: true, nextCache: true, seed: seed(options.champion ?? true) });
+export async function awardVoteLeague(t: TestContext, options: { champion?: boolean; transactions?: boolean } = {}) {
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: seed(options.champion ?? true, options.transactions ?? true) });
     // Modules that touch Next load after the league stands in for it.
     const { rows, writeInOrder } = await import('@/lib/data/db');
     const { createAwardVote } = await import('../create-award-vote');
@@ -160,9 +172,18 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
         fantrax.skaters[rangeKey(REGULAR_SEASON)] = skaters;
         fantrax.goalies[rangeKey(REGULAR_SEASON)] = goalies;
     };
+    /**
+     * Fantrax's all-positions points table for regular-season day `day` (`YYYY-MM-DD`) now lists these players with
+     * their fantasy points that day, as `[player ID, points]`, best first
+     */
+    const scoredOn = (day: string, scores: [string, number][]) => {
+        fantrax.points[rangeKey({ startDate: day, endDate: day })] = scores
+            .map(([id, points]): RangedPlayer => ({ id, name: `Player ${id}`, positions: 'C', nhlTeam: 'EDM', age: 25, points, perGame: points }))
+            .sort((a, b) => b.points - a.points);
+    };
     /** prepare in as many calls as it takes, returning the last result and how many calls it took */
     const prepareFully = async (seasonYear = SEASON) => {
-        for (let calls = 1; calls <= 20; calls++) {
+        for (let calls = 1; calls <= 100; calls++) {
             const result = await act(() => vote.prepare({ seasonYear }));
             if (!result.ok || result.done) return { result, calls };
         }
@@ -194,18 +215,36 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
             insert into league.transaction_assets (id, event_id, player_id, label, asset_kind, action, from_franchise_id, to_franchise_id, from_name, to_name, source_row)
                 values ('${id}-1', '${id}', '${playerId}', 'Archive ${playerId}', 'player', 'claim', null, ${to}, null, 'Club ${to}', ${transactions});`);
     };
-    /** the archive's 2027 transactions include franchise `from` trading `playerId` to franchise `to` on `on` */
-    const traded = async (playerId: string, from: number, to: number, on: string) => {
+    /**
+     * the archive's 2027 transactions include one trade on `on` of these assets, each a player (by ID) or a draft
+     * pick (by its label, e.g. `2028 Draft Pick, Round 2 (Club 3)`) going from franchise `from` to franchise `to`
+     */
+    const trade = async (on: string, assets: (({ player: string } | { pick: string }) & { from: number; to: number })[]) => {
         const id = `t${++transactions}`;
-        await league.client.exec(`${players([playerId])}
+        const ids = assets.flatMap(asset => 'player' in asset ? [asset.player] : []);
+        await league.client.exec(`${ids.length ? players(ids) : ''}
             insert into league.transaction_events (id, season_year, kind, occurred_at, occurred_on, source_file, source_time)
                 values ('${id}', ${SEASON}, 'trade', '${on}T17:00:00Z', '${on}', 'transactions.csv', '12:00PM');
             insert into league.transaction_assets (id, event_id, player_id, label, asset_kind, action, from_franchise_id, to_franchise_id, from_name, to_name, source_row)
-                values ('${id}-1', '${id}', '${playerId}', 'Archive ${playerId}', 'player', 'trade', ${from}, ${to}, 'Club ${from}', 'Club ${to}', ${transactions});`);
+                values ${assets.map((asset, index) => `('${id}-${index + 1}', '${id}', ${'player' in asset ? `'${asset.player}'` : 'null'},
+                    '${'player' in asset ? `Archive ${asset.player}` : asset.pick}', '${'player' in asset ? 'player' : 'pick'}', 'trade',
+                    ${asset.from}, ${asset.to}, 'Club ${asset.from}', 'Club ${asset.to}', ${transactions * 10 + index})`).join(', ')};`);
+    };
+    /** the archive's 2027 transactions include franchise `from` trading `playerId` to franchise `to` on `on` */
+    const traded = (playerId: string, from: number, to: number, on: string) => trade(on, [{ player: playerId, from, to }]);
+    /**
+     * the archive's 2027 draft has franchise `franchise` taking `playerId` (null for an empty selection) with pick
+     * `overall`, in rounds of four picks
+     */
+    const drafted = async (playerId: string | null, franchise: number, overall: number) => {
+        await league.client.exec(`${playerId ? players([playerId]) : ''}
+            insert into league.draft_picks (season_year, overall, round, pick, franchise_id, team_name, player_id, player_name, positions, drafted_on, source_time, source_file)
+            values (${SEASON}, ${overall}, ${Math.ceil(overall / 4)}, ${(overall - 1) % 4 + 1}, ${franchise}, 'Club ${franchise}',
+                ${playerId ? `'${playerId}'` : 'null'}, ${playerId ? `'Drafted ${playerId}'` : 'null'}, 'C', '2026-09-20', '7:00', 'draft.csv');`);
     };
     return {
-        league, vote, fantrax, nhl: nhlState, clock, request: request.state, act, asOwner, signInAs, headerAnswer, setRegularSeason, prepareFully,
-        openVoting, ballotLockPasses, endedSeasonWith, dropped, claimed, traded,
+        league, vote, fantrax, nhl: nhlState, clock, request: request.state, act, asOwner, signInAs, headerAnswer, setRegularSeason, scoredOn, prepareFully,
+        openVoting, ballotLockPasses, endedSeasonWith, dropped, claimed, trade, traded, drafted,
     };
 }
 

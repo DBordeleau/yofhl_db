@@ -515,6 +515,18 @@ export const awardVoteTeamSeasons = league.table('award_vote_team_seasons', {
     summary: jsonb('summary').$type<TeamSummary>().notNull(),
 }, (t) => [primaryKey({ columns: [t.seasonYear, t.teamSeasonId] })]);
 
+// The snapshot's fantasy points per player and regular-season day, read for move value (GLOSSARY.md): only the
+// players in the season's transactions, and only days they scored on. GM of the Year's transaction summary is
+// written from it. Players are not referenced, as in award_vote_players; it goes with the award vote, and preparing
+// again replaces it.
+export const awardVoteDailyPoints = league.table('award_vote_daily_points', {
+    seasonYear: integer('season_year').notNull().references(() => awardVotes.seasonYear, { onDelete: 'cascade' }),
+    playerId: text('player_id').notNull(),
+    // the Eastern game date
+    day: date('day').notNull(),
+    points: fpts('points').notNull(),
+}, (t) => [primaryKey({ columns: [t.seasonYear, t.playerId, t.day] })]);
+
 // A season's GM of the Year tally, as award_vote_tallies is each individual award's: one row per ranked team season
 // with its points, votes at each rank (three deep) and place. Kept for good: deleting an award vote does not cascade
 // to it, and re-preparing the snapshot never touches it. Indexed by team season for its finishes.

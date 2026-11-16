@@ -104,6 +104,11 @@ export function loadRangedPoints(range: RangedRead, options?: RangedReadOptions)
     return loadRanged(range, 'ALL', {}, options);
 }
 
+/** one page (from 1) of every NHL player's fantasy points over the range, for a caller that reads the pages apart */
+export function loadRangedPointsPage(range: RangedRead, page: number, options?: RangedReadOptions): Promise<RangedPage<RangedPlayer>> {
+    return loadRangedPage(range, 'ALL', {}, page, options);
+}
+
 /**
  * The by-date code of a season year (e.g. `SEASON_31l_BY_DATE` for 2026), from the seasons a one-row stats page
  * offers. Throws when Fantrax offers no date ranges for that season.

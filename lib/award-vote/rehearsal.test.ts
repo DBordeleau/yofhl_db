@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rangeKey } from './memory-fantrax';
-import { awardVoteLeague, FINAL, FRANCHISES, goalie, lockInHours, nhlRecord, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
+import { awardVoteLeague, BASELINE_TRADE, FINAL, FRANCHISES, goalie, lockInHours, nhlRecord, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
 
 // The rehearsal: the season before the live season (2026 here, the live season being 2027) prepared and previewed
 // like a live award vote, but never opened. Its Fantrax league is the 2025–26 one, league26, mapped like league27.
@@ -22,7 +22,7 @@ async function rehearsalLeague(t: Parameters<typeof awardVoteLeague>[0]) {
 }
 
 test('the season before the live season is prepared and previewed as a rehearsal, with every award a live prepare shows', async t => {
-    const { act, vote, fantrax, nhl, setRegularSeason, prepareFully, fantraxIs2026, league } = await rehearsalLeague(t);
+    const { act, vote, fantrax, nhl, setRegularSeason, scoredOn, prepareFully, fantraxIs2026, league } = await rehearsalLeague(t);
     setRegularSeason([skater('s1', 300), skater('d1', 200, { positions: 'D' })], [goalie('g1', 100)]);
     // a rookie in both seasons
     nhl.players.d1 = nhlRecord();
@@ -38,6 +38,14 @@ test('the season before the live season is prepared and previewed as a rehearsal
         insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
             values ('s1', 2026, 3, 'EDM', '{C}', 100, 10);`);
     for (const period of ROSTER_PERIODS.slice(-7)) fantrax.rosters[period.number].old1.push({ id: 's1', status: 'ACTIVE' });
+    // franchise 2 claimed s1 for a while in 2025–26 (whose league has the same dates here)
+    await league.client.exec(`
+        insert into league.transaction_events (id, season_year, kind, occurred_at, occurred_on, source_file, source_time)
+            values ('rehearsal-claim', 2026, 'free_agent', '2026-10-20T17:00:00Z', '2026-10-20', 'transactions.csv', '12:00PM');
+        insert into league.transaction_assets (id, event_id, player_id, label, asset_kind, action, from_franchise_id, to_franchise_id, from_name, to_name, source_row)
+            values ('rehearsal-claim-1', 'rehearsal-claim', 's1', 'Archive s1', 'player', 'claim', null, 2, null, 'Old 2', 1);`);
+    scoredOn('2026-10-19', [['s1', 30]]);
+    scoredOn('2026-10-25', [['s1', 12.5]]);
     const prepared = (await prepareFully(2026)).result;
     assert.ok(prepared.ok && prepared.done, JSON.stringify(prepared));
     assert.deepEqual(prepared, livePrepared);
@@ -59,10 +67,22 @@ test('the season before the live season is prepared and previewed as a rehearsal
     const briere = rehearsal.ballot!.find(award => award.award === 'danny-briere')!;
     assert.deepEqual(briere.candidates[0].team, { teamSeasonId: 1, franchiseId: 1, name: 'Old 1', abbreviation: 'O1', logo: '/logos/o1.png' });
     assert.deepEqual([briere.candidates[0].stats.playoffRounds?.points, briere.candidates[0].stats.final?.points], [40, 15]);
-    // GM of the Year's team summaries too, for 2025–26 (which the archive has no season before)
+    // GM of the Year's team summaries too, for 2025–26 (which the archive has no season before), with their
+    // transaction summaries from 2025–26's moves: franchise 4's pick to franchise 3 and franchise 2's claim
+    const empty = { trades: [], claims: [], drops: [], otherMoves: null, draftClass: [] };
+    const pick = (team: string) => ({ kind: 'pick', label: BASELINE_TRADE, team });
+    const transactions = [
+        empty,
+        { ...empty, claims: [{ playerId: 's1', name: 'Archive s1', occurredOn: '2026-10-20', moveValue: 12.5 }] },
+        { ...empty, trades: [{ occurredOn: '2026-10-12', received: [pick('Old 4')], sent: [] }] },
+        { ...empty, trades: [{ occurredOn: '2026-10-12', received: [], sent: [pick('Old 3')] }] },
+    ];
     assert.deepEqual(rehearsal.gmOfTheYear?.candidates.map(candidate => [candidate.name, candidate.owner, candidate.summary]), [1, 2, 3, 4].map(id => [
         `Old ${id}`, `Owner ${id}`,
-        { season: { wins: 10, losses: 5, ties: 1, fptsFor: 1000, playoffFinish: ['champion', 'finalist', 'missed', 'missed'][id - 1] }, previous: null },
+        {
+            season: { wins: 10, losses: 5, ties: 1, fptsFor: 1000, playoffFinish: ['champion', 'finalist', 'missed', 'missed'][id - 1] }, previous: null,
+            transactions: transactions[id - 1],
+        },
     ]));
 
     assert.equal(live.kind, 'live');
