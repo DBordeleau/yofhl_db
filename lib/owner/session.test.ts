@@ -155,7 +155,7 @@ test('signing in and claiming set the session hint, and signing out clears it', 
 
 test('the header answer sets the hint for a valid session and clears it for an invalid or revoked one', async t => {
     const { identity, request, act, signInAs } = await owners(t);
-    const signedOut = { signedIn: false, team: null, keepers: null };
+    const signedOut = { signedIn: false, team: null, keepers: null, awardVote: null };
     assert.deepEqual(await act(s => s.headerAnswer()), signedOut);
     assert.equal(request.state.cookies.size, 0, 'an anonymous answer sets no cookie');
 
@@ -166,6 +166,7 @@ test('the header answer sets the hint for a valid session and clears it for an i
         signedIn: true,
         team: { name: 'Owned Club', logo: 'https://blob.test/team-logos/1/logo-old.webp', abbreviation: 'OC' },
         keepers: null,
+        awardVote: null,
     });
     assertHintBesideSession(request);
 

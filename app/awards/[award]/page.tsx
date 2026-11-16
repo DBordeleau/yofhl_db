@@ -10,6 +10,9 @@ import { seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import ExploreNext from '@/components/explore-next';
 import { getSeasonArchive } from '@/lib/data/league';
+import PublishedTallyTable from '@/components/award-vote/published-tally';
+import { awardVote } from '@/lib/award-vote/award-vote';
+import { PLAYER_AWARD_IDS, type PlayerAwardId } from '@/lib/award-vote/model';
 
 export async function generateStaticParams() {
     const names = new Set([...AWARDS.map((award) => award.name), ...(await getAwardTypes()).map((award) => award.name)]);
@@ -37,6 +40,9 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
     const label = definition?.label ?? award.label;
     const latestSeason = latest && (await getSeasonArchive()).published.find(season => season.year === latest.Year);
     const href = awardHref(award.name);
+    // a voted award's published tallies, newest first; none for every other award and every season without a published award vote
+    const votedAward = PLAYER_AWARD_IDS.find((id): id is PlayerAwardId => id === definition?.id);
+    const tallies = votedAward ? await awardVote.readPublishedTallies({ award: votedAward }) : [];
 
     return (
         <main className="mx-auto max-w-page px-4 pb-16 pt-5 md:px-8 md:pt-8 3xl:max-w-page-3xl 4xl:max-w-page-4xl">
@@ -69,6 +75,12 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                 <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'}
                     award={{ id: definition?.id ?? null, name: award.name, label, honor: definition?.honor ?? award.description, image: definition?.image ?? null }} />
             </section>
+            {tallies.length > 0 && <section className="mx-auto mt-10 max-w-board" aria-labelledby="tallies-title">
+                <h2 id="tallies-title" className="font-wide mb-4 px-1 text-xl font-extrabold uppercase md:text-2xl">Tallies</h2>
+                <div className="grid gap-6">
+                    {tallies.map(tally => <PublishedTallyTable key={tally.seasonYear} tally={tally} />)}
+                </div>
+            </section>}
             <ExploreNext currentHref={href} links={[
                 latestHref ? { href: latestHref, title: latest.Winner, reason: `Latest winner · ${seasonLabel(latest.Year)}` } : null,
                 latestSeason ? { href: `/season/${latestSeason.year}`, title: seasonLabel(latestSeason.year), reason: 'Explore the latest award-winning season' } : null,

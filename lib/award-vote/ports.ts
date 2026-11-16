@@ -3,6 +3,9 @@
 // handle pointed at a disposable league.
 import type { rows, writeInOrder } from '@/lib/data/db';
 import type { RangedGoalie, RangedPage, RangedSkater } from '@/lib/fantrax/ranged-stats';
+// a type only: the owner session reads the award vote for its header nudge (read-ballot-nudge.ts), so importing its
+// value here would be a cycle
+import type { OwnerSession } from '@/lib/owner/create-owner-session';
 import type { FantraxDayRosters, FantraxRosterPeriod, FantraxWeek } from '@/lib/season-sync/ports';
 
 export type { FantraxDayRosters, FantraxRosterPeriod, FantraxWeek } from '@/lib/season-sync/ports';
@@ -71,9 +74,13 @@ export interface AwardVoteDatabase {
     writeInOrder: typeof writeInOrder;
 }
 
+/** who is signed in, and the owner preamble every ballot write starts with (lib/owner/create-owner-session.ts) */
+export type AwardVoteOwnerSession = Pick<OwnerSession, 'currentOwnerTeam' | 'ownerPreamble'>;
+
 export interface AwardVotePorts {
     clock: AwardVoteClock;
     fantrax: AwardVoteFantrax;
     nhl: AwardVoteNhl;
     db: AwardVoteDatabase;
+    ownerSession: AwardVoteOwnerSession;
 }

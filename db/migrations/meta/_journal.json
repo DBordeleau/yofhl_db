@@ -204,6 +204,20 @@
       "when": 1794764625056,
       "tag": "0028_award_votes",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794784903790,
+      "tag": "0029_award_vote_ballots",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1794786727629,
+      "tag": "0030_award_vote_tallies",
+      "breakpoints": true
     }
   ]
 }

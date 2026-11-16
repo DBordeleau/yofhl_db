@@ -11,6 +11,7 @@ const messages = {
     'no-playoffs': 'This season has no playoffs, so it has no championship roster.',
     'unknown-player': "Some of those players didn't play that season.",
     'unknown-award': "One of those awards doesn't exist.",
+    'award-vote-published': "This season's award vote is published, so its winners can't be changed here.",
     'unknown-matchup': 'That playoff game no longer exists. Reload the page.',
     'not-playoff': 'Only playoff games can be corrected here.',
     'not-in-matchup': 'The winner has to be one of the two teams.',

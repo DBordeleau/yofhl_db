@@ -11,6 +11,24 @@ export const FIRST_AWARD_VOTE_SEASON = 2027;
 export const PLAYER_AWARD_IDS = ['wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere'] as const;
 export type PlayerAwardId = typeof PLAYER_AWARD_IDS[number];
 
+/** the points each rank of an individual voted award is worth on a ballot, first place first (GLOSSARY.md, "Tally") */
+export const PLAYER_AWARD_POINTS = [10, 7, 5, 3, 1] as const;
+/**
+ * how many candidates a ballot ranks for each individual voted award (all of them when it has fewer). An award with
+ * fewer than five eligible candidates (the Teemu Trophy in a thin rookie year, the Danny Briere Award's finalists)
+ * can't be filled five deep, so it ranks every candidate it has, and a complete ballot means every rank it has filled.
+ */
+export const PLAYER_AWARD_DEPTH = PLAYER_AWARD_POINTS.length;
+
+/**
+ * A ballot's rankings: for each voted award, its candidates' player IDs from first place down. A draft may leave a
+ * rank empty (null) or leave an award out; a submitted ballot fills every rank of every award on it.
+ */
+export type BallotRankings = Partial<Record<PlayerAwardId, (string | null)[]>>;
+
+/** the longest reason the admin may give for voiding a ballot, in characters: room for a few sentences, published with it */
+export const VOID_REASON_LENGTH = 500;
+
 /**
  * A named stretch of the season a candidate's stats cover. The regular-season awards show `regularSeason`; the
  * Danny Briere Award shows `playoffRounds` (every playoff round, the Final included) and `final` (the Final alone).

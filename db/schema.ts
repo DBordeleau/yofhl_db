@@ -23,7 +23,7 @@ import type { KeeperPlayer, RookieReview } from '@/lib/keepers/model';
 import type { TeamColours } from '@/lib/team-branding';
 import type { DraftDevelopmentFacts } from '@/lib/draft/development';
 import type { SavedLiveSeason } from '@/lib/fantrax/fantrax-client';
-import type { AwardVoteState, PlayerAwardId, PrepareProgress, RookieAdjustments, StatLine, StatSetName } from '@/lib/award-vote/model';
+import type { AwardVoteState, BallotRankings, PlayerAwardId, PrepareProgress, RookieAdjustments, StatLine, StatSetName } from '@/lib/award-vote/model';
 
 // Seasons are keyed by the year they end in: 2026 is the 2025–26 season.
 //
@@ -405,7 +405,8 @@ export const awards = league.table(
 // One award vote per season year. A rehearsal (the season before the live season) can only ever be prepared.
 // prepare_progress is how far the latest prepare has got; prepared_at is set when it finishes, so a snapshot is
 // readable only while prepared_at is set. rookie_adjustments are the admin's additions to and removals from the
-// computed Teemu Trophy candidates, kept across re-prepares.
+// computed Teemu Trophy candidates, kept across re-prepares. Opening sets the ballot lock and opened_at, so a vote
+// past prepared always has both; scored_at is when it was last scored and published_at when it was published.
 export const awardVotes = league.table('award_votes', {
     seasonYear: integer('season_year').primaryKey().references(() => seasons.year),
     state: text('state', { enum: ['prepared', 'open', 'scored', 'published'] }).$type<AwardVoteState>().notNull().default('prepared'),
@@ -414,11 +415,37 @@ export const awardVotes = league.table('award_votes', {
     prepareProgress: jsonb('prepare_progress').$type<PrepareProgress>().notNull(),
     preparedAt: timestamp('prepared_at', { withTimezone: true, mode: 'string' }),
     rookieAdjustments: jsonb('rookie_adjustments').$type<RookieAdjustments>().notNull().default({ added: [], removed: [] }),
+    openedAt: timestamp('opened_at', { withTimezone: true, mode: 'string' }),
+    scoredAt: timestamp('scored_at', { withTimezone: true, mode: 'string' }),
+    publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (t) => [
     check('award_votes_state', sql`${t.state} in ('prepared', 'open', 'scored', 'published')`),
     check('award_votes_rehearsal_prepared', sql`not ${t.rehearsal} or ${t.state} = 'prepared'`),
+    check('award_votes_opened', sql`${t.state} = 'prepared' or (${t.ballotLock} is not null and ${t.openedAt} is not null and ${t.preparedAt} is not null)`),
+    check('award_votes_scored', sql`${t.state} not in ('scored', 'published') or ${t.scoredAt} is not null`),
+]);
+
+// One franchise's ballot in a season's award vote (GLOSSARY.md, "Ballot"), cast by whoever manages the franchise.
+// Rankings are player IDs per award (BallotRankings), so a ballot references neither the snapshot's players nor its
+// candidates, and nothing that replaces the snapshot reaches it; nor does deleting an award vote cascade to it.
+// draft is the owner's working copy, which never counts; submitted is the last complete ballot submitted, with when
+// and by which owner account. A void ballot has its reason and when it was voided.
+export const awardVoteBallots = league.table('award_vote_ballots', {
+    seasonYear: integer('season_year').notNull().references(() => awardVotes.seasonYear),
+    franchiseId: integer('franchise_id').notNull().references(() => franchises.id),
+    draft: jsonb('draft').$type<BallotRankings>().notNull().default({}),
+    draftSavedAt: timestamp('draft_saved_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+    submitted: jsonb('submitted').$type<BallotRankings>(),
+    submittedAt: timestamp('submitted_at', { withTimezone: true, mode: 'string' }),
+    submittedByUid: text('submitted_by_uid'),
+    voidReason: text('void_reason'),
+    voidedAt: timestamp('voided_at', { withTimezone: true, mode: 'string' }),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.franchiseId] }),
+    check('award_vote_ballots_submitted', sql`(${t.submitted} is null) = (${t.submittedAt} is null) and (${t.submitted} is null) = (${t.submittedByUid} is null)`),
+    check('award_vote_ballots_void', sql`(${t.voidReason} is null) = (${t.voidedAt} is null) and (${t.voidReason} is null or ${t.submitted} is not null)`),
 ]);
 
 // The frozen snapshot: every player who is a candidate for some voted award, as Fantrax named them when the vote
@@ -456,6 +483,26 @@ export const awardVoteCandidates = league.table('award_vote_candidates', {
     primaryKey({ columns: [t.seasonYear, t.award, t.playerId] }),
     foreignKey({ name: 'award_vote_candidates_player', columns: [t.seasonYear, t.playerId], foreignColumns: [awardVotePlayers.seasonYear, awardVotePlayers.playerId] }).onDelete('cascade'),
     check('award_vote_candidates_award', sql`${t.award} in ('wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere')`),
+]);
+
+// A season's tally for each individual voted award (GLOSSARY.md, "Tally"): one row per ranked candidate with their
+// points, their votes at each rank (first place first, as deep as the award's ballot) and their place, which level
+// candidates share (place 1 wins). Only scoring writes it, replacing the season's rows. Kept for good: player IDs are
+// bare and reference neither the archive's players nor the snapshot, which re-preparing replaces, and deleting an
+// award vote does not cascade to it. Indexed by player for "this player's top-three finishes".
+export const awardVoteTallies = league.table('award_vote_tallies', {
+    seasonYear: integer('season_year').notNull().references(() => awardVotes.seasonYear),
+    award: text('award').$type<PlayerAwardId>().notNull(),
+    playerId: text('player_id').notNull(),
+    points: integer('points').notNull(),
+    votes: integer('votes').array().notNull(),
+    place: smallint('place').notNull(),
+}, (t) => [
+    primaryKey({ columns: [t.seasonYear, t.award, t.playerId] }),
+    index('award_vote_tallies_player').on(t.playerId, t.place),
+    check('award_vote_tallies_award', sql`${t.award} in ('wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'teemu-selanne', 'danny-briere')`),
+    check('award_vote_tallies_place', sql`${t.place} >= 1`),
+    check('award_vote_tallies_votes', sql`cardinality(${t.votes}) between 1 and 5`),
 ]);
 
 // ---- derived, refreshed after every import or curated edit (SQL lives in the views migration) ----

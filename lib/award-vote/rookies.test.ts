@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { AFTER_FINAL, awardVoteLeague, goalie, nhlRecord, SEASON, skater } from './testing/award-vote-league';
+import { AFTER_FINAL, awardVoteLeague, goalie, lockInHours, nhlRecord, SEASON, skater } from './testing/award-vote-league';
 
 const teemu = <T extends { award: string }>(ballot: T[] | null) => ballot!.find(award => award.award === 'teemu-selanne')!;
 
@@ -97,7 +97,7 @@ test("the admin's additions and removals change the Teemu Trophy at once and sur
 });
 
 test('the rookie list can only be changed while the award vote is prepared, and only for players in its snapshot', async t => {
-    const { act, vote, setRegularSeason, prepareFully, nhl, league } = await awardVoteLeague(t);
+    const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
     const adjust = (playerId: string, change: 'add' | 'remove' = 'add') => act(() => vote.adjustRookie({ seasonYear: SEASON, playerId, change }));
     assert.deepEqual(await adjust('unknown'), { ok: false, reason: 'not-prepared' });
 
@@ -106,7 +106,7 @@ test('the rookie list can only be changed while the award vote is prepared, and 
     await prepareFully();
     assert.deepEqual(await adjust('nobody'), { ok: false, reason: 'unknown-player' });
 
-    await league.client.exec(`update league.award_votes set state = 'open', ballot_lock = now() + interval '1 day' where season_year = ${SEASON}`);
+    assert.deepEqual(await act(() => vote.openVoting({ seasonYear: SEASON, ballotLock: lockInHours(24) })), { ok: true });
     assert.deepEqual(await adjust('unknown'), { ok: false, reason: 'not-prepared' });
     assert.deepEqual(await adjust('rookie', 'remove'), { ok: false, reason: 'not-prepared' });
     const review = (await act(() => vote.readRookieReview({ seasonYear: SEASON })))!;
@@ -166,7 +166,7 @@ test('a failed NHL lookup is tried again on a later prepare call, and matches on
 
 test("retrying failed lookups looks them up again and rebuilds the candidates, keeping the admin's changes", async t => {
     t.mock.method(console, 'error', () => {});
-    const { act, vote, setRegularSeason, prepareFully, nhl, league } = await awardVoteLeague(t);
+    const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
     setRegularSeason([skater('rookie', 190, { age: 20 }), skater('flaky', 180, { age: 21 }), skater('down', 175, { age: 21 }), skater('unknown', 170, { age: 22 })]);
     nhl.players.rookie = nhlRecord();
     nhl.players.flaky = nhlRecord();
@@ -200,7 +200,7 @@ test("retrying failed lookups looks them up again and rebuilds the candidates, k
         ['flaky', 'unknown']);
 
     // refused once voting is open
-    await league.client.exec(`update league.award_votes set state = 'open', ballot_lock = now() + interval '1 day' where season_year = ${SEASON}`);
+    assert.deepEqual(await act(() => vote.openVoting({ seasonYear: SEASON, ballotLock: lockInHours(24) })), { ok: true });
     assert.deepEqual(await retry(), { ok: false, reason: 'not-prepared' });
 });
 

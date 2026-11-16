@@ -4,9 +4,10 @@
 // The live season comes from the live season rule (lib/fantrax/live-season-year.ts), as the season sync and the
 // live season read it.
 //
-// GUARD FOR EVERY LATER OPERATION: open, move the ballot lock, save a draft, submit, score, void, restore, reopen and
-// publish must each call `rehearsalRefusal` first and refuse with its reason (`'rehearsal'`), and their write
-// statements must also require `not award_votes.rehearsal`. The database backs both: the
+// GUARD FOR EVERY LATER OPERATION: open, move the ballot lock, save a draft, submit, score, void, restore, reopen,
+// publish and refresh the archive must each call `rehearsalRefusal` first and refuse with its reason (`'rehearsal'`),
+// and their write statements must also require `not award_votes.rehearsal` (refreshing the archive writes nothing of
+// the vote's, and requires it published). The database backs both: the
 // `award_votes_rehearsal_prepared` check rejects any rehearsal whose state is not `prepared`. Only prepare and the
 // admin's reads accept a rehearsal; no read for owners or the public may return one.
 import { sql } from 'drizzle-orm';

@@ -170,7 +170,7 @@ See the [draft lottery guide](lottery.md) for scheduling, preview controls, reve
 
 Most public league and history queries have no timed expiry in production. They all carry the `league` tag for full imports, with additional tags for interactive edits. Development bypasses this query cache. Invalidating a tag makes its readers fetch fresh data on their next request.
 
-The [season sync](#season-sync) expires the tags its changes affect and none on a run that changes nothing. Roster, award, and matchup edits invalidate the edited season and their affected cross-season summaries. Other seasons' query results, draft classes, and transaction histories stay cached. Team name/logo edits invalidate that franchise and the collections that include its current identity. Colour edits invalidate only the branding query. Account claims do not invalidate public league data. The dependencies are defined in `lib/data/cache-tags.ts`; add tags to both readers and edit handlers when introducing a new cached aggregate.
+The [season sync](#season-sync) expires the tags its changes affect and none on a run that changes nothing. Roster, award, and matchup edits invalidate the edited season and their affected cross-season summaries. Publishing an award vote also expires the award pages' published tallies and that season's ballots page (`/season/<end year>/ballots`), which show nothing before it. Other seasons' query results, draft classes, and transaction histories stay cached. Team name/logo edits invalidate that franchise and the collections that include its current identity. Colour edits invalidate only the branding query. Account claims do not invalidate public league data. The dependencies are defined in `lib/data/cache-tags.ts`; add tags to both readers and edit handlers when introducing a new cached aggregate.
 
 `POST /api/revalidate` requires `Authorization: Bearer <REVALIDATE_SECRET>`. It clears the league cache; it does not import data or refresh materialized views. Import and logo-sync scripts call it only when both `SITE_URL` and `REVALIDATE_SECRET` are set.
 
@@ -206,7 +206,7 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | `seasons`, `team_seasons`, `players`, `player_seasons`, `matchups` | Season data and playoff brackets, from the season import or, for the season being played, the season sync. A player season's goals, assists, shots, hits and blocks (its skater categories, 0026) are written only by the season sync and are null for goalies and every season before 2027. From 2027 `matchups` also holds the season sync's regular-season games (`stage = 'regular'`, `round` the week number); one row per season, stage, round and pair of team seasons (0027) |
 | `weeks` | Each season's Fantrax weeks with their start and end times (`starts_at`, `ends_at`), written by the season sync from 2027 (0027). `ends_at` is the week's last second: Fantrax's end, a second before the next week's first game, or for an end at midnight Eastern the last second of that day |
 | `franchises`, `owners`, `award_types` | Identities and definitions synced from league configuration |
-| `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections |
+| `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections. From 2027 a season's award winners are its published award vote's (co-winners each a row, credited to the team the vote credits), and the hand-entry editor is read-only for that season |
 | `transaction_events`, `transaction_assets`, `draft_picks` | Historical moves and draft slots with source references |
 | `draft_lotteries` | Event snapshots, version, schedule, cancellation, and saved winner |
 | `pickem_picks` | Each Pick'em entry's Pick'em pick per week and matchup (migration 0018) |
@@ -286,7 +286,7 @@ Leave out `nextCache` for the app's reads without a cache, or both options for a
 | `npm run test:history` | Run parser, identity, grouping, repeat-import, and rollback tests |
 | `npm run test:pickem` | Run the Pick'em module's tests through its operations against in-memory Postgres and the in-memory live season |
 | `npm run test:season-sync` | Run the season sync's tests through its run operation against in-memory Postgres and its in-memory Fantrax reads |
-| `npm run test:award-vote` | Run the award vote module's tests through its operations against in-memory Postgres, its in-memory Fantrax and a fake clock |
+| `npm run test:award-vote` | Run the award vote module's tests through its operations against in-memory Postgres, its in-memory Fantrax and NHL lookup, the owner session on its in-memory ports, and a fake clock |
 | `npm run db:verify` | Legacy migration comparison against old-site API shapes; not current-site verification |
 
 `db:verify` still calls `/api/stats/...`, `/api/teams/stats`, and `/api/player/...`, which the current app does not implement. Its default target is the current production API, so it will encounter missing routes. It also reports data differences without making those differences a failing exit status. Use it only with a compatible legacy endpoint via `YOFHL_LIVE_API`; use the current API and page checks for present-day verification.
