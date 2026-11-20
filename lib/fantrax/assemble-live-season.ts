@@ -2,10 +2,11 @@
 // it reads comes through the live season source port, so this file is free of Next and of Fantrax's responses
 // (it borrows only the client's player name helper). Callers use the production binding in live-season.ts.
 import { roundName } from '../league';
+import { isFrozenSeason } from './cache-policy';
 import { PLAYOFF_FORMAT } from './config';
 import { playerName } from './fantrax-client';
 import {
-    liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
+    liveFantraxLeagueId, liveFantraxSeasonYear, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
     type SourceCore, type SourceWeek, type WeekScores,
 } from './live-season-source';
 
@@ -120,6 +121,12 @@ export interface LiveSeason {
     leaders: Availability<{ fetchedAt: string; players: ScoringLeader[] }>;
     rosterStats: Availability<RosterStats>;
 }
+
+/**
+ * what a scheduled refresh did: skipped a frozen season without contacting Fantrax, or captured and found the
+ * capture unchanged (nothing saved) or published it
+ */
+export type ScheduledRefresh = { outcome: 'frozen' } | { outcome: 'unchanged' | 'published'; fetchedAt: string; seasonYear: number };
 
 /** the whole live season is unavailable when its core snapshot (teams, schedule, weeks) can't be loaded */
 type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { status: 'unavailable'; fantraxLeagueId: string | null };
@@ -301,10 +308,31 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         return source.weekScores(found, core);
     }
 
-    /** For the cron, /api/revalidate and the admin refresh. Publishes only if every Fantrax request succeeds. */
-    async function refreshLiveSeason(): Promise<{ fetchedAt: string; seasonYear: number }> {
-        const core = await source.capture();
-        return { fetchedAt: core.fetchedAt, seasonYear: core.seasonYear };
+    /**
+     * For the cron, /api/revalidate and the admin refresh: always captures. Publishes only if every Fantrax request
+     * succeeds and the capture differs from the saved snapshot apart from its fetch times; `changed` says which.
+     * `fetchedAt` is the capture's, whether or not it was published.
+     */
+    const refreshLiveSeason = (): Promise<CapturedSeason> => source.capture();
+
+    /**
+     * For the evening cron: nothing to do once the live season is a frozen season and the next season hasn't been
+     * opened, which is answered from cache with no Fantrax request or query; otherwise a refresh, published only
+     * if the capture changed.
+     */
+    async function scheduledRefresh({ now }: { now: number }): Promise<ScheduledRefresh> {
+        const [mapping, saved] = await Promise.all([source.fantraxTeams(), source.savedSchedule()]);
+        if (isFrozenSeason(saved, liveFantraxSeasonYear(mapping), now)) return { outcome: 'frozen' };
+        const { fetchedAt, seasonYear, changed } = await refreshLiveSeason();
+        return { outcome: changed ? 'published' : 'unchanged', fetchedAt, seasonYear };
+    }
+
+    /**
+     * The live season's year (the latest season year in the Fantrax team mapping), or null when it maps none.
+     * Read from the cached mapping, which only a league configuration change clears, so it costs nothing.
+     */
+    async function liveSeasonYear(): Promise<number | null> {
+        return liveFantraxSeasonYear(await source.fantraxTeams()) ?? null;
     }
 
     /** The admin's manual final toggle. Only a started week of the live season can be marked. */
@@ -317,7 +345,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         await source.setManualFinalWeek(core.seasonYear, week, final);
     }
 
-    return { getLiveSeason, getWeekScores, refreshLiveSeason, setWeekFinal };
+    return { getLiveSeason, getWeekScores, liveSeasonYear, refreshLiveSeason, scheduledRefresh, setWeekFinal };
 }
 
 /**

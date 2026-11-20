@@ -59,6 +59,18 @@ _Avoid_: draft season
 The season being played, as Fantrax has it now. Once the season import has opened it, the archive holds it too, as the current season, and the season sync keeps it current. Read Fantrax's view through the live season module (`lib/fantrax/live-season.ts`).
 _Avoid_: current season (when you mean what Fantrax has now)
 
+**Frozen season**:
+A season whose last week's correction window has closed, so nothing Fantrax holds for it can change. The Fantrax refresh and the season sync stop for it. It is usually published a week before it freezes.
+_Avoid_: completed season, finished season, off-season (for the season itself)
+
+**Saved snapshot**:
+The live season's last capture from Fantrax, which the site reads instead of asking Fantrax on every visit. It goes stale a day after it was captured, as when refreshes are missed, except for a frozen season, whose saved snapshot is final.
+_Avoid_: snapshot (alone: Coach's Corner has player and team snapshots), cache
+
+**Fantrax refresh**:
+The evening capture of the live season from Fantrax into the saved snapshot. It publishes only when the capture differs from the saved snapshot, and stops once the live season is a frozen season. Each evening run also settles Pick'em, which stops on its own once the season's Pick'em is complete.
+_Avoid_: sync (that is the season sync), import
+
 **Week**:
 One Fantrax scoring period. "Lineup period" in the roster browser is Fantrax's own label, shown to owners as they see it on Fantrax, so that wording is not a breach of this term.
 _Avoid_: period, outside the Fantrax adapter
@@ -97,8 +109,8 @@ Replacing whole seasons' imported data (standings, player seasons, playoff games
 _Avoid_: sync, load, the importer (when you mean the rules rather than the command)
 
 **Season sync**:
-The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season (with its skater categories) straight from Fantrax, the season's weeks, each regular-season week's games and each playoff round's games once the week is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
-_Avoid_: import (for this), refresh (that is the evening Fantrax refresh)
+The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season (with its skater categories) straight from Fantrax, the season's weeks, each regular-season week's games and each playoff round's games once the week is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops once the season is a frozen season. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
+_Avoid_: import (for this), refresh (that is the Fantrax refresh)
 
 **Automatic championship roster**:
 The championship roster the season sync writes when the season first has a champion: everyone on the champion's roster outside the minors on any day of the playoff weeks it played. It is the season sync's until the league owner saves it in the roster editor, and is replaced if the champion changes before then.

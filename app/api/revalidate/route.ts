@@ -11,15 +11,19 @@ export async function POST(request: Request) {
     if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // external=1 also captures the live season from Fantrax, frozen season or not, and reports whether it changed.
+    // Only a changed capture expires the live season's caches.
+    let fantraxReport: { fantrax: 'published' | 'unchanged' } | null = null;
     if (new URL(request.url).searchParams.get('external') === '1') {
         try {
-            await refreshLiveSeason();
-            revalidateTag(FANTRAX_TAG);
+            const { changed } = await refreshLiveSeason();
+            fantraxReport = { fantrax: changed ? 'published' : 'unchanged' };
+            if (changed) revalidateTag(FANTRAX_TAG);
         } catch (error) {
             console.error('Fantrax revalidation failed:', error);
             return NextResponse.json({ error: 'Fantrax refresh failed' }, { status: 503 });
         }
     }
     revalidateTag(LEAGUE_TAG);
-    return NextResponse.json({ revalidated: true });
+    return NextResponse.json({ revalidated: true, ...fantraxReport });
 }

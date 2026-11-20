@@ -7,6 +7,8 @@ import { fantraxSource } from './fantrax-source';
 export { FANTRAX_TAG } from './cache-policy';
 /** whether a week's seven-day stat-correction window has closed: from then on its scores no longer change */
 export { scoresAreArchived as correctionWindowClosed } from './cache-policy';
-export type { LivePlayer, LiveSeason, LiveTeam, RosterStats, ScheduledMatchup, Week, WeekScores } from './assemble-live-season';
+/** whether a season's schedule is over for good: its last week has ended and that week's correction window has closed */
+export { scheduleIsFrozen } from './cache-policy';
+export type { LivePlayer, LiveSeason, LiveTeam, RosterStats, ScheduledMatchup, ScheduledRefresh, Week, WeekScores } from './assemble-live-season';
 
-export const { getLiveSeason, getWeekScores, refreshLiveSeason, setWeekFinal } = createLiveSeason(fantraxSource);
+export const { getLiveSeason, getWeekScores, liveSeasonYear, refreshLiveSeason, scheduledRefresh, setWeekFinal } = createLiveSeason(fantraxSource);

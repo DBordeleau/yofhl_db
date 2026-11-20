@@ -1,6 +1,6 @@
 // The in-memory live season source, for tests. `fantrax` is what Fantrax would return right now and `saved` is
 // the saved snapshot; `down` lists the Fantrax requests that are failing.
-import type { FantraxTeamRow, FranchiseIdentity, LiveSeasonSource, RosterStats, SourceCore, SourceLeaders, WeekScores } from './live-season-source';
+import { sameCapture, type FantraxTeamRow, type FranchiseIdentity, type LiveSeasonSource, type RosterStats, type SourceCore, type SourceLeaders, type WeekScores } from './live-season-source';
 
 interface MemoryCapture {
     core: SourceCore;
@@ -38,6 +38,7 @@ export function createMemorySource(state: MemoryState): LiveSeasonSource {
         },
         scoringLeaders: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.leaders ?? fantrax('leaders').leaders),
         rosterStats: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.rosterStats ?? fantrax('rosterStats').rosterStats),
+        savedSchedule: async () => state.saved && structuredClone({ seasonYear: state.saved.core.seasonYear, weeks: state.saved.core.weeks }),
         manualFinalWeeks: async seasonYear => [...state.manualFinalWeeks[seasonYear] ?? []],
         setManualFinalWeek: async (seasonYear, week, final) => {
             const weeks = new Set(state.manualFinalWeeks[seasonYear] ?? []);
@@ -46,8 +47,9 @@ export function createMemorySource(state: MemoryState): LiveSeasonSource {
         },
         capture: async () => {
             for (const request of ['core', 'scores', 'leaders', 'rosterStats'] as const) fantrax(request);
-            state.saved = structuredClone(state.fantrax);
-            return structuredClone(state.saved.core);
+            const changed = !state.saved || !sameCapture(state.saved, state.fantrax);
+            if (changed) state.saved = structuredClone(state.fantrax);
+            return { ...structuredClone(state.fantrax.core), changed };
         },
     };
 }

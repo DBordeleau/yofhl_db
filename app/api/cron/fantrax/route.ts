@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { refreshLiveSeason } from '@/lib/fantrax/live-season';
+import { scheduledRefresh, type ScheduledRefresh } from '@/lib/fantrax/live-season';
 import { scheduledRefreshTime } from '@/lib/fantrax/schedule';
 import { pickem } from '@/lib/pickem/pickem';
 
@@ -13,20 +13,23 @@ export async function GET(request: Request) {
     }
     const scheduled = scheduledRefreshTime(new URL(request.url).searchParams.get('slot'), Date.now());
     if (!scheduled) return NextResponse.json({ skipped: true });
-    let fetchedAt: string;
+    let refresh: ScheduledRefresh;
     try {
-        ({ fetchedAt } = await refreshLiveSeason());
+        refresh = await scheduledRefresh({ now: Date.now() });
     } catch (error) {
         console.error('Scheduled Fantrax refresh failed:', error);
         return NextResponse.json({ error: 'Fantrax refresh failed' }, { status: 503 });
     }
-    // The capture has already published; a Pick'em settle failure is reported without undoing it, and the next
-    // evening's run catches up.
+    // A frozen season's run captured nothing, so its report has no fetchedAt (JSON leaves an undefined key out).
+    const report = { scheduled, refresh: refresh.outcome, fetchedAt: 'fetchedAt' in refresh ? refresh.fetchedAt : undefined };
+    // Pick'em settles after every refresh outcome, frozen season included: locks and correction windows pass on the
+    // clock, and settle stops on its own once the season's Pick'em is complete. A published capture stays
+    // published; a settle failure is reported without undoing it, and the next evening's run catches up.
     try {
         await pickem.settle({ now: Date.now() });
     } catch (error) {
         console.error("Pick'em settle failed:", error);
-        return NextResponse.json({ refreshed: true, scheduled, fetchedAt, error: "Pick'em settle failed" }, { status: 500 });
+        return NextResponse.json({ ...report, error: "Pick'em settle failed" }, { status: 500 });
     }
-    return NextResponse.json({ refreshed: true, scheduled, fetchedAt });
+    return NextResponse.json(report);
 }
