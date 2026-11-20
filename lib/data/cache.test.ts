@@ -28,6 +28,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
     const cache = { invalidate };
     const league = await import('./league');
     const history = await import('./history');
+    const archive = await import('./award-archive');
     const { getRivalryData } = await import('./rivalries');
     const { getTeamBranding } = await import('./team-branding');
     const { getRecordSource } = await import('../records/data');
@@ -44,7 +45,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
         cards: league.getFranchiseCards,
         franchise1: () => league.getFranchise(1), franchise2: () => league.getFranchise(2),
         awards: () => league.getAwardWinners('mvp'), awardTypes: league.getAwardTypes,
-        cups: () => league.getTeamAwardWinners('jagr-cup'), primeMinister: () => league.getTeamAwardWinners('prime-minister'),
+        cups: () => archive.winners('jagr-cup'), primeMinister: () => archive.winners('prime-minister'),
         honors1: () => history.getFranchiseHonors(1), honors2: () => history.getFranchiseHonors(2),
         draft: () => history.getSeasonDraft(2026), franchiseDraft: () => history.getFranchiseDraft(1),
         history: () => history.getHistory({ franchiseId: 1 }), historySeasons: () => history.getHistorySeasons({ franchiseId: 1 }),

@@ -11,10 +11,12 @@ export type Category = 'teams' | 'players' | 'matchups' | 'honours';
 export interface PlayerSeason { id: string; name: string; year: number; points: number; positions: string[]; stats?: Partial<PlayerCategories> }
 export interface TeamSeason { team: number; name: string; year: number; wins: number; losses: number; ties: number; points: number; logo?: string | null; abbreviation?: string }
 export interface Award { player: string; name: string; award: string; year: number; team: number | null }
+/** a Prime Minister's Trophy win: the franchise and the season, as the award archive decides them */
+export interface PrimeMinisterWin { team: number; year: number }
 export interface PeriodInfo { year: number; period: number; days: number; era: number; start: string; end: string }
 export interface RecordSource {
-    teams: FranchiseCard[]; players: PlayerSeason[]; seasons: TeamSeason[]; awards: Award[];
-    /** published season years (GLOSSARY.md); a season still being played earns no trophy, no best season record and no "lowest" record */
+    teams: FranchiseCard[]; players: PlayerSeason[]; seasons: TeamSeason[]; awards: Award[]; primeMinisters: PrimeMinisterWin[];
+    /** published season years (GLOSSARY.md); a season still being played earns no best season record and no "lowest" record */
     published: number[];
     /** published seasons whose playoffs were played: the calendar cup and finals streaks run against */
     competitions: number[]; games: RivalryGame[]; periods: PeriodInfo[];
@@ -81,9 +83,8 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
     const records: RecordList[] = [];
     const teams = source.teams.filter(t => !filter.team || t.ID === filter.team);
     const seasons = source.seasons.filter(s => !filter.team || s.team === filter.team);
-    const published = new Set(source.published);
     // A season still being played sets single-season totals but no record of the season as a whole.
-    const publishedSeasons = source.seasons.filter(s => published.has(s.year));
+    const published = new Set(source.published);
     const add = (id: string, category: Category, title: string, unit: string, entries: Entry[], ascending = false) => {
         records.push({ id, category, title, unit, entries: rankEntries(entries, ascending).filter(entry => entry.rank! <= 10) });
     };
@@ -133,7 +134,7 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
         return teamEntry(t, run.length, yearList(run));
     }));
     const scoringTitles = teams.map(t => {
-        const years = publishedSeasons.filter(s => s.team === t.ID && !publishedSeasons.some(other => other.year === s.year && other.team !== t.ID && other.points >= s.points)).map(s => s.year);
+        const years = source.primeMinisters.filter(win => win.team === t.ID).map(win => win.year);
         return teamEntry(t, years.length, yearList(years));
     }).filter(t => t.value > 0);
     add('scoring-titles', 'honours', "Prime Minister’s Trophies", 'trophies', scoringTitles);

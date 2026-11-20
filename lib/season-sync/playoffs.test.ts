@@ -49,7 +49,8 @@ test('once the Quarterfinals week is final, its two games are stored in bracket 
 
 test('after the Semifinals and the Final, each round is stored, and the run after the Final gives the season its champion and publishes it', async t => {
     const league = await playoffLeague(t);
-    const { getBannerSeasons, getSeasonArchive, getTeamAwardWinners } = await import('@/lib/data/league');
+    const { getBannerSeasons, getSeasonArchive } = await import('@/lib/data/league');
+    const { winners } = await import('@/lib/data/award-archive');
     league.setPlayers([['p3', 10, 1, 3]]);
     league.setRoster(3, PLAYOFF_DAYS, [['p3', 'ACTIVE']]);
     playQuarterfinals(league);
@@ -78,7 +79,7 @@ test('after the Semifinals and the Final, each round is stored, and the run afte
     const archive = await league.read(() => getSeasonArchive());
     assert.deepEqual([archive.latest?.year, archive.latest?.team, archive.current], [SEASON, 'Club 3', null], 'the season is published and is the latest season');
     assert.deepEqual((await league.read(() => getBannerSeasons())).find(season => season.year === SEASON)?.franchiseId, 3, "the champion's banner");
-    assert.deepEqual((await league.read(() => getTeamAwardWinners('jagr-cup'))).map(winner => [winner.Year, winner.TeamID]), [[SEASON, 3], [2026, 1]], 'the Jagr Cup');
+    assert.deepEqual((await league.read(() => winners('jagr-cup')))!.map(winner => [winner.Year, winner.TeamID]), [[SEASON, 3], [2026, 1]], 'the Jagr Cup');
 });
 
 test("each round's games are stored beside the games that fed them, whatever order Fantrax lists them in", async t => {

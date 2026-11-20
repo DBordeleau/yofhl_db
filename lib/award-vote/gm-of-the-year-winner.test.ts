@@ -24,9 +24,9 @@ async function scoredLeague(t: Parameters<typeof votingLeague>[0], ballots: Reco
     for (const franchise of [1, 2, 3, 4]) await harness.submitFor(franchise, ballots[franchise] ?? completeFor(franchise));
     assert.deepEqual(await harness.score(), { ok: true });
     const route = async <T>(path: string, fn: () => Promise<T>) => (await harness.league.runAsRoute(path, fn)).result;
-    const league = await import('@/lib/data/league');
+    const { winners } = await import('@/lib/data/award-archive');
     /** GM of the Year's award page: each winner as [season, team, franchise, owner] */
-    const awardPage = async () => (await route('/awards/[award]', () => league.getTeamAwardWinners('gm-of-the-year')))
+    const awardPage = async () => (await route('/awards/[award]', () => winners('gm-of-the-year')))!
         .map(winner => [winner.Year, winner.Winner, winner.TeamID, winner.Owner]);
     return { ...harness, route, awardPage };
 }

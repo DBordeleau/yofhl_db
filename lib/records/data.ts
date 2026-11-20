@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { cached, rows } from '../data/db';
 import { leagueTags } from '../data/cache-tags';
 import { getFranchiseCards, getSeasonArchive } from '../data/league';
+import { winners } from '../data/award-archive';
 import { fantraxLeagueUrl } from '../fantrax/config';
 import { fantraxLeagueIdOf, getLiveSeason } from '../fantrax/live-season';
 import regularSeason from '../rivalries/regular-season-history.json';
@@ -37,10 +38,14 @@ const getRecordArchive = cached(async () => {
 const categories = new Map(playerCategories.players.map(p => [`${p.id}:${p.year}`, p]));
 const historyGames = regularSeason.games.map(g => ({ ...g, stage: 'regular' as const }));
 export async function getRecordSource(): Promise<RecordSource> {
-    // Only the season archive decides which seasons are published (lib/seasons.ts).
-    const [{ storedGames, storedWeeks: weeks, ...archive }, seasons] = await Promise.all([getRecordArchive(), getSeasonArchive()]);
+    // Only the season archive decides which seasons are published (lib/seasons.ts), and only the award archive who won
+    // the Prime Minister's Trophy.
+    const [{ storedGames, storedWeeks: weeks, ...archive }, seasons, primeMinisters] = await Promise.all([
+        getRecordArchive(), getSeasonArchive(), winners('prime-minister'),
+    ]);
     const published = [...seasons.published].reverse(); // oldest first
     return { ...archive, published: published.map(season => season.year),
+        primeMinisters: (primeMinisters ?? []).flatMap(win => win.TeamID === null ? [] : [{ team: win.TeamID, year: win.Year }]),
         competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: p.year > HISTORY_THROUGH ? p.stats ?? undefined : categories.get(`${p.id}:${p.year}`) })),
         games: [...historyGames, ...storedGames], periods: [...periods, ...weeks] };
 }

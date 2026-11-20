@@ -20,17 +20,17 @@ function bestFinish(seasons: FranchiseSeason[]) {
     return { label: FINISHES[depth] ?? `Round ${best[0].round}`, runs: best };
 }
 
-export default function FranchiseTrophyCase({ franchiseId, championships, finals, seasons, honors, defunct }: {
-    franchiseId: number; championships: number[]; finals: number[]; seasons: FranchiseSeason[]; honors: FranchiseHonors; defunct: boolean;
+export default function FranchiseTrophyCase({ franchiseId, finals, seasons, honors, defunct }: {
+    franchiseId: number; finals: number[]; seasons: FranchiseSeason[]; honors: FranchiseHonors; defunct: boolean;
 }) {
     const awards = [...new Set(honors.awards.map((a) => a.name))].map((name) => ({
         name,
         wins: honors.awards.filter((a) => a.name === name),
     }));
-    const cups = [...championships].sort((a, b) => b - a);
+    const cups = honors.cups;
     const finalYears = [...finals].sort((a, b) => b - a);
     // A finals row that only repeats the cups adds nothing, so it shows only once a final was lost.
-    const lostFinal = finalYears.some((year) => !championships.includes(year));
+    const lostFinal = finalYears.some((year) => !cups.includes(year));
     const finish = cups.length ? null : bestFinish(seasons);
 
     return (
@@ -83,7 +83,7 @@ export default function FranchiseTrophyCase({ franchiseId, championships, finals
                             <h3 className={css.rowLabel}>Finals</h3>
                             <ul className={css.slabs}>
                                 {finalYears.map((year) => {
-                                    const won = championships.includes(year);
+                                    const won = cups.includes(year);
                                     const season = seasons.find((s) => s.year === year);
                                     return <li key={year}>
                                         <Link href={won ? `/season/${year}#championship-roster` : teamSeasonHref(year, franchiseId, season?.finalRound ?? null)}

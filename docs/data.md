@@ -214,7 +214,7 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | `pickem_completed_seasons` | Seasons whose Pick'em is complete, so their winner stands once Fantrax moves on (0020) |
 | `season_sync_status` | One row per season year: the season sync's last run, last success, last error, what the last success changed and its warnings, the franchise an automatic championship roster was written for, the champion the roster was last saved for, and the freeze time (0023, 0025, 0026, 0027) |
 
-Player seasons are retained when the player scored, was rostered, or is needed by an award or championship roster. Team trophy cases derive Prime Minister's Trophies from a strict league-wide regular-season FPts lead, for published seasons only; tied leaders do not receive an inferred winner.
+Player seasons are retained when the player scored, was rostered, or is needed by an award or championship roster. The award archive (`lib/data/award-archive.ts`, `winners()`) is the one place that decides each award's winners, and the award pages, the award API, franchise trophy cases and the record book all read it. The Jagr Cup goes to the season results' champion. The Prime Minister's Trophy goes to the team season with a strict league-wide regular-season FPts lead, for published seasons only; tied leaders do not receive an inferred winner.
 
 The season being played counts wherever a published season does: career totals, FP/G and rank, franchise records and season lists, both leaderboards, draft class stats, the record book's season totals, and, once the season sync has stored its final weeks, the record book's matchup records and winning streaks and Compare teams' regular-season head-to-head. The record book and Compare read regular-season games, weeks and skater categories from the checked-in history files for 2026 and earlier, then from the database; a stored game's page is `/records/game/<matchups id>`, a history game's keeps its negative id. It gets no Prime Minister's Trophy, no best season record (win percentage), no season page, banner, picker entry or search result, and the record book leaves it out of the calendar its cup streaks are measured against. A future "lowest" or "fewest" single-season record must use published seasons only. Individual awards use their recorded `awards.team_season_id` association, not the player's current team.
 
@@ -232,7 +232,7 @@ Pages call shared data functions directly. The JSON routes expose these public v
 | `GET /api/franchises` | All-time franchise cards, including defunct status |
 | `GET /api/franchises/<id>` | Franchise identity, records, seasons, and player leaders |
 | `GET /api/awards` | Configured individual award types |
-| `GET /api/awards/<slug>` | Winners of one individual award, such as `Wayne_Gretzky_Award` |
+| `GET /api/awards/<slug>` | One award's `{ name, label, honor }` and its winners in published seasons, newest first, such as `Wayne_Gretzky_Award` or `Jagr_Cup`. A team award's winners (the Jagr Cup, the Prime Minister's Trophy) are team seasons: `Winner` and `Team` are the team season's name, `TeamID` its franchise, with `Owner`, `TeamLogo`, `FPts` and `Record`, and `PlayerID` is empty. An individual award's carry the player (`Winner`, `PlayerID`) and their team |
 | `GET /api/history` | Paginated transaction/draft feed for one player or franchise |
 | `GET /api/lottery` | Current lottery, server time, and only the results revealed so far |
 | `GET /api/lottery?id=<UUID>` | A specific non-cancelled lottery |
