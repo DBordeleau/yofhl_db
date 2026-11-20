@@ -1,6 +1,6 @@
 import { seasonLabel } from '../league';
 import { playerHref } from '../player-url';
-import { getAwardDefinition } from '../awards';
+import { findAward } from '../awards';
 import { PLAYER_STATS, type PlayerStat, type PlayerCategories } from './player-stats';
 import type { FranchiseCard } from '../data/league';
 import type { LiveSeason, RosterStats } from '../fantrax/live-season';
@@ -138,7 +138,7 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
     }).filter(t => t.value > 0);
     add('scoring-titles', 'honours', "Prime Minister’s Trophies", 'trophies', scoringTitles);
     for (const award of [...new Set(source.awards.map(a => a.award))]) {
-        if (getAwardDefinition(award)?.id === 'teemu-selanne') continue;
+        if (findAward(award)?.oncePerPlayer) continue;
         const winners = new Map<string, Award[]>();
         for (const a of source.awards.filter(a => a.award === award && (!filter.team || a.team === filter.team))) winners.set(a.player, [...(winners.get(a.player) ?? []), a]);
         add(`award-${award.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, 'honours', award, 'wins', [...winners.values()].map(wins => ({ id: wins[0].player, name: wins[0].name, value: wins.length,

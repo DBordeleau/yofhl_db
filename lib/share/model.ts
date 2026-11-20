@@ -4,7 +4,7 @@ import { episodeLabel } from '../coachs-corner/episode-label';
 import type { Episode } from '../coachs-corner/episode';
 import type { Lapel } from '../coachs-corner/cast';
 import { playerHref } from '../player-url';
-import { AWARDS, awardHref, getAwardDefinition } from '../awards';
+import { AWARDS, awardHref, findAward } from '../awards';
 import { comparisonChart, type ComparisonChart, type ComparisonPlayer } from '../compare/model';
 import { comparisonHref, teamComparisonHref, type Metric } from '../compare/state';
 import type { RankedPick } from '../draft/hindsight';
@@ -74,7 +74,7 @@ const record = (wins: number, losses: number, ties: number) => ties ? `${wins}â€
 export function playerShareCard(player: PlayerProfile): PlayerShareCard {
     const counts = new Map<string, number>();
     for (const award of player.awards) {
-        const definition = getAwardDefinition(award.Award);
+        const definition = findAward(award.Award);
         if (definition) counts.set(definition.id, (counts.get(definition.id) ?? 0) + 1);
     }
     return { kind: 'player', title: player.name, href: playerHref(player.id),
@@ -142,9 +142,6 @@ export function stealShareCard(year: number, steal: RankedPick, number: number, 
         fpts: steal.value, fpg: steal.fpg, totalPicks, rounds };
 }
 
-// Short trophy names for the repeat-win label, e.g. "3rd Gretzky win".
-const SHORT_AWARD: Record<string, string> = { 'jagr-cup': 'Jagr Cup', 'prime-minister': 'PM Trophy', 'wayne-gretzky': 'Gretzky', 'le-magnifique': 'Magnifique',
-    'bobby-orr': 'Orr', hasek: 'Hasek', 'danny-briere': 'Briere', 'teemu-selanne': 'Teemu' };
 export interface ShareAward { id: string | null; name: string; label: string; honor: string; image: string | null }
 export function awardShareCard(award: ShareAward, winner: AwardWinner, winners: AwardWinner[], recipient: 'player' | 'team'): AwardShareCard {
     const same = (other: AwardWinner) => recipient === 'team' ? other.TeamID !== null && other.TeamID === winner.TeamID : other.PlayerID === winner.PlayerID;
@@ -155,7 +152,8 @@ export function awardShareCard(award: ShareAward, winner: AwardWinner, winners: 
         team: winner.Team ? { id: winner.TeamID, name: winner.Team, abbreviation: winner.Team.slice(0, 4).toUpperCase(), logo: winner.TeamLogo ?? null } : null,
         owner: recipient === 'team' ? winner.Owner ?? null : null,
         fpts: winner.FPts ?? null, fpg: winner.FPG ?? null, record: winner.Record ?? null,
-        count, short: (award.id && SHORT_AWARD[award.id]) ?? award.label };
+        // the short name for the repeat-win label, e.g. "3rd Gretzky win"
+        count, short: (award.id && findAward(award.id)?.shortName) || award.label };
 }
 
 /** A Coach's Corner episode, dressed from its compiled Episode so the script parser stays out of this module. */

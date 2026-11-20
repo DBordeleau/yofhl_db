@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AwardType, BannerSeason } from "@/lib/data/league";
 import type { SeasonArchive } from "@/lib/seasons";
-import { awardHref, getAwardDefinition } from "@/lib/awards";
+import { awardHref, findAward } from "@/lib/awards";
 import { formatFpts, seasonLabel } from "@/lib/league";
 import { playerHref } from "@/lib/player-url";
 import { TrophyArt } from '@/components/trophy-icons';
@@ -75,7 +75,7 @@ const Header: React.FC<NavData> = ({ awards, listedAwards, seasonArchive, franch
 
     const awardItems = [
         ...listedAwards.map((award) => ({ ...award, href: awardHref(award.name) })),
-        ...awards.filter((award) => !getAwardDefinition(award.name)).map((award) => ({ name: award.name, label: award.label, description: award.description, href: awardHref(award.name) })),
+        ...awards.filter((award) => !findAward(award.name)).map((award) => ({ ...award, href: awardHref(award.name) })),
     ];
     // the rafters, newest champion first; a season in progress has no banner yet
     const { published: banners, current: currentSeason } = seasonArchive;
@@ -176,7 +176,7 @@ const Header: React.FC<NavData> = ({ awards, listedAwards, seasonArchive, franch
         {awardItems.map((award) => <li key={award.name}>
             <Link href={award.href} onClick={close} className={styles.awardTile}>
                 <TrophyArt award={award.name} className={styles.awardArt} sizes="48px" />
-                <span><b>{award.label}</b><small>{award.description}</small></span>
+                <span><b>{award.label}</b><small>{award.honor}</small></span>
             </Link>
         </li>)}
     </ul>;

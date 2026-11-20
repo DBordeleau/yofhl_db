@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
-import { PLAYOFF_AWARD, SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
+import { findAward } from '@/lib/awards';
+import { givenWithoutPlayoffs, SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
 import { SEASON_SYNC_STATUS_QUERY, toSeasonSyncStatus, type SeasonSyncStatus, type SeasonSyncStatusRow } from '@/lib/season-sync/status';
 
 // Admin reads. Never cached: the panel must show exactly what's in the database.
@@ -16,7 +17,8 @@ export interface AdminPlayer {
 export interface AdminAward {
     name: string;
     label: string;
-    description: string;
+    /** the catalogue's honour, e.g. "Top goaltender" */
+    honor: string;
     winner: AdminPlayer | null;
 }
 
@@ -97,7 +99,7 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
             left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = ${year}
             -- the team the award credits (a published award vote's may not be the end-of-season one)
             left join league.team_seasons t on t.id = coalesce(a.team_season_id, ps.team_season_id)
-            where ${season.playoffStatus} = 'complete' or at.name <> ${PLAYOFF_AWARD}
+            where ${season.playoffStatus} = 'complete' or ${givenWithoutPlayoffs(sql`at.name`)}
             order by at.sort_order, p.name`),
         rows<{
             id: number; round: number; bracket: 'championship' | 'consolation'; slot: number; note: string | null; winner: number | null;
@@ -129,8 +131,8 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
         awardVotePublished: season.award_vote_published,
         awards: awards.map((a) => ({
             name: a.name,
-            label: a.label,
-            description: a.description,
+            label: findAward(a.name)?.label ?? a.label,
+            honor: findAward(a.name)?.honor ?? a.description,
             winner: a.id ? { id: a.id, name: a.player_name!, positions: a.positions ?? '', fpts: a.fpts ?? 0, team: a.team ?? 'FA' } : null,
         })),
         games: games.map((g) => ({

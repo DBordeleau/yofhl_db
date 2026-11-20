@@ -2,7 +2,7 @@ import { playerHref } from '@/lib/player-url';
 import Link from 'next/link';
 import { TrophyArt, JagrCupIcon } from '@/components/trophy-icons';
 import TrophySparkles from '@/components/trophy-sparkles';
-import { awardHref, getAwardDefinition } from '@/lib/awards';
+import { awardHref, findAward } from '@/lib/awards';
 import type { FranchiseHonors } from '@/lib/history/model';
 import type { FranchiseSeason } from '@/lib/data/league';
 import { formatFpts, seasonLabel, teamSeasonHref } from '@/lib/league';
@@ -103,8 +103,8 @@ export default function FranchiseTrophyCase({ franchiseId, championships, finals
                                 <summary>
                                     <TrophyArt award={name} className={css.awardArt} sizes="48px" />
                                     <span className="min-w-0 flex-1">
-                                        <span className={css.awardName}>{getAwardDefinition(name)?.label ?? wins[0].label}</span>
-                                        <span className={css.honor}>{getAwardDefinition(name)?.honor ?? wins[0].description}</span>
+                                        <span className={css.awardName}>{findAward(name)?.label ?? wins[0].label}</span>
+                                        <span className={css.honor}>{findAward(name)?.honor ?? wins[0].description}</span>
                                     </span>
                                     <span className={css.awardCount}>{wins.length}</span>
                                     <svg viewBox="0 0 20 20" fill="none" className={css.chevron} aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>

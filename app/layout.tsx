@@ -42,7 +42,7 @@ export default async function RootLayout({
       <body className={`${archivo.variable} min-h-screen overflow-x-hidden bg-ice font-sans text-ink antialiased`}>
         <Header
           awards={awards}
-          listedAwards={listedAwards.map(award => ({ name: award.name, label: award.label, description: award.honor }))}
+          listedAwards={listedAwards.map(award => ({ name: award.name, label: award.label, honor: award.honor }))}
           latestCoachsCornerEpisode={episodes[0] ? episodeSeenKey(episodes[0]) : null}
           seasonArchive={seasonArchive}
           franchises={franchises.filter(team => !team.defunct).map(team => ({ id: team.ID, name: team.Team, abbreviation: team.Abbreviation, owner: team.Owner, logo: team.LogoUrl }))}

@@ -15,13 +15,7 @@ The source filenames above are relative to the local `output/award-concepts/2026
 
 The shared catalogue in [lib/awards.ts](../../lib/awards.ts) defines each trophy's image, display label, stored name, and team/player scope. [components/trophy-icons.tsx](../../components/trophy-icons.tsx) renders the artwork. The gallery has two team trophies and six individual awards.
 
-Display labels differ from some stored names:
-
-| Display label | Stored name |
-| --- | --- |
-| Hasek Award | Hasek Trophy |
-| Danny Briere Trophy | Danny Briere Award |
-| Teemu Selanne Trophy | Teemu Trophy |
+One display label differs from its stored name: the Teemu Trophy shows as "Teemu Selanne Trophy".
 
 Preserve the stored names when changing labels or artwork. Existing winner records and award URLs use those names, with spaces replaced by underscores in URLs. Individual award definitions also live in [league/league.yml](../../league/league.yml); the admin panel stores their winners separately.
 

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import AwardTable from '@/components/award-table';
 import RinkDivider from '@/components/rink-divider';
 import { TrophyArt } from '@/components/trophy-icons';
-import { AWARDS, awardFromSlug, awardHref, awardSlug, getAwardDefinition } from '@/lib/awards';
+import { AWARDS, awardFromSlug, awardHref, awardSlug, findAward } from '@/lib/awards';
 import { getAwardTypes, getAwardWinners, getListedAwards, getTeamAwardWinners, type AwardWinner } from '@/lib/data/league';
 import { seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
@@ -22,16 +22,16 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ award: string }> }) {
     const name = awardFromSlug((await params).award);
-    const definition = getAwardDefinition(name);
+    const definition = findAward(name);
     return { title: `${definition?.label ?? name} · YOFHL`, description: definition?.description };
 }
 
 export default async function AwardPage({ params }: { params: Promise<{ award: string }> }) {
     const name = awardFromSlug((await params).award);
-    const definition = getAwardDefinition(name);
+    const definition = findAward(name);
     const teamAward = definition?.id === 'jagr-cup' || definition?.id === 'prime-minister' || definition?.id === GM_OF_THE_YEAR ? definition.id : null;
     const data = teamAward && definition
-        ? { award: { name: definition.name, label: definition.label, description: definition.honor }, winners: await getTeamAwardWinners(teamAward) }
+        ? { award: { name: definition.name, label: definition.label, honor: definition.honor }, winners: await getTeamAwardWinners(teamAward) }
         : await getAwardWinners(definition?.name ?? name);
     // GM of the Year's page, reachable by its URL, exists once a winner is published, released or not
     if (!data || (teamAward === GM_OF_THE_YEAR && !data.winners.length)) notFound();
@@ -60,9 +60,9 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                         <TrophyArt award={award.name} title={label} priority sizes="(min-width: 768px) 384px, 256px" className="relative h-64 w-64 max-w-full drop-shadow-[0_12px_28px_rgba(240,199,94,.18)] md:h-96 md:w-96" />
                     </div>
                     <div className="min-w-0 pb-4 text-center md:py-3 md:text-left">
-                        <p className="text-xs font-extrabold uppercase tracking-[.2em] text-gold-light">{definition?.honor ?? award.description}</p>
+                        <p className="text-xs font-extrabold uppercase tracking-[.2em] text-gold-light">{award.honor}</p>
                         <h1 className="font-wide mt-3 text-3xl font-extrabold uppercase leading-tight md:text-[40px] lg:text-[48px]">{label}</h1>
-                        <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[#D8E2EF] md:mx-0 md:text-base">{definition?.description ?? award.description}</p>
+                        <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[#D8E2EF] md:mx-0 md:text-base">{definition?.description ?? award.honor}</p>
                         {latest && <div className="mt-6 border-t border-white/15 pt-5">
                             <p className="text-[11px] font-bold uppercase tracking-[.15em] text-gold-light">{latestWinners.length > 1 ? 'Latest winners' : 'Latest winner'} · {seasonLabel(latest.Year)}</p>
                             {latestWinners.map(winner => {
@@ -85,7 +85,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                     <span className="text-xs font-semibold text-ink-muted">{winners.length} awarded</span>
                 </div>
                 <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'}
-                    award={listed ? { id: definition?.id ?? null, name: award.name, label, honor: definition?.honor ?? award.description, image: definition?.image ?? null } : undefined} />
+                    award={listed ? { id: definition?.id ?? null, name: award.name, label, honor: award.honor, image: definition?.image ?? null } : undefined} />
             </section>
             {tallies.length > 0 && <section className="mx-auto mt-10 max-w-board" aria-labelledby="tallies-title">
                 <h2 id="tallies-title" className="font-wide mb-4 px-1 text-xl font-extrabold uppercase md:text-2xl">Tallies</h2>

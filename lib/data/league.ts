@@ -3,7 +3,7 @@ import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import type { SeasonIdentity } from '../team-identity';
 import { isPublished, seasonArchive } from '../seasons';
-import { AWARD_CATALOGUE, getAwardDefinition, listedAwards, type AwardDefinition } from '../awards';
+import { AWARD_CATALOGUE, findAward, listedAwards, type AwardDefinition } from '../awards';
 import { GM_OF_THE_YEAR } from '../award-vote/model';
 import { publishedTeamAwardWinners } from '../award-vote/published-vote';
 
@@ -49,8 +49,15 @@ export interface LeaderboardPage {
 export interface AwardType {
     name: string;
     label: string;
-    description: string;
+    /** the catalogue's honour, e.g. "Top goaltender" */
+    honor: string;
 }
+
+/** an award type row read with the catalogue's label and honour, falling back to the row's own for an award the catalogue doesn't know */
+const toAwardType = (row: { name: string; label: string; description: string }): AwardType => {
+    const award = findAward(row.name);
+    return { name: row.name, label: award?.label ?? row.label, honor: award?.honor ?? row.description };
+};
 
 export interface PlayerSeason {
     Year: number;
@@ -186,8 +193,8 @@ export async function publishedOnly<T>(items: T[] | Promise<T[]>, yearOf: (item:
 }
 
 export const getAwardTypes = cached(
-    () => rows<AwardType>(sql`select name, label, description from league.award_types order by sort_order`),
-    'award-types',
+    async () => (await rows<{ name: string; label: string; description: string }>(sql`select name, label, description from league.award_types order by sort_order`)).map(toAwardType),
+    'award-types-v2',
 );
 
 /** the catalogue IDs of the team awards with a published award vote tally (never a rehearsal's) */
@@ -206,15 +213,15 @@ export async function getListedAwards(catalogue: readonly AwardDefinition[] = AW
 export async function getListedAwardTypes(catalogue?: readonly AwardDefinition[]): Promise<AwardType[]> {
     const [types, listed] = await Promise.all([getAwardTypes(), getListedAwards(catalogue)]);
     return [...types, ...listed.filter(award => award.id === GM_OF_THE_YEAR)
-        .map(award => ({ name: award.name, label: award.label, description: award.description }))];
+        .map(award => ({ name: award.name, label: award.label, honor: award.honor }))];
 }
 
 /** the award API's winners of one award by name: an archive award type's, or a listed GM of the Year's; null for any other */
 export async function getListedAwardWinners(name: string, catalogue?: readonly AwardDefinition[]): Promise<{ award: AwardType; winners: AwardWinner[] } | null> {
-    const id = getAwardDefinition(name)?.id;
+    const id = findAward(name)?.id;
     const award = id === GM_OF_THE_YEAR ? (await getListedAwards(catalogue)).find(award => award.id === id) : undefined;
     if (!award) return getAwardWinners(name);
-    return { award: { name: award.name, label: award.label, description: award.description }, winners: await getTeamAwardWinners(GM_OF_THE_YEAR) };
+    return { award: { name: award.name, label: award.label, honor: award.honor }, winners: await getTeamAwardWinners(GM_OF_THE_YEAR) };
 }
 
 export const getAllTimeLeaderboard = cached(async (position: string, page: number, q: string): Promise<LeaderboardPage> => {
@@ -426,8 +433,9 @@ export async function getFranchise(id: number): Promise<FranchiseDetail | null> 
 }
 
 export const getAwardWinners = cached(async (name: string) => {
-    const [award] = await rows<AwardType>(sql`select name, label, description from league.award_types where name = ${name}`);
-    if (!award) return null;
+    const [row] = await rows<{ name: string; label: string; description: string }>(sql`select name, label, description from league.award_types where name = ${name}`);
+    if (!row) return null;
+    const award = toAwardType(row);
     const winners = await rows<AwardWinner>(sql`
         select a.season_year as "Year", p.name as "Winner", p.id as "PlayerID", t.name as "Team", t.franchise_id as "TeamID",
                t.logo as "TeamLogo", ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG"
@@ -439,7 +447,7 @@ export const getAwardWinners = cached(async (name: string) => {
         where at.name = ${name}
         order by a.season_year desc`);
     return { award, winners };
-}, 'award-winners-v2', [leagueTags.awards]);
+}, 'award-winners-v3', [leagueTags.awards]);
 
 /** a team honour: one of the team awards in the catalogue (lib/awards.ts) */
 export type TeamAward = 'jagr-cup' | 'prime-minister' | typeof GM_OF_THE_YEAR;

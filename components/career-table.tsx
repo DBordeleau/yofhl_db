@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AwardLegend from '@/components/award-legend';
 import TeamBadge from '@/components/team-badge';
 import { TrophyArt } from '@/components/trophy-icons';
-import { awardHref, getAwardDefinition } from '@/lib/awards';
+import { awardHref, findAward } from '@/lib/awards';
 import { formatFpts, seasonLabel } from '@/lib/league';
 
 export interface CareerStats {
@@ -96,8 +96,8 @@ const CareerTable: FC<CareerTableProps> = ({ careerStats, awardsByYear, careerFp
                                 <span role="cell" className="flex min-w-0 flex-col gap-1 py-2.5 lg:flex-row lg:items-center lg:gap-2.5">
                                     <span className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:flex-nowrap">
                                         <Link href={`/season/${stat.Year}`} className="tabular whitespace-nowrap text-base font-extrabold underline-offset-[3px] hover:text-rink-blue hover:underline 3xl:text-lg">{seasonLabel(stat.Year)}</Link>
-                                        {!!awardCount && awardsByYear[stat.Year].map((award) => <Link key={award} href={awardHref(award)} className="rounded hover:bg-gold-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-rink-blue" aria-label={`${getAwardDefinition(award)?.label ?? award}, ${seasonLabel(stat.Year)}`}>
-                                            <TrophyArt award={award} title={getAwardDefinition(award)?.label ?? award} className="h-8 w-8" sizes="32px" />
+                                        {!!awardCount && awardsByYear[stat.Year].map((award) => <Link key={award} href={awardHref(award)} className="rounded hover:bg-gold-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-rink-blue" aria-label={`${findAward(award)?.label ?? award}, ${seasonLabel(stat.Year)}`}>
+                                            <TrophyArt award={award} title={findAward(award)?.label ?? award} className="h-8 w-8" sizes="32px" />
                                         </Link>)}
                                         {stat.Champion && <ChampionChip />}
                                     </span>

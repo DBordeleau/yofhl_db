@@ -91,7 +91,7 @@ The query draft replaces the current URL after debouncing. Explicit submission, 
 | Award | Display name, stored name, and catalogue ID | Display name, trophy artwork, and the award's honour; link through `awardHref` to its winners page. |
 | Season | End year and season label, accepting `2025-26`, `2025/26`, and `2025-2026` | Full season label and champion or cancelled status; `/season/<end-year>` when that archive route is available. |
 
-Older award names remain searchable. For example, "Hasek Trophy" finds the Hasek Award and "Teemu Trophy" finds the Teemu Selanne Trophy. Owner-only results are no longer indexed.
+Older award names remain searchable. For example, "Teemu Trophy" finds the Teemu Selanne Trophy. Owner-only results are no longer indexed.
 
 The archive keys seasons by end year. A bare `2026` prioritizes `2025-26`; it must not silently become `2026-27`. Only index season pages that the route can serve. If a known current season exists only on the home page, link it to `/#current-season` and label it "Current season". Do not make archive search fetch Fantrax to discover a season.
 
