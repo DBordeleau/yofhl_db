@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import Header, { type NavLeader } from "@/components/header";
 import TeamBrandingProvider from "@/components/team-branding/branding-provider";
 import { getTeamBranding } from "@/lib/data/team-branding";
@@ -49,6 +50,7 @@ export default async function RootLayout({
           singleSeason={navLeaders(singleSeason.rows, row => [row.Year ? seasonLabel(row.Year) : null, positions(row)].filter(Boolean).join(' · '))}
         />
         <TeamBrandingProvider palettes={palettes}>{children}</TeamBrandingProvider>
+        <Analytics />
       </body>
     </html>
   );

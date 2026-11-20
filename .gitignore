@@ -67,3 +67,7 @@ next-env.d.ts
 
 # Remembrance wardrobe masters stay local; commit optimized WebP/AVIF exports only.
 /assets/coachs-corner/robots-v2/don-remembrance-*.png
+
+# Alternate suit 5 ships AVIF only; retain authoring files locally.
+/assets/coachs-corner/robots-v2/don-alternate-5-*.png
+/assets/coachs-corner/robots-v2/don-alternate-5-*.webp
