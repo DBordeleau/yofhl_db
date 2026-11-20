@@ -1,7 +1,8 @@
 // The season the season sync writes: the live season (the latest season year in the Fantrax team mapping), once
-// the season import has opened it in the archive, where it is the current season (GLOSSARY.md).
+// the season import has opened it in the archive, where it is the current season (GLOSSARY.md), until the season
+// sync freezes it.
 import { sql } from 'drizzle-orm';
-import { rows } from '@/lib/data/db';
+import { cached, rows } from '@/lib/data/db';
 import { LIVE_SEASON_YEAR } from '@/lib/fantrax/live-season-year';
 import { epochMs } from './status';
 
@@ -16,8 +17,6 @@ export interface CurrentSeason {
     seasonYear: number;
     leagueId: string;
     teams: CurrentSeasonTeam[];
-    /** when the season sync froze the season, or null */
-    frozenAt: string | null;
     /** the mapped team with this Fantrax team ID */
     team(fantraxTeamId: string): CurrentSeasonTeam | undefined;
     /** the mapped team whose team season this is */
@@ -26,9 +25,9 @@ export interface CurrentSeason {
     teamSeasonId(team: CurrentSeasonTeam): number;
 }
 
-function currentSeason(seasonYear: number, leagueId: string, frozenAt: string | null, teams: CurrentSeasonTeam[]): CurrentSeason {
+function currentSeason(seasonYear: number, leagueId: string, teams: CurrentSeasonTeam[]): CurrentSeason {
     return {
-        seasonYear, leagueId, frozenAt, teams,
+        seasonYear, leagueId, teams,
         team: fantraxTeamId => teams.find(team => team.fantraxTeamId === fantraxTeamId),
         teamOf: teamSeasonId => teams.find(team => team.teamSeasonId === teamSeasonId),
         teamSeasonId: team => {
@@ -38,9 +37,25 @@ function currentSeason(seasonYear: number, leagueId: string, frozenAt: string | 
     };
 }
 
-/** the live season's year, and the season itself when it is opened in the archive */
-export async function readCurrentSeason(): Promise<{ seasonYear: number | null; season: CurrentSeason | null }> {
-    const teams = await rows<CurrentSeasonTeam & { seasonYear: number; leagueId: string; opened: boolean; frozenAt: number | null }>(sql`
+/** the live season as the season sync sees it: not opened in the archive (or no live season), frozen, or being played */
+export type CurrentSeasonState =
+    | { state: 'not-opened'; seasonYear: number | null }
+    | { state: 'frozen'; seasonYear: number; frozenAt: string }
+    | { state: 'in-play'; season: CurrentSeason };
+
+type TeamRow = CurrentSeasonTeam & { seasonYear: number; leagueId: string; opened: boolean; frozenAt: number | null };
+
+/** carries a season being played out of the cached read, so that answer is never cached */
+class SeasonInPlay extends Error {
+    constructor(readonly teams: TeamRow[]) { super('The live season is being played'); }
+}
+
+// Not opened and frozen are cached until the league configuration changes (opening a season clears every cached
+// league read), so the season sync's later runs answer them without a query. A season being played rejects, which
+// unstable_cache never stores, so each of its runs reads its teams and frozen mark afresh; and once the run that
+// freezes it reads it again, frozen is the answer cached.
+const readSettledSeason = cached(async (): Promise<Exclude<CurrentSeasonState, { state: 'in-play' }>> => {
+    const teams = await rows<TeamRow>(sql`
         select ft.season_year as "seasonYear", ft.fantrax_league_id as "leagueId", ft.fantrax_team_id as "fantraxTeamId",
                ft.franchise_id as "franchiseId", t.id as "teamSeasonId", s.year is not null as opened,
                ${epochMs(sql`st.frozen_at`)} as "frozenAt"
@@ -50,12 +65,23 @@ export async function readCurrentSeason(): Promise<{ seasonYear: number | null; 
         left join league.season_sync_status st on st.season_year = ft.season_year
         where ft.season_year = ${LIVE_SEASON_YEAR}
         order by ft.fantrax_team_id`);
-    if (!teams.length) return { seasonYear: null, season: null };
-    const [{ seasonYear, leagueId, opened, frozenAt }] = teams;
-    if (!opened) return { seasonYear, season: null };
-    return {
-        seasonYear,
-        season: currentSeason(seasonYear, leagueId, frozenAt === null ? null : new Date(frozenAt).toISOString(),
-            teams.map(({ fantraxTeamId, franchiseId, teamSeasonId }) => ({ fantraxTeamId, franchiseId, teamSeasonId }))),
-    };
+    if (!teams.length) return { state: 'not-opened', seasonYear: null };
+    const [{ seasonYear, opened, frozenAt }] = teams;
+    if (!opened) return { state: 'not-opened', seasonYear };
+    if (frozenAt !== null) return { state: 'frozen', seasonYear, frozenAt: new Date(frozenAt).toISOString() };
+    throw new SeasonInPlay(teams);
+}, 'season-sync-current-season-v1');
+
+/** the live season as the season sync sees it, with its mapped teams while it is being played */
+export async function readCurrentSeason(): Promise<CurrentSeasonState> {
+    try {
+        return await readSettledSeason();
+    } catch (error) {
+        if (!(error instanceof SeasonInPlay)) throw error;
+        const [{ seasonYear, leagueId }] = error.teams;
+        return {
+            state: 'in-play',
+            season: currentSeason(seasonYear, leagueId, error.teams.map(({ fantraxTeamId, franchiseId, teamSeasonId }) => ({ fantraxTeamId, franchiseId, teamSeasonId }))),
+        };
+    }
 }
