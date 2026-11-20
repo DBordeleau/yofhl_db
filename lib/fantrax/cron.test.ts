@@ -1,5 +1,5 @@
 // The Fantrax cron route: its auth and slot checks, and what it reports for each refresh outcome. What a refresh
-// does is covered in refresh.test.ts; Pick'em settle in lib/pickem.
+// does is covered in refresh.test.ts; what Pick'em settle does in lib/pickem/settle.test.ts and its neighbours.
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { disposableLeague } from '../testing/disposable-league';
@@ -31,7 +31,7 @@ test('cron rejects missing or incorrect credentials and skips off-season UTC slo
     assert.equal(calls, 0);
 });
 
-test('cron reports whether each refresh published, found no change or skipped a frozen season', async t => {
+test('cron reports whether each refresh published, found no change or skipped a frozen season, and settles Pick\'em after each',async t => {
     let settled = false;
     const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: fakeFantrax(() => settled) });
     t.mock.method(console, 'warn', () => {});
@@ -70,5 +70,10 @@ test('cron reports whether each refresh published, found no change or skipped a 
     const frozen = await run('2026-11-20T04:30:00Z', '04:30');
     assert.equal(frozen.status, 200);
     assert.deepEqual(frozen.body, { scheduled: '23:30', refresh: 'frozen' });
-    assert.equal(settles.mock.callCount(), 3, "a skipped refresh doesn't settle Pick'em");
+    assert.equal(settles.mock.callCount(), 4, "Pick'em settles after a refresh skipped for a frozen season too");
+
+    settles.mock.mockImplementationOnce(async () => { throw Error('settle failed'); });
+    const frozenSettleFailed = await run('2026-11-20T04:30:00Z', '04:30');
+    assert.equal(frozenSettleFailed.status, 500);
+    assert.deepEqual(frozenSettleFailed.body, { scheduled: '23:30', refresh: 'frozen', error: "Pick'em settle failed" });
 });
