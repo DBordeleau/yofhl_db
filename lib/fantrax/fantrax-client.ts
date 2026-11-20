@@ -1,5 +1,6 @@
 // Fantrax's HTTP API as the live season source reads it. Every response is checked here, and Fantrax's start
 // year becomes the season year as league info is read. Free of Next imports; the fetch is injected for tests.
+import { isDeepStrictEqual } from 'node:util';
 import { fantraxApiUrl, readLeagueInfo } from './api';
 import { CORRECTION_WINDOW_MS } from './cache-policy';
 import { discoverScoringSeason, globalFetch, loadRosterStats, loadScoringLeaders, type Fetcher } from './leaders';
@@ -67,6 +68,24 @@ export interface SavedLiveSeason {
     scores: Record<number, MatchupScores>;
     leaders: ScoringLeaders;
     rosterStats: RosterStats;
+}
+
+/**
+ * Whether two captures hold the same Fantrax data. Only our own fetch times (the league responses', each week's
+ * scores', the scoring leaders' and the roster stats') are ignored; every other difference counts, with no field
+ * whitelist, so a field Fantrax moves by itself costs one more save rather than hiding a real change.
+ */
+export function sameCapture(a: SavedLiveSeason, b: SavedLiveSeason): boolean {
+    return isDeepStrictEqual(withoutFetchTimes(a), withoutFetchTimes(b));
+}
+
+function withoutFetchTimes(capture: SavedLiveSeason) {
+    // As the saved snapshot stores it, so a field left undefined compares as absent.
+    const copy: SavedLiveSeason = JSON.parse(JSON.stringify(capture));
+    for (const part of [copy.source, copy.leaders, copy.rosterStats, ...Object.values(copy.scores ?? {})]) {
+        if (part) delete (part as { fetchedAt?: string }).fetchedAt;
+    }
+    return copy;
 }
 
 const toIso = (date: string) => new Date(date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).toISOString();

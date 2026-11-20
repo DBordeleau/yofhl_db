@@ -1,5 +1,6 @@
 // The in-memory live season source, for tests. `fantrax` is what Fantrax would return right now and `saved` is
 // the saved snapshot; `down` lists the Fantrax requests that are failing.
+import { isDeepStrictEqual } from 'node:util';
 import type { FantraxTeamRow, FranchiseIdentity, LiveSeasonSource, RosterStats, SourceCore, SourceLeaders, WeekScores } from './live-season-source';
 
 interface MemoryCapture {
@@ -18,6 +19,13 @@ export interface MemoryState {
     /** by season year */
     manualFinalWeeks: Record<number, number[]>;
     down: Set<'core' | 'scores' | 'leaders' | 'rosterStats'>;
+}
+
+/** a capture without its own fetch times, which are all a capture that changed nothing differs in */
+function withoutFetchTimes(capture: MemoryCapture) {
+    const copy = structuredClone(capture);
+    for (const part of [copy.core, copy.leaders, copy.rosterStats, ...Object.values(copy.scores)]) delete (part as { fetchedAt?: string }).fetchedAt;
+    return copy;
 }
 
 export function createMemorySource(state: MemoryState): LiveSeasonSource {
@@ -46,8 +54,9 @@ export function createMemorySource(state: MemoryState): LiveSeasonSource {
         },
         capture: async () => {
             for (const request of ['core', 'scores', 'leaders', 'rosterStats'] as const) fantrax(request);
-            state.saved = structuredClone(state.fantrax);
-            return structuredClone(state.saved.core);
+            const changed = !state.saved || !isDeepStrictEqual(withoutFetchTimes(state.saved), withoutFetchTimes(state.fantrax));
+            if (changed) state.saved = structuredClone(state.fantrax);
+            return { ...structuredClone(state.fantrax.core), changed };
         },
     };
 }

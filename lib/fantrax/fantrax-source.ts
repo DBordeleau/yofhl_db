@@ -7,7 +7,7 @@ import { cache } from 'react';
 import { cached, rows } from '@/lib/data/db';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
 import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, finalWeeksTag, scoresAreArchived } from './cache-policy';
-import { createFantraxClient, readCore, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
+import { createFantraxClient, readCore, sameCapture, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
 import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek } from './live-season-source';
 import { LIVE_SEASON_YEAR } from './live-season-year';
 
@@ -104,12 +104,19 @@ const savedOrDaily = <T>(fromSaved: (saved: SavedLiveSeason) => T, daily: (leagu
 const getCachedLeaders = savedOrDaily(saved => saved.leaders, getDailyLeaders);
 const getCachedRosterStats = savedOrDaily(saved => saved.rosterStats, getDailyRosterStats);
 
-/** Capture every request, save the snapshot and publish it, only if every request succeeds. */
-async function captureAndSave(leagueId: string): Promise<SavedLiveSeason> {
+/**
+ * Capture every request, then save the snapshot and publish it, only if every request succeeds and the capture
+ * differs from the saved snapshot. An unchanged capture leaves the saved snapshot, its capture time and the
+ * live season's caches as they are.
+ */
+async function captureAndSave(leagueId: string): Promise<{ data: SavedLiveSeason; changed: boolean }> {
     const data = await fantraxClient.capture(leagueId, { scoringSeason: getScoringSeason });
+    // The stored row itself, not the cached copy, so the comparison is with what a save would replace.
+    const [stored] = await rows<{ data: SavedLiveSeason }>(sql`select data from league.fantrax_snapshots where league_id = ${leagueId}`);
+    if (stored && sameCapture(stored.data, data)) return { data, changed: false };
     await rows(saveSnapshotQuery(leagueId, data));
     revalidateTag(FANTRAX_CURRENT_TAG);
-    return data;
+    return { data, changed: true };
 }
 
 /** what a core was read with: its league, and the saved snapshot (null when missing or more than a day old) */
@@ -151,8 +158,8 @@ export const fantraxSource: LiveSeasonSource = {
         revalidateTag(finalWeeksTag(seasonYear));
     },
     async capture() {
-        const { source } = await captureAndSave(await liveLeagueId());
-        const { fetchedAt, seasonYear, weeks, playoffs } = readCore(source, {});
-        return { fetchedAt, seasonYear, weeks, playoffs };
+        const { data, changed } = await captureAndSave(await liveLeagueId());
+        const { fetchedAt, seasonYear, weeks, playoffs } = readCore(data.source, {});
+        return { fetchedAt, seasonYear, weeks, playoffs, changed };
     },
 };

@@ -80,6 +80,8 @@ test('a refresh publishes the live season without touching archive caches, and a
     assert.ok(league.cacheEntries().has(archived), 'the refresh leaves archived entries cached');
 
     const saved = await savedSnapshot();
+    // A capture that changed something, which the failed save then keeps from the saved snapshot.
+    settled = false;
     league.failNextQuery('insert into league.fantrax_snapshots', Error('save failed'));
     await assert.rejects(refresh(), /save failed/);
     assert.deepEqual(await savedSnapshot(), saved);
@@ -239,4 +241,44 @@ test('a refresh and a final week keep the saved snapshot and final weeks rows in
     const finals = await league.client.query<{ league_id: string; season_year: number; period: number }>('select * from league.fantrax_final_weeks');
     assert.deepEqual(finals.fields.map(field => field.name), ['league_id', 'season_year', 'period', 'marked_at']);
     assert.deepEqual(finals.rows.map(({ league_id, season_year, period }) => ({ league_id, season_year, period })), [{ league_id: LEAGUE, season_year: 2027, period: 1 }]);
+});
+
+test('a capture that matches the saved snapshot apart from its capture times saves nothing and expires nothing; any other difference publishes', async t => {
+    // A field no page reads still counts: one more game played in week 1.
+    let gamesPlayed = 1;
+    const fetchFantrax = fantrax(() => false);
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: async (input, options) => {
+        const response = await fetchFantrax(input, options);
+        if (!new URL(String(input)).pathname.endsWith('/getMatchupScores')) return response;
+        const scores = await response.json();
+        scores.matchups[0].home.gamesPlayed = gamesPlayed;
+        return Response.json(scores);
+    } });
+    t.mock.method(Date, 'now', () => Date.parse('2026-10-18T22:00:00Z'));
+    t.mock.method(console, 'warn', () => {});
+    const { refreshLiveSeason } = await import('./live-season');
+    const savedSnapshot = async () => (await league.client.query<{ data: SavedLiveSeason }>('select data from league.fantrax_snapshots')).rows[0].data;
+    const refresh = async () => {
+        // Capture times are the real clock's; let it move on so every one of them differs from the last capture's.
+        await new Promise(resolve => setTimeout(resolve, 5));
+        return league.runAsRoute('/api/cron/fantrax', refreshLiveSeason);
+    };
+
+    const first = await refresh();
+    assert.equal(first.result.changed, true);
+    assert.deepEqual(first.revalidatedTags, [FANTRAX_CURRENT_TAG]);
+    const saved = await savedSnapshot();
+    const again = await refresh();
+    assert.ok(again.result.fetchedAt > first.result.fetchedAt);
+    assert.deepEqual([again.result.changed, again.result.seasonYear], [false, 2027]);
+    assert.deepEqual(again.revalidatedTags, []);
+    assert.deepEqual(await savedSnapshot(), saved, 'the saved snapshot keeps its capture time');
+
+    gamesPlayed = 2;
+    const changed = await refresh();
+    assert.equal(changed.result.changed, true);
+    assert.deepEqual(changed.revalidatedTags, [FANTRAX_CURRENT_TAG]);
+    const published = await savedSnapshot();
+    assert.equal(published.source.fetchedAt, changed.result.fetchedAt);
+    assert.equal(published.scores[1].matchups[0].home.gamesPlayed, 2);
 });

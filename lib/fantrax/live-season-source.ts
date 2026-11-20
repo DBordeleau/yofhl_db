@@ -54,8 +54,11 @@ export interface SourceCore {
     playoffs: FantraxPlayoffs;
 }
 
-/** what a capture reports back: enough to check Fantrax's playoff settings against the league's */
-export type CapturedSeason = Pick<SourceCore, 'fetchedAt' | 'seasonYear' | 'weeks' | 'playoffs'>;
+/**
+ * what a capture reports back: enough to check Fantrax's playoff settings against the league's, and whether it
+ * differed from the saved snapshot (and so was published)
+ */
+export type CapturedSeason = Pick<SourceCore, 'fetchedAt' | 'seasonYear' | 'weeks' | 'playoffs'> & { changed: boolean };
 
 export interface WeekScores {
     fetchedAt: string;
@@ -109,6 +112,9 @@ export interface LiveSeasonSource {
     rosterStats(core: SourceCore): Promise<RosterStats>;
     manualFinalWeeks(seasonYear: number): Promise<number[]>;
     setManualFinalWeek(seasonYear: number, week: number, final: boolean): Promise<void>;
-    /** Capture every Fantrax request, save the snapshot and publish it. Publishes only if every request succeeds. */
+    /**
+     * Capture every Fantrax request, then save the snapshot and publish it, unless it matches the saved snapshot
+     * apart from the capture's own fetch times. Saves only if every request succeeds.
+     */
     capture(): Promise<CapturedSeason>;
 }

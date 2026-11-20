@@ -301,10 +301,14 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         return source.weekScores(found, core);
     }
 
-    /** For the cron, /api/revalidate and the admin refresh. Publishes only if every Fantrax request succeeds. */
-    async function refreshLiveSeason(): Promise<{ fetchedAt: string; seasonYear: number }> {
-        const core = await source.capture();
-        return { fetchedAt: core.fetchedAt, seasonYear: core.seasonYear };
+    /**
+     * For the cron, /api/revalidate and the admin refresh: always captures. Publishes only if every Fantrax request
+     * succeeds and the capture differs from the saved snapshot apart from its fetch times; `changed` says which.
+     * `fetchedAt` is the capture's, whether or not it was published.
+     */
+    async function refreshLiveSeason(): Promise<{ fetchedAt: string; seasonYear: number; changed: boolean }> {
+        const { fetchedAt, seasonYear, changed } = await source.capture();
+        return { fetchedAt, seasonYear, changed };
     }
 
     /** The admin's manual final toggle. Only a started week of the live season can be marked. */
