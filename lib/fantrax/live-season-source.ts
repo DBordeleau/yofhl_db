@@ -89,6 +89,9 @@ export function liveFantraxLeagueId(rows: FantraxTeamRow[]): string {
     return leagueId;
 }
 
+/** The live season's year: the latest season year league.fantrax_teams maps, or undefined when it maps none. */
+export const liveFantraxSeasonYear = (rows: FantraxTeamRow[]): number | undefined => rows[0]?.seasonYear;
+
 /** a franchise's current identity, from league.current_teams */
 export interface FranchiseIdentity {
     id: number;

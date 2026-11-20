@@ -9,4 +9,4 @@ export { FANTRAX_TAG } from './cache-policy';
 export { scoresAreArchived as correctionWindowClosed } from './cache-policy';
 export type { LivePlayer, LiveSeason, LiveTeam, RosterStats, ScheduledMatchup, ScheduledRefresh, Week, WeekScores } from './assemble-live-season';
 
-export const { getLiveSeason, getWeekScores, refreshLiveSeason, scheduledRefresh, setWeekFinal } = createLiveSeason(fantraxSource);
+export const { getLiveSeason, getWeekScores, liveSeasonYear, refreshLiveSeason, scheduledRefresh, setWeekFinal } = createLiveSeason(fantraxSource);

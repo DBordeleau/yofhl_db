@@ -3,6 +3,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemoryLiveSeason } from '@/lib/fantrax/memory-live-season';
+import { fakeFantrax, SEED as FANTRAX_SEED } from '@/lib/fantrax/testing/fake-fantrax';
+import { disposableLeague } from '@/lib/testing/disposable-league';
+import type { PickemPorts } from './ports';
 import { DAY, liveSeasonState, pickemLeague, SEASON, weeksAroundNow } from './testing/pickem-league';
 
 const now = () => Date.now();
@@ -77,4 +80,32 @@ test('in a season with no Pick\'em, settle makes no app query', async t => {
     assert.deepEqual([settled.recorded, settled.frozen, settled.held, settled.completed], [[], [], [], []]);
     assert.equal(settled.queries, 0);
     assert.deepEqual(settled.revalidatedTags, []);
+});
+
+test('once a frozen season\'s Pick\'em is complete, settle over the production live season costs nothing, however long its caches have stood', async t => {
+    let network = 0;
+    // The fake Fantrax's 2027 Final ended on November 4, so 2027 is a frozen season by the 20th.
+    const frozen = Date.parse('2026-11-20T02:00:00Z');
+    const league = await disposableLeague(t, { app: true, nextCache: true, fetch: fakeFantrax(() => true, () => network++), seed: `${FANTRAX_SEED}
+        insert into league.pickem_weeks (season_year, week, lock) values (2027, 1, '2026-10-12T16:00:00Z');
+        insert into league.pickem_completed_seasons (season_year) values (2027);` });
+    t.mock.method(Date, 'now', () => frozen);
+    t.mock.method(console, 'warn', () => {});
+    const { getLiveSeason, getWeekScores, liveSeasonYear, refreshLiveSeason } = await import('@/lib/fantrax/live-season');
+    const { createPickem } = await import('./create-pickem');
+    const { settle } = createPickem({
+        liveSeason: { getLiveSeason, getWeekScores, liveSeasonYear }, ownerSession: {} as PickemPorts['ownerSession'], launch: { seasonYear: 2027, week: 1 },
+    });
+    await league.runAsRoute('/api/admin/fantrax', refreshLiveSeason);
+    await league.runAsRoute('/api/cron/fantrax', () => settle({ now: frozen }));
+
+    // A day, then a week, passes: every cache entry on a timer runs out.
+    league.expireByLifetime(86400);
+    league.expireByLifetime(7 * 86400);
+    const [queries, requests] = [league.queries(), network];
+    const quiet = await league.runAsRoute('/api/cron/fantrax', () => settle({ now: frozen }));
+    assert.deepEqual(quiet.result, { recorded: [], frozen: [], held: [], completed: [] });
+    assert.equal(league.queries(), queries, 'no app query');
+    assert.equal(network, requests, 'no Fantrax request');
+    assert.deepEqual(quiet.revalidatedTags, []);
 });
