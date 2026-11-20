@@ -8,7 +8,7 @@ import history from '../rivalries/regular-season-history.json';
 import periods from './periods.json';
 
 const team = (ID: number, championships: number[] = []): FranchiseCard => ({ ID, Team: `Team ${ID}`, Abbreviation: `T${ID}`, Owner: null, defunct: false, Wins: 10, Losses: 5, Ties: 0, FPF: 1000, championships, finals: championships, LogoUrl: null });
-const source = (): RecordSource => ({ teams: [team(1, [2019, 2021]), team(2)], players: [], seasons: [2019, 2020, 2021, 2022].flatMap(year => [1, 2].map(team => ({ year, team, name: `Team ${team}`, wins: 10, losses: 5, ties: 0, points: 1000 }))), awards: [], published: [2019, 2020, 2021, 2022], competitions: [2019, 2021, 2022], games: [], periods: [] });
+const source = (): RecordSource => ({ teams: [team(1, [2019, 2021]), team(2)], players: [], seasons: [2019, 2020, 2021, 2022].flatMap(year => [1, 2].map(team => ({ year, team, name: `Team ${team}`, wins: 10, losses: 5, ties: 0, points: 1000 }))), awards: [], primeMinisters: [], published: [2019, 2020, 2021, 2022], competitions: [2019, 2021, 2022], games: [], periods: [] });
 const entry = (id: string, value: number): Entry => ({ id, name: id, value, detail: '', team: null, href: '/' });
 
 test('records share ranks for ties and preserve inputs', () => {
@@ -37,23 +37,28 @@ test('cancelled playoffs do not break title runs and consecutive championships r
     assert(records.find(r => r.id === 'repeat-cups')!.entries.every(e => e.value >= 2));
     assert(!records.some(r => ['drought', 'closest-win'].includes(r.id) || /selanne/i.test(r.title)));
     assert(records.some(r => r.title === 'Bobby Orr Award'));
-    assert.equal(records.find(r => r.id === 'scoring-titles')!.entries.length, 0, 'a tied points lead cannot invent a trophy winner');
 });
 
-test('a season still being played earns no scoring title or best season record but counts toward the highest single-season totals', () => {
+test("the Prime Minister's Trophies record counts each franchise's wins the award archive gives it", () => {
+    const data = source();
+    assert.equal(buildRecords(data).find(r => r.id === 'scoring-titles')!.entries.length, 0, 'no wins, no entries');
+    data.primeMinisters = [{ team: 1, year: 2022 }, { team: 2, year: 2020 }, { team: 1, year: 2019 }];
+    const record = buildRecords(data).find(r => r.id === 'scoring-titles')!;
+    assert.equal(record.title, 'Prime Minister’s Trophies');
+    assert.deepEqual(record.entries.map(e => [e.team, e.value, e.detail, e.rank]), [[1, 2, '2018–19, 2021–22', 1], [2, 1, '2019–20', 2]]);
+});
+
+test('a season still being played earns no best season record but counts toward the highest single-season totals', () => {
     const data = source();
     data.seasons.push({ year: 2023, team: 2, name: 'Team 2', wins: 12, losses: 1, ties: 0, points: 5000 }, { year: 2023, team: 1, name: 'Team 1', wins: 1, losses: 12, ties: 0, points: 10 });
     data.players = [{ id: 'a', name: 'A', year: 2022, points: 300, positions: ['C'] }, { id: 'b', name: 'B', year: 2023, points: 900, positions: ['C'] }];
-    data.seasons.find(s => s.year === 2022 && s.team === 1)!.points = 1200;
     const records = buildRecords(data);
-    assert.deepEqual(records.find(r => r.id === 'scoring-titles')!.entries.map(e => [e.team, e.value, e.detail]), [[1, 1, '2021–22']]);
     assert.equal(records.find(r => r.id === 'season-points')!.entries[0].id, '2:2023');
     assert.equal(records.find(r => r.id === 'player-season')!.entries[0].id, 'b:2023');
     assert.ok(!records.find(r => r.id === 'win-percentage')!.entries.some(e => e.id.endsWith(':2023')), 'a 12–1 start is not a season record');
 
     data.published.push(2023);
     const published = buildRecords(data);
-    assert.deepEqual(published.find(r => r.id === 'scoring-titles')!.entries.map(e => [e.team, e.value]), [[1, 1], [2, 1]], 'a published season counts like any other');
     assert.equal(published.find(r => r.id === 'win-percentage')!.entries[0].id, '2:2023');
 });
 

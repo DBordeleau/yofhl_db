@@ -39,6 +39,9 @@ export interface SeasonDraftSelection extends DraftSelection {
     teamLogo: string | null;
 }
 export interface FranchiseHonors {
+    /** the seasons the franchise won the Jagr Cup, newest first */
+    cups: number[];
+    /** its Prime Minister's Trophies, newest first, each with the points that won it */
     primeMinisters: { year: number; points: number }[];
     awards: { year: number; name: string; label: string; description: string; playerId: string; player: string }[];
     /** the listed team awards an award vote decides (GM of the Year) the franchise has won, in catalogue order, each with its seasons newest first */

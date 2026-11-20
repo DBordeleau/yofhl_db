@@ -5,7 +5,8 @@ import AwardTable from '@/components/award-table';
 import RinkDivider from '@/components/rink-divider';
 import { TrophyArt } from '@/components/trophy-icons';
 import { AWARDS, awardFromSlug, awardHref, awardSlug, findAward } from '@/lib/awards';
-import { getAwardTypes, getAwardWinners, getListedAwards, getTeamAwardWinners, type AwardWinner } from '@/lib/data/league';
+import { getAwardTypes, getAwardWinners, getListedAwards, type AwardWinner } from '@/lib/data/league';
+import { winners as awardWinners } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import ExploreNext from '@/components/explore-next';
@@ -29,12 +30,12 @@ export async function generateMetadata({ params }: { params: Promise<{ award: st
 export default async function AwardPage({ params }: { params: Promise<{ award: string }> }) {
     const name = awardFromSlug((await params).award);
     const definition = findAward(name);
-    const teamAward = definition?.id === 'jagr-cup' || definition?.id === 'prime-minister' || definition?.id === GM_OF_THE_YEAR ? definition.id : null;
-    const data = teamAward && definition
-        ? { award: { name: definition.name, label: definition.label, honor: definition.honor }, winners: await getTeamAwardWinners(teamAward) }
-        : await getAwardWinners(definition?.name ?? name);
+    const teamAward = definition?.scope === 'team';
+    const data = definition
+        ? { award: { name: definition.name, label: definition.label, honor: definition.honor }, winners: await awardWinners(definition) }
+        : await getAwardWinners(name);
     // GM of the Year's page, reachable by its URL, exists once a winner is published, released or not
-    if (!data || (teamAward === GM_OF_THE_YEAR && !data.winners.length)) notFound();
+    if (!data || (definition?.id === GM_OF_THE_YEAR && !data.winners.length)) notFound();
     // share cards only for an award lists show: not GM of the Year until it is released
     const listed = !definition || (await getListedAwards()).some(award => award.id === definition.id);
     const { award, winners } = data;
@@ -70,7 +71,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                                 return <div key={`${winner.PlayerID}-${winner.TeamID}`}>
                                     <p className="mt-2 text-xl font-extrabold">{href ? <Link href={href} className="underline-offset-4 hover:text-gold-light hover:underline">{winner.Winner} <Arrow /></Link> : winner.Winner}</p>
                                     {!teamAward && winner.Team && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Team}</p>}
-                                    {teamAward === GM_OF_THE_YEAR && winner.Owner && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Owner}</p>}
+                                    {definition?.id === GM_OF_THE_YEAR && winner.Owner && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Owner}</p>}
                                 </div>;
                             })}
                         </div>}

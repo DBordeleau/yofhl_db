@@ -221,7 +221,7 @@ export async function getListedAwardWinners(name: string, catalogue?: readonly A
     const id = findAward(name)?.id;
     const award = id === GM_OF_THE_YEAR ? (await getListedAwards(catalogue)).find(award => award.id === id) : undefined;
     if (!award) return getAwardWinners(name);
-    return { award: { name: award.name, label: award.label, honor: award.honor }, winners: await getTeamAwardWinners(GM_OF_THE_YEAR) };
+    return { award: { name: award.name, label: award.label, honor: award.honor }, winners: await getGmOfTheYearWinners() };
 }
 
 export const getAllTimeLeaderboard = cached(async (position: string, page: number, q: string): Promise<LeaderboardPage> => {
@@ -449,44 +449,32 @@ export const getAwardWinners = cached(async (name: string) => {
     return { award, winners };
 }, 'award-winners-v3', [leagueTags.awards]);
 
-/** a team honour: one of the team awards in the catalogue (lib/awards.ts) */
-export type TeamAward = 'jagr-cup' | 'prime-minister' | typeof GM_OF_THE_YEAR;
+/**
+ * the team seasons that meet `criterion` (a condition on team season `t`) as award winners, newest first: the row every
+ * team award's winners share, the team season's name, franchise, owner, logo, points and record
+ */
+export const teamSeasonWinnerRows = (criterion: SQL) => rows<AwardWinner>(sql`
+    select t.season_year as "Year", st.name as "Winner", '' as "PlayerID",
+           st.name as "Team", t.franchise_id as "TeamID", o.name as "Owner", st.logo as "TeamLogo",
+           t.fpts_for::float8 as "FPts", null::float8 as "FPG",
+           t.wins || '–' || t.losses || case when t.ties > 0 then '–' || t.ties else '' end as "Record"
+    from league.team_seasons t
+    join league.season_teams st on st.team_season_id = t.id
+    left join league.owners o on o.id = t.owner_id
+    where ${criterion}
+    order by t.season_year desc, st.name`);
 
-// Team honours use the same championship and scoring records as franchise trophy cases. GM of the Year's winners are
-// the place-one team seasons of its published tallies (never a rehearsal's), co-winners each their own row; it is
-// never in the player-keyed awards table.
-/** each team award's winners, as a condition on team season `t`, and the cache tag its winners expire with */
-const TEAM_AWARDS: Record<TeamAward, { criterion: SQL; tag: string }> = {
-    'jagr-cup': { criterion: sql`exists (select 1 from league.season_results r where r.champion_team_season_id = t.id)`, tag: leagueTags.cups },
-    'prime-minister': {
-        criterion: sql`not exists (select 1 from league.team_seasons other
-              where other.season_year = t.season_year and other.franchise_id <> t.franchise_id
-                and other.fpts_for >= t.fpts_for)`,
-        tag: leagueTags.pointsLeaders,
-    },
-    [GM_OF_THE_YEAR]: {
-        criterion: sql`t.id in (select w.team_season_id from ${publishedTeamAwardWinners} w where w.award = ${GM_OF_THE_YEAR})`,
-        tag: leagueTags.awardVoteTallies,
-    },
-};
+// GM of the Year's winners are the place-one team seasons of its published tallies (never a rehearsal's), co-winners
+// each their own row; it is never in the player-keyed awards table.
+const getGmOfTheYearRows = cached(
+    () => teamSeasonWinnerRows(sql`t.id in (select w.team_season_id from ${publishedTeamAwardWinners} w where w.award = ${GM_OF_THE_YEAR})`),
+    'gm-of-the-year-winners',
+    [leagueTags.awardVoteTallies],
+);
 
-const getTeamAwardRows = cached(async (award: TeamAward) => {
-    const { criterion } = TEAM_AWARDS[award];
-    return rows<AwardWinner>(sql`
-        select t.season_year as "Year", st.name as "Winner", '' as "PlayerID",
-               st.name as "Team", t.franchise_id as "TeamID", o.name as "Owner", st.logo as "TeamLogo",
-               t.fpts_for::float8 as "FPts", null::float8 as "FPG",
-               t.wins || '–' || t.losses || case when t.ties > 0 then '–' || t.ties else '' end as "Record"
-        from league.team_seasons t
-        join league.season_teams st on st.team_season_id = t.id
-        left join league.owners o on o.id = t.owner_id
-        where ${criterion}
-        order by t.season_year desc, st.name`);
-}, 'team-award-winners-v4', (award: TeamAward) => [TEAM_AWARDS[award].tag]);
-
-/** A season still being played has a points leader but no Prime Minister's Trophy until it is published. */
-export async function getTeamAwardWinners(award: TeamAward): Promise<AwardWinner[]> {
-    return publishedOnly(getTeamAwardRows(award), winner => winner.Year);
+/** GM of the Year's winners in published seasons, newest first */
+export async function getGmOfTheYearWinners(): Promise<AwardWinner[]> {
+    return publishedOnly(getGmOfTheYearRows(), winner => winner.Year);
 }
 
 export const searchPlayers = cached(

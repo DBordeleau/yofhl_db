@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
-import { publishedOnly } from './league';
+import { winners } from './award-archive';
 import { leagueTags } from './cache-tags';
 import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
@@ -13,15 +13,8 @@ import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/dev
 const seasonTeamJson = (season: string, franchise: string, recorded: string) => sql.raw(`jsonb_build_object('id', ${franchise},
     'name', coalesce(${season}.name, ${recorded}), 'abbreviation', ${season}.abbreviation, 'logo', ${season}.logo)`);
 
-const getFranchiseHonorRows = cached(async (id: number): Promise<Omit<FranchiseHonors, 'teamAwards'> & { votedWins: { award: string; year: number }[] }> => {
-    const [primeMinisters, awards, votedWins] = await Promise.all([
-        rows<FranchiseHonors['primeMinisters'][number]>(sql`
-            select t.season_year as year, t.fpts_for::float8 as points
-            from league.team_seasons t
-            where t.franchise_id = ${id}
-              and not exists (select 1 from league.team_seasons other
-                  where other.season_year = t.season_year and other.franchise_id <> t.franchise_id and other.fpts_for >= t.fpts_for)
-            order by t.season_year desc`),
+const getFranchiseHonorRows = cached(async (id: number): Promise<Pick<FranchiseHonors, 'awards'> & { votedWins: { award: string; year: number }[] }> => {
+    const [awards, votedWins] = await Promise.all([
         rows<FranchiseHonors['awards'][number]>(sql`
             select a.season_year as year, at.name, at.label, at.description, p.id as "playerId", p.name as player
             from league.awards a
@@ -38,21 +31,30 @@ const getFranchiseHonorRows = cached(async (id: number): Promise<Omit<FranchiseH
             where t.franchise_id = ${id}
             order by w.season_year desc`),
     ]);
-    return { primeMinisters, awards, votedWins };
-}, 'franchise-honors-v3', [leagueTags.awards, leagueTags.pointsLeaders, leagueTags.awardVoteTallies]);
+    return { awards, votedWins };
+}, 'franchise-honors-v4', [leagueTags.awards, leagueTags.awardVoteTallies]);
+
+/** the franchise's wins among an award's winners (the award archive's) */
+const franchiseWins = async (id: number, award: string) => ((await winners(award)) ?? []).filter(winner => winner.TeamID === id);
 
 /**
- * A season still being played has a points leader but no Prime Minister's Trophy until it is published. A team award
+ * A franchise's trophy case. Its Jagr Cups and Prime Minister's Trophies are the award archive's winners. A team award
  * an award vote decides is in the trophy case only once listed (lib/awards.ts listedAwards); `catalogue` is the award
  * catalogue, in tests a released one.
  */
 export async function getFranchiseHonors(id: number, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<FranchiseHonors> {
-    const { primeMinisters, awards, votedWins } = await getFranchiseHonorRows(id);
+    const [{ awards, votedWins }, cups, primeMinisters] = await Promise.all([
+        getFranchiseHonorRows(id), franchiseWins(id, 'jagr-cup'), franchiseWins(id, 'prime-minister'),
+    ]);
     const teamAwards = listedAwards(new Set(votedWins.map(win => win.award)), catalogue).flatMap(award => {
         const years = votedWins.filter(win => win.award === award.id).map(win => win.year);
         return years.length ? [{ id: award.id, name: award.name, label: award.label, honor: award.honor, years }] : [];
     });
-    return { primeMinisters: await publishedOnly(primeMinisters, win => win.year), awards, teamAwards };
+    return {
+        cups: cups.map(win => win.Year),
+        primeMinisters: primeMinisters.map(win => ({ year: win.Year, points: win.FPts ?? 0 })),
+        awards, teamAwards,
+    };
 }
 
 export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`

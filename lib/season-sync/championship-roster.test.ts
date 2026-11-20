@@ -183,9 +183,9 @@ test("a champion set in bracket review after a level Final gets its roster from 
 
 test("the points leader cached while the season was played is the Prime Minister's Trophy winner once the Final publishes the season", async t => {
     const league = await playoffLeague(t);
-    const { getTeamAwardWinners } = await import('@/lib/data/league');
+    const archive = await import('@/lib/data/award-archive');
     const { getFranchiseHonors } = await import('@/lib/data/history');
-    const winners = async () => (await league.read(() => getTeamAwardWinners('prime-minister'))).map(winner => winner.Year);
+    const winners = async () => (await league.read(() => archive.winners('prime-minister')))!.map(winner => winner.Year);
     const trophies = async () => (await league.read(() => getFranchiseHonors(3))).primeMinisters.map(win => win.year);
     rosterOne(league);
     // read, and so cached, while the opened season has no points

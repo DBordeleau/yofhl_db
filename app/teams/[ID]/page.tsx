@@ -37,11 +37,11 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
     const [honors, draft, transactions, historySeasons, archive] = await Promise.all([
         getFranchiseHonors(id), getFranchiseDraft(id), getHistory(scope, 'trade'), getHistorySeasons(scope), getSeasonArchive(),
     ]);
-    const recentCup = [...team.championships].filter(year => isPublished(archive, year)).sort((a, b) => b - a)[0];
+    const recentCup = honors.cups[0];
     const recentSeason = team.seasons.filter(season => isPublished(archive, season.year)).sort((a, b) => b.year - a.year)[0];
 
     const leadingPlayer = team.leaders[0];
-    const cups = team.championships.length;
+    const cups = honors.cups.length;
     const differential = team.fptsFor - team.fptsAgainst;
     const playoffSeasons = team.seasons.filter((s) => s.playoffStatus === 'complete' && s.playoffRound !== null).length;
     const eligibleSeasons = team.seasons.filter((s) => s.playoffStatus === 'complete').length;
@@ -100,7 +100,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
                 <div data-brand-part="stripes" className="banner-stripes h-3.5" />
             </TeamBranding>
 
-            <FranchiseTrophyCase franchiseId={id} championships={team.championships} finals={team.finals} seasons={team.seasons} honors={honors} defunct={team.foldedAfterSeason !== null} />
+            <FranchiseTrophyCase franchiseId={id} finals={team.finals} seasons={team.seasons} honors={honors} defunct={team.foldedAfterSeason !== null} />
 
             <PageContents key={id} variant="bar" title={team.name} contentId="franchise-sections" sections={sections} />
 
