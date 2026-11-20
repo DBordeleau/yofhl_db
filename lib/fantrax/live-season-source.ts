@@ -54,8 +54,11 @@ export interface SourceCore {
     playoffs: FantraxPlayoffs;
 }
 
-/** what a capture reports back: enough to check Fantrax's playoff settings against the league's */
-export type CapturedSeason = Pick<SourceCore, 'fetchedAt' | 'seasonYear' | 'weeks' | 'playoffs'>;
+/**
+ * what a capture reports back: enough to check Fantrax's playoff settings against the league's, and whether it
+ * differed from the saved snapshot (and so was published)
+ */
+export type CapturedSeason = Pick<SourceCore, 'fetchedAt' | 'seasonYear' | 'weeks' | 'playoffs'> & { changed: boolean };
 
 export interface WeekScores {
     fetchedAt: string;
@@ -107,8 +110,16 @@ export interface LiveSeasonSource {
     weekScores(week: SourceWeek, core: SourceCore): Promise<WeekScores>;
     scoringLeaders(core: SourceCore): Promise<SourceLeaders>;
     rosterStats(core: SourceCore): Promise<RosterStats>;
+    /**
+     * The saved snapshot's season year and weeks however old it is, or null when there is none. Cached until a
+     * capture publishes or the league configuration changes, never on a timer, so asking it again costs nothing.
+     */
+    savedSchedule(): Promise<{ seasonYear: number; weeks: SourceWeek[] } | null>;
     manualFinalWeeks(seasonYear: number): Promise<number[]>;
     setManualFinalWeek(seasonYear: number, week: number, final: boolean): Promise<void>;
-    /** Capture every Fantrax request, save the snapshot and publish it. Publishes only if every request succeeds. */
+    /**
+     * Capture every Fantrax request, then save the snapshot and publish it, unless it matches the saved snapshot
+     * apart from the capture's own fetch times. Saves only if every request succeeds.
+     */
     capture(): Promise<CapturedSeason>;
 }

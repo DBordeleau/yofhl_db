@@ -1,5 +1,6 @@
 // The in-memory live season source, for tests. `fantrax` is what Fantrax would return right now and `saved` is
 // the saved snapshot; `down` lists the Fantrax requests that are failing.
+import { isDeepStrictEqual } from 'node:util';
 import type { FantraxTeamRow, FranchiseIdentity, LiveSeasonSource, RosterStats, SourceCore, SourceLeaders, WeekScores } from './live-season-source';
 
 interface MemoryCapture {
@@ -20,6 +21,13 @@ export interface MemoryState {
     down: Set<'core' | 'scores' | 'leaders' | 'rosterStats'>;
 }
 
+/** a capture without its own fetch times, which are all a capture that changed nothing differs in */
+function withoutFetchTimes(capture: MemoryCapture) {
+    const copy = structuredClone(capture);
+    for (const part of [copy.core, copy.leaders, copy.rosterStats, ...Object.values(copy.scores)]) delete (part as { fetchedAt?: string }).fetchedAt;
+    return copy;
+}
+
 export function createMemorySource(state: MemoryState): LiveSeasonSource {
     const fantrax = (request: 'core' | 'scores' | 'leaders' | 'rosterStats') => {
         if (state.down.has(request)) throw new Error(`Fantrax ${request} is down`);
@@ -38,6 +46,7 @@ export function createMemorySource(state: MemoryState): LiveSeasonSource {
         },
         scoringLeaders: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.leaders ?? fantrax('leaders').leaders),
         rosterStats: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.rosterStats ?? fantrax('rosterStats').rosterStats),
+        savedSchedule: async () => state.saved && structuredClone({ seasonYear: state.saved.core.seasonYear, weeks: state.saved.core.weeks }),
         manualFinalWeeks: async seasonYear => [...state.manualFinalWeeks[seasonYear] ?? []],
         setManualFinalWeek: async (seasonYear, week, final) => {
             const weeks = new Set(state.manualFinalWeeks[seasonYear] ?? []);
@@ -46,8 +55,9 @@ export function createMemorySource(state: MemoryState): LiveSeasonSource {
         },
         capture: async () => {
             for (const request of ['core', 'scores', 'leaders', 'rosterStats'] as const) fantrax(request);
-            state.saved = structuredClone(state.fantrax);
-            return structuredClone(state.saved.core);
+            const changed = !state.saved || !isDeepStrictEqual(withoutFetchTimes(state.saved), withoutFetchTimes(state.fantrax));
+            if (changed) state.saved = structuredClone(state.fantrax);
+            return { ...structuredClone(state.fantrax.core), changed };
         },
     };
 }

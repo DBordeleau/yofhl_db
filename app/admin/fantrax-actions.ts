@@ -5,11 +5,12 @@ import { requireAdmin } from '@/lib/admin/auth';
 import * as liveSeason from '@/lib/fantrax/live-season';
 import { seasonSync } from '@/lib/season-sync/season-sync';
 
-// The same capture and publish as the evening cron.
+// The same capture and publish as the evening cron, even for a frozen season.
 export async function refreshFantrax(): Promise<{ message: string } | { error: string }> {
     await requireAdmin();
     try {
-        await liveSeason.refreshLiveSeason();
+        const { changed } = await liveSeason.refreshLiveSeason();
+        if (!changed) return { message: 'No changes on Fantrax.' };
         revalidatePath('/');
         revalidatePath('/admin');
         return { message: 'Fantrax scores, standings, rosters and player stats refreshed.' };
