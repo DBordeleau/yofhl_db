@@ -20,11 +20,12 @@ export async function GET(request: Request) {
         console.error('Scheduled Fantrax refresh failed:', error);
         return NextResponse.json({ error: 'Fantrax refresh failed' }, { status: 503 });
     }
-    // A frozen season has nothing to refresh; Pick'em settle is skipped with it.
-    if (refresh.outcome === 'frozen') return NextResponse.json({ scheduled, refresh: refresh.outcome });
-    const report = { scheduled, refresh: refresh.outcome, fetchedAt: refresh.fetchedAt };
-    // A published capture stays published; a Pick'em settle failure is reported without undoing it, and the next
-    // evening's run catches up.
+    const report = refresh.outcome === 'frozen'
+        ? { scheduled, refresh: refresh.outcome }
+        : { scheduled, refresh: refresh.outcome, fetchedAt: refresh.fetchedAt };
+    // Pick'em settles after every refresh outcome, frozen season included: locks and correction windows pass on the
+    // clock, and settle stops on its own once the season's Pick'em is complete. A published capture stays
+    // published; a settle failure is reported without undoing it, and the next evening's run catches up.
     try {
         await pickem.settle({ now: Date.now() });
     } catch (error) {

@@ -1,9 +1,11 @@
-// Settle: the Pick'em module's evening work, run by the Fantrax refresh straight after a successful capture.
+// Settle: the Pick'em module's evening work, run on every scheduled Fantrax run, whether the capture published,
+// changed nothing or was skipped for a frozen season: locks and correction windows pass on the clock.
 // It records every Pick'em week of the live season whose lock has passed and that is not yet recorded, then freezes
 // (results and scores) every recorded week that is a final week whose correction window has closed and that is not yet frozen
 // (a week with a pairing Fantrax has no score for waits for a later run), and
 // marks the season's Pick'em complete once its last regular-season week is frozen. Each week is one statement that is safe to repeat (ADR 0002), so running twice changes nothing and a missed evening is
-// caught up by the next run.
+// caught up by the next run. It stops on Pick'em's own record: once the season's Pick'em is complete, or when the
+// season has no Pick'em, it returns without a query of its own.
 import { revalidateTag } from 'next/cache';
 import { rows } from '@/lib/data/db';
 import { correctionWindowClosed } from '@/lib/fantrax/live-season';
@@ -11,7 +13,7 @@ import { isLocked, loadLivePickem } from './live-weeks';
 import type { PickemPorts } from './ports';
 import { freezeWeekQuery, pickemSeasonTag, recordedSeasonQuery, recordWeekQuery, type RecordedWeek } from './recorded-weeks';
 import { liveResults } from './results';
-import { completeSeasonQuery, PICKEM_SEASONS_TAG } from './seasons';
+import { completeSeasonQuery, isSeasonComplete, PICKEM_SEASONS_TAG } from './seasons';
 
 export interface SettleInput {
     now: number;
@@ -32,12 +34,16 @@ export interface SettleResult {
 
 export function createSettle(ports: PickemPorts) {
     return async function settle({ now }: SettleInput): Promise<SettleResult> {
-        if (!ports.launch) return { recorded: [], frozen: [], held: [], completed: [] };
-        // The saved snapshot, with no Fantrax request of its own: the capture has just expired its cached copy, and
-        // a read in the same request skips a cache entry expired earlier in it, so this is the snapshot just saved.
+        const nothing: SettleResult = { recorded: [], frozen: [], held: [], completed: [] };
+        if (!ports.launch) return nothing;
+        // The saved snapshot, with no Fantrax request of its own: just saved when this run's capture published, the
+        // one before it when nothing changed, and a frozen season's final one, which never goes stale.
         const live = await loadLivePickem(ports, now);
         if (!live) throw new Error("The live season is unavailable, so Pick'em cannot settle.");
         const { seasonYear } = live;
+        // Both answers come from cache: the live season has no Pick'em weeks, or the cached Pick'em seasons list
+        // (which only settle expires) marks its Pick'em complete.
+        if (!live.weeks.length || await isSeasonComplete(seasonYear)) return nothing;
         const readRecorded = () => rows<RecordedWeek>(recordedSeasonQuery(seasonYear));
 
         let known = await readRecorded();
