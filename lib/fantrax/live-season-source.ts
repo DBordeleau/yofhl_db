@@ -110,6 +110,11 @@ export interface LiveSeasonSource {
     weekScores(week: SourceWeek, core: SourceCore): Promise<WeekScores>;
     scoringLeaders(core: SourceCore): Promise<SourceLeaders>;
     rosterStats(core: SourceCore): Promise<RosterStats>;
+    /**
+     * The saved snapshot's season year and weeks however old it is, or null when there is none. Cached until a
+     * capture publishes or the league configuration changes, never on a timer, so asking it again costs nothing.
+     */
+    savedSchedule(): Promise<{ seasonYear: number; weeks: SourceWeek[] } | null>;
     manualFinalWeeks(seasonYear: number): Promise<number[]>;
     setManualFinalWeek(seasonYear: number, week: number, final: boolean): Promise<void>;
     /**

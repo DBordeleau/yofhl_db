@@ -2,6 +2,7 @@
 // it reads comes through the live season source port, so this file is free of Next and of Fantrax's responses
 // (it borrows only the client's player name helper). Callers use the production binding in live-season.ts.
 import { roundName } from '../league';
+import { isFrozenSeason } from './cache-policy';
 import { PLAYOFF_FORMAT } from './config';
 import { playerName } from './fantrax-client';
 import {
@@ -120,6 +121,12 @@ export interface LiveSeason {
     leaders: Availability<{ fetchedAt: string; players: ScoringLeader[] }>;
     rosterStats: Availability<RosterStats>;
 }
+
+/**
+ * what a scheduled refresh did: skipped a frozen season without contacting Fantrax, or captured and found the
+ * capture unchanged (nothing saved) or published it
+ */
+export type ScheduledRefresh = { outcome: 'frozen' } | { outcome: 'unchanged' | 'published'; fetchedAt: string; seasonYear: number };
 
 /** the whole live season is unavailable when its core snapshot (teams, schedule, weeks) can't be loaded */
 type LiveSeasonResult = { status: 'available'; value: LiveSeason } | { status: 'unavailable'; fantraxLeagueId: string | null };
@@ -311,6 +318,18 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         return { fetchedAt, seasonYear, changed };
     }
 
+    /**
+     * For the evening cron: nothing to do once the live season is a frozen season and the next season hasn't been
+     * opened, which is answered from cache with no Fantrax request or query; otherwise a refresh, published only
+     * if the capture changed.
+     */
+    async function scheduledRefresh({ now }: { now: number }): Promise<ScheduledRefresh> {
+        const [mapping, saved] = await Promise.all([source.fantraxTeams(), source.savedSchedule()]);
+        if (isFrozenSeason(saved, mapping[0]?.seasonYear, now)) return { outcome: 'frozen' };
+        const { fetchedAt, seasonYear, changed } = await refreshLiveSeason();
+        return { outcome: changed ? 'published' : 'unchanged', fetchedAt, seasonYear };
+    }
+
     /** The admin's manual final toggle. Only a started week of the live season can be marked. */
     async function setWeekFinal(week: number, final: boolean): Promise<void> {
         const core = await source.core({ fresh: false });
@@ -321,7 +340,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         await source.setManualFinalWeek(core.seasonYear, week, final);
     }
 
-    return { getLiveSeason, getWeekScores, refreshLiveSeason, setWeekFinal };
+    return { getLiveSeason, getWeekScores, refreshLiveSeason, scheduledRefresh, setWeekFinal };
 }
 
 /**

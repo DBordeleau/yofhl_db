@@ -46,6 +46,7 @@ export function createMemorySource(state: MemoryState): LiveSeasonSource {
         },
         scoringLeaders: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.leaders ?? fantrax('leaders').leaders),
         rosterStats: async ({ seasonYear }) => structuredClone(savedFor(seasonYear)?.rosterStats ?? fantrax('rosterStats').rosterStats),
+        savedSchedule: async () => state.saved && structuredClone({ seasonYear: state.saved.core.seasonYear, weeks: state.saved.core.weeks }),
         manualFinalWeeks: async seasonYear => [...state.manualFinalWeeks[seasonYear] ?? []],
         setManualFinalWeek: async (seasonYear, week, final) => {
             const weeks = new Set(state.manualFinalWeeks[seasonYear] ?? []);

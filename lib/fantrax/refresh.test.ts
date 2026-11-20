@@ -3,6 +3,7 @@
 // fantrax-client.test.ts; this covers only the saved snapshot and Next's caches, which need Fantrax and Next stand-ins.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { LEAGUE_TAG } from '../data/cache-tags';
 import { disposableLeague } from '../testing/disposable-league';
 import { FANTRAX_CURRENT_TAG } from './cache-policy';
 import type { SavedLiveSeason } from './fantrax-client';
@@ -24,7 +25,7 @@ const fantrax = (settled: () => boolean, onRequest = () => {}): typeof fetch => 
         case 'getTeamRosters': return Response.json({ period: 1, rosters: {} });
         case 'getStandings': return Response.json([{ teamId: 'a', rank: 1, points: settled() ? '1-0-0' : '0-0-0' }, { teamId: 'b', rank: 2, points: settled() ? '0-1-0' : '0-0-0' }]);
         case 'getPlayerIds': return Response.json({ p: { name: 'Player', position: 'C' } });
-        case 'getMatchupScores': return Response.json({ period: 1, matchups: [{ away: { teamId: 'a', score: settled() ? 20 : 10, gamesPlayed: 1 }, home: { teamId: 'b', score: 5, gamesPlayed: 1 } }] });
+        case 'getMatchupScores': return Response.json({ period: Number(url.searchParams.get('period')), matchups: [{ away: { teamId: 'a', score: settled() ? 20 : 10, gamesPlayed: 1 }, home: { teamId: 'b', score: 5, gamesPlayed: 1 } }] });
         case 'req': {
             const request = JSON.parse(String(options?.body)).msgs[0].data;
             const season = { code: 'SEASON_current_YEAR_TO_DATE', name: '2026-27 Reg Season - YTD', timeframeTypeCode: 'YEAR_TO_DATE' };
@@ -281,4 +282,78 @@ test('a capture that matches the saved snapshot apart from its capture times sav
     const published = await savedSnapshot();
     assert.equal(published.source.fetchedAt, changed.result.fetchedAt);
     assert.equal(published.scores[1].matchups[0].home.gamesPlayed, 2);
+});
+
+// The Final (week 4) ended on November 4, so its correction window closed on the 11th: from then on 2027 is a frozen season.
+const FROZEN = Date.parse('2026-11-20T02:00:00Z');
+
+test('a scheduled refresh on a frozen season makes no Fantrax request and no query, until the next season is opened', async t => {
+    let network = 0;
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: fantrax(() => true, () => network++) });
+    t.mock.method(Date, 'now', () => FROZEN);
+    t.mock.method(console, 'warn', () => {});
+    const { refreshLiveSeason, scheduledRefresh } = await import('./live-season');
+    const scheduled = () => league.runAsRoute('/api/cron/fantrax', () => scheduledRefresh({ now: FROZEN }));
+    await league.runAsRoute('/api/admin/fantrax', refreshLiveSeason);
+
+    const requests = network;
+    assert.deepEqual((await scheduled()).result, { outcome: 'frozen' });
+    const queries = league.queries();
+    const skipped = await scheduled();
+    assert.deepEqual(skipped.result, { outcome: 'frozen' });
+    assert.deepEqual(skipped.revalidatedTags, []);
+    assert.equal(league.queries(), queries, 'a later scheduled run answers from cache');
+    assert.equal(network, requests);
+
+    // The next season opens: the importer maps its Fantrax league and clears the league cache.
+    await league.client.exec(`insert into league.fantrax_teams values (2028, 'league28', 'a', 1), (2028, 'league28', 'b', 2);`);
+    league.expire(LEAGUE_TAG);
+    const opened = await scheduled();
+    assert.equal(opened.result.outcome, 'published');
+    assert.ok(network > requests, 'the next season is captured again');
+});
+
+test('an admin refresh on a frozen season still captures, and reports that nothing changed', async t => {
+    let network = 0;
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: fantrax(() => true, () => network++) });
+    t.mock.method(Date, 'now', () => FROZEN);
+    t.mock.method(console, 'warn', () => {});
+    const { refreshLiveSeason, scheduledRefresh } = await import('./live-season');
+    await league.runAsRoute('/api/admin/fantrax', refreshLiveSeason);
+    assert.deepEqual((await league.runAsRoute('/api/cron/fantrax', () => scheduledRefresh({ now: FROZEN }))).result, { outcome: 'frozen' });
+
+    const requests = network;
+    const manual = await league.runAsRoute('/api/admin/fantrax', refreshLiveSeason);
+    assert.ok(network > requests);
+    assert.equal(manual.result.changed, false);
+    assert.deepEqual(manual.revalidatedTags, []);
+});
+
+test("a frozen season's saved snapshot is read however old it is; an in-season one falls back after a day", async t => {
+    let network = 0;
+    let now = Date.parse('2026-10-18T22:00:00Z');
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: fantrax(() => true, () => network++) });
+    // Captures are timed by this clock too, so a snapshot's age is the test's.
+    t.mock.timers.enable({ apis: ['Date'], now });
+    const setNow = (time: number) => t.mock.timers.setTime(now = time);
+    t.mock.method(console, 'warn', () => {});
+    const { getLiveSeason, refreshLiveSeason } = await import('./live-season');
+    /** the Fantrax requests a read of the live season makes */
+    const read = async () => {
+        const before = network;
+        assert.equal((await getLiveSeason({ now })).status, 'available');
+        return network - before;
+    };
+
+    await league.runAsRoute('/api/cron/fantrax', refreshLiveSeason);
+    await read();
+    assert.equal(await read(), 0, 'a read within the day is served by the saved snapshot');
+    setNow(now + 2 * 86400_000);
+    assert.ok(await read() > 0, 'an in-season saved snapshot a day old falls back to Fantrax');
+
+    setNow(FROZEN);
+    await league.runAsRoute('/api/cron/fantrax', refreshLiveSeason);
+    await read();
+    setNow(now + 30 * 86400_000);
+    assert.equal(await read(), 0, "a frozen season's saved snapshot never goes stale");
 });

@@ -374,3 +374,19 @@ test('a failed refresh publishes nothing', async t => {
     await assert.rejects(live.refreshLiveSeason());
     assert.equal((await season()).fetchedAt, '2026-10-07T00:00:00.000Z');
 });
+
+test("a scheduled refresh skips the live season once the Final's correction window has closed, until the next season is opened", async t => {
+    const { state, live } = setup(t);
+    await live.refreshLiveSeason();
+    state.fantrax.core.fetchedAt = '2027-04-20T03:00:00.000Z';
+    const windowCloses = Date.parse(WEEKS[25].endDate) + 7 * DAY;
+    assert.deepEqual(await live.scheduledRefresh({ now: windowCloses - 1000 }),
+        { outcome: 'unchanged', fetchedAt: '2027-04-20T03:00:00.000Z', seasonYear: 2027 }, 'the last correction window is still open');
+    state.down.add('core');
+    assert.deepEqual(await live.scheduledRefresh({ now: windowCloses }), { outcome: 'frozen' }, 'Fantrax is not contacted');
+
+    state.down.clear();
+    state.fantraxTeams = state.fantraxTeams.map(row => ({ ...row, seasonYear: 2028, fantraxLeagueId: 'league28' }));
+    state.fantrax.core.seasonYear = 2028;
+    assert.equal((await live.scheduledRefresh({ now: windowCloses })).outcome, 'published', 'the next season is open');
+});

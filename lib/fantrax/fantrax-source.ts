@@ -6,7 +6,7 @@ import { revalidateTag, unstable_cache } from 'next/cache';
 import { cache } from 'react';
 import { cached, rows } from '@/lib/data/db';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
-import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, finalWeeksTag, scoresAreArchived } from './cache-policy';
+import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, finalWeeksTag, isFrozenSeason, scoresAreArchived } from './cache-policy';
 import { createFantraxClient, readCore, sameCapture, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
 import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek } from './live-season-source';
 import { LIVE_SEASON_YEAR } from './live-season-year';
@@ -35,11 +35,26 @@ function getSavedSnapshot(leagueId: string) {
     }));
     return read();
 }
-/** the saved snapshot, or null when it is missing or more than a day old */
-async function getSavedLiveSeason(leagueId: string) {
+/**
+ * the saved snapshot, or null when it is missing or more than a day old; a frozen season's saved snapshot is
+ * final, so it never goes stale
+ */
+async function getSavedLiveSeason(leagueId: string, liveSeasonYear: number) {
     const saved = await getSavedSnapshot(leagueId);
-    return saved && Date.now() - Date.parse(saved.source.fetchedAt) < DAY * 1000 ? saved : null;
+    if (!saved) return null;
+    const now = Date.now();
+    return now - Date.parse(saved.source.fetchedAt) < DAY * 1000 || isFrozenSeason(readCore(saved.source, {}), liveSeasonYear, now) ? saved : null;
 }
+
+// What the scheduled refresh asks before contacting Fantrax. Only a publish (which expires FANTRAX_CURRENT_TAG)
+// changes the saved snapshot's schedule, and opening the next season clears the league cache; no timer expires it,
+// so a frozen season's scheduled runs answer from here without a query.
+const getSavedSchedule = cached(async (leagueId: string) => {
+    const [stored] = await rows<{ source: FantraxLeague }>(sql`select data -> 'source' as source from league.fantrax_snapshots where league_id = ${leagueId}`);
+    if (!stored) return null;
+    const { seasonYear, weeks } = readCore(stored.source, {});
+    return { seasonYear, weeks };
+}, 'fantrax-saved-schedule', () => [FANTRAX_CURRENT_TAG]);
 
 function saveSnapshotQuery(leagueId: string, data: SavedLiveSeason) {
     return sql`insert into league.fantrax_snapshots as stored (league_id, data)
@@ -119,7 +134,7 @@ async function captureAndSave(leagueId: string): Promise<{ data: SavedLiveSeason
     return { data, changed: true };
 }
 
-/** what a core was read with: its league, and the saved snapshot (null when missing or more than a day old) */
+/** what a core was read with: its league, and the saved snapshot (null when missing or, in season, more than a day old) */
 type CoreRead = { leagueId: string; saved: SavedLiveSeason | null };
 // One read of the live season looks the saved snapshot up once, as its core is built; week scores, scoring
 // leaders and roster stats are served from the same lookup through the core they are passed.
@@ -137,14 +152,15 @@ export const fantraxSource: LiveSeasonSource = {
     })),
     archivedPlayerIds,
     async core({ fresh }) {
-        const leagueId = await liveLeagueId();
+        const mapping = await getFantraxTeams();
+        const leagueId = liveFantraxLeagueId(mapping);
         // A fresh core skips the saved snapshot's league responses; its scores, leaders and roster stats don't.
         const [saved, league, players] = await Promise.all([
-            getSavedLiveSeason(leagueId),
+            getSavedLiveSeason(leagueId, mapping[0].seasonYear),
             fresh ? fantraxClient.league(leagueId) : null,
             fresh ? fantraxClient.playerDirectory() : getPlayerDirectory(),
         ]);
-        // The saved snapshot's league responses, or the daily cache's when it is missing or more than a day old.
+        // The saved snapshot's league responses, or the daily cache's when it is missing or stale.
         const core = readCore(league ?? saved?.source ?? await getDailyFantrax(leagueId), players);
         coreReads.set(core, { leagueId, saved });
         return core;
@@ -152,6 +168,7 @@ export const fantraxSource: LiveSeasonSource = {
     weekScores: async (week, core) => toWeekScores(await getCachedWeekScores(readWith(core), week, core.fetchedAt)),
     scoringLeaders: async core => getCachedLeaders(readWith(core), core.seasonYear),
     rosterStats: async core => getCachedRosterStats(readWith(core), core.seasonYear),
+    savedSchedule: async () => getSavedSchedule(await liveLeagueId()),
     manualFinalWeeks: async seasonYear => getManualFinalPeriods(await liveLeagueId(), seasonYear),
     async setManualFinalWeek(seasonYear, week, final) {
         await rows(finalWeekQuery(await liveLeagueId(), seasonYear, week, final));
