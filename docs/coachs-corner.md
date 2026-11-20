@@ -117,7 +117,7 @@ These are the hosts' **actions**. `lean` (Don leaning into the camera) automatic
 
 ### Don's wardrobes
 
-Don has six wardrobes; Ron has only `normal`. Don's original red, gold and ivory floral suit is his **normal** wardrobe, the default. Use it whenever the episode brief does not request another wardrobe. A seasonal date alone does not change the default.
+Don has eight wardrobes; Ron has only `normal`. Don's original red, gold and ivory floral suit is his **normal** wardrobe, the default. Use it whenever the episode brief does not request another wardrobe. A seasonal date alone does not change the default.
 
 | Wardrobe ID | Look | Art IDs | Gestures |
 | --- | --- | --- | --- |
@@ -127,6 +127,8 @@ Don has six wardrobes; Ron has only `normal`. Don's original red, gold and ivory
 | `alternate-suit-2` | Alternate suit 2, based on Cherry's real sky-blue daisy suit with an ivory tie | `don-alternate-2-*` | Explicit `alternate-2-rest`, `alternate-2-point`, `alternate-2-angry`, etc. |
 | `alternate-suit-3` | Alternate suit 3, based on Cherry's real rainbow plaid suit with a blue dotted tie and warm-colour centre band | `don-alternate-3-*` | Explicit `alternate-3-rest`, `alternate-3-point`, `alternate-3-angry`, etc. |
 | `remembrance-2026` | Remembrance Day, charcoal with scarlet poppies and a burgundy tie | `don-remembrance-*` | Explicit `remembrance-rest`, `remembrance-point`, `remembrance-angry`, etc. |
+| `alternate-suit-4` | Alternate suit 4, blue-and-white checkerboard with a pale blue tie | `don-alternate-4-*` | Explicit `alternate-4-rest`, `alternate-4-point`, `alternate-4-angry`, etc. |
+| `alternate-suit-5` | Alternate suit 5, red-orange and black tartan with thin white lines and an ivory dotted tie | `don-alternate-5-*` | Explicit `alternate-5-rest`, `alternate-5-point`, `alternate-5-angry`, etc. |
 
 The [Remembrance Day guide](../assets/coachs-corner/robots-v2/remembrance-2026.md) records the poppy wardrobe and its optimized-only asset policy. Its PNG masters stay local. The asset builder verifies committed AVIF hashes when a master is absent; restore the local master if an export needs regeneration.
 
@@ -138,7 +140,9 @@ The owner subsequently asked to save both new designs as Alternate suit 1 and Al
 
 Alternate suit 3 adapts the rainbow plaid outfit photographed on May 28, 2008. Its [guide](../assets/coachs-corner/robots-v2/alternate-suit-3.md) records the real clothing reference. It is another nonholiday option and requires explicit selection in the episode brief.
 
-Every wardrobe has Don's 12 actions, drawn as 15 poses. A gesture is an action in a wardrobe: add the wardrobe's prefix to the action, such as `halloween-point`, `alternate-1-point` or `remembrance-point`. Each wardrobe has three talking pairs with fixed-body mouth animation; with Ron's pair, the catalog has 19 mouth pairs. Lean close-ups, tie rustle and desk contact work across all wardrobes. The [Halloween guide](../assets/coachs-corner/robots-v2/halloween-2026.md), [Alternate suit 1 guide](../assets/coachs-corner/robots-v2/alternate-suit-1.md), [Alternate suit 2 guide](../assets/coachs-corner/robots-v2/alternate-suit-2.md) and [Alternate suit 3 guide](../assets/coachs-corner/robots-v2/alternate-suit-3.md) link their previews and exact generation prompts.
+Alternate suit 5 adapts the red-orange tartan suit in the owner's November 20, 2026 reference photograph. Its [guide](../assets/coachs-corner/robots-v2/alternate-suit-5.md) links the complete pose set, generation prompts and local audition. Select it explicitly in the episode brief.
+
+Every wardrobe has Don's 12 actions, drawn as 15 poses. A gesture is an action in a wardrobe: add the wardrobe's prefix to the action, such as `halloween-point`, `alternate-1-point` or `remembrance-point`. Each wardrobe has three talking pairs with fixed-body mouth animation; with Ron's pair, the catalog has 25 mouth pairs. Lean close-ups, tie rustle and desk contact work across all wardrobes. The [Halloween guide](../assets/coachs-corner/robots-v2/halloween-2026.md), [Alternate suit 1 guide](../assets/coachs-corner/robots-v2/alternate-suit-1.md), [Alternate suit 2 guide](../assets/coachs-corner/robots-v2/alternate-suit-2.md) and [Alternate suit 3 guide](../assets/coachs-corner/robots-v2/alternate-suit-3.md) link their previews and exact generation prompts.
 
 Set a wardrobe once, with a stage cue such as `[don: alternate-1-rest]` or a line such as `DON (alternate-1-point):`. A line or delivery span that names no gesture keeps the wardrobe Don is holding when the line starts: after `[don: remembrance-rest]`, `DON:` gives `remembrance-rest`, and `DON (yell):` or `{yell: …}` gives `remembrance-angry`. A named gesture means exactly that gesture, so an unprefixed one such as `DON (point):` puts Don back in the normal wardrobe, which is how a script returns to it. Outside the normal wardrobe, prefix every gesture you name, including inline cues, spans and `then` poses. Open-mouth expressions return to that wardrobe's rest, such as `alternate-1-rest`; closed-mouth poses hold their selected pose. The title card, opening bumper, closing card, home page studio and episode share card draw Don in the episode's **opening wardrobe**: the one he's in as his first line starts, from a stage cue ahead of it or the line's own gesture, even when Ron speaks first. A later change is left as a reveal.
 

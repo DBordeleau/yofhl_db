@@ -28,6 +28,7 @@ export const WARDROBES: Wardrobe[] = [
     { id: 'alternate-suit-3', host: 'don', prefix: 'alternate-3-' },
     { id: 'remembrance-2026', host: 'don', prefix: 'remembrance-' },
     { id: 'alternate-suit-4', host: 'don', prefix: 'alternate-4-' },
+    { id: 'alternate-suit-5', host: 'don', prefix: 'alternate-5-' },
     { id: 'normal', host: 'ron', prefix: '' },
 ];
 
