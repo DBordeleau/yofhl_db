@@ -126,8 +126,8 @@ test('with the live season not opened in the archive, a run writes nothing', asy
     assert.deepEqual((await read(() => getFranchise(1)))!.seasons.map(season => season.year), [2026], 'no team season is written for it');
 });
 
-test("seven days after the season's last week ends, a run writes nothing and records the freeze, and later runs leave the season alone", async t => {
-    const { fantrax, run, read, setStandings } = await seasonSyncLeague(t);
+test("seven days after the season's last week ends, a run writes nothing and records the freeze, and later runs leave the season alone until the next season is opened", async t => {
+    const { league, fantrax, run, read, setStandings } = await seasonSyncLeague(t);
     const { getSeasonDetail } = await import('@/lib/data/league');
     const { getSeasonSyncStatus } = await import('@/lib/admin/data');
     const wins = async () => (await read(() => getSeasonDetail(SEASON))).standings.map(row => [row.franchiseId, row.wins]);
@@ -143,11 +143,23 @@ test("seven days after the season's last week ends, a run writes nothing and rec
     assert.deepEqual(await wins(), settled);
     assert.equal((await getSeasonSyncStatus(SEASON))!.frozenAt, new Date(FREEZES_AT + 3600_000).toISOString());
 
-    // later runs read nothing from Fantrax and change nothing
+    // later runs read nothing from Fantrax or the database and change nothing
     fantrax.down.add('leagueInfo').add('standings');
-    const later = await run(FREEZES_AT + 86400_000);
-    assert.deepEqual(later.result, frozen.result);
+    for (const day of [1, 2, 30]) {
+        const queries = league.queries();
+        const later = await run(FREEZES_AT + day * 86400_000);
+        assert.deepEqual(later.result, frozen.result, `day ${day}`);
+        assert.deepEqual(later.revalidatedTags, [], `day ${day}`);
+        assert.equal(league.queries(), queries, `day ${day}: no app query`);
+    }
     assert.deepEqual(await wins(), settled);
     const status = (await getSeasonSyncStatus(SEASON))!;
     assert.deepEqual([status.lastError, status.lastRunAt], [null, new Date(FREEZES_AT + 3600_000).toISOString()]);
+
+    // opening the next season (its Fantrax league in league.yml, then the import's cache clear) lifts the freeze
+    await league.client.exec(`insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id)
+        values (${SEASON + 1}, 'league28', 'nx1', 1), (${SEASON + 1}, 'league28', 'nx2', 2), (${SEASON + 1}, 'league28', 'nx3', 3), (${SEASON + 1}, 'league28', 'nx4', 4)`);
+    league.expire('league');
+    const next = await run(FREEZES_AT + 31 * 86400_000);
+    assert.deepEqual(next.result, { outcome: 'not-opened', seasonYear: SEASON + 1 });
 });
