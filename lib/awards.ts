@@ -90,6 +90,14 @@ export function listedAwards(published: ReadonlySet<string>, catalogue: readonly
     return catalogue.filter(award => award.released !== false && (award.decidedBy !== 'teamVote' || published.has(award.id)));
 }
 
+/**
+ * the awards a season is expected to have stored winners for (the admin season page and season status): every stored
+ * award, less those that need playoffs in a season whose playoffs weren't played
+ */
+export function expectedAwards(playoffsPlayed: boolean): AwardDefinition[] {
+    return AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored' && (playoffsPlayed || !award.needsPlayoffs));
+}
+
 /** the released awards with trophy art, in catalogue order: player trophy shelves and share cards; lists of every award use listedAwards */
 export const AWARDS: readonly (AwardDefinition & { image: string })[] =
     AWARD_CATALOGUE.filter((award): award is AwardDefinition & { image: string } => award.released !== false && award.image !== null);

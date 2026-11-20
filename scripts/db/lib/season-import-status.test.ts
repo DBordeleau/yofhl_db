@@ -46,7 +46,7 @@ test('a clean import returns each season\'s status', async (t) => {
         champion: 'Ashgrove Anglers',
         roster: 3,
         awards: 2,
-        awardsExpected: 2,
+        awardsExpected: 6, // the catalogue's stored awards (lib/awards.ts expectedAwards)
         overrides: 0,
     }]);
 });

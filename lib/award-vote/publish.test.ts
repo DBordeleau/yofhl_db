@@ -8,12 +8,12 @@ import { COMPLETE, completeFor, FRANCHISES, lockInHours, SEASON, votingLeague, t
 /** franchises 2 and 4's ballot: s2 above s1 for the Wayne Gretzky Award, leaving the two level */
 const S2_FIRST: BallotRankings = completeFor(2, { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] });
 
-/** an award page's winners, as [season, winner, player, team] by player, read through the page's cache */
+/** an award page's winners from the award archive, as [season, winner, player, team] by player, read through the page's cache */
 async function awardPages({ league }: AwardVoteLeague) {
-    const { getAwardWinners } = await import('@/lib/data/league');
+    const { winners } = await import('@/lib/data/award-archive');
     return async (name: string) => {
-        const { result } = await league.runAsRoute('/awards/[award]', () => getAwardWinners(name));
-        return result?.winners.toSorted((a, b) => a.PlayerID.localeCompare(b.PlayerID))
+        const { result } = await league.runAsRoute('/awards/[award]', () => winners(name));
+        return result?.toSorted((a, b) => a.PlayerID.localeCompare(b.PlayerID))
             .map(winner => [winner.Year, winner.Winner, winner.PlayerID, winner.Team ?? null]);
     };
 }

@@ -81,8 +81,6 @@ export interface PlayerProfile {
     positions: string[];
     team: { id: number; name: string; logoUrl: string | null; abbreviation: string } | null;
     playerStats: PlayerSeason[];
-    awards: { Award: string; label: string; description: string; Year: number }[];
-    championships: { season: number; team: string }[];
 }
 
 export interface ChampionRoster {
@@ -216,11 +214,11 @@ export async function getListedAwardTypes(catalogue?: readonly AwardDefinition[]
         .map(award => ({ name: award.name, label: award.label, honor: award.honor }))];
 }
 
-/** the award API's winners of one award by name: an archive award type's, or a listed GM of the Year's; null for any other */
+/** the award API's winners of GM of the Year by name, once listed; null for any other name (the award archive answers every other award) */
 export async function getListedAwardWinners(name: string, catalogue?: readonly AwardDefinition[]): Promise<{ award: AwardType; winners: AwardWinner[] } | null> {
     const id = findAward(name)?.id;
     const award = id === GM_OF_THE_YEAR ? (await getListedAwards(catalogue)).find(award => award.id === id) : undefined;
-    if (!award) return getAwardWinners(name);
+    if (!award) return null;
     return { award: { name: award.name, label: award.label, honor: award.honor }, winners: await getGmOfTheYearWinners() };
 }
 
@@ -274,7 +272,7 @@ export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null
         select id, name from league.players where id = ${id}`);
     if (!player) return null;
 
-    const [career, playerStats, awards, championships] = await Promise.all([
+    const [career, playerStats] = await Promise.all([
         rows<{ rank: number; total: number; fpg: number; seasons: number; positions: string[]; team_id: number | null; team_name: string | null; team_logo: string | null; team_abbreviation: string | null }>(sql`
             select pc.all_time_rank as rank, pc.total_fpts::float8 as total, pc.fpg::float8 as fpg, pc.seasons, pc.positions,
                    t.franchise_id as team_id, t.name as team_name, t.logo as team_logo, t.abbreviation as team_abbreviation
@@ -291,19 +289,6 @@ export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null
             left join league.season_teams t on t.team_season_id = ps.team_season_id
             where ps.player_id = ${id}
             order by ps.season_year`),
-        rows<PlayerProfile['awards'][number]>(sql`
-            select at.name as "Award", at.label, at.description, a.season_year as "Year"
-            from league.awards a join league.award_types at on at.id = a.award_type_id
-            where a.player_id = ${id}
-            order by a.season_year, at.sort_order`),
-        // the ring's team is the champion, even if the player was dropped before season end
-        rows<{ season: number; team: string }>(sql`
-            select c.season_year as season, t.name as team
-            from league.championship_rosters c
-            join league.season_results r on r.season_year = c.season_year
-            join league.season_teams t on t.team_season_id = r.champion_team_season_id
-            where c.player_id = ${id}
-            order by c.season_year`),
     ]);
 
     const c = career[0];
@@ -320,10 +305,8 @@ export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null
             ? { id: c.team_id, name: c.team_name!, logoUrl: c.team_logo, abbreviation: c.team_abbreviation! }
             : null,
         playerStats,
-        awards,
-        championships,
     };
-}, 'player', [leagueTags.players]);
+}, 'player-v2', [leagueTags.players]);
 
 // most-viewed profiles are built ahead of time; everyone else is built on first visit
 export const getTopPlayerIds = cached(
@@ -431,23 +414,6 @@ export async function getFranchise(id: number): Promise<FranchiseDetail | null> 
     return franchise && { ...franchise, seasons: franchise.seasons.map(season =>
         isPublished(archive, season.year) ? season : { ...season, playoffStatus: 'pending' as const }) };
 }
-
-export const getAwardWinners = cached(async (name: string) => {
-    const [row] = await rows<{ name: string; label: string; description: string }>(sql`select name, label, description from league.award_types where name = ${name}`);
-    if (!row) return null;
-    const award = toAwardType(row);
-    const winners = await rows<AwardWinner>(sql`
-        select a.season_year as "Year", p.name as "Winner", p.id as "PlayerID", t.name as "Team", t.franchise_id as "TeamID",
-               t.logo as "TeamLogo", ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG"
-        from league.awards a
-        join league.award_types at on at.id = a.award_type_id
-        join league.players p on p.id = a.player_id
-        left join league.season_teams t on t.team_season_id = a.team_season_id
-        left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = a.season_year
-        where at.name = ${name}
-        order by a.season_year desc`);
-    return { award, winners };
-}, 'award-winners-v3', [leagueTags.awards]);
 
 /**
  * the team seasons that meet `criterion` (a condition on team season `t`) as award winners, newest first: the row every

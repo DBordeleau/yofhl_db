@@ -43,7 +43,8 @@ export interface FranchiseHonors {
     cups: number[];
     /** its Prime Minister's Trophies, newest first, each with the points that won it */
     primeMinisters: { year: number; points: number }[];
-    awards: { year: number; name: string; label: string; description: string; playerId: string; player: string }[];
+    /** the individual awards its players won for it, newest first, under the catalogue's label and honour */
+    awards: { year: number; name: string; label: string; honor: string; playerId: string; player: string }[];
     /** the listed team awards an award vote decides (GM of the Year) the franchise has won, in catalogue order, each with its seasons newest first */
     teamAwards: { id: string; name: string; label: string; honor: string; years: number[] }[];
 }

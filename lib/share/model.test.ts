@@ -8,9 +8,9 @@ import { awardShareCard, comparisonShareCard, episodeShareCard, playerShareCard,
 import type { RivalryGame } from '../rivalries/model';
 
 test('player card uses the displayed archive totals and groups trophies, and cancelled seasons never invent champions', () => {
-    const player: PlayerProfile = { id: 'one', name: 'Player', rank: null, totalFPts: 123.45, fpg: 1.23, seasons: 0, positions: [], team: null, playerStats: [],
-        awards: [2021, 2023].map(Year => ({ Award: 'Wayne Gretzky Award', label: 'Wayne Gretzky Award', description: '', Year })), championships: [] };
-    const card = playerShareCard(player);
+    const player: PlayerProfile = { id: 'one', name: 'Player', rank: null, totalFPts: 123.45, fpg: 1.23, seasons: 0, positions: [], team: null, playerStats: [] };
+    const honors = { awards: [2021, 2023].map(year => ({ id: 'wayne-gretzky', name: 'Wayne Gretzky Award', label: 'Wayne Gretzky Award', honor: 'Most outstanding player', year })), championships: [] };
+    const card = playerShareCard(player, honors);
     assert.equal(card.href, '/player/one');
     assert.deepEqual([card.totalFPts, card.fpg, card.cups, card.seasons], [123.45, 1.23, 0, 0]);
     assert.deepEqual(card.trophies.map(row => [row.name, row.count]), [['Wayne Gretzky Award', 2]]);

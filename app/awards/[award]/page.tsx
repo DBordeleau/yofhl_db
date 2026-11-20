@@ -4,8 +4,8 @@ import { notFound } from 'next/navigation';
 import AwardTable from '@/components/award-table';
 import RinkDivider from '@/components/rink-divider';
 import { TrophyArt } from '@/components/trophy-icons';
-import { AWARDS, awardFromSlug, awardHref, awardSlug, findAward } from '@/lib/awards';
-import { getAwardTypes, getAwardWinners, getListedAwards, type AwardWinner } from '@/lib/data/league';
+import { AWARD_CATALOGUE, awardFromSlug, awardHref, awardSlug, findAward } from '@/lib/awards';
+import { getListedAwards, type AwardWinner } from '@/lib/data/league';
 import { winners as awardWinners } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
@@ -16,9 +16,8 @@ import { awardVote } from '@/lib/award-vote/award-vote';
 import { GM_OF_THE_YEAR, VOTED_AWARD_IDS, type VotedAwardId } from '@/lib/award-vote/model';
 
 export async function generateStaticParams() {
-    const names = new Set([...AWARDS.map((award) => award.name), ...(await getAwardTypes()).map((award) => award.name)]);
     // raw slugs, not awardHref: Next.js encodes route params itself, so encoded ones would double-encode
-    return [...names].map((name) => ({ award: awardSlug(name) }));
+    return AWARD_CATALOGUE.map((award) => ({ award: awardSlug(award.name) }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ award: string }> }) {
@@ -30,25 +29,25 @@ export async function generateMetadata({ params }: { params: Promise<{ award: st
 export default async function AwardPage({ params }: { params: Promise<{ award: string }> }) {
     const name = awardFromSlug((await params).award);
     const definition = findAward(name);
-    const teamAward = definition?.scope === 'team';
-    const data = definition
-        ? { award: { name: definition.name, label: definition.label, honor: definition.honor }, winners: await awardWinners(definition) }
-        : await getAwardWinners(name);
+    // an award the catalogue doesn't know has no page
+    if (!definition) notFound();
+    const teamAward = definition.scope === 'team';
+    const award = { name: definition.name, label: definition.label, honor: definition.honor };
+    const winners = await awardWinners(definition);
     // GM of the Year's page, reachable by its URL, exists once a winner is published, released or not
-    if (!data || (definition?.id === GM_OF_THE_YEAR && !data.winners.length)) notFound();
+    if (definition.id === GM_OF_THE_YEAR && !winners.length) notFound();
     // share cards only for an award lists show: not GM of the Year until it is released
-    const listed = !definition || (await getListedAwards()).some(award => award.id === definition.id);
-    const { award, winners } = data;
+    const listed = (await getListedAwards()).some(listedAward => listedAward.id === definition.id);
     const latest = winners[0];
     const winnerHref = (winner: AwardWinner) => winner.PlayerID ? playerHref(winner.PlayerID) : winner.TeamID ? `/teams/${winner.TeamID}` : null;
     const latestHref = latest ? winnerHref(latest) : null;
     // a shared award: every winner of the latest season
     const latestWinners = latest ? winners.filter(winner => winner.Year === latest.Year) : [];
-    const label = definition?.label ?? award.label;
+    const label = definition.label;
     const latestSeason = latest && (await getSeasonArchive()).published.find(season => season.year === latest.Year);
     const href = awardHref(award.name);
     // a voted award's published tallies, newest first; none for every other award and every season without a published award vote
-    const votedAward = VOTED_AWARD_IDS.find((id): id is VotedAwardId => id === definition?.id);
+    const votedAward = VOTED_AWARD_IDS.find((id): id is VotedAwardId => id === definition.id);
     const tallies = votedAward ? await awardVote.readPublishedTallies({ award: votedAward }) : [];
 
     return (
@@ -63,7 +62,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                     <div className="min-w-0 pb-4 text-center md:py-3 md:text-left">
                         <p className="text-xs font-extrabold uppercase tracking-[.2em] text-gold-light">{award.honor}</p>
                         <h1 className="font-wide mt-3 text-3xl font-extrabold uppercase leading-tight md:text-[40px] lg:text-[48px]">{label}</h1>
-                        <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[#D8E2EF] md:mx-0 md:text-base">{definition?.description ?? award.honor}</p>
+                        <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[#D8E2EF] md:mx-0 md:text-base">{definition.description}</p>
                         {latest && <div className="mt-6 border-t border-white/15 pt-5">
                             <p className="text-[11px] font-bold uppercase tracking-[.15em] text-gold-light">{latestWinners.length > 1 ? 'Latest winners' : 'Latest winner'} · {seasonLabel(latest.Year)}</p>
                             {latestWinners.map(winner => {
@@ -71,7 +70,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                                 return <div key={`${winner.PlayerID}-${winner.TeamID}`}>
                                     <p className="mt-2 text-xl font-extrabold">{href ? <Link href={href} className="underline-offset-4 hover:text-gold-light hover:underline">{winner.Winner} <Arrow /></Link> : winner.Winner}</p>
                                     {!teamAward && winner.Team && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Team}</p>}
-                                    {definition?.id === GM_OF_THE_YEAR && winner.Owner && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Owner}</p>}
+                                    {definition.id === GM_OF_THE_YEAR && winner.Owner && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Owner}</p>}
                                 </div>;
                             })}
                         </div>}
@@ -86,7 +85,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                     <span className="text-xs font-semibold text-ink-muted">{winners.length} awarded</span>
                 </div>
                 <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'}
-                    award={listed ? { id: definition?.id ?? null, name: award.name, label, honor: award.honor, image: definition?.image ?? null } : undefined} />
+                    award={listed ? { id: definition.id, name: award.name, label, honor: award.honor, image: definition.image } : undefined} />
             </section>
             {tallies.length > 0 && <section className="mx-auto mt-10 max-w-board" aria-labelledby="tallies-title">
                 <h2 id="tallies-title" className="font-wide mb-4 px-1 text-xl font-extrabold uppercase md:text-2xl">Tallies</h2>
