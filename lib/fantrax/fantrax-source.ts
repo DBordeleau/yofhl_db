@@ -7,8 +7,10 @@ import { cache } from 'react';
 import { cached, rows } from '@/lib/data/db';
 import { getArchivedPlayerIds, getFranchiseCards } from '@/lib/data/league';
 import { DAY, FANTRAX_CURRENT_TAG, FANTRAX_TAG, finalWeeksTag, isFrozenSeason, scoresAreArchived } from './cache-policy';
-import { createFantraxClient, readCore, sameCapture, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
-import { liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type SourceCore, type SourceWeek } from './live-season-source';
+import { createFantraxClient, readCore, toWeekScores, type SavedLiveSeason, type FantraxLeague, type MatchupScores } from './fantrax-client';
+import {
+    liveFantraxLeagueId, liveFantraxSeasonYear, sameCapture, type FantraxTeamRow, type LiveSeasonSource, type SavedSchedule, type SourceCore, type SourceWeek,
+} from './live-season-source';
 import { LIVE_SEASON_YEAR } from './live-season-year';
 
 const fantraxClient = createFantraxClient();
@@ -23,11 +25,18 @@ const liveLeagueId = async () => liveFantraxLeagueId(await getFantraxTeams());
 
 const archivedPlayerIds = async () => (await getArchivedPlayerIds()).map(player => player.id);
 
+/** the stored saved snapshot (or only `part` of it), uncached, or null when there is none */
+async function readStoredSnapshot<T = SavedLiveSeason>(leagueId: string, part = sql`data`): Promise<T | null> {
+    const [stored] = await rows<{ part: T }>(sql`select ${part} as part from league.fantrax_snapshots where league_id = ${leagueId}`);
+    return stored?.part ?? null;
+}
+
 // The saved snapshot's cache, built once per league rather than on every read.
 const savedSnapshots = new Map<string, () => Promise<SavedLiveSeason | null>>();
 function getSavedSnapshot(leagueId: string) {
     let read = savedSnapshots.get(leagueId);
-    // unstable_cache keys on its loader's source text, so the query keeps the indentation its cache entries were made with.
+    // unstable_cache keys on its loader's source text, so the loader keeps the text, query and indentation included,
+    // its cache entries were made with, rather than calling readStoredSnapshot.
     if (!read) savedSnapshots.set(leagueId, read = unstable_cache(async () => (await rows<{ data: SavedLiveSeason }>(sql`
     select data from league.fantrax_snapshots where league_id = ${leagueId}
 `))[0]?.data ?? null, ['fantrax-saved-snapshot-v2', leagueId], {
@@ -39,7 +48,7 @@ function getSavedSnapshot(leagueId: string) {
  * the saved snapshot, or null when it is missing or more than a day old; a frozen season's saved snapshot is
  * final, so it never goes stale
  */
-async function getSavedLiveSeason(leagueId: string, liveSeasonYear: number) {
+async function getSavedLiveSeason(leagueId: string, liveSeasonYear: number | undefined) {
     const saved = await getSavedSnapshot(leagueId);
     if (!saved) return null;
     const now = Date.now();
@@ -49,10 +58,10 @@ async function getSavedLiveSeason(leagueId: string, liveSeasonYear: number) {
 // What the scheduled refresh asks before contacting Fantrax. Only a publish (which expires FANTRAX_CURRENT_TAG)
 // changes the saved snapshot's schedule, and opening the next season clears the league cache; no timer expires it,
 // so a frozen season's scheduled runs answer from here without a query.
-const getSavedSchedule = cached(async (leagueId: string) => {
-    const [stored] = await rows<{ source: FantraxLeague }>(sql`select data -> 'source' as source from league.fantrax_snapshots where league_id = ${leagueId}`);
-    if (!stored) return null;
-    const { seasonYear, weeks } = readCore(stored.source, {});
+const getSavedSchedule = cached(async (leagueId: string): Promise<SavedSchedule | null> => {
+    const source = await readStoredSnapshot<FantraxLeague>(leagueId, sql`data -> 'source'`);
+    if (!source) return null;
+    const { seasonYear, weeks } = readCore(source, {});
     return { seasonYear, weeks };
 }, 'fantrax-saved-schedule', () => [FANTRAX_CURRENT_TAG]);
 
@@ -120,15 +129,15 @@ const getCachedLeaders = savedOrDaily(saved => saved.leaders, getDailyLeaders);
 const getCachedRosterStats = savedOrDaily(saved => saved.rosterStats, getDailyRosterStats);
 
 /**
- * Capture every request, then save the snapshot and publish it, only if every request succeeds and the capture
- * differs from the saved snapshot. An unchanged capture leaves the saved snapshot, its capture time and the
- * live season's caches as they are.
+ * Capture every request, then save the capture as the saved snapshot and publish it, only if every request
+ * succeeds and the capture differs from the saved snapshot. An unchanged capture leaves the saved snapshot, its
+ * capture time and the live season's caches as they are.
  */
 async function captureAndSave(leagueId: string): Promise<{ data: SavedLiveSeason; changed: boolean }> {
     const data = await fantraxClient.capture(leagueId, { scoringSeason: getScoringSeason });
     // The stored row itself, not the cached copy, so the comparison is with what a save would replace.
-    const [stored] = await rows<{ data: SavedLiveSeason }>(sql`select data from league.fantrax_snapshots where league_id = ${leagueId}`);
-    if (stored && sameCapture(stored.data, data)) return { data, changed: false };
+    const stored = await readStoredSnapshot(leagueId);
+    if (stored && sameCapture(stored, data)) return { data, changed: false };
     await rows(saveSnapshotQuery(leagueId, data));
     revalidateTag(FANTRAX_CURRENT_TAG);
     return { data, changed: true };
@@ -156,7 +165,7 @@ export const fantraxSource: LiveSeasonSource = {
         const leagueId = liveFantraxLeagueId(mapping);
         // A fresh core skips the saved snapshot's league responses; its scores, leaders and roster stats don't.
         const [saved, league, players] = await Promise.all([
-            getSavedLiveSeason(leagueId, mapping[0].seasonYear),
+            getSavedLiveSeason(leagueId, liveFantraxSeasonYear(mapping)),
             fresh ? fantraxClient.league(leagueId) : null,
             fresh ? fantraxClient.playerDirectory() : getPlayerDirectory(),
         ]);

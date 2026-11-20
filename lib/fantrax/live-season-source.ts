@@ -2,6 +2,7 @@
 // (fantrax-source.ts) is Fantrax plus the saved snapshot, manual final weeks and Next's caches; tests use the
 // in-memory adapter (memory-source.ts). Shapes here are already checked and in season years; Fantrax's own
 // response formats stay in the HTTP client (fantrax-client.ts).
+import { isDeepStrictEqual } from 'node:util';
 
 /** one matchup on the schedule; an unseeded playoff slot is `{ TBD: true }` on both sides, and a bye has one side */
 export interface ScheduledMatchup {
@@ -60,6 +61,31 @@ export interface SourceCore {
  */
 export type CapturedSeason = Pick<SourceCore, 'fetchedAt' | 'seasonYear' | 'weeks' | 'playoffs'> & { changed: boolean };
 
+/** a capture as a source stores it: its league responses and other sections, and each week's scores */
+type Capture = { scores: Record<number, object> };
+
+/**
+ * The change rule: whether two captures hold the same Fantrax data. Only our own fetch times (on each section, the
+ * league responses, the scoring leaders and the roster stats, and on each week's scores) are ignored; every other
+ * difference counts, with no field whitelist, so a field Fantrax moves by itself costs one more save rather than
+ * hiding a real change.
+ */
+export function sameCapture<T extends Capture>(a: T, b: T): boolean {
+    return isDeepStrictEqual(withoutFetchTimes(a), withoutFetchTimes(b));
+}
+
+function withoutFetchTimes(capture: Capture) {
+    // As the saved snapshot stores it, so a field left undefined compares as absent.
+    const { scores, ...sections }: Capture & Record<string, unknown> = JSON.parse(JSON.stringify(capture));
+    for (const part of [...Object.values(sections), ...Object.values(scores ?? {})]) {
+        if (part && typeof part === 'object') delete (part as { fetchedAt?: string }).fetchedAt;
+    }
+    return { scores, ...sections };
+}
+
+/** the saved snapshot's season year and schedule */
+export type SavedSchedule = { seasonYear: number; weeks: SourceWeek[] };
+
 export interface WeekScores {
     fetchedAt: string;
     week: number;
@@ -117,12 +143,13 @@ export interface LiveSeasonSource {
      * The saved snapshot's season year and weeks however old it is, or null when there is none. Cached until a
      * capture publishes or the league configuration changes, never on a timer, so asking it again costs nothing.
      */
-    savedSchedule(): Promise<{ seasonYear: number; weeks: SourceWeek[] } | null>;
+    savedSchedule(): Promise<SavedSchedule | null>;
     manualFinalWeeks(seasonYear: number): Promise<number[]>;
     setManualFinalWeek(seasonYear: number, week: number, final: boolean): Promise<void>;
     /**
-     * Capture every Fantrax request, then save the snapshot and publish it, unless it matches the saved snapshot
-     * apart from the capture's own fetch times. Saves only if every request succeeds.
+     * Capture every Fantrax request, then save the capture as the saved snapshot and publish it, unless it matches
+     * the saved snapshot apart from the capture's own fetch times (`sameCapture`). Saves only if every request
+     * succeeds.
      */
     capture(): Promise<CapturedSeason>;
 }

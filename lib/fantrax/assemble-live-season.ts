@@ -6,7 +6,7 @@ import { isFrozenSeason } from './cache-policy';
 import { PLAYOFF_FORMAT } from './config';
 import { playerName } from './fantrax-client';
 import {
-    liveFantraxLeagueId, liveFantraxSeasonYear, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
+    liveFantraxLeagueId, liveFantraxSeasonYear, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
     type SourceCore, type SourceWeek, type WeekScores,
 } from './live-season-source';
 
@@ -313,10 +313,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
      * succeeds and the capture differs from the saved snapshot apart from its fetch times; `changed` says which.
      * `fetchedAt` is the capture's, whether or not it was published.
      */
-    async function refreshLiveSeason(): Promise<{ fetchedAt: string; seasonYear: number; changed: boolean }> {
-        const { fetchedAt, seasonYear, changed } = await source.capture();
-        return { fetchedAt, seasonYear, changed };
-    }
+    const refreshLiveSeason = (): Promise<CapturedSeason> => source.capture();
 
     /**
      * For the evening cron: nothing to do once the live season is a frozen season and the next season hasn't been
