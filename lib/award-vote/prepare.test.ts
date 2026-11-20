@@ -78,10 +78,10 @@ test('the Bobby Orr Award lists players with D among their positions, the Hasek 
         ['wayne-gretzky', 'Wayne Gretzky Award', ['c', 'd', 'dual', 'g']],
         ['le-magnifique', 'Le Magnifique', ['c', 'd', 'dual', 'g']],
         ['bobby-orr', 'Bobby Orr Award', ['d', 'dual']],
-        ['hasek', 'Hasek Award', ['g']],
+        ['hasek', 'Hasek Trophy', ['g']],
         // nobody is a rookie
         ['teemu-selanne', 'Teemu Selanne Trophy', []],
-        ['danny-briere', 'Danny Briere Trophy', []],
+        ['danny-briere', 'Danny Briere Award', []],
     ]);
 });
 

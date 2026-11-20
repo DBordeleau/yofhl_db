@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { TrophyArt } from '@/components/trophy-icons';
 import TrophySparkles from '@/components/trophy-sparkles';
-import { AWARDS, awardHref, getAwardDefinition } from '@/lib/awards';
+import { AWARDS, awardHref, findAward } from '@/lib/awards';
 import { seasonLabel } from '@/lib/league';
 import styles from './player-page.module.css';
 
@@ -24,14 +24,14 @@ export function shelfTrophies(championships: { season: number; team: string }[],
     });
     const grouped = new Map<string, ShelfTrophy>();
     for (const award of awards) {
-        const definition = getAwardDefinition(award.Award);
+        const definition = findAward(award.Award);
         const key = definition?.id ?? award.Award;
         const entry = grouped.get(key) ?? { award: award.Award, label: definition?.label ?? award.label, note: definition?.honor ?? '', years: [] };
         entry.years.push(award.Year);
         grouped.set(key, entry);
     }
     const order = (trophy: ShelfTrophy) => {
-        const index = AWARDS.findIndex((definition) => definition.id === getAwardDefinition(trophy.award)?.id);
+        const index = AWARDS.findIndex((definition) => definition.id === findAward(trophy.award)?.id);
         return index < 0 ? AWARDS.length : index;
     };
     return [...shelf, ...Array.from(grouped.values()).sort((a, b) => order(a) - order(b)).map((trophy) => ({ ...trophy, years: trophy.years.sort((a, b) => b - a) }))];

@@ -46,7 +46,7 @@ test("the Danny Briere Award lists everyone outside the minors on either finalis
     assert.deepEqual(fantrax.reads.filter(read => read.startsWith('dayRosters')), FINAL_PERIODS.map(period => `dayRosters ${period}`));
 
     const award = await briere(league);
-    assert.equal(award.label, 'Danny Briere Trophy');
+    assert.equal(award.label, 'Danny Briere Award');
     assert.deepEqual(award.statSets, [{ name: 'playoffRounds', label: 'Playoffs' }, { name: 'final', label: 'Final' }]);
     assert.equal(award.shown, 50);
     assert.deepEqual(award.candidates.map(candidate => [candidate.playerId, candidate.team, candidate.stats.playoffRounds?.points, candidate.stats.final?.points]), [

@@ -30,7 +30,7 @@ const PublishedAwards: FC<{ awards: AdminAward[] }> = ({ awards }) => {
                     <li key={award.name} className="rounded-2xl border border-line bg-white p-4">
                         <div className="flex items-baseline justify-between gap-3">
                             <span className="font-bold">{award.label}</span>
-                            <span className="text-xs font-bold uppercase tracking-[.12em] text-ink-faint">{award.description}</span>
+                            <span className="text-xs font-bold uppercase tracking-[.12em] text-ink-faint">{award.honor}</span>
                         </div>
                         {winners.length ? winners.map((winner) => (
                             <div key={winner.id} className="mt-3 flex min-h-11 items-center rounded-xl bg-award-single px-3">
@@ -80,7 +80,7 @@ const EditableAwards: FC<{ year: number; awards: AdminAward[] }> = ({ year, awar
                         <li key={award.name} className="rounded-2xl border border-line bg-white p-4">
                             <div className="flex items-baseline justify-between gap-3">
                                 <span className="font-bold">{award.label}</span>
-                                <span className="text-xs font-bold uppercase tracking-[.12em] text-ink-faint">{award.description}</span>
+                                <span className="text-xs font-bold uppercase tracking-[.12em] text-ink-faint">{award.honor}</span>
                             </div>
                             {winner ? (
                                 <div className="mt-3 flex min-h-11 items-center gap-3 rounded-xl bg-award-single px-3">
