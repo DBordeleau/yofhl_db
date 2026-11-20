@@ -46,14 +46,15 @@ export type CurrentSeasonState =
 type TeamRow = CurrentSeasonTeam & { seasonYear: number; leagueId: string; opened: boolean; frozenAt: number | null };
 
 /** carries a season being played out of the cached read, so that answer is never cached */
-class SeasonInPlay extends Error {
+class UncacheableSeasonInPlay extends Error {
     constructor(readonly teams: TeamRow[]) { super('The live season is being played'); }
 }
 
 // Not opened and frozen are cached until the league configuration changes (opening a season clears every cached
 // league read), so the season sync's later runs answer them without a query. A season being played rejects, which
 // unstable_cache never stores, so each of its runs reads its teams and frozen mark afresh; and once the run that
-// freezes it reads it again, frozen is the answer cached.
+// freezes it reads it again, frozen is the answer cached. This relies on unstable_cache never storing a rejection:
+// if it did, a season being played would be stuck on its first run's answer.
 const readSettledSeason = cached(async (): Promise<Exclude<CurrentSeasonState, { state: 'in-play' }>> => {
     const teams = await rows<TeamRow>(sql`
         select ft.season_year as "seasonYear", ft.fantrax_league_id as "leagueId", ft.fantrax_team_id as "fantraxTeamId",
@@ -69,7 +70,7 @@ const readSettledSeason = cached(async (): Promise<Exclude<CurrentSeasonState, {
     const [{ seasonYear, opened, frozenAt }] = teams;
     if (!opened) return { state: 'not-opened', seasonYear };
     if (frozenAt !== null) return { state: 'frozen', seasonYear, frozenAt: new Date(frozenAt).toISOString() };
-    throw new SeasonInPlay(teams);
+    throw new UncacheableSeasonInPlay(teams);
 }, 'season-sync-current-season-v1');
 
 /** the live season as the season sync sees it, with its mapped teams while it is being played */
@@ -77,7 +78,7 @@ export async function readCurrentSeason(): Promise<CurrentSeasonState> {
     try {
         return await readSettledSeason();
     } catch (error) {
-        if (!(error instanceof SeasonInPlay)) throw error;
+        if (!(error instanceof UncacheableSeasonInPlay)) throw error;
         const [{ seasonYear, leagueId }] = error.teams;
         return {
             state: 'in-play',

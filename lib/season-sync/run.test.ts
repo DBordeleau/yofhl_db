@@ -163,3 +163,19 @@ test("seven days after the season's last week ends, a run writes nothing and rec
     const next = await run(FREEZES_AT + 31 * 86400_000);
     assert.deepEqual(next.result, { outcome: 'not-opened', seasonYear: SEASON + 1 });
 });
+
+test('a run that records the freeze reports the season frozen even if reading it back fails, and the next run answers frozen', async t => {
+    const { league, fantrax, run } = await seasonSyncLeague(t);
+    // Once the run has read the league info, the read back of the season after the freeze fails.
+    const info = fantrax.leagueInfo;
+    Object.defineProperty(fantrax, 'leagueInfo', { configurable: true, get() {
+        league.failNextQuery('season_sync_status st', new Error('read back failed'));
+        return info;
+    } });
+    const frozenAt = new Date(FREEZES_AT + 3600_000).toISOString();
+    const freezing = await run(FREEZES_AT + 3600_000);
+    assert.deepEqual(freezing.result, { outcome: 'frozen', seasonYear: SEASON, frozenAt });
+
+    fantrax.down.add('leagueInfo');
+    assert.deepEqual((await run(FREEZES_AT + 86400_000)).result, { outcome: 'frozen', seasonYear: SEASON, frozenAt });
+});

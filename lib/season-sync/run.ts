@@ -10,7 +10,7 @@ import { revalidateTag } from 'next/cache';
 import { seasonSyncEffects } from '@/lib/data/cache-tags';
 import { rows } from '@/lib/data/db';
 import { inRefreshOrder } from '@/lib/data/materialized-views';
-import { correctionWindowClosed } from '@/lib/fantrax/live-season';
+import { scheduleIsFrozen } from '@/lib/fantrax/live-season';
 import { readCurrentSeason } from './current-season';
 import type { SeasonSyncPorts } from './ports';
 import { readLeagueInfo, readSeason } from './read-season';
@@ -48,14 +48,15 @@ export function createRun(ports: SeasonSyncPorts) {
         let read;
         try {
             const info = await readLeagueInfo(ports, season);
-            if (correctionWindowClosed(info.weeks.at(-1)!.endDate, now)) await rows(freezeQuery(year, now));
+            if (scheduleIsFrozen(info.weeks, now)) await rows(freezeQuery(year, now));
             else read = await readSeason(ports, season, info, now);
         } catch (error) {
             return failed(error);
         }
         if (!read) {
-            // The run froze the season. Read it back, so later runs answer frozen from the cache.
-            await readCurrentSeason();
+            // The run froze the season. Read it back, so later runs answer frozen from the cache. The freeze is
+            // recorded either way: if the read back fails, the next run reads the frozen mark itself.
+            await readCurrentSeason().catch(error => console.error(`The season sync of ${year} froze it, but could not read it back:`, error));
             return { outcome: 'frozen', seasonYear: year, frozenAt: new Date(now).toISOString() };
         }
 

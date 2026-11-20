@@ -6,7 +6,7 @@ import { isFrozenSeason } from './cache-policy';
 import { PLAYOFF_FORMAT } from './config';
 import { playerName } from './fantrax-client';
 import {
-    liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
+    liveFantraxLeagueId, liveFantraxSeasonYear, type CapturedSeason, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
     type SourceCore, type SourceWeek, type WeekScores,
 } from './live-season-source';
 
@@ -313,10 +313,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
      * succeeds and the capture differs from the saved snapshot apart from its fetch times; `changed` says which.
      * `fetchedAt` is the capture's, whether or not it was published.
      */
-    async function refreshLiveSeason(): Promise<{ fetchedAt: string; seasonYear: number; changed: boolean }> {
-        const { fetchedAt, seasonYear, changed } = await source.capture();
-        return { fetchedAt, seasonYear, changed };
-    }
+    const refreshLiveSeason = (): Promise<CapturedSeason> => source.capture();
 
     /**
      * For the evening cron: nothing to do once the live season is a frozen season and the next season hasn't been
@@ -325,9 +322,17 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
      */
     async function scheduledRefresh({ now }: { now: number }): Promise<ScheduledRefresh> {
         const [mapping, saved] = await Promise.all([source.fantraxTeams(), source.savedSchedule()]);
-        if (isFrozenSeason(saved, mapping[0]?.seasonYear, now)) return { outcome: 'frozen' };
+        if (isFrozenSeason(saved, liveFantraxSeasonYear(mapping), now)) return { outcome: 'frozen' };
         const { fetchedAt, seasonYear, changed } = await refreshLiveSeason();
         return { outcome: changed ? 'published' : 'unchanged', fetchedAt, seasonYear };
+    }
+
+    /**
+     * The live season's year (the latest season year in the Fantrax team mapping), or null when it maps none.
+     * Read from the cached mapping, which only a league configuration change clears, so it costs nothing.
+     */
+    async function liveSeasonYear(): Promise<number | null> {
+        return liveFantraxSeasonYear(await source.fantraxTeams()) ?? null;
     }
 
     /** The admin's manual final toggle. Only a started week of the live season can be marked. */
@@ -340,7 +345,7 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         await source.setManualFinalWeek(core.seasonYear, week, final);
     }
 
-    return { getLiveSeason, getWeekScores, refreshLiveSeason, scheduledRefresh, setWeekFinal };
+    return { getLiveSeason, getWeekScores, liveSeasonYear, refreshLiveSeason, scheduledRefresh, setWeekFinal };
 }
 
 /**

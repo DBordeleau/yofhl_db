@@ -16,5 +16,5 @@ The live season can't be the record: regular-season pairings and scores exist on
 ## Consequences
 
 - Pick'em's pairings and results are keyed by season year, week and franchise, not by team season or Fantrax team ID.
-- Freezing rides the existing evening Fantrax refresh. Pick'em adds no scheduled job; the lock itself is a clock check on write and on read.
+- Freezing rides the existing evening Fantrax refresh: settle runs on every scheduled run, including one skipped for a frozen season, and stops on its own once the season's Pick'em is complete. Pick'em adds no scheduled job; the lock itself is a clock check on write and on read.
 - If regular-season matchups are ever imported into the archive, the two records will overlap. Pick'em's stays the one its leaderboard is scored from.
