@@ -109,7 +109,7 @@ test('an opened season is the current season, unpublished, and on the admin seas
     const [opened] = await getSeasonStatuses();
     assert.deepEqual(opened, {
         year: 2027, label: '2026–27', playoffStatus: 'complete', teams: 6, players: 0, games: 0,
-        champion: null, roster: 0, awards: 0, awardsExpected: 2, overrides: 0,
+        champion: null, roster: 0, awards: 0, awardsExpected: 6, overrides: 0, // six: the catalogue's stored awards
     });
 });
 

@@ -1,4 +1,5 @@
 import type { PlayerProfile, FranchiseDetail, BannerSeason, FranchiseCard, LeaderRow, AwardWinner } from '../data/league';
+import type { PlayerHonors } from '../data/award-archive';
 import { seasonLabel, splitPositions, winPercentage } from '../league';
 import { episodeLabel } from '../coachs-corner/episode-label';
 import type { Episode } from '../coachs-corner/episode';
@@ -71,17 +72,15 @@ export function archiveSpan(years: number[]) {
 }
 const record = (wins: number, losses: number, ties: number) => ties ? `${wins}–${losses}–${ties}` : `${wins}–${losses}`;
 
-export function playerShareCard(player: PlayerProfile): PlayerShareCard {
+/** a player's share card; `honors` are the player's awards and Jagr Cup rings, the award archive's */
+export function playerShareCard(player: PlayerProfile, honors: PlayerHonors): PlayerShareCard {
     const counts = new Map<string, number>();
-    for (const award of player.awards) {
-        const definition = findAward(award.Award);
-        if (definition) counts.set(definition.id, (counts.get(definition.id) ?? 0) + 1);
-    }
+    for (const award of honors.awards) counts.set(award.id, (counts.get(award.id) ?? 0) + 1);
     return { kind: 'player', title: player.name, href: playerHref(player.id),
-        summary: `${player.name}: ${player.totalFPts.toFixed(2)} career fantasy points, ${player.fpg.toFixed(2)} per game, ${player.championships.length} Jagr Cups.`,
+        summary: `${player.name}: ${player.totalFPts.toFixed(2)} career fantasy points, ${player.fpg.toFixed(2)} per game, ${honors.championships.length} Jagr Cups.`,
         name: player.name, rank: player.rank, positions: player.positions,
         team: player.team && { id: player.team.id, name: player.team.name, abbreviation: player.team.abbreviation, logo: player.team.logoUrl },
-        totalFPts: player.totalFPts, fpg: player.fpg, seasons: player.seasons, cups: player.championships.length,
+        totalFPts: player.totalFPts, fpg: player.fpg, seasons: player.seasons, cups: honors.championships.length,
         seasonPoints: [...player.playerStats].sort((a, b) => a.Year - b.Year).map(row => ({ year: row.Year, value: row.FPts, champion: row.Champion })),
         trophies: AWARDS.filter(award => counts.has(award.id)).map(award => ({ name: award.label, image: award.image, count: counts.get(award.id)! })) };
 }

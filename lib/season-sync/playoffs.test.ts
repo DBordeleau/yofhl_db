@@ -113,7 +113,7 @@ test('a saved bracket correction decides the stored winner, and a run leaves the
     assert.deepEqual((await bracket(league))[0], [1, 0, 5, 4, 410.5, 398.25, 4], 'franchise 4 wins on the correction, despite the score');
     const admin = (await getSeasonAdmin(SEASON))!;
     assert.deepEqual(admin.games.find(game => game.round === 1 && game.slot === 0)!.override?.note, 'Goalie start cap', 'bracket review still has the correction');
-    assert.deepEqual(admin.awards.map(award => [award.name, award.winner?.id]), [['Teemu Trophy', 'p1']]);
+    assert.deepEqual(admin.awards.filter(award => award.winner).map(award => [award.name, award.winner?.id]), [['Teemu Trophy', 'p1']]);
 });
 
 test('a level game goes to the team Fantrax placed in the next round', async t => {

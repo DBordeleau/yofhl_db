@@ -5,10 +5,11 @@ import test, { type TestContext } from 'node:test';
 import { disposableLeague } from '../testing/disposable-league';
 import { LEAGUE_TAG } from './cache-tags';
 import { MATERIALIZED_VIEWS } from './materialized-views';
-import { findAward } from '../awards';
+import { AWARD_CATALOGUE, findAward } from '../awards';
 
 // 2024 and 2025 are published, each with a Final; 2026 is still being played. Franchise 2 leads 2024 and 2026 on
-// points, and 2025 ends with franchises 1 and 3 level on the most.
+// points, and 2025 ends with franchises 1 and 3 level on the most. The Wayne Gretzky Award was entered by hand for
+// every season, shared in 2025; the Hasek Trophy's stored label is stale, so only the catalogue's may show.
 const SEED = `
     insert into league.seasons values (2024, '2023–24', 'complete'), (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete');
     insert into league.franchises (id, display_name, first_season, logo_url) values
@@ -21,6 +22,15 @@ const SEED = `
     from generate_series(2024,2026) y cross join generate_series(1,3) f;
     insert into league.matchups (season_year,stage,round,bracket,slot,away_team_season_id,home_team_season_id,away_score,home_score,winner_team_season_id)
     values (2024,'playoff',1,'championship',1,1,3,100,90,3), (2025,'playoff',1,'championship',1,4,5,100,90,4);
+    insert into league.players values ('p1', 'Skater One'), ('p2', 'Skater Two'), ('p3', 'Goalie Three');
+    insert into league.player_seasons (player_id, season_year, team_season_id, positions, fpts, fpg) values
+        ('p1', 2024, 1, array['C'], 300, 3.5), ('p1', 2025, 4, array['C'], 310, 3.6), ('p2', 2025, 5, array['LW'], 310, 3.4),
+        ('p3', 2026, 9, array['G'], 250, 4.1);
+    insert into league.award_types (id, name, label, description, sort_order) values
+        (1, 'Wayne Gretzky Award', 'Wayne Gretzky Award', 'Most points', 1), (2, 'Hasek Trophy', 'Hasek Award', 'Stale', 2);
+    insert into league.awards (season_year, award_type_id, player_id, team_season_id) values
+        (2024, 1, 'p1', 1), (2025, 1, 'p2', 5), (2025, 1, 'p1', 4), (2026, 1, 'p3', 9), (2025, 2, 'p2', 5);
+    insert into league.championship_rosters values (2025, 'p1');
 `;
 
 async function archiveLeague(t: TestContext) {
@@ -90,4 +100,69 @@ test("a franchise's trophy case shows the Jagr Cups and Prime Minister's Trophie
     }
     assert.deepEqual(await trophyCase(3), { cups: [2026, 2024], primeMinisters: [] });
     assert.deepEqual(await trophyCase(2), { cups: [], primeMinisters: [{ year: 2026, points: 9000 }, { year: 2024, points: 1500 }] });
+});
+
+test("an entered individual award's winners are its published seasons' stored winners, newest first, co-winners each a row", async t => {
+    const { winners, publish2026 } = await archiveLeague(t);
+    assert.deepEqual(await winners('wayne-gretzky'), [
+        { Year: 2025, Winner: 'Skater One', PlayerID: 'p1', Team: 'Club 1 2025', TeamID: 1, TeamLogo: '/one-2025.webp', FPts: 310, FPG: 3.6 },
+        { Year: 2025, Winner: 'Skater Two', PlayerID: 'p2', Team: 'Club 2 2025', TeamID: 2, TeamLogo: '/two.webp', FPts: 310, FPG: 3.4 },
+        { Year: 2024, Winner: 'Skater One', PlayerID: 'p1', Team: 'Club 1 2024', TeamID: 1, TeamLogo: '/one.webp', FPts: 300, FPG: 3.5 },
+    ], '2026 is still being played');
+
+    await publish2026();
+    assert.deepEqual((await winners('wayne-gretzky')).map(w => [w.Year, w.PlayerID]), [[2026, 'p3'], [2025, 'p1'], [2025, 'p2'], [2024, 'p1']]);
+});
+
+/** the stored individual awards, in catalogue order */
+const STORED = AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored');
+
+test("a player's honours are the individual awards the archive's winners give them and their Jagr Cup rings", async t => {
+    const { league, archive, winners, publish2026 } = await archiveLeague(t);
+    const honors = async (id: string) => (await league.runAsRoute('/player/[ID]', () => archive.playerHonors(id))).result;
+    assert.deepEqual(await honors('p3'), { awards: [], championships: [] }, '2026 is still being played');
+    assert.deepEqual(await honors('p2'), {
+        awards: [
+            { id: 'wayne-gretzky', name: 'Wayne Gretzky Award', label: 'Wayne Gretzky Award', honor: 'Most outstanding player', year: 2025 },
+            { id: 'hasek', name: 'Hasek Trophy', label: 'Hasek Trophy', honor: 'Top goaltender', year: 2025 },
+        ],
+        championships: [],
+    });
+    assert.deepEqual(await honors('p1'), {
+        awards: [2024, 2025].map(year => ({ id: 'wayne-gretzky', name: 'Wayne Gretzky Award', label: 'Wayne Gretzky Award', honor: 'Most outstanding player', year })),
+        championships: [{ season: 2025, team: 'Club 1 2025' }],
+    });
+
+    await publish2026();
+    for (const id of ['p1', 'p2', 'p3']) {
+        const won = [];
+        for (const award of STORED) won.push(...(await winners(award.id)).filter(w => w.PlayerID === id).map(w => [w.Year, award.id]));
+        assert.deepEqual((await honors(id)).awards.map(a => [a.year, a.id]).sort(), won.sort(), id);
+    }
+});
+
+test("a season's awards are the stored awards it should have and its stored winners, a season without playoffs skipping the Danny Briere Award", async t => {
+    const { league, archive, winners } = await archiveLeague(t);
+    const seasonAwards = (year: number) => archive.seasonAwards(year);
+    const p2 = { id: 'p2', name: 'Skater Two', positions: 'LW', fpts: 310, team: 'C2' };
+    assert.deepEqual(await seasonAwards(2025), {
+        expected: STORED,
+        winners: [
+            { award: 'wayne-gretzky', player: { id: 'p1', name: 'Skater One', positions: 'C', fpts: 310, team: 'C1' } },
+            { award: 'wayne-gretzky', player: p2 },
+            { award: 'hasek', player: p2 },
+        ],
+    });
+    for (const year of [2024, 2025]) {
+        const stored = [];
+        for (const award of STORED) stored.push(...(await winners(award.id)).filter(w => w.Year === year).map(w => [award.id, w.PlayerID]));
+        assert.deepEqual((await seasonAwards(year))!.winners.map(w => [w.award, w.player.id]), stored, `${year}`);
+    }
+
+    await league.client.exec(`update league.seasons set playoff_status = 'cancelled' where year = 2026`);
+    assert.deepEqual(await seasonAwards(2026), {
+        expected: STORED.filter(award => award.id !== 'danny-briere'),
+        winners: [{ award: 'wayne-gretzky', player: { id: 'p3', name: 'Goalie Three', positions: 'G', fpts: 250, team: 'C3' } }],
+    });
+    assert.equal(await seasonAwards(2031), null, 'no such season');
 });

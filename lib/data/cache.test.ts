@@ -17,7 +17,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
         select 'p'||f, y, (y-2025)*2+f, array['C'], 100-f, 2
         from generate_series(2025,2026) y cross join generate_series(1,2) f;
         insert into league.championship_rosters values (2025,'p1'), (2026,'p1');
-        insert into league.award_types (id,name,label,description,sort_order) values (1,'mvp','MVP','MVP',1);
+        insert into league.award_types (id,name,label,description,sort_order) values (1,'Hasek Trophy','Hasek Trophy','Top goaltender',1);
         insert into league.awards values (2026,1,'p1',3);
         insert into league.matchups (season_year,stage,round,bracket,slot,away_team_season_id,home_team_season_id,away_score,home_score,winner_team_season_id)
         values (2025,'playoff',1,'championship',1,1,2,100,90,1), (2026,'playoff',1,'championship',1,3,4,100,90,3);
@@ -44,9 +44,11 @@ test('curated edits expire exactly the cached readers that show their data', asy
         player1: () => league.getPlayer('p1'), player2: () => league.getPlayer('p2'),
         cards: league.getFranchiseCards,
         franchise1: () => league.getFranchise(1), franchise2: () => league.getFranchise(2),
-        awards: () => league.getAwardWinners('mvp'), awardTypes: league.getAwardTypes,
+        // the award archive's stored winners are one cache: the first reader of them misses, the player and franchise honours after it reuse it
+        awards: () => archive.winners('hasek'), awardTypes: league.getAwardTypes,
+        honors1: () => archive.playerHonors('p1'), honors2: () => archive.playerHonors('p2'),
         cups: () => archive.winners('jagr-cup'), primeMinister: () => archive.winners('prime-minister'),
-        honors1: () => history.getFranchiseHonors(1), honors2: () => history.getFranchiseHonors(2),
+        trophies1: () => history.getFranchiseHonors(1), trophies2: () => history.getFranchiseHonors(2),
         draft: () => history.getSeasonDraft(2026), franchiseDraft: () => history.getFranchiseDraft(1),
         history: () => history.getHistory({ franchiseId: 1 }), historySeasons: () => history.getHistorySeasons({ franchiseId: 1 }),
         rivalries: getRivalryData, branding: getTeamBranding, records: getRecordSource, discovery: getSearchDirectory,
@@ -73,22 +75,24 @@ test('curated edits expire exactly the cached readers that show their data', asy
     assert.equal(testLeague.queries(), beforeQueries, 'different searches reuse a single cached directory');
 
     saved(await edits.saveRoster(2026, ['p2'], cache));
-    await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'careers', 'player1', 'player2', 'franchise1', 'franchise2', 'discovery']);
+    await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'careers', 'player1', 'player2', 'honors1', 'honors2', 'franchise1', 'franchise2', 'discovery']);
     assert.deepEqual((await league.getChampionRoster(2026))?.rows.map(row => row.ID), ['p2']);
     assert.equal((await league.getAllTimeLeaderboard('all', 1, '')).rows.find(row => row.ID === 'p2')?.ChampionshipsWon, 1);
 
-    saved(await edits.saveAwards(2026, [{ award: 'mvp', playerId: 'p2' }], cache));
+    saved(await edits.saveAwards(2026, [{ award: 'Hasek Trophy', playerId: 'p2' }], cache));
+    // the trophy cases read the stored winners 'awards' just refreshed, so they show the new winner without a read of their own
     await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'player1', 'player2', 'awards', 'honors1', 'honors2', 'records']);
-    assert.equal((await league.getAwardWinners('mvp'))?.winners[0].PlayerID, 'p2');
+    assert.equal((await archive.winners('hasek'))![0].PlayerID, 'p2');
+    assert.deepEqual((await archive.playerHonors('p2')).awards.map(award => [award.id, award.year]), [['hasek', 2026]]);
     assert.equal((await history.getFranchiseHonors(1)).awards.length, 0);
     assert.equal((await history.getFranchiseHonors(2)).awards[0].playerId, 'p2');
     assert.equal((await db.execute(sql`select awards from league.player_careers where player_id='p2'`)).rows[0].awards, 1);
 
     saved(await edits.saveMatchup(2026, 2, 2, '', cache));
-    await expectMisses(['banners', 'champion26', 'season26', 'leaders26', 'player1', 'player2', 'cards', 'franchise1', 'franchise2', 'cups', 'rivalries', 'records', 'discovery']);
+    await expectMisses(['banners', 'champion26', 'season26', 'leaders26', 'player1', 'player2', 'honors1', 'honors2', 'cards', 'franchise1', 'franchise2', 'cups', 'rivalries', 'records', 'discovery']);
     assert.equal((await league.getBannerSeasons()).find(season => season.year === 2026)?.franchiseId, 2);
     assert.deepEqual((await league.getFranchise(2))?.championships, [2026]);
-    assert.equal((await league.getPlayer('p2'))?.championships[0].team, 'Team 2');
+    assert.equal((await archive.playerHonors('p2')).championships[0].team, 'Team 2');
 
     saved(await edits.saveTeamIdentity({ admin: true }, { franchiseId: 1, version: 0, name: 'Renamed', logoUrl: '/new.webp' }, cache));
     await expectMisses(['cards', 'franchise1', 'rivalries', 'records', 'discovery']);
@@ -138,7 +142,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
     for (const q of ['GM of the Year', 'gm-of-the-year']) {
         assert.equal((await searchPublicDirectory({ q, type: 'awards', page: 1 })).total, 0, q);
     }
-    assert.equal(await league.getAwardWinners('GM of the Year'), null);
+    assert.equal(await league.getListedAwardWinners('GM of the Year'), null);
     assert(directory.some(row => row.kind === 'seasons' && row.id === '2020'));
     assert(!directory.some(row => row.kind === 'seasons' && row.id === '2027'), 'incomplete seasons cannot link to a 404 page');
 

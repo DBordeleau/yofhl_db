@@ -13,29 +13,24 @@ import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/dev
 const seasonTeamJson = (season: string, franchise: string, recorded: string) => sql.raw(`jsonb_build_object('id', ${franchise},
     'name', coalesce(${season}.name, ${recorded}), 'abbreviation', ${season}.abbreviation, 'logo', ${season}.logo)`);
 
-const getFranchiseHonorRows = cached(async (id: number): Promise<Pick<FranchiseHonors, 'awards'> & { votedWins: { award: string; year: number }[] }> => {
-    const [awards, votedWins] = await Promise.all([
-        rows<FranchiseHonors['awards'][number]>(sql`
-            select a.season_year as year, at.name, at.label, at.description, p.id as "playerId", p.name as player
-            from league.awards a
-            join league.team_seasons t on t.id = a.team_season_id
-            join league.award_types at on at.id = a.award_type_id
-            join league.players p on p.id = a.player_id
-            where t.franchise_id = ${id}
-            order by a.season_year desc, at.sort_order, p.name`),
-        // a team award's winners are its published tallies' place-one team seasons (never a rehearsal's)
-        rows<{ award: string; year: number }>(sql`
-            select w.award, w.season_year as year
-            from ${publishedTeamAwardWinners} w
-            join league.team_seasons t on t.id = w.team_season_id
-            where t.franchise_id = ${id}
-            order by w.season_year desc`),
-    ]);
-    return { awards, votedWins };
-}, 'franchise-honors-v4', [leagueTags.awards, leagueTags.awardVoteTallies]);
+// a team award's winners are its published tallies' place-one team seasons (never a rehearsal's)
+const getFranchiseVotedWins = cached((id: number) => rows<{ award: string; year: number }>(sql`
+    select w.award, w.season_year as year
+    from ${publishedTeamAwardWinners} w
+    join league.team_seasons t on t.id = w.team_season_id
+    where t.franchise_id = ${id}
+    order by w.season_year desc`), 'franchise-voted-wins', [leagueTags.awardVoteTallies]);
 
 /** the franchise's wins among an award's winners (the award archive's) */
 const franchiseWins = async (id: number, award: string) => ((await winners(award)) ?? []).filter(winner => winner.TeamID === id);
+
+/** the individual awards the franchise's players won for it, newest first, each season's in catalogue order then by player */
+async function franchiseIndividualAwards(id: number): Promise<FranchiseHonors['awards']> {
+    const stored = AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored');
+    const wins = await Promise.all(stored.map(async award => (await franchiseWins(id, award.id)).map(win =>
+        ({ year: win.Year, name: award.name, label: award.label, honor: award.honor, playerId: win.PlayerID, player: win.Winner }))));
+    return wins.flat().sort((a, b) => b.year - a.year);
+}
 
 /**
  * A franchise's trophy case. Its Jagr Cups and Prime Minister's Trophies are the award archive's winners. A team award
@@ -43,8 +38,8 @@ const franchiseWins = async (id: number, award: string) => ((await winners(award
  * catalogue, in tests a released one.
  */
 export async function getFranchiseHonors(id: number, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<FranchiseHonors> {
-    const [{ awards, votedWins }, cups, primeMinisters] = await Promise.all([
-        getFranchiseHonorRows(id), franchiseWins(id, 'jagr-cup'), franchiseWins(id, 'prime-minister'),
+    const [awards, votedWins, cups, primeMinisters] = await Promise.all([
+        franchiseIndividualAwards(id), getFranchiseVotedWins(id), franchiseWins(id, 'jagr-cup'), franchiseWins(id, 'prime-minister'),
     ]);
     const teamAwards = listedAwards(new Set(votedWins.map(win => win.award)), catalogue).flatMap(award => {
         const years = votedWins.filter(win => win.award === award.id).map(win => win.year);
