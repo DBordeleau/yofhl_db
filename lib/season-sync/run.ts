@@ -54,8 +54,9 @@ export function createRun(ports: SeasonSyncPorts) {
             return failed(error);
         }
         if (!read) {
-            // The run froze the season. Read it back, so later runs answer frozen from the cache.
-            await readCurrentSeason();
+            // The run froze the season. Read it back, so later runs answer frozen from the cache. The freeze is
+            // recorded either way: if the read back fails, the next run reads the frozen mark itself.
+            await readCurrentSeason().catch(error => console.error(`The season sync of ${year} froze it, but could not read it back:`, error));
             return { outcome: 'frozen', seasonYear: year, frozenAt: new Date(now).toISOString() };
         }
 
