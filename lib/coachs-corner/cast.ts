@@ -81,11 +81,11 @@ const MOUTH_CLIPS: Record<CharacterId, Record<string, string>> = {
 export const ART_FRAME = 1254;
 /** where a poppy sits over a host's heart (the wearer's left lapel), as [x, y, scale] in the ART_FRAME */
 export type LapelSpot = [number, number, number];
-// Every wardrobe shares its pose's geometry. Keyed by the normal pose's art suffix; null where
+// Every wardrobe and mouth state shares its action's geometry. Keyed by action; null where
 // Don's hand covers that lapel while he grabs the mic.
-const LAPEL_SPOTS: Record<CharacterId, { usual: LapelSpot; poses: Record<string, LapelSpot | null> }> = {
-    don: { usual: [840, 665, 0.85], poses: { point: [777, 665, 0.85], 'lean-camera': [853, 646, 1], 'mic-remove': null } },
-    ron: { usual: [821, 708, 0.85], poses: {} },
+const LAPEL_SPOTS: Record<CharacterId, { usual: LapelSpot; actions: Record<string, LapelSpot | null> }> = {
+    don: { usual: [840, 665, 0.85], actions: { point: [777, 665, 0.85], lean: [853, 646, 1], mic: null } },
+    ron: { usual: [821, 708, 0.85], actions: {} },
 };
 
 export interface Gesture {
@@ -110,7 +110,7 @@ export interface Character {
     voice: { base: number; spread: number; wave: OscillatorType; grit: number };
 }
 
-interface PoseInfo { host: CharacterId; wardrobe: Wardrobe; gesture: string; mouth: Mouth; suffix: string }
+interface PoseInfo { host: CharacterId; wardrobe: Wardrobe; action: string; gesture: string; mouth: Mouth; suffix: string }
 const POSES = new Map<Pose, PoseInfo>();
 
 export const wardrobesOf = (host: CharacterId) => WARDROBES.filter(w => w.host === host);
@@ -123,7 +123,7 @@ const gesturesOf = (host: CharacterId) => {
         const gesture = wardrobe.prefix + action;
         const pose = (suffix: string, mouth: Mouth) => {
             const id = `${host}-${wardrobe.prefix}${suffix}`;
-            POSES.set(id, { host, wardrobe, gesture, mouth, suffix });
+            POSES.set(id, { host, wardrobe, action, gesture, mouth, suffix });
             return id;
         };
         gestures[gesture] = {
@@ -223,7 +223,7 @@ export const posesFor = (host: CharacterId, gesture: string): Pose[] => {
 };
 
 /** which host, wardrobe and gesture a pose belongs to */
-export const poseOf = (pose: Pose): Omit<PoseInfo, 'suffix'> | undefined => {
+export const poseOf = (pose: Pose): Omit<PoseInfo, 'suffix' | 'action'> | undefined => {
     const info = POSES.get(pose);
     return info && { host: info.host, wardrobe: info.wardrobe, gesture: info.gesture, mouth: info.mouth };
 };
@@ -236,9 +236,9 @@ export const mouthClipFor = (host: CharacterId, pose: Pose): string | undefined 
 
 /** where a lapel pin sits on a pose, or null where a hand covers the lapel */
 export const lapelFor = (host: CharacterId, pose: Pose): LapelSpot | null => {
-    const { usual, poses } = LAPEL_SPOTS[host];
+    const { usual, actions } = LAPEL_SPOTS[host];
     const info = POSES.get(pose);
-    return info?.host === host && info.suffix in poses ? poses[info.suffix] : usual;
+    return info?.host === host && info.action in actions ? actions[info.action] : usual;
 };
 
 export const allArt = (who: CharacterId) =>

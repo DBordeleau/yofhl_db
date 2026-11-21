@@ -7,19 +7,46 @@ import { episodeFrom } from './episode';
 
 // Control the clock and source lifetime to exercise rapid transport/mix changes.
 class Param {
-    value = 0;
-    setValueAtTime(v: number) { this.value = v; }
-    exponentialRampToValueAtTime(v: number) { this.value = v; }
-    linearRampToValueAtTime(v: number) { this.value = v; }
-    setTargetAtTime(v: number) { this.value = v; }
-    cancelScheduledValues() {}
+    value: number;
+    scheduled: { t: number; v: number }[] = [];
+    held: number | null = null;
+    private readonly ctx?: Context;
+    constructor(initial = 0, ctx?: Context) { this.value = initial; this.ctx = ctx; }
+    setValueAtTime(v: number, t = 0) {
+        if (!this.ctx || t <= this.ctx.currentTime) this.value = v;
+        else this.scheduled.push({ t, v });
+    }
+    exponentialRampToValueAtTime(v: number, t = 0) {
+        if (!this.ctx || t <= this.ctx.currentTime) this.value = v;
+        else this.scheduled.push({ t, v });
+    }
+    linearRampToValueAtTime(v: number, t = 0) {
+        if (!this.ctx || t <= this.ctx.currentTime) this.value = v;
+        else this.scheduled.push({ t, v });
+    }
+    setTargetAtTime() {}
+    cancelScheduledValues() { this.scheduled.length = 0; }
+    cancelAndHoldAtTime(t: number) {
+        let current = this.value;
+        for (const item of this.scheduled) if (item.t <= t) current = item.v;
+        this.scheduled.length = 0;
+        this.value = current;
+        this.held = current;
+    }
 }
 class Node {
-    gain = new Param(); frequency = new Param(); detune = new Param(); Q = new Param(); playbackRate = new Param();
+    gain: Param; frequency: Param; detune: Param; Q: Param; playbackRate: Param;
     loop = false;
     stops: number[] = [];
     starts: number[] = [];
     onended?: () => void;
+    constructor(ctx?: Context) {
+        this.gain = new Param(1, ctx);
+        this.frequency = new Param(0, ctx);
+        this.detune = new Param(0, ctx);
+        this.Q = new Param(0, ctx);
+        this.playbackRate = new Param(1, ctx);
+    }
     connect<T>(target: T) { return target; }
     disconnect() {}
     start(t: number) { this.starts.push(t); }
@@ -27,16 +54,18 @@ class Node {
 }
 class Context {
     static instances: Context[] = [];
-    currentTime = 0; sampleRate = 100; state = 'running'; destination = new Node();
+    currentTime = 0; sampleRate = 100; state = 'running'; destination: Node;
     sources: Node[] = [];
-    constructor() { Context.instances.push(this); }
-    createGain() { return new Node(); }
-    createDynamicsCompressor() { return new Node(); }
-    createBiquadFilter() { return new Node(); }
-    createOscillator() { const n = new Node(); this.sources.push(n); return n; }
+    gains: Node[] = [];
+    resumeCalls = 0;
+    constructor() { this.destination = new Node(this); Context.instances.push(this); }
+    createGain() { const n = new Node(this); this.gains.push(n); return n; }
+    createDynamicsCompressor() { return new Node(this); }
+    createBiquadFilter() { return new Node(this); }
+    createOscillator() { const n = new Node(this); this.sources.push(n); return n; }
     createBufferSource() { return this.createOscillator(); }
     createBuffer(_channels: number, length: number, sampleRate: number) { return { duration: length / sampleRate, getChannelData: () => new Float32Array(length) }; }
-    resume() { return Promise.resolve(); }
+    resume() { this.resumeCalls++; return Promise.resolve(); }
     decodeAudioData() { return Promise.resolve(this.createBuffer(1, 20, 100)); }
     close() { this.state = 'closed'; return Promise.resolve(); }
 }
@@ -182,5 +211,84 @@ test('a recorded sfx: plays at its natural rate whatever the show speed', async 
     const source = Context.instances.at(-1)!.sources.at(-1)!;
     assert.equal(source.playbackRate.value, 1);
     assert.ok(Math.abs(source.stops[0] - (0.005 + 6.6 + 0.01)) < 1e-9, 'the whole recording plays');
+    audio.dispose();
+});
+
+test('unlock resumes iOS interrupted contexts and ignores closed ones', t => {
+    installContext(t);
+    const audio = createShowAudio();
+    assert.ok(audio.unlock());
+    const ctx = Context.instances.at(-1)!;
+    assert.equal(ctx.resumeCalls, 0);
+    ctx.state = 'interrupted';
+    assert.ok(audio.unlock());
+    assert.equal(ctx.resumeCalls, 1);
+    ctx.state = 'closed';
+    assert.ok(audio.unlock());
+    assert.equal(ctx.resumeCalls, 1);
+    audio.dispose();
+});
+
+test('stopping before a future-scheduled cue starts holds gate gain at <= 0.0001 instead of 1', async t => {
+    installContext(t);
+    t.mock.method(globalThis, 'fetch', async () => new Response(new Uint8Array([1])));
+    const audio = createShowAudio(STUDIO_SOUND_BANK);
+    audio.unlock();
+    await audio.prepare();
+    const ctx = Context.instances.at(-1)!;
+    const busCount = 3; // master + any created buses excluded by checking gate gains
+    void busCount;
+    audio.fire({ t: 1, id: 'sting' }, 1);
+    audio.fire({ t: 6000, id: 'don', voice: {
+        who: 'don', delivery: 'normal', duration: 100, progress: 0, variation: 0,
+        question: false, wordStart: true, phraseEnd: false, cutoff: false, interrupting: false,
+    } }, 1);
+    audio.fire({ t: 7000, id: 'desk-pound' }, 1);
+    audio.stop();
+    const heldGains = ctx.gains.filter(g => g.gain.held !== null).map(g => g.gain.held!);
+    assert.ok(heldGains.length > 0);
+    assert.ok(heldGains.every(v => v <= 0.0001), `expected held gains <= 0.0001, got ${heldGains}`);
+    audio.dispose();
+});
+
+test('cues fired during cold async resume replay once running, unless stopped first', async t => {
+    let finishResume!: () => void;
+    class ColdContext extends Context {
+        override state = 'suspended';
+        override resume() {
+            this.resumeCalls++;
+            return new Promise<void>(resolve => {
+                finishResume = () => { this.state = 'running'; resolve(); };
+            });
+        }
+    }
+    const previous = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: { AudioContext: ColdContext } });
+    t.after(() => {
+        if (previous) Object.defineProperty(globalThis, 'window', previous);
+        else Reflect.deleteProperty(globalThis, 'window');
+    });
+
+    const audio = createShowAudio(CLASSIC_SOUND_BANK);
+    assert.ok(audio.unlock());
+    const ctx = Context.instances.at(-1)!;
+    audio.fire({ t: 1, id: 'sting' }, 1);
+    assert.equal(ctx.sources.length, 0, 'nothing schedules before context is running');
+    finishResume();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.ok(ctx.sources.length > 0, 'queued cue plays once resume resolves');
+
+    // A stop before resume completes cancels the queued cue.
+    audio.stop();
+    const before = ctx.sources.length;
+    ctx.state = 'suspended';
+    audio.unlock();
+    audio.fire({ t: 1, id: 'sting' }, 1);
+    audio.stop();
+    finishResume();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(ctx.sources.length, before);
     audio.dispose();
 });

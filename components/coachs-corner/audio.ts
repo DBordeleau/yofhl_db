@@ -18,6 +18,8 @@ export interface ShowAudio {
 
 /** How long before the segment the room tone starts. */
 const ROOM_TONE_LEAD_MS = 400;
+/** How long cold-resume cues remain fresh to flush once AudioContext enters 'running'. */
+const RESUME_QUEUE_MS = 120;
 
 /** One audio graph per player. No sound starts until unlock() runs in a user gesture. */
 export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): ShowAudio {
@@ -27,6 +29,8 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
     let noise: AudioBuffer | null = null;
     let roomNoise: AudioBuffer | null = null;
     let roomPlaying = false;
+    let resuming: Promise<void> | null = null;
+    const queuedCues: { cue: AudioCue; rate: number; atMs: number }[] = [];
     const buses = new Map<SoundId, GainNode>();
     const buffers = new Map<string, AudioBuffer>();
     const pending = new Map<string, Promise<void>>();
@@ -54,7 +58,23 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
             master.connect(ctx.createDynamicsCompressor()).connect(ctx.destination);
             noise = makeNoise(1, 73);
         }
-        if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+        if (ctx.state !== 'running' && ctx.state !== 'closed' && !resuming) {
+            const target = ctx;
+            const attempt = target.resume().then(() => {
+                if (ctx !== target || target.state !== 'running') {
+                    if (ctx === target) queuedCues.length = 0;
+                    return;
+                }
+                const cutoff = Date.now() - RESUME_QUEUE_MS;
+                const queued = queuedCues.splice(0);
+                for (const item of queued) if (item.atMs >= cutoff) fire(item.cue, item.rate);
+            }).catch(() => {
+                if (ctx === target) queuedCues.length = 0;
+            }).finally(() => {
+                if (resuming === attempt) resuming = null;
+            });
+            resuming = attempt;
+        }
         return true;
     };
 
@@ -78,6 +98,12 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
     };
 
     const stopSlot = (id?: SoundId) => {
+        if (!id) queuedCues.length = 0;
+        else {
+            for (let i = queuedCues.length - 1; i >= 0; i--) {
+                if (queuedCues[i].cue.id === id) queuedCues.splice(i, 1);
+            }
+        }
         if (!ctx) return;
         const now = ctx.currentTime;
         for (const item of active) {
@@ -106,6 +132,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         const c = ctx!;
         const osc = c.createOscillator();
         const gain = c.createGain();
+        gain.gain.value = 0.0001;
         osc.type = type;
         osc.frequency.setValueAtTime(freq, at);
         const nodes: AudioNode[] = [];
@@ -135,6 +162,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         bp.frequency.value = band;
         bp.Q.value = q;
         const gain = c.createGain();
+        gain.gain.value = 0.0001;
         src.connect(bp).connect(gain).connect(bus(id));
         env(gain, at, peak, attack, dur);
         track(id, src, gain, [bp]);
@@ -179,6 +207,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
             filters.push(formant);
         }
         const gain = c.createGain();
+        gain.gain.value = 0.0001;
         gain.gain.setValueAtTime(0.0001, at);
         gain.gain.exponentialRampToValueAtTime(peak, at + syllable.attack);
         gain.gain.exponentialRampToValueAtTime(peak * syllable.body, at + syllable.bodyAt);
@@ -214,6 +243,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         if (!buffer) return false;
         const src = ctx!.createBufferSource();
         const gain = ctx!.createGain();
+        gain.gain.value = loop ? 0 : 0.0001;
         src.buffer = buffer;
         src.loop = loop;
         const style = cue.voice && DELIVERIES[cue.voice.delivery];
@@ -240,7 +270,15 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
     };
 
     const fire = (cue: AudioCue, rate: number) => {
-        if (!ctx || ctx.state !== 'running' || bank[cue.id].gain <= 0) return;
+        if (!ctx || bank[cue.id].gain <= 0) return;
+        if (ctx.state !== 'running') {
+            if (resuming) {
+                const nowMs = Date.now();
+                while (queuedCues.length && (nowMs - queuedCues[0].atMs > RESUME_QUEUE_MS || queuedCues.length >= 8)) queuedCues.shift();
+                queuedCues.push({ cue, rate, atMs: nowMs });
+            }
+            return;
+        }
         const source = bank[cue.id].source;
         const at = ctx.currentTime + 0.005;
         if ('files' in source) { fileSound(cue, rate, at); return; }
@@ -310,6 +348,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         const lp = c.createBiquadFilter();
         lp.type = 'lowpass'; lp.frequency.value = STUDIO_ROOM.lowpass;
         const gain = c.createGain();
+        gain.gain.value = 0;
         gain.gain.setValueAtTime(0, at);
         gain.gain.linearRampToValueAtTime(STUDIO_ROOM.noiseGain, at + STUDIO_ROOM.fadeSeconds);
         src.connect(hp).connect(lp).connect(gain).connect(bus('room'));
@@ -317,6 +356,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         src.start(at, Math.max(0, time - INTRO_MS + ROOM_TONE_LEAD_MS) / 1000 % roomNoise.duration);
         const hum = c.createOscillator();
         const humGain = c.createGain();
+        humGain.gain.value = 0;
         hum.frequency.value = 120;
         humGain.gain.setValueAtTime(0, at);
         humGain.gain.linearRampToValueAtTime(STUDIO_ROOM.humGain, at + STUDIO_ROOM.fadeSeconds);
@@ -352,7 +392,8 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         dispose: () => {
             stopSlot();
             if (ctx) void ctx.close();
-            ctx = null; master = null; noise = null; roomNoise = null;
+            ctx = null; master = null; noise = null; roomNoise = null; resuming = null;
+            queuedCues.length = 0;
             active.clear(); buses.clear(); buffers.clear(); pending.clear();
         },
     };

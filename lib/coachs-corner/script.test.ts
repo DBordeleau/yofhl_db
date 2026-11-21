@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseScript, hasErrors, playerRefs, type ScriptEvent } from './script';
+import { compileAudioCues } from './audio-cues';
+import { parseScript, hasErrors, playerRefs, refKey, type ScriptEvent } from './script';
 import { compile, frameAt } from './timeline';
 
 const lines = (source: string) => parseScript(source).events.filter((e): e is Extract<ScriptEvent, { kind: 'line' }> => e.kind === 'line');
@@ -219,4 +220,71 @@ test('an unknown gesture lists the host’s actions and wardrobe prefixes, not e
     assert.equal(gestureError(`${head}[don: wave]`), 'Don has no “wave” gesture. Try: rest, point, thumbs, angry, surprised, lean, stare, pause, tie, mic, pound, pound-ready. '
         + 'For another wardrobe, start it with halloween-, alternate-1-, alternate-2-, alternate-3-, remembrance-, alternate-4- or alternate-5-.');
     assert.equal(gestureError(`${head}[ron: wave]`), 'Ron has no “wave” gesture. Try: rest, skeptical, warning, surprised, down.');
+});
+
+test('apostrophes in cited player names normalize to ASCII without breaking smartened captions', () => {
+    const curly = "Ryan O\u2019Reilly";
+    const script = parseScript(`${head}>> player "Ryan O'Reilly" JAGR "JAGR's guy"
+>> gap "${curly}" "Tom Wilson"
+>> stat "96.5" "FPts" JAGR with "${curly}"
+>> numbers JAGR 10 goals with "Ryan O'Reilly" "Week 4"
+>> wire claim JAGR "${curly}" "JAGR's pickup"
+RON: Hi.`);
+    assert.deepEqual(script.diagnostics, []);
+    const graphics = script.events.flatMap(e => e.kind === 'stage' ? e.cues : []).map(c => c.type === 'monitor' && c.graphic);
+    assert.deepEqual(graphics[0], { type: 'player', player: { name: "Ryan O'Reilly" }, team: 'JAGR', caption: 'JAGR’s guy', mood: undefined });
+    assert.deepEqual(graphics[1], { type: 'gap', base: { name: "Ryan O'Reilly" }, others: [{ name: 'Tom Wilson' }] });
+    assert.deepEqual(graphics[2], { type: 'stat', value: '96.5', label: 'FPts', detail: undefined, team: 'JAGR', player: { name: "Ryan O'Reilly" } });
+    assert.deepEqual(graphics[3], { type: 'numbers', team: 'JAGR', items: [{ value: '10', label: 'goals' }], player: { name: "Ryan O'Reilly" }, caption: 'Week 4' });
+    assert.deepEqual(graphics[4], { type: 'wire', action: 'claim', team: 'JAGR', player: { name: "Ryan O'Reilly" }, detail: 'JAGR’s pickup' });
+    assert.deepEqual(playerRefs(script), [{ name: "Ryan O'Reilly" }, { name: 'Tom Wilson' }]);
+    assert.equal(refKey({ name: curly }), refKey({ name: "Ryan O'Reilly" }));
+});
+
+test('trailing inline cues keep gestures monotonic and preserve cut-off handovers', () => {
+    const assertMonotonic = (tl: ReturnType<typeof compile>) => {
+        for (const who of ['don', 'ron'] as const) {
+            for (let i = 1; i < tl.gestures[who].length; i++) {
+                assert.ok(tl.gestures[who][i].t >= tl.gestures[who][i - 1].t,
+                    `${who} gesture ${i} out of order: ${tl.gestures[who][i - 1].t} -> ${tl.gestures[who][i].t}`);
+            }
+        }
+    };
+    for (const body of [
+        'DON: Hello. [angry]',
+        'DON (then stare): Hello. [point]',
+        'DON: Hello. [1s] [angry]',
+    ]) {
+        const tl = compile(parseScript(`${head}${body}\nRON: Next.`));
+        assertMonotonic(tl);
+        const [don, ron] = tl.lines;
+        assert.ok(don.t1 >= don.t0);
+        assert.ok(ron.t0 >= don.end);
+    }
+    const cutoffTl = compile(parseScript(`${head}DON: Wait-- [don: point] [ron: down] [>> logo]\nRON: Stop!`));
+    assertMonotonic(cutoffTl);
+    const [don, ron] = cutoffTl.lines;
+    assert.equal(ron.t0, don.t1);
+    assert.ok(cutoffTl.monitor.some(m => m.value.type === 'logo' && m.t === don.t1));
+    assert.equal(cutoffTl.gestures.don.find(g => g.value === 'point')?.t, don.t1);
+    const heldRonTl = compile(parseScript(`${head}DON: Wait-- [ron: down]\nDON: Really.`));
+    assertMonotonic(heldRonTl);
+    assert.equal(heldRonTl.gestures.ron.find(g => g.value === 'down')?.t, heldRonTl.lines[0].t1);
+    const cues = compileAudioCues(cutoffTl);
+    assert.equal(cues.find(c => c.t === ron.t0 && c.id === 'ron')?.voice?.interrupting, true);
+});
+
+test('zero or out-of-range pace and wpm report errors and keep finite timelines', () => {
+    for (const badPace of ['00', '000', '20', '600']) {
+        const script = parseScript(`---\ntitle: Test\npace: ${badPace}\n---\nDON: Hello.`);
+        assert.ok(hasErrors(script), `pace ${badPace}`);
+        const tl = compile(script);
+        assert.ok(Number.isFinite(tl.showEnd) && Number.isFinite(tl.duration));
+    }
+    for (const badLine of ['DON (00wpm): Hello.', 'DON (00): Hello.', 'DON: {000wpm: Hello.}', 'DON (999wpm): Hello.']) {
+        const script = parseScript(`${head}${badLine}`);
+        assert.ok(hasErrors(script), badLine);
+        const tl = compile(script);
+        assert.ok(Number.isFinite(tl.showEnd) && Number.isFinite(tl.duration));
+    }
 });
