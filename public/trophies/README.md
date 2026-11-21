@@ -13,16 +13,10 @@ These eight transparent WebP images are the trophy artwork used by the award gal
 
 The source filenames above are relative to the local `output/award-concepts/2026-10-04/` archive. That archive is not tracked in Git or required to run the app. The WebP files in this directory are tracked.
 
-The shared catalogue in [lib/awards.ts](../../lib/awards.ts) defines each trophy's image, display label, stored name, and team/player scope. [components/trophy-icons.tsx](../../components/trophy-icons.tsx) renders the artwork. The gallery has two team trophies and six individual awards.
+The award catalogue in [lib/awards.ts](../../lib/awards.ts) defines each trophy's catalogue ID, image, display label, name, and team/player scope. [components/trophy-icons.tsx](../../components/trophy-icons.tsx) renders the artwork. The gallery has two team trophies and six individual awards.
 
-Display labels differ from some stored names:
+One display label differs from its name: the Teemu Trophy shows as "Teemu Selanne Trophy".
 
-| Display label | Stored name |
-| --- | --- |
-| Hasek Award | Hasek Trophy |
-| Danny Briere Trophy | Danny Briere Award |
-| Teemu Selanne Trophy | Teemu Trophy |
-
-Preserve the stored names when changing labels or artwork. Existing winner records and award URLs use those names, with spaces replaced by underscores in URLs. Individual award definitions also live in [league/league.yml](../../league/league.yml); the admin panel stores their winners separately.
+Stored winners are keyed by catalogue ID, so a label can change freely. Preserve the names: award URLs use them, with spaces replaced by underscores. The catalogue is the only place an award is defined; the admin panel stores its winners separately ([ADR 0009](../../docs/adr/0009-awards-are-catalogue-ids.md)).
 
 When replacing artwork, keep the transparent background, update the catalogue if the path changes, and check the gallery, award winner page, and team/player trophy cases. Team logos use a separate [era-based mapping and sync command](../../docs/data.md#franchises-defunct-teams-and-logos).

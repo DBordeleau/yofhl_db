@@ -3,17 +3,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { BallotRankings } from './model';
+import { findAward } from '@/lib/awards';
 import { COMPLETE, completeFor, FRANCHISES, lockInHours, SEASON, votingLeague, type AwardVoteLeague } from './testing/award-vote-league';
 
 /** franchises 2 and 4's ballot: s2 above s1 for the Wayne Gretzky Award, leaving the two level */
 const S2_FIRST: BallotRankings = completeFor(2, { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] });
 
-/** an award page's winners, as [season, winner, player, team] by player, read through the page's cache */
+/** an award page's winners from the award archive, as [season, winner, player, team] by player, read through the page's cache */
 async function awardPages({ league }: AwardVoteLeague) {
-    const { getAwardWinners } = await import('@/lib/data/league');
+    const { winners } = await import('@/lib/data/award-archive');
     return async (name: string) => {
-        const { result } = await league.runAsRoute('/awards/[award]', () => getAwardWinners(name));
-        return result?.winners.toSorted((a, b) => a.PlayerID.localeCompare(b.PlayerID))
+        const { result } = await league.runAsRoute('/awards/[award]', () => winners(findAward(name)!));
+        return result.toSorted((a, b) => a.PlayerID.localeCompare(b.PlayerID))
             .map(winner => [winner.Year, winner.Winner, winner.PlayerID, winner.Team ?? null]);
     };
 }
@@ -62,7 +63,7 @@ test('a winner dropped before the season ended is credited to the franchise that
     });
     const { saveAwards } = await import('@/lib/data/curated-edits');
     // the hand-entry editor credits a winner's end-of-season team
-    assert.deepEqual(await saveAwards(SEASON, [{ award: 'Bobby Orr Award', playerId: 'd1' }, { award: 'Hasek Trophy', playerId: 's1' }], { invalidate: () => {} }),
+    assert.deepEqual(await saveAwards(SEASON, [{ award: 'bobby-orr', playerId: 'd1' }, { award: 'hasek', playerId: 's1' }], { invalidate: () => {} }),
         { ok: true, saved: 2 });
     assert.deepEqual(await awardPage('Bobby Orr Award'), [[SEASON, 'Archive d1', 'd1', null]]);
 
@@ -92,21 +93,6 @@ test('publishing is refused until the award vote is scored, and while voting is 
     assert.deepEqual(await awardPage('Wayne Gretzky Award'), [[SEASON, 'Archive s1', 's1', 'Club 1']]);
 });
 
-test('publishing is refused, naming them, while the archive is missing an award type an award\'s winner needs', async t => {
-    const { publish, admin, awardPage, league } = await scoredLeague(t);
-    await league.client.exec(`delete from league.award_types where name in ('Teemu Trophy', 'Hasek Trophy')`);
-    assert.deepEqual(await publish(), {
-        result: { ok: false, reason: 'missing-award-type', awardTypes: ['Hasek Trophy', 'Teemu Trophy'] }, revalidatedTags: [],
-    });
-    assert.equal((await admin()).vote?.state, 'scored');
-    assert.deepEqual(await awardPage('Wayne Gretzky Award'), []);
-
-    await league.client.exec(`insert into league.award_types (name, label, description, sort_order)
-        values ('Teemu Trophy', 'Teemu Selanne Trophy', 'Voted', 5), ('Hasek Trophy', 'Hasek Award', 'Voted', 4)`);
-    assert.deepEqual((await publish()).result, { ok: true });
-    assert.deepEqual(await awardPage('Teemu Trophy'), [[SEASON, 'Skater r1', 'r1', null]]);
-});
-
 test('publishing is refused while no ballot counts, so the award vote has no tally, and the hand-entry awards editor still saves', async t => {
     const harness = await votingLeague(t);
     const { publish, score, ballotLockPasses, admin, league } = harness;
@@ -120,7 +106,7 @@ test('publishing is refused while no ballot counts, so the award vote has no tal
 
     const { saveAwards } = await import('@/lib/data/curated-edits');
     const options = { invalidate: (tag: string) => league.expire(tag) };
-    assert.deepEqual(await saveAwards(SEASON, [{ award: 'Hasek Trophy', playerId: 's1' }], options), { ok: true, saved: 1 });
+    assert.deepEqual(await saveAwards(SEASON, [{ award: 'hasek', playerId: 's1' }], options), { ok: true, saved: 1 });
     assert.deepEqual(await awardPage('Hasek Trophy'), [[SEASON, 'Archive s1', 's1', 'Club 1']]);
 });
 
@@ -162,14 +148,14 @@ test('the hand-entry awards editor is read-only and refused for a season whose a
 
     assert.deepEqual((await publish()).result, { ok: true });
     assert.equal((await getSeasonAdmin(SEASON))?.awardVotePublished, true);
-    assert.deepEqual(await saveAwards(SEASON, [{ award: 'Hasek Trophy', playerId: 's1' }], options), { ok: false, reason: 'award-vote-published' });
-    assert.deepEqual(await saveAwards(SEASON, [{ award: 'Hasek Trophy', playerId: null }], options), { ok: false, reason: 'award-vote-published' });
+    assert.deepEqual(await saveAwards(SEASON, [{ award: 'hasek', playerId: 's1' }], options), { ok: false, reason: 'award-vote-published' });
+    assert.deepEqual(await saveAwards(SEASON, [{ award: 'hasek', playerId: null }], options), { ok: false, reason: 'award-vote-published' });
     assert.deepEqual(tags, []);
     assert.deepEqual(await awardPage('Hasek Trophy'), [[SEASON, 'Goalie g1', 'g1', null]]);
 
     // 2025–26 had no award vote
     assert.equal((await getSeasonAdmin(2026))?.awardVotePublished, false);
-    assert.deepEqual(await saveAwards(2026, [{ award: 'Hasek Trophy', playerId: 's1' }], options), { ok: true, saved: 1 });
+    assert.deepEqual(await saveAwards(2026, [{ award: 'hasek', playerId: 's1' }], options), { ok: true, saved: 1 });
     assert.deepEqual(await awardPage('Hasek Trophy'), [[SEASON, 'Goalie g1', 'g1', null], [2026, 'Archive s1', 's1', 'Old 1']]);
 });
 

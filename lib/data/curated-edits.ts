@@ -6,6 +6,7 @@ import { rows } from './db';
 import pilotTeams from '../coachs-corner/pilot-teams.json';
 import { inRefreshOrder } from './materialized-views';
 import { matchupWinner } from './matchup-winner';
+import { STORED_AWARD_IDS, isStoredAwardId } from '../awards';
 
 // Curated edits: changes an admin or owner makes through the site. Each one checks the edit,
 // writes it in one statement, refreshes the views it affects and expires the pages that show it
@@ -80,8 +81,9 @@ export async function saveRoster(year: number, playerIds: string[], options: Edi
 const awardVotePublished = (year: number) =>
     sql`exists (select 1 from league.award_votes v where v.season_year = ${year} and v.state = 'published')`;
 
-// One winner per picked award; a null player clears that award for the season. Awards not picked are untouched.
-// Refused for a season whose award vote is published (lib/award-vote/publish.ts), by the statement as well.
+// One winner per picked award, each picked by its catalogue ID ('hasek'); a null player clears that award for the
+// season. Awards not picked are untouched. Refused for an ID the catalogue doesn't store winners under (ADR 0009), and
+// for a season whose award vote is published (lib/award-vote/publish.ts), by the statement as well.
 export async function saveAwards(year: number, picks: { award: string; playerId: string | null }[], options: EditOptions = {}):
     Promise<{ ok: true; saved: number } | Rejected<'unknown-season' | 'award-vote-published' | 'unknown-award' | 'unknown-player'>> {
     const [season] = await rows<{ published: boolean }>(sql`select ${awardVotePublished(year)} as published from league.seasons where year = ${year}`);
@@ -90,25 +92,23 @@ export async function saveAwards(year: number, picks: { award: string; playerId:
     // The last pick for an award wins.
     const byAward = new Map(picks.map(pick => [String(pick.award), pick.playerId === null ? null : String(pick.playerId)]));
     if (!byAward.size) return { ok: true, saved: 0 };
-    const names = [...byAward.keys()];
-    const types = await rows<{ id: number; name: string }>(sql`select id, name from league.award_types where name in ${names}`);
-    if (types.length !== names.length) return { ok: false, reason: 'unknown-award' };
+    if (![...byAward.keys()].every(isStoredAwardId)) return { ok: false, reason: 'unknown-award' };
     const winners = [...byAward.values()].filter((id): id is string => id !== null);
     if (!await allPlayedIn(year, [...new Set(winners)])) return { ok: false, reason: 'unknown-player' };
-    const chosen = types.map(type => sql`(${type.id}::int, ${byAward.get(type.name)}::text)`);
+    const chosen = [...byAward].map(([award, playerId]) => sql`(${award}::text, ${playerId}::text)`);
     // Clear other winners of the picked awards, then upsert the new ones: disjoint rows, so order doesn't matter. Both
     // only while the season's award vote isn't published, in case it was published since the check above.
     const [{ allowed }] = await writeAndRefresh<{ allowed: boolean }>('awards', year, sql`
         with allowed as (select where not ${awardVotePublished(year)}),
-             picks (award_type_id, player_id) as (select v.* from (values ${valueRows(chosen)}) as v
-                                                  where exists (select from allowed)),
+             picks (award, player_id) as (select v.* from (values ${valueRows(chosen)}) as v
+                                          where exists (select from allowed)),
              cleared as (delete from league.awards a using picks
-                         where a.season_year = ${year} and a.award_type_id = picks.award_type_id
+                         where a.season_year = ${year} and a.award = picks.award
                            and a.player_id is distinct from picks.player_id),
-             saved as (insert into league.awards (season_year, award_type_id, player_id, team_season_id)
-                       select ${year}::int, picks.award_type_id, picks.player_id, ps.team_season_id
+             saved as (insert into league.awards (season_year, award, player_id, team_season_id)
+                       select ${year}::int, picks.award, picks.player_id, ps.team_season_id
                        from picks join league.player_seasons ps on ps.player_id = picks.player_id and ps.season_year = ${year}
-                       on conflict (season_year, award_type_id, player_id) do update set team_season_id = excluded.team_season_id)
+                       on conflict (season_year, award, player_id) do update set team_season_id = excluded.team_season_id)
         select exists (select from allowed) as allowed`, options, result => result[0].allowed);
     if (!allowed) return { ok: false, reason: 'award-vote-published' };
     return { ok: true, saved: winners.length };
@@ -119,8 +119,8 @@ export interface PublishedWinners {
     /** a statement run as the CTE `gate` that returns a row only when the winners may be written (publishing the vote) */
     gate: SQL;
     /**
-     * a select of every winner as (award_type_id int, player_id text, name text, team_season_id int), co-winners each
-     * their own row, with the team season credited with them or null and the name they go by
+     * a select of every winner as (award text, player_id text, name text, team_season_id int), co-winners each
+     * their own row, under the award's catalogue ID, with the team season credited with them or null and the name they go by
      */
     winners: SQL;
 }
@@ -133,22 +133,28 @@ export interface PublishedWinners {
 // no roster spot at the end of the season) is added as a player under the name given, so publishing never stalls on
 // the archive and every award page shows them; the season sync keeps award players like any other from then on.
 //
+// A winner under an ID the catalogue doesn't store winners under (ADR 0009) is a bug in the vote, so it throws
+// before anything is written or published.
+//
 // Publishing can't be repeated, so if a view refresh fails after the commit, refreshPublishedWinners finishes it.
 export async function savePublishedWinners(year: number, { gate, winners }: PublishedWinners, options: EditOptions = {}):
     Promise<{ published: boolean }> {
+    const unknown = await rows<{ award: string }>(sql`select distinct w.award from (${winners}) w
+                                                      where w.award not in ${STORED_AWARD_IDS} order by 1`);
+    if (unknown.length) throw new Error(`Award vote winners under awards the catalogue doesn't store: ${unknown.map(row => row.award).join(', ')}`);
     const [{ published }] = await writeAndRefresh<{ published: boolean }>('awardVotePublished', year, sql`
         with gate as (${gate}),
-             winners as (select w.award_type_id, w.player_id, w.name, w.team_season_id from (${winners}) w
+             winners as (select w.award, w.player_id, w.name, w.team_season_id from (${winners}) w
                          where exists (select 1 from gate)),
              added as (insert into league.players (id, name)
                        select distinct on (player_id) player_id, name from winners order by player_id
                        on conflict (id) do nothing),
              cleared as (delete from league.awards a
-                         where a.season_year = ${year} and a.award_type_id in (select award_type_id from winners)
-                           and not exists (select 1 from winners w where w.award_type_id = a.award_type_id and w.player_id = a.player_id)),
-             saved as (insert into league.awards (season_year, award_type_id, player_id, team_season_id)
-                       select ${year}::int, award_type_id, player_id, team_season_id from winners
-                       on conflict (season_year, award_type_id, player_id) do update set team_season_id = excluded.team_season_id)
+                         where a.season_year = ${year} and a.award in (select award from winners)
+                           and not exists (select 1 from winners w where w.award = a.award and w.player_id = a.player_id)),
+             saved as (insert into league.awards (season_year, award, player_id, team_season_id)
+                       select ${year}::int, award, player_id, team_season_id from winners
+                       on conflict (season_year, award, player_id) do update set team_season_id = excluded.team_season_id)
         select exists (select 1 from gate) as published`, options, result => result[0].published);
     return { published };
 }

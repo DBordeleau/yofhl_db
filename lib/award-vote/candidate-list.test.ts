@@ -129,7 +129,7 @@ test("each column's best value across the award's whole list leads it, ties all 
 
 test("each of the Danny Briere Award's stat sets has its own leaders", () => {
     const award: BallotAward = {
-        award: 'danny-briere', label: 'Danny Briere Trophy', honor: '', shown: 50,
+        award: 'danny-briere', label: 'Danny Briere Award', honor: '', shown: 50,
         statSets: [{ name: 'playoffRounds', label: 'Playoffs' }, { name: 'final', label: 'Final' }],
         candidates: [
             candidateOf('rounds', { playoffRounds: skaterLine(60, { goals: 6 }), final: skaterLine(10, { goals: 1 }) }),

@@ -8,7 +8,7 @@ import { AnimatePresence, motion, MotionConfig, useReducedMotion } from 'framer-
 import TeamBadge from '@/components/team-badge';
 import SeasonLinks from '@/components/season-links';
 import { TrophyArt } from '@/components/trophy-icons';
-import { getAwardDefinition } from '@/lib/awards';
+import { catalogueAward } from '@/lib/awards';
 import { PLAYER_STATS } from '@/lib/records/player-stats';
 import { ChaseHero, number } from './chases';
 import GoldDust from './gold-dust';
@@ -49,7 +49,7 @@ function RecordStandings({ record, teams, scoped }: { record: RecordList; teams:
     // Ranked values sit close together, so the track starts below the lowest one rather than at zero.
     const floor = max === min ? 0 : Math.max(0, min - (max - min) * .6);
     const people = record.category === 'players' || record.id.startsWith('award-');
-    const trophy = getAwardDefinition(record.id === 'cups' || record.id === 'repeat-cups' ? 'Jagr Cup' : record.id === 'scoring-titles' ? "Prime Minister's Trophy" : record.title);
+    const trophy = record.award && catalogueAward(record.award);
     const gold = record.unit === 'cups' || record.unit === 'trophies' || record.id.startsWith('award-');
     const delay = (index: number) => reducedMotion ? 0 : Math.min(index, 12) * .028;
     return <>

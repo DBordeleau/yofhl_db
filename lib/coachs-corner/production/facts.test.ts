@@ -7,7 +7,7 @@ import type { LeagueConfig } from '../../../scripts/db/lib/league-config';
 const config: LeagueConfig = { franchises: [
     { id: 1, eras: [{ from: 2027, name: 'Home Team', abbreviations: ['HOME'], owner: 'Home Owner' }] },
     { id: 2, eras: [{ from: 2027, name: 'Away Team', abbreviations: ['AWAY'], owner: 'Away Owner' }] },
-], awards: [], seasons: {
+], seasons: {
     2026: { fantrax: { league: 'olderleague', teams: {} } },
     2027: { fantrax: { league: 'liveleague', teams: { h: 1, a: 2 } } },
 }, scoreOverrides: [] };

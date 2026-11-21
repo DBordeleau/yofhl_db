@@ -50,8 +50,7 @@ test("a run keeps the season import's players: scorers of either sign, rostered 
 
     // the league owner puts ring on the season's championship roster and award on an award list
     await league.client.exec(`insert into league.championship_rosters values (${SEASON}, 'ring');
-        insert into league.award_types (id, name, label, description, sort_order) values (1, 'mvp', 'MVP', 'MVP', 1);
-        insert into league.awards (season_year, award_type_id, player_id) values (${SEASON}, 1, 'award')`);
+        insert into league.awards (season_year, award, player_id) values (${SEASON}, 'hasek', 'award')`);
     // a scoring correction leaves v1 and ring scoreless, and everyone but benched is dropped
     setPlayers([['v1', 0, 0, null], ['minus', -1.5, -0.75, null], ['benched', 3, 1.5, 2], ['ring', 0, 0, null], ['award', 0, 0, null]]);
     const { result } = await run(MID_SEASON + 86400_000);

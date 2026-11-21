@@ -46,14 +46,14 @@ test('a clean import returns each season\'s status', async (t) => {
         champion: 'Ashgrove Anglers',
         roster: 3,
         awards: 2,
-        awardsExpected: 2,
+        awardsExpected: 6, // the catalogue's stored awards (lib/awards.ts expectedAwards)
         overrides: 0,
     }]);
 });
 
 test('co-winners of one award count once', async (t) => {
     const legacy = fixtureLegacy();
-    legacy.awards.push({ season: 2026, award: 'Top Gun Award', playerId: '0fx02', player: 'Ben Birch', team: 'Brimley Badgers' });
+    legacy.awards.push({ season: 2026, award: 'Wayne Gretzky Award', playerId: '0fx02', player: 'Ben Birch', team: 'Brimley Badgers' });
     const { statuses } = await importFixture(t, { legacy });
 
     assert.equal(statuses[0].awards, 2);
@@ -74,4 +74,12 @@ test('the season status game count ignores regular-season games', async (t) => {
     const { getSeasonStatuses } = await import('@/lib/admin/data');
 
     assert.equal((await getSeasonStatuses())[0].games, 4);
+});
+
+test('the season status award count ignores rows under an ID the catalogue stores no winners under', async (t) => {
+    const { client } = await importFixture(t, { league: { app: true } });
+    await client.exec(`insert into league.awards (season_year, award, player_id) values (2026, 'jagr-cup', '0fx01'), (2026, 'hart-trophy', '0fx01')`);
+    const { getSeasonStatuses } = await import('@/lib/admin/data');
+
+    assert.equal((await getSeasonStatuses())[0].awards, 2);
 });

@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { STORED_AWARD_IDS, expectedAwards } from '@/lib/awards';
 
 // The season status query: what each season has so far, newest first. The admin season checklist runs it
 // through the web app's driver and the season import runs it through the scripts' driver, so the import's
@@ -14,14 +15,15 @@ export interface SeasonStatus {
     games: number;
     champion: string | null;
     roster: number;
-    /** Distinct awards given, so co-winners count once. */
+    /** Distinct stored awards given, so co-winners count once (a row under any other ID is no award winner). */
     awards: number;
     awardsExpected: number;
     overrides: number;
 }
 
-// the Danny Briere Award (playoff MVP) can't be won in a season without playoffs
-export const PLAYOFF_AWARD = 'Danny Briere Award';
+// The awards a season should have (lib/awards.ts expectedAwards), counted for a season with and without playoffs.
+const EXPECTED_WITH_PLAYOFFS = expectedAwards(true).length;
+const EXPECTED_WITHOUT_PLAYOFFS = expectedAwards(false).length;
 
 export const SEASON_STATUS_QUERY = sql`
     select s.year, s.label, s.playoff_status as "playoffStatus",
@@ -30,9 +32,8 @@ export const SEASON_STATUS_QUERY = sql`
            (select count(*)::int from league.matchups m where m.season_year = s.year and m.stage = 'playoff') as games,
            (select t.name from league.team_seasons t where t.id = r.champion_team_season_id) as champion,
            (select count(*)::int from league.championship_rosters c where c.season_year = s.year) as roster,
-           (select count(distinct a.award_type_id)::int from league.awards a where a.season_year = s.year) as awards,
-           (select count(*)::int from league.award_types at
-             where s.playoff_status = 'complete' or at.name <> ${PLAYOFF_AWARD}) as "awardsExpected",
+           (select count(distinct a.award)::int from league.awards a where a.season_year = s.year and a.award in ${STORED_AWARD_IDS}) as awards,
+           case when s.playoff_status = 'complete' then ${EXPECTED_WITH_PLAYOFFS}::int else ${EXPECTED_WITHOUT_PLAYOFFS}::int end as "awardsExpected",
            (select count(*)::int from league.matchup_overrides o where o.season_year = s.year) as overrides
     from league.seasons s
     left join league.season_results r on r.season_year = s.year

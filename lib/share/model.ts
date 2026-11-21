@@ -1,10 +1,11 @@
 import type { PlayerProfile, FranchiseDetail, BannerSeason, FranchiseCard, LeaderRow, AwardWinner } from '../data/league';
+import type { PlayerHonors } from '../data/award-archive';
 import { seasonLabel, splitPositions, winPercentage } from '../league';
 import { episodeLabel } from '../coachs-corner/episode-label';
 import type { Episode } from '../coachs-corner/episode';
 import type { Lapel } from '../coachs-corner/cast';
 import { playerHref } from '../player-url';
-import { AWARDS, awardHref, getAwardDefinition } from '../awards';
+import { AWARDS, awardHref, findAward } from '../awards';
 import { comparisonChart, type ComparisonChart, type ComparisonPlayer } from '../compare/model';
 import { comparisonHref, teamComparisonHref, type Metric } from '../compare/state';
 import type { RankedPick } from '../draft/hindsight';
@@ -71,17 +72,15 @@ export function archiveSpan(years: number[]) {
 }
 const record = (wins: number, losses: number, ties: number) => ties ? `${wins}–${losses}–${ties}` : `${wins}–${losses}`;
 
-export function playerShareCard(player: PlayerProfile): PlayerShareCard {
+/** a player's share card; `honors` are the player's awards and Jagr Cup rings, the award archive's */
+export function playerShareCard(player: PlayerProfile, honors: PlayerHonors): PlayerShareCard {
     const counts = new Map<string, number>();
-    for (const award of player.awards) {
-        const definition = getAwardDefinition(award.Award);
-        if (definition) counts.set(definition.id, (counts.get(definition.id) ?? 0) + 1);
-    }
+    for (const award of honors.awards) counts.set(award.id, (counts.get(award.id) ?? 0) + 1);
     return { kind: 'player', title: player.name, href: playerHref(player.id),
-        summary: `${player.name}: ${player.totalFPts.toFixed(2)} career fantasy points, ${player.fpg.toFixed(2)} per game, ${player.championships.length} Jagr Cups.`,
+        summary: `${player.name}: ${player.totalFPts.toFixed(2)} career fantasy points, ${player.fpg.toFixed(2)} per game, ${honors.championships.length} Jagr Cups.`,
         name: player.name, rank: player.rank, positions: player.positions,
         team: player.team && { id: player.team.id, name: player.team.name, abbreviation: player.team.abbreviation, logo: player.team.logoUrl },
-        totalFPts: player.totalFPts, fpg: player.fpg, seasons: player.seasons, cups: player.championships.length,
+        totalFPts: player.totalFPts, fpg: player.fpg, seasons: player.seasons, cups: honors.championships.length,
         seasonPoints: [...player.playerStats].sort((a, b) => a.Year - b.Year).map(row => ({ year: row.Year, value: row.FPts, champion: row.Champion })),
         trophies: AWARDS.filter(award => counts.has(award.id)).map(award => ({ name: award.label, image: award.image, count: counts.get(award.id)! })) };
 }
@@ -142,9 +141,6 @@ export function stealShareCard(year: number, steal: RankedPick, number: number, 
         fpts: steal.value, fpg: steal.fpg, totalPicks, rounds };
 }
 
-// Short trophy names for the repeat-win label, e.g. "3rd Gretzky win".
-const SHORT_AWARD: Record<string, string> = { 'jagr-cup': 'Jagr Cup', 'prime-minister': 'PM Trophy', 'wayne-gretzky': 'Gretzky', 'le-magnifique': 'Magnifique',
-    'bobby-orr': 'Orr', hasek: 'Hasek', 'danny-briere': 'Briere', 'teemu-selanne': 'Teemu' };
 export interface ShareAward { id: string | null; name: string; label: string; honor: string; image: string | null }
 export function awardShareCard(award: ShareAward, winner: AwardWinner, winners: AwardWinner[], recipient: 'player' | 'team'): AwardShareCard {
     const same = (other: AwardWinner) => recipient === 'team' ? other.TeamID !== null && other.TeamID === winner.TeamID : other.PlayerID === winner.PlayerID;
@@ -155,7 +151,8 @@ export function awardShareCard(award: ShareAward, winner: AwardWinner, winners: 
         team: winner.Team ? { id: winner.TeamID, name: winner.Team, abbreviation: winner.Team.slice(0, 4).toUpperCase(), logo: winner.TeamLogo ?? null } : null,
         owner: recipient === 'team' ? winner.Owner ?? null : null,
         fpts: winner.FPts ?? null, fpg: winner.FPG ?? null, record: winner.Record ?? null,
-        count, short: (award.id && SHORT_AWARD[award.id]) ?? award.label };
+        // the short name for the repeat-win label, e.g. "3rd Gretzky win"
+        count, short: (award.id && findAward(award.id)?.shortName) || award.label };
 }
 
 /** A Coach's Corner episode, dressed from its compiled Episode so the script parser stays out of this module. */
