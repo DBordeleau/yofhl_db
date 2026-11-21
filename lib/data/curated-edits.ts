@@ -222,6 +222,24 @@ const teamRejection = async (actor: Actor, franchiseId: number): Promise<Rejecte
     return { ok: false, reason: 'stale-version' };
 };
 
+/** Pre-check whether `actor` may edit `franchiseId` at `version` before processing or uploading media. */
+export async function checkTeamEditable(actor: Actor, franchiseId: number, version: number): Promise<TeamRejection | null> {
+    const [team] = await rows<{ defunct: boolean; owner_uid: string | null; version: number | null }>(sql`
+        select f.folded_after_season is not null as defunct, m.owner_uid, m.version
+        from league.franchises f left join league.team_management m on m.franchise_id = f.id
+        where f.id = ${franchiseId}`);
+    if (!team) return 'unknown-team';
+    const admin = actorIsAdmin(actor);
+    if (version === 0) {
+        if (!admin) return 'not-owner';
+        return team.version === null ? null : 'stale-version';
+    }
+    if (!admin && team.owner_uid !== uidOf(actor)) return 'not-owner';
+    if (!admin && team.defunct) return 'defunct';
+    if (team.version !== version) return 'stale-version';
+    return null;
+}
+
 // A franchise's current identity. A missing logo keeps the current one. Version 0 creates the
 // franchise's first managed identity, which only an admin may do. Season identities never change.
 // orphanedLogoUrl is the replaced logo, set only when no team season and no episode's team snapshot

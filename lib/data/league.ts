@@ -1,4 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm';
+import { clampPage, isPositiveInt4, MAX_ID_LENGTH, MAX_LEADERBOARD_PAGE } from './bounds';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import type { SeasonIdentity } from '../team-identity';
@@ -150,6 +151,16 @@ const withoutTotal = <T extends { total: number }>(row: T): Omit<T, 'total'> => 
 const toPosition = (position: string) => (position === 'all' ? null : position.toUpperCase());
 const toSearch = (q: string) => (q.trim() ? `%${q.trim()}%` : null);
 
+class NotFoundError extends Error {}
+
+async function cachedOrNull<T>(load: () => Promise<T>): Promise<T | null> {
+    try { return await load(); }
+    catch (error) {
+        if (error instanceof NotFoundError) return null;
+        throw error;
+    }
+}
+
 export const getBannerSeasons = cached(
     () =>
         rows<BannerSeason>(sql`
@@ -174,7 +185,7 @@ export async function publishedOnly<T>(items: T[] | Promise<T[]>, yearOf: (item:
     return list.filter(item => isPublished(archive, yearOf(item)));
 }
 
-export const getAllTimeLeaderboard = cached(async (position: string, page: number, q: string): Promise<LeaderboardPage> => {
+async function queryAllTimeLeaderboard(position: string, page: number, q: string): Promise<LeaderboardPage> {
     const pos = toPosition(position);
     const search = toSearch(q);
     const data = await rows<LeaderRow & { total: number }>(sql`
@@ -188,9 +199,22 @@ export const getAllTimeLeaderboard = cached(async (position: string, page: numbe
         limit ${PAGE_SIZE} offset ${(page - 1) * PAGE_SIZE}`);
     const total = data[0]?.total ?? 0;
     return { rows: data.map(withoutTotal), page, total, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
-}, 'leaderboard-all-time', [leagueTags.careerLeaderboard]);
+}
 
-export const getSingleSeasonLeaderboard = cached(async (position: string, page: number, q: string, season: number | null = null): Promise<LeaderboardPage> => {
+const getCachedAllTimeLeaderboard = cached(
+    (position: string, page: number) => queryAllTimeLeaderboard(position, page, ''),
+    'leaderboard-all-time',
+    [leagueTags.careerLeaderboard],
+);
+
+export function getAllTimeLeaderboard(position: string, page: number, q: string): Promise<LeaderboardPage> {
+    const pos = position.toLowerCase();
+    const safePage = clampPage(page, MAX_LEADERBOARD_PAGE);
+    if (!q.trim() && safePage <= 25) return getCachedAllTimeLeaderboard(pos, safePage);
+    return queryAllTimeLeaderboard(pos, safePage, q);
+}
+
+async function querySingleSeasonLeaderboard(position: string, page: number, q: string, season: number | null): Promise<LeaderboardPage> {
     const pos = toPosition(position);
     const search = toSearch(q);
     const data = await rows<LeaderRow & { awards: number; total: number }>(sql`
@@ -217,12 +241,28 @@ export const getSingleSeasonLeaderboard = cached(async (position: string, page: 
         total,
         pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
     };
-}, 'leaderboard-single-season', (_position, _page, _q, season = null) => [season === null ? leagueTags.seasonLeaderboard : leagueTags.season(season)]);
+}
 
-export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null> => {
+const getCachedSingleSeasonLeaderboard = cached(
+    (position: string, page: number, season: number | null = null) => querySingleSeasonLeaderboard(position, page, '', season),
+    'leaderboard-single-season',
+    (_position, _page, season = null) => [season === null ? leagueTags.seasonLeaderboard : leagueTags.season(season)],
+);
+
+export function getSingleSeasonLeaderboard(position: string, page: number, q: string, season: number | null = null): Promise<LeaderboardPage> {
+    const pos = position.toLowerCase();
+    const safePage = clampPage(page, MAX_LEADERBOARD_PAGE);
+    if (season !== null && (!Number.isInteger(season) || season < 1900 || season > 2200)) {
+        return Promise.resolve({ rows: [], page: safePage, total: 0, pages: 1 });
+    }
+    if (!q.trim() && safePage <= 25) return getCachedSingleSeasonLeaderboard(pos, safePage, season);
+    return querySingleSeasonLeaderboard(pos, safePage, q, season);
+}
+
+const getCachedPlayer = cached(async (id: string): Promise<PlayerProfile> => {
     const [player] = await rows<{ id: string; name: string }>(sql`
         select id, name from league.players where id = ${id}`);
-    if (!player) return null;
+    if (!player) throw new NotFoundError();
 
     const [career, playerStats] = await Promise.all([
         rows<{ rank: number; total: number; fpg: number; seasons: number; positions: string[]; team_id: number | null; team_name: string | null; team_logo: string | null; team_abbreviation: string | null }>(sql`
@@ -260,6 +300,11 @@ export const getPlayer = cached(async (id: string): Promise<PlayerProfile | null
     };
 }, 'player-v2', [leagueTags.players]);
 
+export async function getPlayer(id: string): Promise<PlayerProfile | null> {
+    if (!id || id.length > MAX_ID_LENGTH) return null;
+    return cachedOrNull(() => getCachedPlayer(id));
+}
+
 // most-viewed profiles are built ahead of time; everyone else is built on first visit
 export const getTopPlayerIds = cached(
     (limit: number) => rows<{ id: string }>(sql`select player_id as id from league.player_careers order by all_time_rank limit ${limit}`),
@@ -273,7 +318,7 @@ export const getArchivedPlayerIds = cached(
     [leagueTags.players],
 );
 
-export const getChampionRoster = cached(async (year: number): Promise<ChampionRoster | null> => {
+const getCachedChampionRoster = cached(async (year: number): Promise<ChampionRoster> => {
     const [season] = await rows<Omit<ChampionRoster, 'rows'>>(sql`
         select s.year, st.name as team, st.abbreviation, st.logo, o.name as owner
         from league.seasons s
@@ -282,7 +327,7 @@ export const getChampionRoster = cached(async (year: number): Promise<ChampionRo
         join league.team_seasons t on t.id = st.team_season_id
         left join league.owners o on o.id = t.owner_id
         where s.year = ${year}`);
-    if (!season) return null;
+    if (!season) throw new NotFoundError();
     const roster = await rows<LeaderRow>(sql`
         select p.id as "ID", p.name as "Player", coalesce(array_to_string(ps.positions, ', '), '') as "Position",
                coalesce(ps.fpts, 0)::float8 as "FPts", coalesce(ps.fpg, 0)::float8 as "FPG"
@@ -293,6 +338,11 @@ export const getChampionRoster = cached(async (year: number): Promise<ChampionRo
         order by ps.fpts desc nulls last, p.name`);
     return { ...season, rows: roster };
 }, 'champion-roster', year => [leagueTags.season(year)]);
+
+export async function getChampionRoster(year: number): Promise<ChampionRoster | null> {
+    if (!Number.isInteger(year) || year < 1900 || year > 2200) return null;
+    return cachedOrNull(() => getCachedChampionRoster(year));
+}
 
 export const getFranchiseCards = cached(
     () =>
@@ -309,7 +359,7 @@ export const getFranchiseCards = cached(
     [leagueTags.franchiseCards],
 );
 
-const getFranchiseRows = cached(async (id: number): Promise<FranchiseDetail | null> => {
+const getFranchiseRows = cached(async (id: number): Promise<FranchiseDetail> => {
     const [franchise] = await rows<Omit<FranchiseDetail, 'leaders' | 'seasons'>>(sql`
         select c.id, c.name, c.abbreviation, c.logo,
                o.name as owner, f.first_season as "firstSeason", f.folded_after_season as "foldedAfterSeason",
@@ -322,7 +372,7 @@ const getFranchiseRows = cached(async (id: number): Promise<FranchiseDetail | nu
         left join league.team_seasons t on t.id = c.latest_team_season_id
         left join league.owners o on o.id = t.owner_id
         where c.id = ${id}`);
-    if (!franchise) return null;
+    if (!franchise) throw new NotFoundError();
     const [leaders, seasons] = await Promise.all([rows<LeaderRow>(sql`
         with stints as (
             select ps.player_id, ps.season_year, ps.fpts, ps.fpg, ps.positions
@@ -362,7 +412,8 @@ const getFranchiseRows = cached(async (id: number): Promise<FranchiseDetail | nu
 
 /** A franchise with its seasons. A season still being played is 'pending': it has a record but no playoff result yet. */
 export async function getFranchise(id: number): Promise<FranchiseDetail | null> {
-    const [franchise, archive] = await Promise.all([getFranchiseRows(id), getSeasonArchive()]);
+    if (!isPositiveInt4(id)) return null;
+    const [franchise, archive] = await Promise.all([cachedOrNull(() => getFranchiseRows(id)), getSeasonArchive()]);
     return franchise && { ...franchise, seasons: franchise.seasons.map(season =>
         isPublished(archive, season.year) ? season : { ...season, playoffStatus: 'pending' as const }) };
 }
@@ -382,16 +433,15 @@ export const teamSeasonWinnerRows = (criterion: SQL) => rows<AwardWinner>(sql`
     where ${criterion}
     order by t.season_year desc, st.name`);
 
-export const searchPlayers = cached(
-    (q: string) =>
-        q.trim().length < 3
-            ? Promise.resolve([] as { ID: string; Player: string }[])
-            : rows<{ ID: string; Player: string }>(sql`
-                select player_id as "ID", name as "Player" from league.player_careers
-                where name ilike ${`%${q.trim()}%`}
-                order by all_time_rank limit 10`),
-    'player-search',
-);
+export function searchPlayers(q: string) {
+    const term = q.trim().slice(0, 60);
+    return term.length < 3
+        ? Promise.resolve([] as { ID: string; Player: string }[])
+        : rows<{ ID: string; Player: string }>(sql`
+            select player_id as "ID", name as "Player" from league.player_careers
+            where name ilike ${`%${term}%`}
+            order by all_time_rank limit 10`);
+}
 
 export interface StandingRow extends SeasonIdentity {
     teamSeasonId: number;

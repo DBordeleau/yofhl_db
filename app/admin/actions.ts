@@ -2,9 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { checkCredentials, endSession, requireAdmin, startSession } from '@/lib/admin/auth';
+import {
+    attemptAdminLogin, endSession, requireAdmin,
+} from '@/lib/admin/auth';
 import { searchSeasonPlayers } from '@/lib/admin/data';
 import * as curated from '@/lib/data/curated-edits';
+import { requireSameOrigin } from '@/lib/owner/same-origin';
 
 const messages = {
     'unknown-season': "That season isn't in the database.",
@@ -24,19 +27,17 @@ const refreshingAdmin = async <T>(save: Promise<T>) => {
 };
 
 export async function login(formData: FormData): Promise<{ error: string } | void> {
-    const username = String(formData.get('username') ?? '');
-    const password = String(formData.get('password') ?? '');
-    const next = String(formData.get('next') ?? '/admin');
-    if (!checkCredentials(username, password)) {
-        // slow down guessing
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        return { error: 'That username and password combination is incorrect.' };
-    }
-    await startSession();
-    redirect(next.startsWith('/admin') ? next : '/admin');
+    const result = await attemptAdminLogin({
+        username: String(formData.get('username') ?? ''),
+        password: String(formData.get('password') ?? ''),
+        next: String(formData.get('next') ?? '/admin'),
+    });
+    if (!result.ok) return { error: result.error };
+    redirect(result.redirectTo);
 }
 
 export async function logout() {
+    await requireSameOrigin();
     await endSession();
     redirect('/admin');
 }
