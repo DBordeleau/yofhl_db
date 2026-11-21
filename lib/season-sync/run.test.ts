@@ -151,3 +151,56 @@ test("seven days after the season's last week ends, a run writes nothing and rec
     const status = (await getSeasonSyncStatus(SEASON))!;
     assert.deepEqual([status.lastError, status.lastRunAt], [null, new Date(FREEZES_AT + 3600_000).toISOString()]);
 });
+
+test('a season whose last run failed catches up past the freeze timestamp, clears lastError, and then freezes', async t => {
+    const { fantrax, run, read, setStandings } = await seasonSyncLeague(t);
+    const { getSeasonDetail } = await import('@/lib/data/league');
+    const { getSeasonSyncStatus } = await import('@/lib/admin/data');
+    const wins = async () => (await read(() => getSeasonDetail(SEASON))).standings.map(row => [row.franchiseId, row.wins]);
+    setStandings([...STANDINGS]);
+    assert.equal((await run(MID_SEASON)).result.outcome, 'synced');
+
+    // Final sync inside the correction window fails and leaves stale standings + lastError
+    setStandings(STANDINGS.map(([team, rank, w, l, tie, pf, pa]): StandingRow => [team, rank, w + 1, l, tie, pf, pa]));
+    fantrax.down.add('standings');
+    const failed = await run(FREEZES_AT - 3600_000);
+    assert.equal(failed.result.outcome, 'failed');
+    assert.ok((await getSeasonSyncStatus(SEASON))!.lastError);
+
+    // Once past FREEZES_AT, it catches up first, clears lastError, records frozenAt, and subsequent runs return frozen
+    fantrax.down.delete('standings');
+    const caughtUp = await run(FREEZES_AT + 3600_000);
+    assert.equal(caughtUp.result.outcome, 'synced');
+    assert.deepEqual(await wins(), [[3, 5], [1, 4], [4, 2], [2, 1]]);
+    const status = (await getSeasonSyncStatus(SEASON))!;
+    assert.equal(status.lastError, null);
+    assert.equal(status.frozenAt, new Date(FREEZES_AT + 3600_000).toISOString());
+
+    fantrax.down.add('leagueInfo').add('standings');
+    assert.deepEqual((await run(FREEZES_AT + 86400_000)).result, {
+        outcome: 'frozen', seasonYear: SEASON, frozenAt: new Date(FREEZES_AT + 3600_000).toISOString(),
+    });
+});
+
+test('a never-synced season does not freeze while Fantrax fails after FREEZES_AT; it syncs and freezes once recovered', async t => {
+    const { fantrax, run, read, setStandings } = await seasonSyncLeague(t);
+    const { getSeasonDetail } = await import('@/lib/data/league');
+    const { getSeasonSyncStatus } = await import('@/lib/admin/data');
+    fantrax.down.add('standings');
+    const failed = await run(FREEZES_AT + 3600_000);
+    assert.equal(failed.result.outcome, 'failed');
+    assert.equal((await getSeasonSyncStatus(SEASON))!.frozenAt, null);
+
+    fantrax.down.delete('standings');
+    setStandings([...STANDINGS]);
+    const caughtUp = await run(FREEZES_AT + 2 * 3600_000);
+    assert.equal(caughtUp.result.outcome, 'synced');
+    assert.deepEqual((await read(() => getSeasonDetail(SEASON))).standings.map(row => [row.franchiseId, row.wins]),
+        [[3, 4], [1, 3], [4, 1], [2, 0]]);
+    const status = (await getSeasonSyncStatus(SEASON))!;
+    assert.equal(status.lastError, null);
+    assert.equal(status.frozenAt, new Date(FREEZES_AT + 2 * 3600_000).toISOString());
+    assert.deepEqual((await run(FREEZES_AT + 3 * 3600_000)).result, {
+        outcome: 'frozen', seasonYear: SEASON, frozenAt: new Date(FREEZES_AT + 2 * 3600_000).toISOString(),
+    });
+});

@@ -21,6 +21,7 @@ import { PLAYER_AWARD_IDS, type AwardVoteState } from './model';
 import { rankedPlayerName } from './ballot-snapshot';
 import type { AwardVotePorts } from './ports';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
+import { lockAwardVote } from './tally';
 import { awardDefinition } from './voted-awards';
 
 export interface PublishInput {
@@ -51,7 +52,8 @@ const placeOne = (seasonYear: number) => sql`(
     where t.season_year = ${seasonYear} and t.place = 1) as winner`;
 
 /** whether the season's award vote has any tally line */
-const anyTally = (seasonYear: number) => sql`exists (select 1 from league.award_vote_tallies t where t.season_year = ${seasonYear})`;
+const anyTally = (seasonYear: number) => sql`(exists (select 1 from league.award_vote_tallies t where t.season_year = ${seasonYear})
+    or exists (select 1 from league.award_vote_team_tallies t where t.season_year = ${seasonYear}))`;
 
 export function createPublish({ db }: AwardVotePorts) {
     async function refusal(seasonYear: number): Promise<Exclude<PublishResult, { ok: true }> | null> {
@@ -70,6 +72,7 @@ export function createPublish({ db }: AwardVotePorts) {
         if (refused) return refused;
 
         const { published } = await savePublishedWinners(seasonYear, {
+            before: [lockAwardVote(seasonYear)],
             gate: sql`update league.award_votes set state = 'published', published_at = clock_timestamp(), updated_at = now()
                       where season_year = ${seasonYear} and state = 'scored' and not rehearsal and ${anyTally(seasonYear)}
                         and not exists (select 1 from ${placeOne(seasonYear)} where winner.award_type_id is null)

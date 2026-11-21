@@ -3,7 +3,7 @@
 // (it borrows only the client's player name helper). Callers use the production binding in live-season.ts.
 import { roundName } from '../league';
 import { PLAYOFF_FORMAT } from './config';
-import { playerName } from './fantrax-client';
+import { endingAtItsLastSecond, playerName } from './fantrax-client';
 import {
     liveFantraxLeagueId, type FantraxTeamRow, type LiveSeasonSource, type RosterStats, type ScheduledMatchup,
     type SourceCore, type SourceWeek, type WeekScores,
@@ -195,16 +195,17 @@ export function createLiveSeason(source: LiveSeasonSource, options: { now?: () =
         const rounds = playoffRounds(core);
         const final = new Set([...automaticFinalWeeks(core, now), ...manual]);
         return [...core.weeks].sort((a, b) => a.number - b.number).map(week => {
-            const round = rounds.round.get(week.number) ?? null;
+            const normalized = endingAtItsLastSecond(week);
+            const round = rounds.round.get(normalized.number) ?? null;
             const roundTitle = round === null ? null : roundName(round, rounds.count);
-            const phase = now < Date.parse(week.startDate) ? 'upcoming'
-                : final.has(week.number) || now > Date.parse(week.endDate) ? 'final' : 'active';
+            const phase = now < Date.parse(normalized.startDate) ? 'upcoming'
+                : final.has(normalized.number) || now > Date.parse(normalized.endDate) ? 'final' : 'active';
             return {
-                number: week.number, startDate: week.startDate, endDate: week.endDate,
-                name: roundTitle ?? `Week ${week.number}`,
-                fullName: roundTitle ? `Jagr Cup Playoff ${roundTitle}` : `Week ${week.number}`,
-                stage: round === null ? 'regular' : 'playoff', round, phase, manualFinal: manual.includes(week.number),
-                matchups: core.schedule.find(round => round.week === week.number)?.matchups ?? [],
+                number: normalized.number, startDate: normalized.startDate, endDate: normalized.endDate,
+                name: roundTitle ?? `Week ${normalized.number}`,
+                fullName: roundTitle ? `Jagr Cup Playoff ${roundTitle}` : `Week ${normalized.number}`,
+                stage: round === null ? 'regular' : 'playoff', round, phase, manualFinal: manual.includes(normalized.number),
+                matchups: core.schedule.find(round => round.week === normalized.number)?.matchups ?? [],
             };
         });
     }

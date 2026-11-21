@@ -2,7 +2,7 @@
 // season's caches and saved snapshot, regular-season week scores included. The playoff bracket instead comes from
 // the live season module, so it follows the evening refresh's snapshot of Fantrax's schedule, final weeks and
 // scores; a run fails while that snapshot is more than 36 hours old.
-import { createFantraxClient, playerName, toWeekScores } from '@/lib/fantrax/fantrax-client';
+import { createFantraxClient, directoryPlayer, toWeekScores } from '@/lib/fantrax/fantrax-client';
 import { getLiveSeason, getWeekScores } from '@/lib/fantrax/live-season';
 import { createSeasonSync } from './create-season-sync';
 
@@ -16,7 +16,7 @@ export const seasonSync = createSeasonSync({
         skaters: (leagueId, seasonYear) => client.skaterTable(leagueId, seasonYear),
         dayRosters: (leagueId, rosterPeriod) => client.dayRosters(leagueId, rosterPeriod),
         playerDirectory: async () => Object.fromEntries(Object.entries(await client.playerDirectory()).map(([id, player]) =>
-            [id, { name: playerName(player.name), positions: [player.position], nhlTeam: player.team ?? null }])),
+            [id, directoryPlayer(player)])),
         weekScores: async (leagueId, week) => toWeekScores(await client.weekScores(leagueId, week)),
     },
     liveSeason: { getLiveSeason, getWeekScores },

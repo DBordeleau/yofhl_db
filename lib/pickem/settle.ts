@@ -2,7 +2,7 @@
 // It records every Pick'em week of the live season whose lock has passed and that is not yet recorded, then freezes
 // (results and scores) every recorded week that is a final week whose correction window has closed and that is not yet frozen
 // (a week with a pairing Fantrax has no score for waits for a later run), and
-// marks the season's Pick'em complete once its last regular-season week is frozen. Each week is one statement that is safe to repeat (ADR 0002), so running twice changes nothing and a missed evening is
+// marks the season's Pick'em complete once every Pick'em week of the season is recorded and frozen. Each week is one statement that is safe to repeat (ADR 0002), so running twice changes nothing and a missed evening is
 // caught up by the next run.
 import { revalidateTag } from 'next/cache';
 import { rows } from '@/lib/data/db';
@@ -70,9 +70,14 @@ export function createSettle(ports: PickemPorts) {
         }
 
         const completed: number[] = [];
-        const last = live.weeks.at(-1);
-        if (last && (known.find(item => item.week === last.week)?.frozen || frozen.some(item => item.week === last.week))) {
-            const [row] = await rows<{ completed: number }>(completeSeasonQuery(seasonYear, last.week));
+        const knownByWeek = new Map(known.map(item => [item.week, item]));
+        const frozenWeeks = new Set(frozen.map(item => item.week));
+        const allSettled = live.weeks.length > 0 && held.length === 0 && live.weeks.every(week => {
+            const item = knownByWeek.get(week.week);
+            return item !== undefined && (!item.pairings.length || item.frozen || frozenWeeks.has(week.week));
+        });
+        if (allSettled) {
+            const [row] = await rows<{ completed: number }>(completeSeasonQuery(seasonYear, live.weeks.map(week => week.week)));
             if (row?.completed) completed.push(seasonYear);
         }
         if (recorded.length || frozen.length || completed.length) revalidateTag(pickemSeasonTag(seasonYear));

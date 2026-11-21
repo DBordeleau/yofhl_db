@@ -4,7 +4,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { disposableLeague } from '../testing/disposable-league';
-import { FANTRAX_CURRENT_TAG } from './cache-policy';
+import { LEAGUE_TAG } from '../data/cache-tags';
+import { FANTRAX_CURRENT_TAG, FANTRAX_TAG } from './cache-policy';
 import type { SavedLiveSeason } from './fantrax-client';
 import type { LiveSeason } from './live-season';
 
@@ -239,4 +240,35 @@ test('a refresh and a final week keep the saved snapshot and final weeks rows in
     const finals = await league.client.query<{ league_id: string; season_year: number; period: number }>('select * from league.fantrax_final_weeks');
     assert.deepEqual(finals.fields.map(field => field.name), ['league_id', 'season_year', 'period', 'marked_at']);
     assert.deepEqual(finals.rows.map(({ league_id, season_year, period }) => ({ league_id, season_year, period })), [{ league_id: LEAGUE, season_year: 2027, period: 1 }]);
+});
+
+test('POST /api/revalidate?external=1 invalidates LEAGUE_TAG before refreshing Fantrax, and still invalidates it if Fantrax fails', async t => {
+    let down = false;
+    const baseFetch = fantrax(() => false);
+    const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: async (input, options) => {
+        if (down) return new Response('Fantrax down', { status: 503 });
+        return baseFetch(input, options);
+    } });
+    t.mock.method(Date, 'now', () => Date.parse('2026-10-18T22:00:00Z'));
+    t.mock.method(console, 'error', () => {});
+    const previousSecret = process.env.REVALIDATE_SECRET;
+    process.env.REVALIDATE_SECRET = 'test-revalidate-secret';
+    t.after(() => {
+        if (previousSecret === undefined) delete process.env.REVALIDATE_SECRET;
+        else process.env.REVALIDATE_SECRET = previousSecret;
+    });
+
+    const { POST } = await import('@/app/api/revalidate/route');
+    const request = () => new Request('http://localhost/api/revalidate?external=1', {
+        method: 'POST', headers: { authorization: 'Bearer test-revalidate-secret' },
+    });
+
+    const okRun = await league.runAsRoute('/api/revalidate', () => POST(request()));
+    assert.equal(okRun.result.status, 200);
+    assert.deepEqual(okRun.revalidatedTags, [LEAGUE_TAG, FANTRAX_CURRENT_TAG, FANTRAX_TAG]);
+
+    down = true;
+    const failedRun = await league.runAsRoute('/api/revalidate', () => POST(request()));
+    assert.equal(failedRun.result.status, 503);
+    assert.deepEqual(failedRun.revalidatedTags, [LEAGUE_TAG]);
 });
