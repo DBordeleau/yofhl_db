@@ -98,6 +98,12 @@ export interface Script {
 }
 
 export const DEFAULT_PACE = 198;
+const MIN_WPM = 40;
+const MAX_WPM = 500;
+const parseWpm = (raw: string): number | null => {
+    const n = Number(raw);
+    return Number.isInteger(n) && n >= MIN_WPM && n <= MAX_WPM ? n : null;
+};
 const NAMED_PAUSES: Record<string, number> = { beat: 450, pause: 1000, 'long pause': 2400 };
 
 /** one example per effect at its default length, taking turns between the hosts */
@@ -136,6 +142,9 @@ export const smarten = (text: string) =>
         .replace(/(^|[\s([{—])'(?=\w)/g, '$1‘')
         .replace(/'/g, '’');
 
+/** straight apostrophes and trimmed whitespace so player refs match archive and NHL lookups */
+export const normalizePlayerName = (name: string) => name.replace(/[\u2018\u2019]/g, "'").trim();
+
 // ---------- tokenising helpers ----------
 
 /** splits on whitespace, keeping "quoted strings" (straight or curly) together; quoted tokens are marked */
@@ -169,7 +178,7 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
     const featured = type === 'stat' || type === 'numbers' ? rest.match(/(?:^|\s)with\s+(?:"([^"]+)"|“([^”]+)”)(?:\s+(#\S*))?/i) : null;
     if (featured) {
         if (featured[3] && !fantraxId(featured[3])) return { error: ID_ERROR, teams: [] };
-        player = playerRef(smarten(featured[1] ?? featured[2]), featured[3] && fantraxId(featured[3]));
+        player = playerRef(normalizePlayerName(featured[1] ?? featured[2]), featured[3] && fantraxId(featured[3]));
         rest = (rest.slice(0, featured.index) + ' ' + rest.slice(featured.index! + featured[0].length)).trim();
     }
     const tokens = tokenize(rest);
@@ -178,8 +187,8 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
     const unnamed: string[] = [];
     let badId = false;
     if (type === 'player' || type === 'gap' || type === 'wire') tokens.forEach((t, i) => {
-        // wire names stay as typed: the archive and NHL lookups compare apostrophes literally (O'Reilly)
-        if (t.quoted) named.push({ name: type === 'wire' ? t.value.trim() : smarten(t.value) });
+        // player names keep straight apostrophes: the archive and NHL lookups compare them literally (O'Reilly)
+        if (t.quoted) named.push({ name: normalizePlayerName(t.value) });
         else if (t.value.startsWith('#') && tokens[i - 1]?.quoted) {
             const id = fantraxId(t.value);
             if (id) named[named.length - 1] = playerRef(named[named.length - 1].name, id); else badId = true;
@@ -271,7 +280,7 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
             if (!named[0]) return { error: 'Name the player in quotes, like >> player "Tom Wilson" Lali hearts "76th overall".', teams };
             const mood = unnamed.some(t => t.toLowerCase() === 'hearts') ? 'hearts' as const : undefined;
             const ref = unnamed.find(t => t.toLowerCase() !== 'hearts');
-            return { graphic: { type, player: named[0], team: ref ? team(ref) : undefined, caption: named[1]?.name, mood }, teams };
+            return { graphic: { type, player: named[0], team: ref ? team(ref) : undefined, caption: named[1] ? smarten(named[1].name) : undefined, mood }, teams };
         }
         case 'gap': {
             if (named.length < 2) return { error: 'A gap compares players by last season’s FPts, like >> gap "Tom Wilson" "William Nylander".', teams };
@@ -282,7 +291,7 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
             const usage = 'A split shows one player’s number for two teams, like >> split "Alexis Lafreniere" "FP/G" Lali 3.00 "2020–25", JAGR 5.11 "This season".';
             const parts = tokens.map(t => (t.quoted ? t : { ...t, value: t.value.replace(/,+$/, '') })).filter(t => t.quoted || t.value);
             if (!parts[0]?.quoted) return { error: usage, teams };
-            let who = playerRef(smarten(parts[0].value), undefined);
+            let who = playerRef(normalizePlayerName(parts[0].value), undefined);
             let i = 1;
             if (parts[1] && !parts[1].quoted && parts[1].value.startsWith('#')) {
                 const id = fantraxId(parts[1].value);
@@ -461,8 +470,13 @@ const parseStyleWords = (raw: string, who: CharacterId, report: CueContext['repo
         const delivery = resolveDelivery(w);
         if (delivery) { style.delivery = delivery; continue; }
         if (w in SPEEDS) { style.speed = SPEEDS[w]; continue; }
-        const wpm = w.match(/^(\d{2,3})(wpm)?$/);
-        if (wpm) { style.wpm = Number(wpm[1]); continue; }
+        const wpm = w.match(/^(\d+)(wpm)?$/);
+        if (wpm) {
+            const n = parseWpm(wpm[1]);
+            if (n !== null) style.wpm = n;
+            else report('error', `Speaking speed must be ${MIN_WPM}–${MAX_WPM} wpm, like 180wpm.`);
+            continue;
+        }
         const gesture = resolveGesture(who, w);
         if (gesture) { style.gesture = gesture; continue; }
         report('error', `“${words[i]}” isn’t a gesture, delivery or speed for ${CAST[who].name}.`);
@@ -587,7 +601,11 @@ export function parseScript(source: string): Script {
                 else if (key === 'stats') { if (/^\d{4}$/.test(value)) stats = { season: Number(value), line: n + 1 }; else report('error', 'stats is the year an earlier season ends in, like 2025.'); }
                 else if (key === 'date') { if (/^\d{4}-\d{2}-\d{2}$/.test(value)) meta.date = value; else report('error', 'date looks like 2026-10-14.'); }
                 else if (key === 'segment') { const ms = parseClock(value); if (ms) meta.segment = ms; else report('error', 'segment is a length like 3:30.'); }
-                else if (key === 'pace') { if (/^\d{2,3}$/.test(value)) meta.pace = Number(value); else report('error', 'pace is words per minute, like 180.'); }
+                else if (key === 'pace') {
+                    const n = /^\d{2,3}$/.test(value) ? parseWpm(value) : null;
+                    if (n !== null) meta.pace = n;
+                    else report('error', `pace is words per minute (${MIN_WPM}–${MAX_WPM}), like 180.`);
+                }
                 else if (key === 'lapel') { if ((LAPELS as readonly string[]).includes(value)) meta.lapel = value as Lapel; else report('error', `lapel is one of: ${LAPELS.join(', ')}.`); }
                 else report('warning', `“${m[1]}” isn’t a front matter key; it’s ignored.`);
             }
@@ -692,7 +710,7 @@ export const graphicPlayers = (graphic: Graphic): PlayerRef[] => {
 };
 
 /** the same player cited twice: names compare loosely, ids exactly */
-export const refKey = (ref: PlayerRef) => `${ref.name.trim().toLowerCase()}#${ref.id ?? ''}`;
+export const refKey = (ref: PlayerRef) => `${normalizePlayerName(ref.name).toLowerCase()}#${ref.id ?? ''}`;
 
 /** players named by graphics, first citation first, for looking up headshots and stats */
 export const playerRefs = (script: Script): PlayerRef[] => {

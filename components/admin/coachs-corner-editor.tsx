@@ -3,6 +3,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createShowAudio } from '@/components/coachs-corner/audio';
 import Player from '@/components/coachs-corner/player';
 import { archivoItalic } from '@/components/coachs-corner/fonts';
 import { deleteEpisode, lookupPlayers, saveEpisode, unpublishEpisode } from '@/app/admin/coachs-corner/actions';
@@ -57,6 +58,8 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
     const [pending, startTransition] = useTransition();
     const [cue, setCue] = useState<{ t: number; n: number }>();
     const [playingLine, setPlayingLine] = useState<number | null>(null);
+    const [audio] = useState(() => createShowAudio());
+    const [audioError, setAudioError] = useState('');
     const area = useRef<HTMLTextAreaElement>(null);
     const gutter = useRef<HTMLDivElement>(null);
     const deferred = useDeferredValue(text);
@@ -109,6 +112,10 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
         const el = area.current;
         const cursorLine = el ? el.value.slice(0, el.selectionStart).split('\n').length : 1;
         const line = tl.lines.find(l => l.sourceLine >= cursorLine) ?? tl.lines[tl.lines.length - 1];
+        if (audio.unlock()) {
+            setAudioError('');
+            void audio.prepare().catch(() => setAudioError('An audio file could not be loaded.'));
+        } else setAudioError('Audio is unavailable in this browser.');
         setCue(c => ({ t: line ? line.t0 : INTRO_MS, n: (c?.n ?? 0) + 1 }));
     };
 
@@ -216,13 +223,14 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
 
             <aside className={`min-w-0 xl:sticky xl:top-4 ${archivoItalic.variable}`}>
                 <div className="rounded-2xl bg-[#070b18] p-2">
-                    <Player episode={compiled} teams={teams} players={players} banners={banners} keys="focus" cue={cue} onLine={onLine} />
+                    <Player episode={compiled} teams={teams} players={players} banners={banners} keys="focus" cue={cue} onLine={onLine} audio={audio} />
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
                     <button type="button" onClick={previewFromCursor} className="min-h-11 rounded-xl bg-ink px-4 font-bold text-white hover:bg-[#232C4A]">Preview from cursor</button>
                     <span className="text-ink-muted">Ctrl+Enter in the script does the same. Ctrl+S saves drafts.</span>
                     {episode.publishedAt && <Link href={`/coachs-corner/${episode.slug}`} className="ml-auto font-bold text-rink-blue hover:text-ink">View live</Link>}
                 </div>
+                {audioError && <p role="status" className="mt-2 text-sm text-rink-red">{audioError}</p>}
 
                 <details className="mt-4 rounded-2xl border border-line bg-white p-4" open>
                     <summary className="cursor-pointer text-sm font-bold">Script reference</summary>

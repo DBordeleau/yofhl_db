@@ -179,14 +179,14 @@ async function run() {
 
     const effects = await render('effects', only(Object.keys(CURRENT_SOUND_BANK).filter(id => !['don', 'ron', 'room'].includes(id))), null);
     report.effects = cues.filter(cue => !cue.voice).map(cue => ({ id: cue.id, at: cue.t / 1000,
-        ...measure(effects, cue.t / 1000, (cue.t + (cue.duration ?? 400)) / 1000) }));
+        ...measure(effects, cue.t / 1000, (cue.t + (cue.followsShow?.duration ?? 400)) / 1000) }));
     assert(report.effects.every(effect => effect.peakDb > -70), 'An effect failed to sound');
     report.checks.effects = report.effects.length;
-    const happyCues = cues.filter(cue => cue.id === 'happy-twinkle' && cue.duration);
+    const happyCues = cues.filter(cue => cue.id === 'happy-twinkle' && cue.followsShow?.duration);
     if (happyCues.length) {
         const twinkles = await render('happy-twinkle', only(['happy-twinkle']), null);
         report.happyReactions = happyCues.map(cue => {
-            const from = cue.t / 1000, to = (cue.t + cue.duration) / 1000;
+            const from = cue.t / 1000, to = (cue.t + cue.followsShow.duration) / 1000;
             const sound = measure(twinkles, from, to), dialogue = measure(voices, from, to);
             return { from, to, ...sound, belowDialogueDb: dialogue.rmsDb - sound.rmsDb };
         });
