@@ -12,7 +12,8 @@ import TeamBranding from '@/components/team-branding/team-branding';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import { awardHref } from '@/lib/awards';
 import { getFranchise, getFranchiseCards } from '@/lib/data/league';
-import { getFranchiseDraft, getFranchiseHonors, getHistory, getHistorySeasons } from '@/lib/data/history';
+import { getFranchiseDraft, getHistory, getHistorySeasons } from '@/lib/data/history';
+import { franchiseHonors } from '@/lib/data/award-archive';
 import { formatFpts, seasonLabel, winPercentage } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import ExploreNext from '@/components/explore-next';
@@ -35,7 +36,7 @@ export default async function TeamPage({ params }: { params: Promise<{ ID: strin
     if (!team) notFound();
     const scope = { franchiseId: id };
     const [honors, draft, transactions, historySeasons, archive] = await Promise.all([
-        getFranchiseHonors(id), getFranchiseDraft(id), getHistory(scope, 'trade'), getHistorySeasons(scope), getSeasonArchive(),
+        franchiseHonors(id), getFranchiseDraft(id), getHistory(scope, 'trade'), getHistorySeasons(scope), getSeasonArchive(),
     ]);
     const recentCup = honors.cups[0];
     const recentSeason = team.seasons.filter(season => isPublished(archive, season.year)).sort((a, b) => b.year - a.year)[0];

@@ -70,23 +70,32 @@ test("the Prime Minister's Trophy goes to the team season no other franchise mat
     assert.deepEqual((await winners('prime-minister')).map(w => [w.Year, w.TeamID, w.FPts]), [[2026, 2, 9000], [2024, 2, 1500]]);
 });
 
-test('the award API returns the same winners as the archive for the Jagr Cup and the Prime Minister’s Trophy', async t => {
+test('the award API lists the listed awards and returns the same winners as the archive for each, and no award that isn’t listed', async t => {
     const { league, archive } = await archiveLeague(t);
+    const { GET: list } = await import('@/app/api/awards/route');
     const { GET } = await import('@/app/api/awards/[slug]/route');
-    for (const [slug, id] of [['Jagr_Cup', 'jagr-cup'], ["Prime_Minister's_Trophy", 'prime-minister'], ['Prime_Minister%27s_Trophy', 'prime-minister']]) {
-        const { result: response } = await league.runAsRoute('/api/awards/[slug]', () => GET(new Request(`http://yofhl.test/api/awards/${slug}`), { params: Promise.resolve({ slug }) }));
-        assert.equal(response.status, 200, slug);
-        const award = findAward(id)!;
+    const get = async (slug: string) => (await league.runAsRoute('/api/awards/[slug]',
+        () => GET(new Request(`http://yofhl.test/api/awards/${slug}`), { params: Promise.resolve({ slug }) }))).result;
+    const listed = (await league.runAsRoute('/awards', () => archive.listed())).result;
+    assert.deepEqual(listed.map(award => award.id),
+        ['jagr-cup', 'prime-minister', 'wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'danny-briere', 'teemu-selanne']);
+    const listResponse = (await league.runAsRoute('/api/awards', () => list())).result;
+    assert.deepEqual((await listResponse.json()).map((award: { id: string }) => award.id), listed.map(award => award.id));
+
+    for (const award of listed) {
+        const response = await get(award.name.replaceAll(' ', '_'));
+        assert.equal(response.status, 200, award.id);
         const expected = (await league.runAsRoute('/awards/[award]', () => archive.winners(award))).result;
-        assert.deepEqual(await response.json(), JSON.parse(JSON.stringify({ award: { name: award.name, label: award.label, honor: award.honor }, winners: expected })), slug);
+        assert.deepEqual(await response.json(), JSON.parse(JSON.stringify({ award: { name: award.name, label: award.label, honor: award.honor }, winners: expected })), award.id);
     }
+    assert.equal((await get('Prime_Minister%27s_Trophy')).status, 200, 'an encoded slug');
+    for (const slug of ['GM_of_the_Year', 'Hart_Trophy']) assert.equal((await get(slug)).status, 404, slug);
 });
 
 test("a franchise's trophy case shows the Jagr Cups and Prime Minister's Trophies the archive gives it", async t => {
-    const { league, winners, publish2026 } = await archiveLeague(t);
-    const { getFranchiseHonors } = await import('./history');
+    const { league, archive, winners, publish2026 } = await archiveLeague(t);
     const trophyCase = async (id: number) => {
-        const { cups, primeMinisters } = (await league.runAsRoute('/teams/[ID]', () => getFranchiseHonors(id))).result;
+        const { cups, primeMinisters } = (await league.runAsRoute('/teams/[ID]', () => archive.franchiseHonors(id))).result;
         return { cups, primeMinisters };
     };
     /** the franchise's wins of the award with this ID, as the award page lists them */

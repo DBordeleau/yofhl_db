@@ -1,56 +1,14 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
-import { winners } from './award-archive';
 import { leagueTags } from './cache-tags';
-import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
+import type { DraftSelection, SeasonDraftSelection, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
-import { AWARD_CATALOGUE, listedAwards, type AwardDefinition } from '@/lib/awards';
-import { publishedTeamAwardWinners } from '@/lib/award-vote/published-vote';
 import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/development';
 
 // Draft and transaction rows show each team's season identity, not the name Fantrax recorded.
 // The recorded name stands in only where the franchise has no team season that year.
 const seasonTeamJson = (season: string, franchise: string, recorded: string) => sql.raw(`jsonb_build_object('id', ${franchise},
     'name', coalesce(${season}.name, ${recorded}), 'abbreviation', ${season}.abbreviation, 'logo', ${season}.logo)`);
-
-// a team award's winners are its published tallies' place-one team seasons (never a rehearsal's)
-const getFranchiseVotedWins = cached((id: number) => rows<{ award: string; year: number }>(sql`
-    select w.award, w.season_year as year
-    from ${publishedTeamAwardWinners} w
-    join league.team_seasons t on t.id = w.team_season_id
-    where t.franchise_id = ${id}
-    order by w.season_year desc`), 'franchise-voted-wins', [leagueTags.awardVoteTallies]);
-
-/** the franchise's wins among an award's winners (the award archive's) */
-const franchiseWins = async (id: number, award: string) => ((await winners(award)) ?? []).filter(winner => winner.TeamID === id);
-
-/** the individual awards the franchise's players won for it, newest first, each season's in catalogue order then by player */
-async function franchiseIndividualAwards(id: number): Promise<FranchiseHonors['awards']> {
-    const stored = AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored');
-    const wins = await Promise.all(stored.map(async award => (await franchiseWins(id, award.id)).map(win =>
-        ({ year: win.Year, name: award.name, label: award.label, honor: award.honor, playerId: win.PlayerID, player: win.Winner }))));
-    return wins.flat().sort((a, b) => b.year - a.year);
-}
-
-/**
- * A franchise's trophy case. Its Jagr Cups and Prime Minister's Trophies are the award archive's winners. A team award
- * an award vote decides is in the trophy case only once listed (lib/awards.ts listedAwards); `catalogue` is the award
- * catalogue, in tests a released one.
- */
-export async function getFranchiseHonors(id: number, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<FranchiseHonors> {
-    const [awards, votedWins, cups, primeMinisters] = await Promise.all([
-        franchiseIndividualAwards(id), getFranchiseVotedWins(id), franchiseWins(id, 'jagr-cup'), franchiseWins(id, 'prime-minister'),
-    ]);
-    const teamAwards = listedAwards(new Set(votedWins.map(win => win.award)), catalogue).flatMap(award => {
-        const years = votedWins.filter(win => win.award === award.id).map(win => win.year);
-        return years.length ? [{ id: award.id, name: award.name, label: award.label, honor: award.honor, years }] : [];
-    });
-    return {
-        cups: cups.map(win => win.Year),
-        primeMinisters: primeMinisters.map(win => ({ year: win.Year, points: win.FPts ?? 0 })),
-        awards, teamAwards,
-    };
-}
 
 export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`
     select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",

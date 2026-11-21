@@ -5,15 +5,15 @@ import AwardTable from '@/components/award-table';
 import RinkDivider from '@/components/rink-divider';
 import { TrophyArt } from '@/components/trophy-icons';
 import { AWARD_CATALOGUE, awardFromSlug, awardHref, awardSlug, findAward } from '@/lib/awards';
-import { getListedAwards, type AwardWinner } from '@/lib/data/league';
-import { winners as awardWinners } from '@/lib/data/award-archive';
+import type { AwardWinner } from '@/lib/data/league';
+import { listed as listedAwards, winners as awardWinners } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
 import Arrow from '@/components/arrow';
 import ExploreNext from '@/components/explore-next';
 import { getSeasonArchive } from '@/lib/data/league';
 import PublishedTallyTable from '@/components/award-vote/published-tally';
 import { awardVote } from '@/lib/award-vote/award-vote';
-import { GM_OF_THE_YEAR, VOTED_AWARD_IDS, type VotedAwardId } from '@/lib/award-vote/model';
+import { VOTED_AWARD_IDS, type VotedAwardId } from '@/lib/award-vote/model';
 
 export async function generateStaticParams() {
     // raw slugs, not awardHref: Next.js encodes route params itself, so encoded ones would double-encode
@@ -33,11 +33,11 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
     if (!definition) notFound();
     const teamAward = definition.scope === 'team';
     const award = { name: definition.name, label: definition.label, honor: definition.honor };
-    const winners = await awardWinners(definition);
-    // GM of the Year's page, reachable by its URL, exists once a winner is published, released or not
-    if (definition.id === GM_OF_THE_YEAR && !winners.length) notFound();
-    // share cards only for an award lists show: not GM of the Year until it is released
-    const listed = (await getListedAwards()).some(listedAward => listedAward.id === definition.id);
+    const [winners, listedAll] = await Promise.all([awardWinners(definition), listedAwards()]);
+    // share cards only for a listed award
+    const listed = listedAll.some(listedAward => listedAward.id === definition.id);
+    // an award that isn't listed, reachable by its URL, has a page once a winner is published, released or not
+    if (!listed && !winners.length) notFound();
     const latest = winners[0];
     const winnerHref = (winner: AwardWinner) => winner.PlayerID ? playerHref(winner.PlayerID) : winner.TeamID ? `/teams/${winner.TeamID}` : null;
     const latestHref = latest ? winnerHref(latest) : null;
@@ -70,7 +70,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                                 return <div key={`${winner.PlayerID}-${winner.TeamID}`}>
                                     <p className="mt-2 text-xl font-extrabold">{href ? <Link href={href} className="underline-offset-4 hover:text-gold-light hover:underline">{winner.Winner} <Arrow /></Link> : winner.Winner}</p>
                                     {!teamAward && winner.Team && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Team}</p>}
-                                    {definition.id === GM_OF_THE_YEAR && winner.Owner && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Owner}</p>}
+                                    {definition.decidedBy === 'teamVote' && winner.Owner && <p className="mt-1 text-sm text-[#AFC0D8]">{winner.Owner}</p>}
                                 </div>;
                             })}
                         </div>}

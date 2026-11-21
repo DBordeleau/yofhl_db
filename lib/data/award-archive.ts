@@ -1,31 +1,45 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
-import { getGmOfTheYearWinners, publishedOnly, teamSeasonWinnerRows, type AwardWinner } from './league';
+import { publishedOnly, teamSeasonWinnerRows, type AwardWinner } from './league';
 import { AWARD_CATALOGUE, expectedAwards, findAward, type AwardDecidedBy, type AwardDefinition } from '../awards';
+import { publishedTeamAwardWinners } from '../award-vote/published-vote';
+import type { FranchiseHonors } from '../history/model';
 
 // The award archive: who won each award (docs/adr/0009-awards-are-catalogue-ids.md). It is the one place that knows
 // which source decides an award's winners; callers ask by award and never branch on its ID.
 
-/** the team awards worked out from team seasons: each one's winners as a condition on team season `t`, and the cache tag they expire with */
+/**
+ * the team awards worked out from team seasons: each one's winners as a condition on team season `t` (given the award's
+ * catalogue ID), and the cache tag they expire with
+ */
 const TEAM_SEASON_SOURCES = {
     // the season results' champion: the team season that won the Final
-    final: { criterion: sql`exists (select 1 from league.season_results r where r.champion_team_season_id = t.id)`, tag: leagueTags.cups },
+    final: { criterion: () => sql`exists (select 1 from league.season_results r where r.champion_team_season_id = t.id)`, tag: leagueTags.cups },
     // The Prime Minister's Trophy rule (GLOSSARY.md), its one copy: no other franchise in the season has as many or more
     // points. A season still being played has a points leader but no winner until it is published (see winners).
     points: {
-        criterion: sql`not exists (select 1 from league.team_seasons other
+        criterion: () => sql`not exists (select 1 from league.team_seasons other
             where other.season_year = t.season_year and other.franchise_id <> t.franchise_id and other.fpts_for >= t.fpts_for)`,
         tag: leagueTags.pointsLeaders,
     },
-} satisfies Partial<Record<AwardDecidedBy, { criterion: SQL; tag: string }>>;
+    // the place-one team seasons of the award's published tallies, never a rehearsal's, co-winners each their own row
+    teamVote: {
+        criterion: (id: string) => sql`t.id in (select w.team_season_id from ${publishedTeamAwardWinners} w where w.award = ${id})`,
+        tag: leagueTags.awardVoteTallies,
+    },
+} satisfies Partial<Record<AwardDecidedBy, { criterion: (id: string) => SQL; tag: string }>>;
 type TeamSeasonSource = keyof typeof TEAM_SEASON_SOURCES;
 
 const getTeamSeasonWinners = cached(
-    (source: TeamSeasonSource) => teamSeasonWinnerRows(TEAM_SEASON_SOURCES[source].criterion),
-    'award-archive-team-seasons',
+    (source: TeamSeasonSource, id: string) => teamSeasonWinnerRows(TEAM_SEASON_SOURCES[source].criterion(id)),
+    'award-archive-team-seasons-v2',
     (source: TeamSeasonSource) => [TEAM_SEASON_SOURCES[source].tag],
 );
+
+/** a team award's winners worked out from team seasons, in published seasons */
+const teamSeasonWinners = (source: TeamSeasonSource) => (award: AwardDefinition) =>
+    publishedOnly(getTeamSeasonWinners(source, award.id), winner => winner.Year);
 
 /** a stored individual-award winner: the award's catalogue ID and the award page's row */
 interface StoredWinner { award: string; winner: AwardWinner }
@@ -53,10 +67,10 @@ const publishedStoredWinners = () => publishedOnly(getStoredWinners(), stored =>
 
 /** each way an award is decided, and its winners in published seasons, newest first */
 const SOURCES: Record<AwardDecidedBy, (award: AwardDefinition) => Promise<AwardWinner[]>> = {
-    final: () => publishedOnly(getTeamSeasonWinners('final'), winner => winner.Year),
-    points: () => publishedOnly(getTeamSeasonWinners('points'), winner => winner.Year),
+    final: teamSeasonWinners('final'),
+    points: teamSeasonWinners('points'),
     stored: async award => (await publishedStoredWinners()).filter(stored => stored.award === award.id).map(stored => stored.winner),
-    teamVote: () => getGmOfTheYearWinners(),
+    teamVote: teamSeasonWinners('teamVote'),
 };
 
 /**
@@ -69,6 +83,42 @@ export function winners(award: string): Promise<AwardWinner[] | null>;
 export async function winners(award: AwardDefinition | string): Promise<AwardWinner[] | null> {
     const definition = typeof award === 'string' ? findAward(award) : award;
     return definition ? SOURCES[definition.decidedBy](definition) : null;
+}
+
+/**
+ * The listed awards (GLOSSARY.md), in catalogue order: those lists of awards show (navigation, the award gallery,
+ * search, the award API and trophy cases). An award is listed once released, and a team award an award vote decides
+ * only once it has a published winner as well. `catalogue` is the award catalogue, in tests a released one.
+ */
+export async function listed(catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<AwardDefinition[]> {
+    const released = catalogue.filter(award => award.released !== false);
+    const won = await Promise.all(released.map(async award => award.decidedBy !== 'teamVote' || (await winners(award)).length > 0));
+    return released.filter((_, index) => won[index]);
+}
+
+/** the franchise's wins among an award's winners */
+const franchiseWins = async (id: number, award: AwardDefinition) => (await winners(award)).filter(winner => winner.TeamID === id);
+
+/**
+ * A franchise's trophy case: its Jagr Cups, Prime Minister's Trophies and listed voted team awards, and the individual
+ * awards its players won for it, all the archive's winners. `catalogue` is the award catalogue, in tests a released one.
+ */
+export async function franchiseHonors(id: number, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<FranchiseHonors> {
+    const stored = AWARD_CATALOGUE.filter(definition => definition.decidedBy === 'stored');
+    const [cups, primeMinisters, individual, voted] = await Promise.all([
+        franchiseWins(id, findAward('jagr-cup')!), franchiseWins(id, findAward('prime-minister')!),
+        Promise.all(stored.map(async definition => (await franchiseWins(id, definition)).map(win =>
+            ({ year: win.Year, name: definition.name, label: definition.label, honor: definition.honor, playerId: win.PlayerID, player: win.Winner })))),
+        listed(catalogue).then(awards => Promise.all(awards.filter(definition => definition.decidedBy === 'teamVote').map(async definition =>
+            ({ id: definition.id, name: definition.name, label: definition.label, honor: definition.honor, years: (await franchiseWins(id, definition)).map(win => win.Year) })))),
+    ]);
+    return {
+        cups: cups.map(win => win.Year),
+        primeMinisters: primeMinisters.map(win => ({ year: win.Year, points: win.FPts ?? 0 })),
+        // newest first, each season's in catalogue order then by player
+        awards: individual.flat().sort((a, b) => b.year - a.year),
+        teamAwards: voted.filter(teamAward => teamAward.years.length),
+    };
 }
 
 export interface PlayerHonors {

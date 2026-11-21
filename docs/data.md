@@ -231,8 +231,8 @@ Pages call shared data functions directly. The JSON routes expose these public v
 | `GET /api/seasons/<end year>` | Season result and championship roster |
 | `GET /api/franchises` | All-time franchise cards, including defunct status |
 | `GET /api/franchises/<id>` | Franchise identity, records, seasons, and player leaders |
-| `GET /api/awards` | Configured individual award types |
-| `GET /api/awards/<slug>` | One award's `{ name, label, honor }` and its winners in published seasons, newest first, such as `Wayne_Gretzky_Award` or `Jagr_Cup`. A team award's winners (the Jagr Cup, the Prime Minister's Trophy) are team seasons: `Winner` and `Team` are the team season's name, `TeamID` its franchise, with `Owner`, `TeamLogo`, `FPts` and `Record`, and `PlayerID` is empty. An individual award's carry the player (`Winner`, `PlayerID`) and their team |
+| `GET /api/awards` | The listed awards in catalogue order, team awards included: each one's `{ id, name, label, honor, description, scope, image }`. An unreleased award, and a voted team award without a published winner, is left out |
+| `GET /api/awards/<slug>` | One listed award's `{ name, label, honor }` and its winners in published seasons, newest first, such as `Wayne_Gretzky_Award` or `Jagr_Cup`. A team award's winners (the Jagr Cup, the Prime Minister's Trophy) are team seasons: `Winner` and `Team` are the team season's name, `TeamID` its franchise, with `Owner`, `TeamLogo`, `FPts` and `Record`, and `PlayerID` is empty. An individual award's carry the player (`Winner`, `PlayerID`) and their team. An award that isn't listed is a 404 |
 | `GET /api/history` | Paginated transaction/draft feed for one player or franchise |
 | `GET /api/lottery` | Current lottery, server time, and only the results revealed so far |
 | `GET /api/lottery?id=<UUID>` | A specific non-cancelled lottery |

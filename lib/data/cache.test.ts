@@ -45,15 +45,18 @@ test('curated edits expire exactly the cached readers that show their data', asy
         cards: league.getFranchiseCards,
         franchise1: () => league.getFranchise(1), franchise2: () => league.getFranchise(2),
         // the award archive's stored winners are one cache: the first reader of them misses, the player and franchise honours after it reuse it
-        awards: () => archive.winners('hasek'), awardTypes: league.getAwardTypes,
+        awards: () => archive.winners('hasek'),
         honors1: () => archive.playerHonors('p1'), honors2: () => archive.playerHonors('p2'),
         cups: () => archive.winners('jagr-cup'), primeMinister: () => archive.winners('prime-minister'),
-        trophies1: () => history.getFranchiseHonors(1), trophies2: () => history.getFranchiseHonors(2),
+        trophies1: () => archive.franchiseHonors(1), trophies2: () => archive.franchiseHonors(2),
         draft: () => history.getSeasonDraft(2026), franchiseDraft: () => history.getFranchiseDraft(1),
         history: () => history.getHistory({ franchiseId: 1 }), historySeasons: () => history.getHistorySeasons({ franchiseId: 1 }),
         rivalries: getRivalryData, branding: getTeamBranding, records: getRecordSource, discovery: getSearchDirectory,
-        listedAwards: () => league.getListedAwards(),
+        listedAwards: () => archive.listed(),
     };
+    // the trophy cases and the listed awards read only the archive's caches the readers before them fill (the listed
+    // awards none at all while GM of the Year is unreleased), so they never miss on their own
+    const ownReads = Object.keys(readers).filter(name => !['trophies1', 'trophies2', 'listedAwards'].includes(name));
     const expectMisses = async (expected: string[]) => {
         const misses = [];
         for (const [name, read] of Object.entries(readers)) {
@@ -68,7 +71,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
     const beforeEmptySearch = testLeague.queries();
     await searchPublicDirectory({ q: '---', type: 'all', page: 1 });
     assert.equal(testLeague.queries(), beforeEmptySearch, 'empty or punctuation-only search never wakes the database');
-    await expectMisses(Object.keys(readers));
+    await expectMisses(ownReads);
     await expectMisses([]);
     const beforeQueries = testLeague.queries();
     for (const q of ['Player', 'Team', '2026', 'unmatched query']) await searchPublicDirectory({ q, type: 'all', page: 1 });
@@ -84,8 +87,8 @@ test('curated edits expire exactly the cached readers that show their data', asy
     await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'player1', 'player2', 'awards', 'honors1', 'honors2', 'records']);
     assert.equal((await archive.winners('hasek'))![0].PlayerID, 'p2');
     assert.deepEqual((await archive.playerHonors('p2')).awards.map(award => [award.id, award.year]), [['hasek', 2026]]);
-    assert.equal((await history.getFranchiseHonors(1)).awards.length, 0);
-    assert.equal((await history.getFranchiseHonors(2)).awards[0].playerId, 'p2');
+    assert.equal((await archive.franchiseHonors(1)).awards.length, 0);
+    assert.equal((await archive.franchiseHonors(2)).awards[0].playerId, 'p2');
     assert.equal((await db.execute(sql`select awards from league.player_careers where player_id='p2'`)).rows[0].awards, 1);
 
     saved(await edits.saveMatchup(2026, 2, 2, '', cache));
@@ -109,7 +112,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
     assert.deepEqual((await getTeamBranding())[1], colours);
 
     invalidate(LEAGUE_TAG);
-    await expectMisses(Object.keys(readers));
+    await expectMisses(ownReads);
 
     await client.exec("insert into league.players values ('plain', 'Plain ID');");
     assert.equal((await league.getPlayer('plain'))?.name, 'Plain ID');
@@ -138,11 +141,11 @@ test('curated edits expire exactly the cached readers that show their data', asy
     }
     const awardResults = (await searchPublicDirectory({ q: 'gretzky', type: 'all', page: 1 })).groups.find(group => group.kind === 'awards')!;
     assert.equal(awardResults.results[0].id, 'wayne-gretzky');
-    // GM of the Year is in the award catalogue, unreleased: search doesn't list it, and the award API has no such award
+    // GM of the Year is in the award catalogue, unreleased: search doesn't list it, and no list of awards has it
     for (const q of ['GM of the Year', 'gm-of-the-year']) {
         assert.equal((await searchPublicDirectory({ q, type: 'awards', page: 1 })).total, 0, q);
     }
-    assert.equal(await league.getListedAwardWinners('GM of the Year'), null);
+    assert(!(await archive.listed()).some(award => award.id === 'gm-of-the-year'));
     assert(directory.some(row => row.kind === 'seasons' && row.id === '2020'));
     assert(!directory.some(row => row.kind === 'seasons' && row.id === '2027'), 'incomplete seasons cannot link to a 404 page');
 
