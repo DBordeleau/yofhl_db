@@ -6,6 +6,7 @@ import TeamBrandingProvider from "@/components/team-branding/branding-provider";
 import { getTeamBranding } from "@/lib/data/team-branding";
 import { getAllTimeLeaderboard, getFranchiseCards, getSeasonArchive, getSingleSeasonLeaderboard, type LeaderRow } from "@/lib/data/league";
 import { listed } from "@/lib/data/award-archive";
+import { awardSummary } from "@/lib/awards";
 import { seasonLabel } from "@/lib/league";
 import { getPublishedEpisodes } from "@/lib/data/coachs-corner";
 import { episodeSeenKey } from "@/lib/coachs-corner/seen";
@@ -42,7 +43,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${archivo.variable} min-h-screen overflow-x-hidden bg-ice font-sans text-ink antialiased`}>
         <Header
-          listedAwards={listedAwards.map(award => ({ name: award.name, label: award.label, honor: award.honor }))}
+          listedAwards={listedAwards.map(awardSummary)}
           latestCoachsCornerEpisode={episodes[0] ? episodeSeenKey(episodes[0]) : null}
           seasonArchive={seasonArchive}
           franchises={franchises.filter(team => !team.defunct).map(team => ({ id: team.ID, name: team.Team, abbreviation: team.Abbreviation, owner: team.Owner, logo: team.LogoUrl }))}

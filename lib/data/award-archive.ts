@@ -2,7 +2,10 @@ import { sql, type SQL } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import { publishedOnly, teamSeasonWinnerRows, type AwardWinner } from './league';
-import { AWARD_CATALOGUE, STORED_AWARD_IDS, expectedAwards, findAward, type AwardDecidedBy, type AwardDefinition } from '../awards';
+import {
+    AWARD_CATALOGUE, awardSummary, catalogueAward, catalogueOrder, expectedAwards, isStoredAwardId,
+    type AwardDecidedBy, type AwardDefinition, type AwardId, type AwardSummary,
+} from '../awards';
 import { publishedTeamAwardWinners } from '../award-vote/published-vote';
 import type { FranchiseHonors } from '../history/model';
 
@@ -42,7 +45,7 @@ const teamSeasonWinners = (source: TeamSeasonSource) => (award: AwardDefinition)
     publishedOnly(getTeamSeasonWinners(source, award.id), winner => winner.Year);
 
 /** a stored individual-award winner: the award's catalogue ID and the award page's row */
-interface StoredWinner { award: string; winner: AwardWinner }
+interface StoredWinner { award: AwardId; winner: AwardWinner }
 
 // Every stored individual-award winner, newest first, co-winners by name, under the award's catalogue ID. A row under
 // an ID the catalogue doesn't store winners under is no award winner (the curated edits never write one).
@@ -55,7 +58,7 @@ const getStoredWinners = cached(async (): Promise<StoredWinner[]> => {
         left join league.season_teams t on t.team_season_id = a.team_season_id
         left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = a.season_year
         order by a.season_year desc, p.name, p.id`);
-    return stored.flatMap(({ award, ...winner }) => STORED_AWARD_IDS.includes(award) ? [{ award, winner }] : []);
+    return stored.flatMap(({ award, ...winner }) => isStoredAwardId(award) ? [{ award, winner }] : []);
 }, 'award-archive-stored-v2', [leagueTags.awards]);
 
 /** the stored individual-award winners in published seasons, newest first */
@@ -71,14 +74,11 @@ const SOURCES: Record<AwardDecidedBy, (award: AwardDefinition) => Promise<AwardW
 
 /**
  * An award's winners in published seasons, newest first, in the award page's row shape: a team award's carry the team
- * season (name, franchise, owner, logo, points and record), an individual award's the player. Null for an award the
- * catalogue doesn't know, found by ID, name or label (findAward).
+ * season (name, franchise, owner, logo, points and record), an individual award's the player. Callers holding an ID,
+ * name or slug look the award up with findAward first.
  */
-export function winners(award: AwardDefinition): Promise<AwardWinner[]>;
-export function winners(award: string): Promise<AwardWinner[] | null>;
-export async function winners(award: AwardDefinition | string): Promise<AwardWinner[] | null> {
-    const definition = typeof award === 'string' ? findAward(award) : award;
-    return definition ? SOURCES[definition.decidedBy](definition) : null;
+export function winners(award: AwardDefinition): Promise<AwardWinner[]> {
+    return SOURCES[award.decidedBy](award);
 }
 
 /**
@@ -97,18 +97,22 @@ const franchiseWins = async (id: number, award: AwardDefinition) => (await winne
 
 /**
  * A franchise's trophy case: its Jagr Cups, Prime Minister's Trophies and listed voted team awards, and the individual
- * awards its players won for it, all the archive's winners. `catalogue` is the award catalogue, in tests a released one.
+ * awards its players won for it, all the archive's winners, each under the award `catalogue` gives (the award catalogue,
+ * in tests a released or relabelled one).
  */
 export async function franchiseHonors(id: number, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<FranchiseHonors> {
-    const stored = AWARD_CATALOGUE.filter(definition => definition.decidedBy === 'stored');
+    const decidedBy = (by: AwardDecidedBy) => catalogue.filter(definition => definition.decidedBy === by);
+    const [cupAward] = decidedBy('final'), [primeMinisterAward] = decidedBy('points');
     const [cups, primeMinisters, individual, voted] = await Promise.all([
-        franchiseWins(id, findAward('jagr-cup')!), franchiseWins(id, findAward('prime-minister')!),
-        Promise.all(stored.map(async definition => (await franchiseWins(id, definition)).map(win =>
-            ({ year: win.Year, name: definition.name, label: definition.label, honor: definition.honor, playerId: win.PlayerID, player: win.Winner })))),
+        franchiseWins(id, cupAward), franchiseWins(id, primeMinisterAward),
+        Promise.all(decidedBy('stored').map(async definition => (await franchiseWins(id, definition)).map(win =>
+            ({ year: win.Year, ...awardSummary(definition), playerId: win.PlayerID, player: win.Winner })))),
         listed(catalogue).then(awards => Promise.all(awards.filter(definition => definition.decidedBy === 'teamVote').map(async definition =>
-            ({ id: definition.id, name: definition.name, label: definition.label, honor: definition.honor, years: (await franchiseWins(id, definition)).map(win => win.Year) })))),
+            ({ ...awardSummary(definition), years: (await franchiseWins(id, definition)).map(win => win.Year) })))),
     ]);
     return {
+        cupAward: awardSummary(cupAward),
+        primeMinisterAward: awardSummary(primeMinisterAward),
         cups: cups.map(win => win.Year),
         primeMinisters: primeMinisters.map(win => ({ year: win.Year, points: win.FPts ?? 0 })),
         // newest first, each season's in catalogue order then by player
@@ -119,7 +123,7 @@ export async function franchiseHonors(id: number, catalogue: readonly AwardDefin
 
 export interface PlayerHonors {
     /** the individual awards the player won in published seasons, oldest first, each season's in catalogue order */
-    awards: { id: string; name: string; label: string; honor: string; year: number }[];
+    awards: (AwardSummary & { year: number })[];
     /** the Jagr Cup rings: each season the player was on the champion's championship roster, under the champion's name, oldest first */
     championships: { season: number; team: string }[];
 }
@@ -137,17 +141,12 @@ const getChampionships = cached(
     [leagueTags.players],
 );
 
-const catalogueOrder = (id: string) => AWARD_CATALOGUE.findIndex(award => award.id === id);
-
 /** a player's individual awards and Jagr Cup rings, as the player page and trophy shelf show them */
 export async function playerHonors(id: string): Promise<PlayerHonors> {
     const [stored, championships] = await Promise.all([publishedStoredWinners(), getChampionships(id)]);
     const awards = stored.filter(({ winner }) => winner.PlayerID === id)
         .sort((a, b) => a.winner.Year - b.winner.Year || catalogueOrder(a.award) - catalogueOrder(b.award))
-        .map(({ award: awardId, winner }) => {
-            const award = findAward(awardId)!;
-            return { id: award.id, name: award.name, label: award.label, honor: award.honor, year: winner.Year };
-        });
+        .map(({ award, winner }) => ({ ...awardSummary(catalogueAward(award)), year: winner.Year }));
     return { awards, championships };
 }
 
@@ -158,7 +157,7 @@ export interface SeasonAwards {
      * every stored winner of the season, published or not, in catalogue order then by name, co-winners each a row; the
      * player's season line and the team the award credits (a published award vote's may not be the end-of-season one)
      */
-    winners: { award: string; player: { id: string; name: string; positions: string; fpts: number; team: string } }[];
+    winners: { award: AwardId; player: { id: string; name: string; positions: string; fpts: number; team: string } }[];
 }
 
 /** a season's stored individual-award winners and the awards it is expected to have; null for an unknown season. Never cached, for the admin. */
@@ -174,7 +173,7 @@ export async function seasonAwards(year: number): Promise<SeasonAwards | null> {
         left join league.team_seasons t on t.id = coalesce(a.team_season_id, ps.team_season_id)
         where a.season_year = ${year}
         order by p.name, p.id`);
-    const winners = stored.flatMap(({ award, player, ...row }) => STORED_AWARD_IDS.includes(award)
+    const winners = stored.flatMap(({ award, player, ...row }) => isStoredAwardId(award)
         ? [{ award, player: { id: row.id, name: player, positions: row.positions, fpts: row.fpts, team: row.team } }] : [],
     ).sort((a, b) => catalogueOrder(a.award) - catalogueOrder(b.award));
     return { expected: expectedAwards(season.playoffStatus === 'complete'), winners };

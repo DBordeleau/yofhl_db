@@ -6,9 +6,13 @@ import { GM_OF_THE_YEAR } from './award-vote/model';
  */
 export type AwardDecidedBy = 'final' | 'points' | 'stored' | 'teamVote';
 
+/** a catalogue award's ID, the key the award vote tables and `league.awards.award` store it under */
+export type AwardId = 'jagr-cup' | 'prime-minister' | 'wayne-gretzky' | 'le-magnifique' | 'bobby-orr' | 'hasek' | 'danny-briere'
+    | 'teemu-selanne' | typeof GM_OF_THE_YEAR;
+
 export interface AwardDefinition {
-    id: string;
-    /** Preserve the database name so existing winner records and URLs keep working. */
+    id: AwardId;
+    /** the award's URL (/awards/Wayne_Gretzky_Award, see awardHref), so it never changes; nothing stores it (docs/adr/0009-awards-are-catalogue-ids.md) */
     name: string;
     label: string;
     /** the label shortened to fit share cards */
@@ -81,16 +85,32 @@ export const AWARD_CATALOGUE: readonly AwardDefinition[] = [
     },
 ];
 
+/** the catalogue award with this ID */
+export const catalogueAward = (id: AwardId): AwardDefinition => AWARD_CATALOGUE.find(award => award.id === id)!;
+
+/** an award's place in the catalogue, the order award lists read in (-1 for an ID the catalogue doesn't know) */
+export const catalogueOrder = (id: string) => AWARD_CATALOGUE.findIndex(award => award.id === id);
+
+/** the individual awards, whose winners are stored (`league.awards`) rather than worked out, in catalogue order */
+export const STORED_AWARDS: readonly AwardDefinition[] = AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored');
+
+/** the catalogue IDs of the stored awards (`league.awards.award`): the only IDs the curated edits write */
+export const STORED_AWARD_IDS: readonly AwardId[] = STORED_AWARDS.map(award => award.id);
+
+/** whether `id` is a stored award's catalogue ID: a `league.awards` row under any other is no award winner */
+export const isStoredAwardId = (id: string): id is AwardId => (STORED_AWARD_IDS as readonly string[]).includes(id);
+
 /**
  * the awards a season is expected to have stored winners for (the admin season page and season status): every stored
  * award, less those that need playoffs in a season whose playoffs weren't played
  */
 export function expectedAwards(playoffsPlayed: boolean): AwardDefinition[] {
-    return AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored' && (playoffsPlayed || !award.needsPlayoffs));
+    return STORED_AWARDS.filter(award => playoffsPlayed || !award.needsPlayoffs);
 }
 
-/** the catalogue IDs of the awards whose winners are stored (`league.awards.award`): the only IDs the curated edits write */
-export const STORED_AWARD_IDS: readonly string[] = AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored').map(award => award.id);
+/** what every page shows of an award beside its winners: its ID, name (for its URL), label and honour */
+export type AwardSummary = Pick<AwardDefinition, 'id' | 'name' | 'label' | 'honor'>;
+export const awardSummary = ({ id, name, label, honor }: AwardDefinition): AwardSummary => ({ id, name, label, honor });
 
 /** the released awards with trophy art, in catalogue order: player trophy shelves and share cards; lists of every award use the award archive's listed */
 export const AWARDS: readonly (AwardDefinition & { image: string })[] =
@@ -99,9 +119,13 @@ export const AWARDS: readonly (AwardDefinition & { image: string })[] =
 const safeDecode = (value: string) => {
     try { return decodeURIComponent(value); } catch { return value; }
 };
-const normalize = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+// lowercase, accents dropped, an underscore, hyphen or space each the same separator; nothing else is loosened
+const normalize = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[_\-\s]/g, ' ');
 
-/** the catalogue award with this ID, name, label or URL slug, ignoring case and accents */
+/**
+ * the catalogue award with this ID, name, label or URL slug (URL-decoded), ignoring case and accents and treating
+ * underscores, hyphens and spaces alike; anything else must match exactly
+ */
 export function findAward(slugOrName: string): AwardDefinition | undefined {
     const key = normalize(safeDecode(slugOrName));
     return AWARD_CATALOGUE.find((award) => [award.id, award.name, award.label].some((alias) => normalize(alias) === key));

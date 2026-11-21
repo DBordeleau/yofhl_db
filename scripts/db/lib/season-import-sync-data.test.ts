@@ -142,9 +142,10 @@ test('a failed re-import leaves the regular-season games, weeks and category tot
     const before = await everything();
     // Kyle Knox drops out of the keep rule, then the legacy seeding fails after the season is written
     const changed = dataCopy(t, PLAYER_STATS, [['"*0fx0b*","Kyle Knox","LAK","RW","FA","45","0.9"', '"*0fx0b*","Kyle Knox","LAK","RW","FA","0","0"']]);
+    // the same winner of the same award twice, which only the awards table's key refuses
     const legacy = fixtureLegacy();
-    legacy.awards.push({ season: 2026, award: 'Hart Trophy', playerId: '0fx01', player: 'Aaron Ashby', team: 'Ashgrove Anglers' });
+    legacy.awards.push({ ...legacy.awards[0] });
 
-    await assert.rejects(run({ dataDir: changed, legacy }), /Legacy award "Hart Trophy" isn't in the award catalogue/);
+    await assert.rejects(run({ dataDir: changed, legacy }), /Failed query: insert into "league"."awards"/);
     assert.deepEqual(await everything(), before);
 });

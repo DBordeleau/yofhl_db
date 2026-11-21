@@ -1,6 +1,6 @@
 import { playerHref } from '@/lib/player-url';
 import Link from 'next/link';
-import { TrophyArt, JagrCupIcon } from '@/components/trophy-icons';
+import { TrophyArt } from '@/components/trophy-icons';
 import TrophySparkles from '@/components/trophy-sparkles';
 import { awardHref } from '@/lib/awards';
 import type { FranchiseHonors } from '@/lib/history/model';
@@ -41,11 +41,11 @@ export default function FranchiseTrophyCase({ franchiseId, finals, seasons, hono
                     <div className={css.major}>
                         <span className={css.artWrap}>
                             {cups.length > 0 && <TrophySparkles seed={`${franchiseId}-shelf`} />}
-                            <JagrCupIcon sizes="120px" className={`${css.art} ${cups.length ? '' : css.dim}`} />
+                            <TrophyArt award={honors.cupAward.id} sizes="120px" className={`${css.art} ${cups.length ? '' : css.dim}`} />
                         </span>
                         <div className="min-w-0">
                             <p className={`${css.count} ${cups.length ? 'champion-count' : css.none}`}>{cups.length}</p>
-                            <h3 className={css.name}><Link href={awardHref('Jagr Cup')} className="hover:underline">Jagr Cups</Link></h3>
+                            <h3 className={css.name}><Link href={awardHref(honors.cupAward.name)} className="hover:underline">Jagr Cups</Link></h3>
                             {cups.length > 0 ? <div className={css.slabs}>
                                 {cups.map((year) => <Link key={year} href={`/season/${year}#championship-roster`} className={`${styles.slab} ${styles.slabGold}`}>{seasonLabel(year)}</Link>)}
                             </div> : <p className={css.empty}>
@@ -55,10 +55,10 @@ export default function FranchiseTrophyCase({ franchiseId, finals, seasons, hono
                         </div>
                     </div>
                     <div className={css.major}>
-                        <span className={css.artWrap}><TrophyArt award="prime-minister" className={`${css.art} ${honors.primeMinisters.length ? '' : css.dim}`} sizes="120px" /></span>
+                        <span className={css.artWrap}><TrophyArt award={honors.primeMinisterAward.id} className={`${css.art} ${honors.primeMinisters.length ? '' : css.dim}`} sizes="120px" /></span>
                         <div className="min-w-0">
                             <p className={`${css.count} ${honors.primeMinisters.length ? 'champion-count' : css.none}`}>{honors.primeMinisters.length}</p>
-                            <h3 className={css.name}><Link href={awardHref('prime-minister')} className="hover:underline">Prime Minister’s Trophies</Link></h3>
+                            <h3 className={css.name}><Link href={awardHref(honors.primeMinisterAward.name)} className="hover:underline">Prime Minister’s Trophies</Link></h3>
                             <p className={css.honor}>Most regular-season fantasy points</p>
                             {honors.primeMinisters.length > 0 && <div className={css.slabs}>
                                 {honors.primeMinisters.map((win) => <Link key={win.year} href={teamSeasonHref(win.year, franchiseId)} title={`${formatFpts(win.points)} fantasy points`} className={`${styles.slab} ${styles.slabGold}`}>{seasonLabel(win.year)}</Link>)}

@@ -157,6 +157,22 @@ test('validation: a data folder with no season CSVs and no Fantrax block to open
     assert.deepEqual(await everyRow(), before);
 });
 
+test('validation: legacy awards outside the award catalogue\'s stored awards are reported and nothing is written', async (t) => {
+    const { run, everyRow } = await emptyLeague(t);
+    const before = await everyRow();
+    const legacy = fixtureLegacy();
+    legacy.awards.push(
+        { season: 2026, award: 'Hart Trophy', playerId: '0fx0b', player: 'Kyle Knox', team: 'Ashgrove Anglers' },
+        { season: 2026, award: 'Jagr Cup', playerId: '0fx01', player: 'Aaron Ashby', team: 'Ashgrove Anglers' },
+    );
+
+    assert.deepEqual(await run({ legacy }), { ok: false, errors: [
+        '2025–26: legacy award "Hart Trophy" (Kyle Knox) isn\'t in the award catalogue',
+        '2025–26: legacy award "Jagr Cup" (Aaron Ashby) isn\'t in the award catalogue',
+    ] });
+    assert.deepEqual(await everyRow(), before);
+});
+
 test('keep set: a zero-point free agent on a ring or award list is kept and one on neither is dropped', async (t) => {
     const { db, run } = await emptyLeague(t);
     // Leo Lark is on the legacy ring list; Max Moss is added to the legacy awards here; Kyle Knox scored
@@ -215,9 +231,10 @@ test('rollback: a failure during legacy seeding, after the seasons are written, 
         const file = path.join(dir, '2025-2026 Team Stats.csv');
         writeFileSync(file, readFileSync(file, 'utf8').replace('"1","Ashgrove Anglers","30","14"', '"1","Ashgrove Anglers","31","13"'));
     });
+    // the same winner of the same award twice, which only the awards table's key refuses
     const legacy = fixtureLegacy();
-    legacy.awards.push({ season: 2026, award: 'Hart Trophy', playerId: '0fx0b', player: 'Kyle Knox', team: 'Ashgrove Anglers' });
+    legacy.awards.push({ ...legacy.awards[0] });
 
-    await assert.rejects(run({ config: changedLeague(), dataDir: changedStandings, legacy }), /Legacy award "Hart Trophy" isn't in the award catalogue/);
+    await assert.rejects(run({ config: changedLeague(), dataDir: changedStandings, legacy }), /Failed query: insert into "league"."awards"/);
     assert.deepEqual(await everyRow(), before);
 });

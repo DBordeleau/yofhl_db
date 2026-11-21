@@ -79,13 +79,15 @@ test('the award API lists the listed awards and returns the same winners as the 
     assert.deepEqual(listed.map(award => award.id),
         ['jagr-cup', 'prime-minister', 'wayne-gretzky', 'le-magnifique', 'bobby-orr', 'hasek', 'danny-briere', 'teemu-selanne']);
     const listResponse = (await league.runAsRoute('/api/awards', () => list())).result;
-    assert.deepEqual((await listResponse.json()).map((award: { id: string }) => award.id), listed.map(award => award.id));
+    const rows: { id: string }[] = await listResponse.json();
+    assert.deepEqual(rows.map(award => award.id), listed.map(award => award.id));
+    for (const row of rows) assert.deepEqual(Object.keys(row).sort(), ['honor', 'id', 'image', 'label', 'name', 'scope'], row.id);
 
     for (const award of listed) {
         const response = await get(award.name.replaceAll(' ', '_'));
         assert.equal(response.status, 200, award.id);
         const expected = (await league.runAsRoute('/awards/[award]', () => archive.winners(award))).result;
-        assert.deepEqual(await response.json(), JSON.parse(JSON.stringify({ award: { name: award.name, label: award.label, honor: award.honor }, winners: expected })), award.id);
+        assert.deepEqual(await response.json(), JSON.parse(JSON.stringify({ award: { id: award.id, name: award.name, label: award.label, honor: award.honor }, winners: expected })), award.id);
     }
     assert.equal((await get('Prime_Minister%27s_Trophy')).status, 200, 'an encoded slug');
     for (const slug of ['GM_of_the_Year', 'Hart_Trophy']) assert.equal((await get(slug)).status, 404, slug);
@@ -108,6 +110,16 @@ test("a franchise's trophy case shows the Jagr Cups and Prime Minister's Trophie
     }
     assert.deepEqual(await trophyCase(3), { cups: [2026, 2024], primeMinisters: [] });
     assert.deepEqual(await trophyCase(2), { cups: [], primeMinisters: [{ year: 2026, points: 9000 }, { year: 2024, points: 1500 }] });
+});
+
+test("a franchise's trophy case names every award as the catalogue it is given does", async t => {
+    const { league, archive } = await archiveLeague(t);
+    const relabelled = AWARD_CATALOGUE.map(award => ({ ...award, label: `${award.label} (relabelled)` }));
+    const honors = (await league.runAsRoute('/teams/[ID]', () => archive.franchiseHonors(2, relabelled))).result;
+    assert.deepEqual([honors.cupAward, honors.primeMinisterAward].map(award => [award.id, award.label]),
+        [['jagr-cup', 'Jagr Cup (relabelled)'], ['prime-minister', 'Prime Minister’s Trophy (relabelled)']]);
+    assert.deepEqual(honors.awards.map(award => [award.year, award.id, award.label]),
+        [[2025, 'wayne-gretzky', 'Wayne Gretzky Award (relabelled)'], [2025, 'hasek', 'Hasek Trophy (relabelled)']]);
 });
 
 test("an entered individual award's winners are its published seasons' stored winners, newest first, co-winners each a row", async t => {

@@ -428,6 +428,12 @@ export const readLegacySeeds = (awardsFile: string, rostersFile: string): Legacy
 
 // one-time carry-over of the awards and rings already on the old site; skipped for any season
 // that already has awards / a roster, so edits made later in the admin panel are never undone
+// a legacy award's catalogue ID: only a stored award's name maps to one (checked before the transaction)
+const legacyAwardId = (name: string) => {
+    const definition = findAward(name);
+    return definition?.decidedBy === 'stored' ? definition.id : undefined;
+};
+
 const seedLegacy = async (db: Db, config: LeagueConfig, legacy: LegacySeeds, years: Set<number>) => {
     const notes: string[] = [];
     const { awards: legacyAwards, rosters } = legacy;
@@ -455,9 +461,7 @@ const seedLegacy = async (db: Db, config: LeagueConfig, legacy: LegacySeeds, yea
                 if (ps?.name && ps.name !== typed?.era.name) {
                     notes.push(`${seasonLabel(year)} ${award.award} (${award.player}): old site said "${award.team}", linked to ${ps.name}, his team at season end`);
                 }
-                const definition = findAward(award.award);
-                if (definition?.decidedBy !== 'stored') throw new Error(`Legacy award "${award.award}" isn't in the award catalogue`);
-                rows.push({ seasonYear: year, award: definition.id, playerId: award.playerId, teamSeasonId });
+                rows.push({ seasonYear: year, award: legacyAwardId(award.award)!, playerId: award.playerId, teamSeasonId });
             }
             await db.insert(schema.awards).values(rows);
         }
@@ -552,6 +556,9 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
         keep.set(year, players);
     };
     legacy.awards.forEach((a) => addKeep(a.season, a.playerId, a.player));
+    for (const a of legacy.awards) {
+        if (!legacyAwardId(a.award)) errors.push(`${seasonLabel(a.season)}: legacy award "${a.award}" (${a.player}) isn't in the award catalogue`);
+    }
     Object.entries(legacy.rosters).forEach(([y, roster]) => roster.forEach((p) => addKeep(Number(y), p.playerId, p.player)));
     curated.forEach((r) => addKeep(r.year, r.playerId, r.player));
     for (const season of prepared) {

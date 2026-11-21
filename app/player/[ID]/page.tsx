@@ -18,7 +18,7 @@ import { playerHref } from '@/lib/player-url';
 import { getHistory, getHistorySeasons } from '@/lib/data/history';
 import { playerHonors } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
-import { awardHref } from '@/lib/awards';
+import { awardHref, type AwardSummary } from '@/lib/awards';
 
 // Popular profiles build ahead of time; other profiles cache on their first visit.
 export async function generateStaticParams() {
@@ -54,10 +54,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
     const played = player.playerStats.filter(row => row.FPts > 0).map(row => row.Year).sort((a, b) => a - b);
     const span = played.length > 1 ? `${seasonLabel(played[0])} to ${seasonLabel(played.at(-1)!)}` : played.length ? seasonLabel(played[0]) : null;
 
-    const awardsByYear = honors.awards.reduce((acc, a) => {
-        (acc[a.year] ??= []).push(a.name);
+    const awardsByYear = honors.awards.reduce((acc, { year, ...award }) => {
+        (acc[year] ??= []).push(award);
         return acc;
-    }, {} as Record<number, string[]>);
+    }, {} as Record<number, AwardSummary[]>);
 
     const sections = [
         { id: 'career-stats', label: 'Seasons' },

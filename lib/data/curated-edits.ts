@@ -6,7 +6,7 @@ import { rows } from './db';
 import pilotTeams from '../coachs-corner/pilot-teams.json';
 import { inRefreshOrder } from './materialized-views';
 import { matchupWinner } from './matchup-winner';
-import { STORED_AWARD_IDS } from '../awards';
+import { STORED_AWARD_IDS, isStoredAwardId } from '../awards';
 
 // Curated edits: changes an admin or owner makes through the site. Each one checks the edit,
 // writes it in one statement, refreshes the views it affects and expires the pages that show it
@@ -92,7 +92,7 @@ export async function saveAwards(year: number, picks: { award: string; playerId:
     // The last pick for an award wins.
     const byAward = new Map(picks.map(pick => [String(pick.award), pick.playerId === null ? null : String(pick.playerId)]));
     if (!byAward.size) return { ok: true, saved: 0 };
-    if (![...byAward.keys()].every(award => STORED_AWARD_IDS.includes(award))) return { ok: false, reason: 'unknown-award' };
+    if (![...byAward.keys()].every(isStoredAwardId)) return { ok: false, reason: 'unknown-award' };
     const winners = [...byAward.values()].filter((id): id is string => id !== null);
     if (!await allPlayedIn(year, [...new Set(winners)])) return { ok: false, reason: 'unknown-player' };
     const chosen = [...byAward].map(([award, playerId]) => sql`(${award}::text, ${playerId}::text)`);

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import AwardTable from '@/components/award-table';
 import RinkDivider from '@/components/rink-divider';
 import { TrophyArt } from '@/components/trophy-icons';
-import { AWARD_CATALOGUE, awardFromSlug, awardHref, awardSlug, findAward } from '@/lib/awards';
+import { AWARD_CATALOGUE, awardFromSlug, awardHref, awardSlug, awardSummary, findAward } from '@/lib/awards';
 import type { AwardWinner } from '@/lib/data/league';
 import { listed as listedAwards, winners as awardWinners } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
@@ -32,7 +32,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
     // an award the catalogue doesn't know has no page
     if (!definition) notFound();
     const teamAward = definition.scope === 'team';
-    const award = { name: definition.name, label: definition.label, honor: definition.honor };
+    const award = awardSummary(definition);
     const [winners, listedAll] = await Promise.all([awardWinners(definition), listedAwards()]);
     // share cards only for a listed award
     const listed = listedAll.some(listedAward => listedAward.id === definition.id);
@@ -85,7 +85,7 @@ export default async function AwardPage({ params }: { params: Promise<{ award: s
                     <span className="text-xs font-semibold text-ink-muted">{winners.length} awarded</span>
                 </div>
                 <AwardTable awardsData={winners} recipient={teamAward ? 'team' : 'player'}
-                    award={listed ? { id: definition.id, name: award.name, label, honor: award.honor, image: definition.image } : undefined} />
+                    award={listed ? { ...award, image: definition.image } : undefined} />
             </section>
             {tallies.length > 0 && <section className="mx-auto mt-10 max-w-board" aria-labelledby="tallies-title">
                 <h2 id="tallies-title" className="font-wide mb-4 px-1 text-xl font-extrabold uppercase md:text-2xl">Tallies</h2>

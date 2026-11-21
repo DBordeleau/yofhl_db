@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import type { BannerSeason } from "@/lib/data/league";
 import type { SeasonArchive } from "@/lib/seasons";
-import { awardHref } from "@/lib/awards";
+import { awardHref, type AwardSummary } from "@/lib/awards";
 import { formatFpts, seasonLabel } from "@/lib/league";
 import { playerHref } from "@/lib/player-url";
 import { TrophyArt } from '@/components/trophy-icons';
@@ -28,7 +28,7 @@ import styles from './header.module.css';
 
 export interface NavLeader { id: string; name: string; meta: string; points: number }
 /** a listed award as navigation shows it */
-export interface NavAward { name: string; label: string; honor: string }
+export type NavAward = AwardSummary;
 export interface NavFranchise { id: number; name: string; abbreviation: string; owner: string | null; logo: string | null }
 export interface NavData {
     latestCoachsCornerEpisode: string | null;

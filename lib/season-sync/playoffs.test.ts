@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { daysOf, endOf, SEASON, seasonSyncLeague } from './testing/season-sync-league';
+import { catalogueAward } from '@/lib/awards';
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -79,7 +80,7 @@ test('after the Semifinals and the Final, each round is stored, and the run afte
     const archive = await league.read(() => getSeasonArchive());
     assert.deepEqual([archive.latest?.year, archive.latest?.team, archive.current], [SEASON, 'Club 3', null], 'the season is published and is the latest season');
     assert.deepEqual((await league.read(() => getBannerSeasons())).find(season => season.year === SEASON)?.franchiseId, 3, "the champion's banner");
-    assert.deepEqual((await league.read(() => winners('jagr-cup')))!.map(winner => [winner.Year, winner.TeamID]), [[SEASON, 3], [2026, 1]], 'the Jagr Cup');
+    assert.deepEqual((await league.read(() => winners(catalogueAward('jagr-cup')))).map(winner => [winner.Year, winner.TeamID]), [[SEASON, 3], [2026, 1]], 'the Jagr Cup');
 });
 
 test("each round's games are stored beside the games that fed them, whatever order Fantrax lists them in", async t => {

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { TrophyArt } from '@/components/trophy-icons';
 import TrophySparkles from '@/components/trophy-sparkles';
-import { AWARD_CATALOGUE, awardHref } from '@/lib/awards';
+import { awardHref, catalogueOrder } from '@/lib/awards';
 import type { PlayerHonors } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
 import styles from './player-page.module.css';
@@ -23,9 +23,8 @@ export function shelfTrophies({ championships, awards }: PlayerHonors): ShelfTro
         note: Array.from(new Set(cups.map((c) => c.team))).join(' · '),
         years: cups.map((c) => c.season),
     });
-    const order = (id: string) => AWARD_CATALOGUE.findIndex((award) => award.id === id);
     const grouped = new Map<string, ShelfTrophy>();
-    for (const award of [...awards].sort((a, b) => order(a.id) - order(b.id))) {
+    for (const award of [...awards].sort((a, b) => catalogueOrder(a.id) - catalogueOrder(b.id))) {
         const entry = grouped.get(award.id) ?? { award: award.name, label: award.label, note: award.honor, years: [] };
         entry.years.push(award.year);
         grouped.set(award.id, entry);

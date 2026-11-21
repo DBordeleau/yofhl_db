@@ -75,3 +75,11 @@ test('the season status game count ignores regular-season games', async (t) => {
 
     assert.equal((await getSeasonStatuses())[0].games, 4);
 });
+
+test('the season status award count ignores rows under an ID the catalogue stores no winners under', async (t) => {
+    const { client } = await importFixture(t, { league: { app: true } });
+    await client.exec(`insert into league.awards (season_year, award, player_id) values (2026, 'jagr-cup', '0fx01'), (2026, 'hart-trophy', '0fx01')`);
+    const { getSeasonStatuses } = await import('@/lib/admin/data');
+
+    assert.equal((await getSeasonStatuses())[0].awards, 2);
+});

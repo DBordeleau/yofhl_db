@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { daysOf, endOf, SEASON, seasonSyncLeague } from './testing/season-sync-league';
+import { catalogueAward } from '@/lib/awards';
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -184,7 +185,7 @@ test("a champion set in bracket review after a level Final gets its roster from 
 test("the points leader cached while the season was played is the Prime Minister's Trophy winner once the Final publishes the season", async t => {
     const league = await playoffLeague(t);
     const archive = await import('@/lib/data/award-archive');
-    const winners = async () => (await league.read(() => archive.winners('prime-minister')))!.map(winner => winner.Year);
+    const winners = async () => (await league.read(() => archive.winners(catalogueAward('prime-minister')))).map(winner => winner.Year);
     const trophies = async () => (await league.read(() => archive.franchiseHonors(3))).primeMinisters.map(win => win.year);
     rosterOne(league);
     // read, and so cached, while the opened season has no points

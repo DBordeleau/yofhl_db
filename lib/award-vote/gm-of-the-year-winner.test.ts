@@ -3,7 +3,7 @@
 // search, the award API, the franchise trophy case) shows it only once it is released in the catalogue as well.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { AWARD_CATALOGUE, type AwardDefinition } from '@/lib/awards';
+import { AWARD_CATALOGUE, catalogueAward, findAward, type AwardDefinition } from '@/lib/awards';
 import { COMPLETE, completeFor, SEASON, votingLeague } from './testing/award-vote-league';
 
 /** the catalogue as it will be once the league owner releases GM of the Year */
@@ -26,7 +26,7 @@ async function scoredLeague(t: Parameters<typeof votingLeague>[0], ballots: Reco
     const route = async <T>(path: string, fn: () => Promise<T>) => (await harness.league.runAsRoute(path, fn)).result;
     const { winners } = await import('@/lib/data/award-archive');
     /** GM of the Year's award page: each winner as [season, team, franchise, owner] */
-    const awardPage = async () => (await route('/awards/[award]', () => winners('gm-of-the-year')))!
+    const awardPage = async () => (await route('/awards/[award]', () => winners(catalogueAward('gm-of-the-year'))))
         .map(winner => [winner.Year, winner.Winner, winner.TeamID, winner.Owner]);
     return { ...harness, route, awardPage };
 }
@@ -71,13 +71,13 @@ test('lists of awards show GM of the Year only once it is released and one of it
     assert.deepEqual(await listed(RELEASED), { gallery: true, search: true }, 'released, published');
 });
 
-test("GM of the Year's winners are found by any spelling of its name the catalogue knows", async t => {
+test("GM of the Year's page finds its winners by any spelling of its name the catalogue knows", async t => {
     const { route, publish } = await scoredLeague(t);
     const { winners } = await import('@/lib/data/award-archive');
     assert.deepEqual((await publish()).result, { ok: true });
     for (const name of ['GM of the Year', 'gm of the year', 'gm-of-the-year']) {
-        const won = await route('/awards/[award]', () => winners(name));
-        assert.deepEqual(won?.map(winner => [winner.Year, winner.Winner]), [[SEASON, 'Club 1']], name);
+        const won = await route('/awards/[award]', () => winners(findAward(name)!));
+        assert.deepEqual(won.map(winner => [winner.Year, winner.Winner]), [[SEASON, 'Club 1']], name);
     }
 });
 

@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { BallotRankings } from './model';
+import { findAward } from '@/lib/awards';
 import { COMPLETE, completeFor, FRANCHISES, lockInHours, SEASON, votingLeague, type AwardVoteLeague } from './testing/award-vote-league';
 
 /** franchises 2 and 4's ballot: s2 above s1 for the Wayne Gretzky Award, leaving the two level */
@@ -12,8 +13,8 @@ const S2_FIRST: BallotRankings = completeFor(2, { ...COMPLETE, 'wayne-gretzky': 
 async function awardPages({ league }: AwardVoteLeague) {
     const { winners } = await import('@/lib/data/award-archive');
     return async (name: string) => {
-        const { result } = await league.runAsRoute('/awards/[award]', () => winners(name));
-        return result?.toSorted((a, b) => a.PlayerID.localeCompare(b.PlayerID))
+        const { result } = await league.runAsRoute('/awards/[award]', () => winners(findAward(name)!));
+        return result.toSorted((a, b) => a.PlayerID.localeCompare(b.PlayerID))
             .map(winner => [winner.Year, winner.Winner, winner.PlayerID, winner.Team ?? null]);
     };
 }

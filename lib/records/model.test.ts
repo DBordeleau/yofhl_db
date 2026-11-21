@@ -31,12 +31,22 @@ test('cancelled playoffs do not break title runs and consecutive championships r
     assert.deepEqual(longestRun([2019, 2021], [2019, 2021, 2022]), [2019, 2021]);
     const data = source();
     data.teams.push(team(3, [2022]));
-    data.awards = [{ player: 'a', name: 'A', award: 'Teemu Selanne Trophy', year: 2022, team: 1 }, { player: 'a', name: 'A', award: 'Bobby Orr Award', year: 2022, team: 1 }];
+    data.awards = [{ player: 'a', name: 'A', award: 'teemu-selanne', year: 2022, team: 1 }, { player: 'a', name: 'A', award: 'bobby-orr', year: 2022, team: 1 }];
     const records = buildRecords(data);
     assert.equal(records.find(r => r.id === 'repeat-cups')!.entries[0].value, 2);
     assert(records.find(r => r.id === 'repeat-cups')!.entries.every(e => e.value >= 2));
     assert(!records.some(r => ['drought', 'closest-win'].includes(r.id) || /selanne/i.test(r.title)));
     assert(records.some(r => r.title === 'Bobby Orr Award'));
+});
+
+test('each honours record carries the award it counts, and no other record carries one', () => {
+    const data = source();
+    data.awards = [{ player: 'a', name: 'A', award: 'hasek', year: 2022, team: 1 }];
+    const records = buildRecords(data);
+    assert.deepEqual(records.filter(r => r.award).map(r => [r.id, r.title, r.award]), [
+        ['cups', 'Jagr Cups', 'jagr-cup'], ['repeat-cups', 'Consecutive championships', 'jagr-cup'],
+        ['scoring-titles', 'Prime Minister’s Trophies', 'prime-minister'], ['award-hasek-trophy', 'Hasek Trophy', 'hasek'],
+    ]);
 });
 
 test("the Prime Minister's Trophies record counts each franchise's wins the award archive gives it", () => {

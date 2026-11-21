@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
 import { SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
 import { seasonAwards } from '@/lib/data/award-archive';
+import { awardSummary, type AwardSummary } from '@/lib/awards';
 import { SEASON_SYNC_STATUS_QUERY, toSeasonSyncStatus, type SeasonSyncStatus, type SeasonSyncStatusRow } from '@/lib/season-sync/status';
 
 // Admin reads. Never cached: the panel must show exactly what's in the database.
@@ -14,13 +15,8 @@ export interface AdminPlayer {
     team: string; // fantasy team abbreviation at season end, "FA" when unrostered
 }
 
-export interface AdminAward {
-    /** the award's catalogue ID, which the awards editor saves it under */
-    id: string;
-    name: string;
-    label: string;
-    /** the catalogue's honour, e.g. "Top goaltender" */
-    honor: string;
+/** an expected award of the season, under its catalogue ID (which the awards editor saves it under), and its winner */
+export interface AdminAward extends AwardSummary {
     winner: AdminPlayer | null;
 }
 
@@ -123,7 +119,7 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
         // each expected award once per winner, or once with no winner yet
         awards: (awards?.expected ?? []).flatMap((award) => {
             const winners = awards!.winners.filter((winner) => winner.award === award.id).map((winner) => winner.player);
-            return (winners.length ? winners : [null]).map((winner) => ({ id: award.id, name: award.name, label: award.label, honor: award.honor, winner }));
+            return (winners.length ? winners : [null]).map((winner) => ({ ...awardSummary(award), winner }));
         }),
         games: games.map((g) => ({
             id: g.id,

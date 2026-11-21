@@ -19,6 +19,20 @@ test('an award is found by its URL slug', () => {
     assert.equal(findAward("Prime_Minister%27s_Trophy")?.id, 'prime-minister');
 });
 
+test('finding an award treats underscores, hyphens and spaces alike', () => {
+    assert.equal(findAward('jagr cup')?.id, 'jagr-cup');
+    assert.equal(findAward('Jagr_Cup')?.id, 'jagr-cup');
+    assert.equal(findAward('teemu_selanne')?.id, 'teemu-selanne');
+    assert.equal(findAward('Danny-Briere-Award')?.id, 'danny-briere');
+});
+
+test('finding an award compares everything else exactly', () => {
+    assert.equal(findAward('jagrcup'), undefined);
+    assert.equal(findAward('Prime Ministers Trophy'), undefined);
+    assert.equal(findAward('Hasek Trophy!'), undefined);
+    assert.equal(findAward('Jagr  Cup'), undefined);
+});
+
 test('the old Hasek and Danny Briere labels no longer find an award', () => {
     assert.equal(findAward('Hasek Award'), undefined);
     assert.equal(findAward('Danny Briere Trophy'), undefined);

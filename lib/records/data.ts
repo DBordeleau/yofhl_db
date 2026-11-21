@@ -3,7 +3,7 @@ import { cached, rows } from '../data/db';
 import { leagueTags } from '../data/cache-tags';
 import { getFranchiseCards, getSeasonArchive } from '../data/league';
 import { winners } from '../data/award-archive';
-import { AWARD_CATALOGUE } from '../awards';
+import { STORED_AWARDS, catalogueAward } from '../awards';
 import { fantraxLeagueUrl } from '../fantrax/config';
 import { fantraxLeagueIdOf, getLiveSeason } from '../fantrax/live-season';
 import regularSeason from '../rivalries/regular-season-history.json';
@@ -33,11 +33,10 @@ const getRecordArchive = cached(async () => {
     return { teams, players, seasons, storedGames: games, storedWeeks: weeks };
 }, 'records-archive-v6', [leagueTags.records]);
 
-/** every individual award's winners, the award archive's, under the catalogue's label, in catalogue order */
+/** every individual award's winners, the award archive's, under the award's catalogue ID, in catalogue order */
 async function individualAwards(): Promise<Award[]> {
-    const stored = AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored');
-    const wins = await Promise.all(stored.map(async award => (await winners(award)).map(win =>
-        ({ player: win.PlayerID, name: win.Winner, award: award.label, year: win.Year, team: win.TeamID }))));
+    const wins = await Promise.all(STORED_AWARDS.map(async award => (await winners(award)).map(win =>
+        ({ player: win.PlayerID, name: win.Winner, award: award.id, year: win.Year, team: win.TeamID }))));
     return wins.flat();
 }
 
@@ -47,11 +46,11 @@ export async function getRecordSource(): Promise<RecordSource> {
     // Only the season archive decides which seasons are published (lib/seasons.ts), and only the award archive who won
     // the Prime Minister's Trophy and each individual award.
     const [{ storedGames, storedWeeks: weeks, ...archive }, seasons, primeMinisters, awards] = await Promise.all([
-        getRecordArchive(), getSeasonArchive(), winners('prime-minister'), individualAwards(),
+        getRecordArchive(), getSeasonArchive(), winners(catalogueAward('prime-minister')), individualAwards(),
     ]);
     const published = [...seasons.published].reverse(); // oldest first
     return { ...archive, awards, published: published.map(season => season.year),
-        primeMinisters: (primeMinisters ?? []).flatMap(win => win.TeamID === null ? [] : [{ team: win.TeamID, year: win.Year }]),
+        primeMinisters: primeMinisters.flatMap(win => win.TeamID === null ? [] : [{ team: win.TeamID, year: win.Year }]),
         competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: p.year > HISTORY_THROUGH ? p.stats ?? undefined : categories.get(`${p.id}:${p.year}`) })),
         games: [...historyGames, ...storedGames], periods: [...periods, ...weeks] };
 }

@@ -1,3 +1,5 @@
+import type { AwardSummary } from '../awards';
+
 export type HistoryKind = 'all' | 'trade' | 'free_agent' | 'draft';
 export interface HistoryScope { franchiseId?: number; playerId?: string }
 export interface HistoryTeam { id: number; name: string; abbreviation: string; logo: string | null }
@@ -39,12 +41,16 @@ export interface SeasonDraftSelection extends DraftSelection {
     teamLogo: string | null;
 }
 export interface FranchiseHonors {
+    /** the award the cups are (the Jagr Cup), for their link and art */
+    cupAward: AwardSummary;
+    /** the award the Prime Minister's Trophies are, for their link and art */
+    primeMinisterAward: AwardSummary;
     /** the seasons the franchise won the Jagr Cup, newest first */
     cups: number[];
     /** its Prime Minister's Trophies, newest first, each with the points that won it */
     primeMinisters: { year: number; points: number }[];
     /** the individual awards its players won for it, newest first, under the catalogue's label and honour */
-    awards: { year: number; name: string; label: string; honor: string; playerId: string; player: string }[];
+    awards: (AwardSummary & { year: number; playerId: string; player: string })[];
     /** the listed team awards an award vote decides (GM of the Year) the franchise has won, in catalogue order, each with its seasons newest first */
-    teamAwards: { id: string; name: string; label: string; honor: string; years: number[] }[];
+    teamAwards: (AwardSummary & { years: number[] })[];
 }

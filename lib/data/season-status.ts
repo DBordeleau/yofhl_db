@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { expectedAwards } from '@/lib/awards';
+import { STORED_AWARD_IDS, expectedAwards } from '@/lib/awards';
 
 // The season status query: what each season has so far, newest first. The admin season checklist runs it
 // through the web app's driver and the season import runs it through the scripts' driver, so the import's
@@ -15,7 +15,7 @@ export interface SeasonStatus {
     games: number;
     champion: string | null;
     roster: number;
-    /** Distinct awards given, so co-winners count once. */
+    /** Distinct stored awards given, so co-winners count once (a row under any other ID is no award winner). */
     awards: number;
     awardsExpected: number;
     overrides: number;
@@ -32,7 +32,7 @@ export const SEASON_STATUS_QUERY = sql`
            (select count(*)::int from league.matchups m where m.season_year = s.year and m.stage = 'playoff') as games,
            (select t.name from league.team_seasons t where t.id = r.champion_team_season_id) as champion,
            (select count(*)::int from league.championship_rosters c where c.season_year = s.year) as roster,
-           (select count(distinct a.award)::int from league.awards a where a.season_year = s.year) as awards,
+           (select count(distinct a.award)::int from league.awards a where a.season_year = s.year and a.award in ${STORED_AWARD_IDS}) as awards,
            case when s.playoff_status = 'complete' then ${EXPECTED_WITH_PLAYOFFS}::int else ${EXPECTED_WITHOUT_PLAYOFFS}::int end as "awardsExpected",
            (select count(*)::int from league.matchup_overrides o where o.season_year = s.year) as overrides
     from league.seasons s

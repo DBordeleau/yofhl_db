@@ -3,7 +3,7 @@ import test from 'node:test';
 import { sql } from 'drizzle-orm';
 import { disposableLeague } from '../testing/disposable-league';
 import { LEAGUE_TAG } from './cache-tags';
-import { AWARDS, awardHref } from '../awards';
+import { AWARDS, awardHref, catalogueAward } from '../awards';
 
 test('curated edits expire exactly the cached readers that show their data', async t => {
     const testLeague = await disposableLeague(t, { app: true, nextCache: true, seed: `
@@ -44,9 +44,9 @@ test('curated edits expire exactly the cached readers that show their data', asy
         cards: league.getFranchiseCards,
         franchise1: () => league.getFranchise(1), franchise2: () => league.getFranchise(2),
         // the award archive's stored winners are one cache: the first reader of them misses, the player and franchise honours after it reuse it
-        awards: () => archive.winners('hasek'),
+        awards: () => archive.winners(catalogueAward('hasek')),
         honors1: () => archive.playerHonors('p1'), honors2: () => archive.playerHonors('p2'),
-        cups: () => archive.winners('jagr-cup'), primeMinister: () => archive.winners('prime-minister'),
+        cups: () => archive.winners(catalogueAward('jagr-cup')), primeMinister: () => archive.winners(catalogueAward('prime-minister')),
         trophies1: () => archive.franchiseHonors(1), trophies2: () => archive.franchiseHonors(2),
         draft: () => history.getSeasonDraft(2026), franchiseDraft: () => history.getFranchiseDraft(1),
         history: () => history.getHistory({ franchiseId: 1 }), historySeasons: () => history.getHistorySeasons({ franchiseId: 1 }),
@@ -84,7 +84,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
     saved(await edits.saveAwards(2026, [{ award: 'hasek', playerId: 'p2' }], cache));
     // the trophy cases read the stored winners 'awards' just refreshed, so they show the new winner without a read of their own
     await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'player1', 'player2', 'awards', 'honors1', 'honors2', 'records']);
-    assert.equal((await archive.winners('hasek'))![0].PlayerID, 'p2');
+    assert.equal((await archive.winners(catalogueAward('hasek')))[0].PlayerID, 'p2');
     assert.deepEqual((await archive.playerHonors('p2')).awards.map(award => [award.id, award.year]), [['hasek', 2026]]);
     assert.equal((await archive.franchiseHonors(1)).awards.length, 0);
     assert.equal((await archive.franchiseHonors(2)).awards[0].playerId, 'p2');

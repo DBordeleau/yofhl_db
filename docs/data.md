@@ -85,7 +85,7 @@ The season import from Fantrax's CSV exports is the repair path for a season the
 
 Until a season freezes, the season sync keeps writing it from Fantrax each morning, so an import of the season being played lasts only where it agrees with Fantrax (playoff games whose correction window has closed are never rewritten). Score overrides apply only to the import.
 
-The season import command applies migrations before it validates season data, because it reads saved bracket corrections and existing championship rosters and awards. Every validation problem is reported in one list before anything is written, including a ring or award player missing from the season's player export. The import is all or nothing ([ADR 0004](adr/0004-season-import-is-one-transaction.md)): league configuration, Fantrax teams, every season, legacy seeding, history replacement, and the materialized view refreshes are one transaction, so a failure at any point leaves the database as it was. Three things run outside it: before it, migrations (which stay applied if the import then fails) and the NHL draft-facts fetch (which writes nothing itself); after it commits, the site cache clear. This is not a dry-run command.
+The season import command applies migrations before it validates season data, because it reads saved bracket corrections and existing championship rosters and awards. Every validation problem is reported in one list before anything is written, including a ring or award player missing from the season's player export and a legacy award the award catalogue doesn't store winners under. The import is all or nothing ([ADR 0004](adr/0004-season-import-is-one-transaction.md)): league configuration, Fantrax teams, every season, legacy seeding, history replacement, and the materialized view refreshes are one transaction, so a failure at any point leaves the database as it was. Three things run outside it: before it, migrations (which stay applied if the import then fails) and the NHL draft-facts fetch (which writes nothing itself); after it commits, the site cache clear. This is not a dry-run command.
 
 Reimports replace what the CSVs hold for the selected seasons: standings, player seasons and playoff games. Existing championship rosters and awards are preserved, and bracket corrections are reapplied. What only the season sync writes survives: regular-season games (with their ids), weeks, and the skater categories of every player season the import rewrites. A player season the keep rule drops is removed with its categories. A frozen season repaired this way keeps everything the season sync wrote before it froze. The legacy seeds can refill an entirely empty historical roster or award list. Lottery snapshots are not changed. Use an isolated database when checking changed exports or import code.
 
@@ -226,13 +226,13 @@ Pages call shared data functions directly. The JSON routes expose these public v
 | --- | --- |
 | `GET /api/leaderboard?mode=all-time\|single-season&position=all\|c\|lw\|rw\|d\|g&page=1&q=` | Up to 25 leaders and pagination metadata |
 | `GET /api/players/search?q=` | Up to ten players; at least three characters required |
-| `GET /api/players/<id>` | Career summary, seasons, awards, and championships |
+| `GET /api/players/<id>` | Career summary, seasons, awards, and championships. Each award is `{ id, name, label, honor, year }` (catalogue ID, name, label and honour, oldest first), and each championship `{ season, team }` |
 | `GET /api/seasons` | Season and champion list |
 | `GET /api/seasons/<end year>` | Season result and championship roster |
 | `GET /api/franchises` | All-time franchise cards, including defunct status |
 | `GET /api/franchises/<id>` | Franchise identity, records, seasons, and player leaders |
-| `GET /api/awards` | The listed awards in catalogue order, team awards included: each one's `{ id, name, label, honor, description, scope, image }`. An unreleased award, and a voted team award without a published winner, is left out |
-| `GET /api/awards/<slug>` | One listed award's `{ name, label, honor }` and its winners in published seasons, newest first, such as `Wayne_Gretzky_Award` or `Jagr_Cup`. A team award's winners (the Jagr Cup, the Prime Minister's Trophy) are team seasons: `Winner` and `Team` are the team season's name, `TeamID` its franchise, with `Owner`, `TeamLogo`, `FPts` and `Record`, and `PlayerID` is empty. An individual award's carry the player (`Winner`, `PlayerID`) and their team. An award that isn't listed is a 404 |
+| `GET /api/awards` | The listed awards in catalogue order, team awards included: each one's `{ id, name, label, honor, scope, image }`. An unreleased award, and a voted team award without a published winner, is left out |
+| `GET /api/awards/<slug>` | One listed award's `{ id, name, label, honor }` and its winners in published seasons, newest first, such as `Wayne_Gretzky_Award` or `Jagr_Cup`. A team award's winners (the Jagr Cup, the Prime Minister's Trophy) are team seasons: `Winner` and `Team` are the team season's name, `TeamID` its franchise, with `Owner`, `TeamLogo`, `FPts` and `Record`, and `PlayerID` is empty. An individual award's carry the player (`Winner`, `PlayerID`) and their team. An award that isn't listed is a 404 |
 | `GET /api/history` | Paginated transaction/draft feed for one player or franchise |
 | `GET /api/lottery` | Current lottery, server time, and only the results revealed so far |
 | `GET /api/lottery?id=<UUID>` | A specific non-cancelled lottery |
@@ -243,7 +243,7 @@ Pages call shared data functions directly. The JSON routes expose these public v
 
 `/api/leaderboard` accepts an optional `season=<end year>` in `single-season` mode. The championship page uses it for the Top Players section below the standings, with position filters and 25 players per page. Cup and award indicators refer to that player's selected season. Fantasy teams come from the player's end-of-season roster, with the name and logo recorded for that season and a link to the franchise page. Unrostered players appear as free agents. Omitting `season` keeps the leaderboard across all seasons.
 
-The award gallery includes two team trophies as well as the six individual awards. The individual-award API is not the full eight-trophy gallery catalogue.
+The award gallery and `/api/awards` list the same awards: the two team trophies as well as the six individual awards, and GM of the Year once it is released and has a published winner.
 
 ## Testing
 
