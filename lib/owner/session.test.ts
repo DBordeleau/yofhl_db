@@ -333,10 +333,34 @@ test('a save with no session or a malformed team is refused', async t => {
         assert.deepEqual(await act(async s => s.saveTeam({ franchiseId, version, name: 'New Name' })), { ok: false, reason: 'invalid-team' });
         assert.deepEqual(await act(s => s.saveBranding({ franchiseId, version, branding: BRANDING })), { ok: false, reason: 'invalid-team' });
     }
-    for (const franchiseId of [0, -1]) {
-        assert.deepEqual(await act(async s => s.saveTeam({ franchiseId, version: 3, name: 'New Name' })), { ok: false, reason: 'unknown-team' }, 'no franchise has that id');
+    for (const franchiseId of [0, -1, 2147483648]) {
+        assert.deepEqual(await act(async s => s.saveTeam({ franchiseId, version: 3, name: 'New Name' })), { ok: false, reason: 'invalid-team' });
         assert.deepEqual(await act(s => s.saveBranding({ franchiseId, version: 3, branding: BRANDING })), { ok: false, reason: 'invalid-team' });
     }
+});
+
+test('unauthorized, unknown, folded or stale team edits reject before processing or uploading a logo', async t => {
+    const { storage, act, signInAs, query } = await ownerOne(t);
+    storage.state.down = true;
+    const logo = await image();
+
+    assert.deepEqual(await act(s => s.saveTeam({ franchiseId: 2, version: 1, name: 'Not Mine', logo })), { ok: false, reason: 'not-owner' });
+    assert.deepEqual(await act(s => s.saveTeam({ franchiseId: 999, version: 1, name: 'Ghost Team', logo })), { ok: false, reason: 'unknown-team' });
+    assert.deepEqual(await act(s => s.saveTeam({ franchiseId: 1, version: 2, name: 'Stale Tab', logo })), { ok: false, reason: 'stale-version' });
+    await signInAs('owner-3');
+    assert.deepEqual(await act(s => s.saveTeam({ franchiseId: 3, version: 1, name: 'Folded Club', logo })), { ok: false, reason: 'defunct' });
+
+    // A concurrent version increment after the pre-check still uploads then cleans up the orphaned upload.
+    await signInAs('owner-1');
+    storage.state.down = false;
+    const put = storage.port.put.bind(storage.port);
+    t.mock.method(storage.port, 'put', async (path: string, body: Buffer, type: string) => {
+        const url = await put(path, body, type);
+        await query('update league.team_management set version = version + 1 where franchise_id = 1');
+        return url;
+    });
+    assert.deepEqual(await act(s => s.saveTeam({ franchiseId: 1, version: 3, name: 'Race Condition', logo })), { ok: false, reason: 'stale-version' });
+    assert.deepEqual([...storage.state.files.keys()], [OLD_LOGO]);
 });
 
 const BRANDING = { primary: '#123ABC', secondary: '#D24015', tertiary: '#FFFFFF', treatment: 'stripes' };

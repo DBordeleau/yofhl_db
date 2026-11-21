@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import { clampPage, isPositiveInt4, MAX_HISTORY_PAGE, MAX_ID_LENGTH } from './bounds';
 import { cached, rows } from './db';
 import { publishedOnly } from './league';
 import { leagueTags } from './cache-tags';
@@ -46,7 +47,14 @@ const getFranchiseHonorRows = cached(async (id: number): Promise<Omit<FranchiseH
  * an award vote decides is in the trophy case only once listed (lib/awards.ts listedAwards); `catalogue` is the award
  * catalogue, in tests a released one.
  */
+class NotFoundError extends Error {}
+
+const validScope = (scope: HistoryScope) =>
+    (scope.franchiseId === undefined || isPositiveInt4(scope.franchiseId))
+    && (scope.playerId === undefined || (scope.playerId.length > 0 && scope.playerId.length <= MAX_ID_LENGTH));
+
 export async function getFranchiseHonors(id: number, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<FranchiseHonors> {
+    if (!isPositiveInt4(id)) return { primeMinisters: [], awards: [], teamAwards: [] };
     const { primeMinisters, awards, votedWins } = await getFranchiseHonorRows(id);
     const teamAwards = listedAwards(new Set(votedWins.map(win => win.award)), catalogue).flatMap(award => {
         const years = votedWins.filter(win => win.award === award.id).map(win => win.year);
@@ -55,7 +63,7 @@ export async function getFranchiseHonors(id: number, catalogue: readonly AwardDe
     return { primeMinisters: await publishedOnly(primeMinisters, win => win.year), awards, teamAwards };
 }
 
-export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`
+const getCachedFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`
     select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",
            coalesce(p.name, d.player_name) as player, d.positions,
            ps.fpts::float8 as points, ps.fpg::float8 as fpg
@@ -64,6 +72,11 @@ export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql
     left join league.player_seasons ps on ps.player_id = d.player_id and ps.season_year = d.season_year
     where d.franchise_id = ${id}
     order by d.season_year desc, d.overall`), 'franchise-draft-v2', [leagueTags.draft]);
+
+export function getFranchiseDraft(id: number): Promise<DraftSelection[]> {
+    if (!isPositiveInt4(id)) return Promise.resolve([]);
+    return getCachedFranchiseDraft(id);
+}
 
 type SeasonDraftRow = Omit<SeasonDraftSelection, 'regretEligible'> & { draftedOn: string; developmentFacts: DraftDevelopmentFacts | null };
 const getSeasonDraftRows = cached((year: number) => rows<SeasonDraftRow>(sql`
@@ -85,7 +98,7 @@ export async function getSeasonDraft(year: number): Promise<SeasonDraftSelection
     }));
 }
 
-export const getHistorySeasons = cached(async (scope: HistoryScope) => {
+const getCachedHistorySeasons = cached(async (scope: HistoryScope) => {
     const found = await rows<{ year: number }>(sql`
         select distinct e.season_year as year from league.transaction_events e
         join league.transaction_assets a on a.event_id = e.id
@@ -100,12 +113,17 @@ export const getHistorySeasons = cached(async (scope: HistoryScope) => {
     return found.map((s) => s.year);
 }, 'history-seasons-v2');
 
-export const getHistory = cached(async (scope: HistoryScope, kind: HistoryKind = 'all', season: number | null = null, page: number = 1): Promise<HistoryPage> => {
+export function getHistorySeasons(scope: HistoryScope): Promise<number[]> {
+    if (!validScope(scope)) return Promise.resolve([]);
+    return getCachedHistorySeasons(scope);
+}
+
+async function queryHistory(scope: HistoryScope, kind: HistoryKind, season: number | null, page: number): Promise<HistoryPage & { scopeExists: boolean }> {
     const pageSize = 10;
     const offset = (page - 1) * pageSize;
     const player = scope.playerId ?? null;
     const franchise = scope.franchiseId ?? null;
-    const [result] = await rows<{ total: number; events: HistoryPage['events'] }>(sql`
+    const [result] = await rows<{ total: number; events: HistoryPage['events']; scopeExists: boolean }>(sql`
         with feed as (
             select e.id, e.kind, e.season_year as season, e.occurred_on as date, e.occurred_at as sort_time,
                    null::int as round, null::int as overall
@@ -150,6 +168,33 @@ export const getHistory = cached(async (scope: HistoryScope, kind: HistoryKind =
             from selected s
         )
         select (select count(*)::int from feed) as total,
-               coalesce((select jsonb_agg(to_jsonb(v) - 'sort_time' order by v.sort_time desc, v.id desc) from visible v), '[]'::jsonb) as events`);
-    return { ...result, page, pages: Math.max(1, Math.ceil(result.total / pageSize)) };
+               coalesce((select jsonb_agg(to_jsonb(v) - 'sort_time' order by v.sort_time desc, v.id desc) from visible v), '[]'::jsonb) as events,
+               case
+                   when ${player}::text is not null then exists (select 1 from league.players p where p.id = ${player})
+                   when ${franchise}::int is not null then exists (select 1 from league.franchises f where f.id = ${franchise})
+                   else false
+               end as "scopeExists"`);
+    return { total: result.total, events: result.events, page, pages: Math.max(1, Math.ceil(result.total / pageSize)), scopeExists: result.scopeExists };
+}
+
+const getCachedHistory = cached(async (scope: HistoryScope, kind: HistoryKind, page: number): Promise<HistoryPage> => {
+    const { scopeExists, total, events, pages } = await queryHistory(scope, kind, null, page);
+    if (total === 0 && !scopeExists) throw new NotFoundError();
+    return { total, events, page, pages };
 }, 'transaction-history-v3');
+
+export async function getHistory(scope: HistoryScope, kind: HistoryKind = 'all', season: number | null = null, page: number = 1): Promise<HistoryPage> {
+    const safePage = clampPage(page, MAX_HISTORY_PAGE);
+    if (!validScope(scope) || (season !== null && (!Number.isInteger(season) || season < 1900 || season > 2200))) {
+        return { total: 0, events: [], page: safePage, pages: 1 };
+    }
+    if (season === null && safePage <= 5) {
+        try { return await getCachedHistory(scope, kind, safePage); }
+        catch (error) {
+            if (error instanceof NotFoundError) return { total: 0, events: [], page: safePage, pages: 1 };
+            throw error;
+        }
+    }
+    const { total, events, page: resolvedPage, pages } = await queryHistory(scope, kind, season, safePage);
+    return { total, events, page: resolvedPage, pages };
+}
