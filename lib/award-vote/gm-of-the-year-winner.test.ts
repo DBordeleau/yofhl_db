@@ -44,41 +44,49 @@ test("GM of the Year's award page lists each winning team season under its seaso
 
 test('lists of awards show GM of the Year only once it is released and one of its tallies is published', async t => {
     const { route, publish } = await scoredLeague(t);
-    const league = await import('@/lib/data/league');
+    const { listed: listedAwards } = await import('@/lib/data/award-archive');
     const { searchPublicDirectory } = await import('@/lib/data/search');
-    /** where GM of the Year is listed with `catalogue`: navigation and the award gallery, search, the award API's list and its winners */
-    const listed = async (catalogue?: readonly AwardDefinition[]) => {
-        const gallery = (await route('/awards', () => league.getListedAwards(catalogue))).some(award => award.id === 'gm-of-the-year');
-        const search = (await route('/search', () => searchPublicDirectory({ q: 'GM of the Year', type: 'awards', page: 1 }, catalogue))).total > 0;
-        const api = (await route('/api/awards', () => league.getListedAwardTypes(catalogue))).some(award => award.name === 'GM of the Year');
-        const winners = await route('/api/awards/[slug]', () => league.getListedAwardWinners('GM of the Year', catalogue));
-        return { gallery, search, api, winners: winners?.winners.map(winner => [winner.Year, winner.Winner, winner.Owner]) ?? null };
+    const { GET: list } = await import('@/app/api/awards/route');
+    const { GET: awardWinners } = await import('@/app/api/awards/[slug]/route');
+    /** where GM of the Year is listed with `catalogue`: navigation and the award gallery, and search */
+    const listed = async (catalogue?: readonly AwardDefinition[]) => ({
+        gallery: (await route('/awards', () => listedAwards(catalogue))).some(award => award.id === 'gm-of-the-year'),
+        search: (await route('/search', () => searchPublicDirectory({ q: 'GM of the Year', type: 'awards', page: 1 }, catalogue))).total > 0,
+    });
+    /** the award API with the real catalogue, where GM of the Year is unreleased: its list, and its winners' status */
+    const api = async () => {
+        const awards: { id: string }[] = await (await route('/api/awards', () => list())).json();
+        const slug = 'GM_of_the_Year';
+        const response = await route('/api/awards/[slug]', () => awardWinners(new Request(`http://yofhl.test/api/awards/${slug}`), { params: Promise.resolve({ slug }) }));
+        return { list: awards.some(award => award.id === 'gm-of-the-year'), status: response.status };
     };
-    const hidden = { gallery: false, search: false, api: false, winners: null };
+    const hidden = { gallery: false, search: false };
     assert.deepEqual(await listed(RELEASED), hidden, 'released, scored but not published');
     assert.deepEqual(await listed(), hidden, 'unreleased, scored but not published');
+    assert.deepEqual(await api(), { list: false, status: 404 }, 'unreleased, scored but not published');
 
     assert.deepEqual((await publish()).result, { ok: true });
     assert.deepEqual(await listed(), hidden, 'unreleased, published');
-    assert.deepEqual(await listed(RELEASED), { gallery: true, search: true, api: true, winners: [[SEASON, 'Club 1', 'Owner 1']] }, 'released, published');
+    assert.deepEqual(await api(), { list: false, status: 404 }, 'unreleased, published');
+    assert.deepEqual(await listed(RELEASED), { gallery: true, search: true }, 'released, published');
 });
 
-test("the award API finds a listed GM of the Year's winners by any spelling of its name the catalogue knows", async t => {
+test("GM of the Year's winners are found by any spelling of its name the catalogue knows", async t => {
     const { route, publish } = await scoredLeague(t);
-    const league = await import('@/lib/data/league');
+    const { winners } = await import('@/lib/data/award-archive');
     assert.deepEqual((await publish()).result, { ok: true });
     for (const name of ['GM of the Year', 'gm of the year', 'gm-of-the-year']) {
-        const winners = await route('/api/awards/[slug]', () => league.getListedAwardWinners(name, RELEASED));
-        assert.deepEqual(winners?.winners.map(winner => [winner.Year, winner.Winner]), [[SEASON, 'Club 1']], name);
+        const won = await route('/awards/[award]', () => winners(name));
+        assert.deepEqual(won?.map(winner => [winner.Year, winner.Winner]), [[SEASON, 'Club 1']], name);
     }
 });
 
 test("a GM of the Year win is in the winning franchise's trophy case once it is released", async t => {
     const { route, publish } = await scoredLeague(t, SHARED);
-    const { getFranchiseHonors } = await import('@/lib/data/history');
+    const { franchiseHonors } = await import('@/lib/data/award-archive');
     /** franchise `id`'s trophy case: its voted team awards as [award, seasons] */
     const trophyCase = async (id: number, catalogue?: readonly AwardDefinition[]) =>
-        (await route('/teams/[ID]', () => getFranchiseHonors(id, catalogue))).teamAwards.map(award => [award.id, award.years]);
+        (await route('/teams/[ID]', () => franchiseHonors(id, catalogue))).teamAwards.map(award => [award.id, award.years]);
     assert.deepEqual(await trophyCase(1, RELEASED), [], 'released, scored but not published');
 
     assert.deepEqual((await publish()).result, { ok: true });

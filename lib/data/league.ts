@@ -3,9 +3,6 @@ import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import type { SeasonIdentity } from '../team-identity';
 import { isPublished, seasonArchive } from '../seasons';
-import { AWARD_CATALOGUE, findAward, listedAwards, type AwardDefinition } from '../awards';
-import { GM_OF_THE_YEAR } from '../award-vote/model';
-import { publishedTeamAwardWinners } from '../award-vote/published-vote';
 
 // Every query the site makes. Each is cached until the next import or admin edit (see ./db).
 // Field names in PascalCase match what the existing table components already expect.
@@ -45,19 +42,6 @@ export interface LeaderboardPage {
     pages: number;
     total: number;
 }
-
-export interface AwardType {
-    name: string;
-    label: string;
-    /** the catalogue's honour, e.g. "Top goaltender" */
-    honor: string;
-}
-
-/** an award type row read with the catalogue's label and honour, falling back to the row's own for an award the catalogue doesn't know */
-const toAwardType = (row: { name: string; label: string; description: string }): AwardType => {
-    const award = findAward(row.name);
-    return { name: row.name, label: award?.label ?? row.label, honor: award?.honor ?? row.description };
-};
 
 export interface PlayerSeason {
     Year: number;
@@ -188,38 +172,6 @@ export const getSeasonArchive = async () => seasonArchive(await getBannerSeasons
 export async function publishedOnly<T>(items: T[] | Promise<T[]>, yearOf: (item: T) => number): Promise<T[]> {
     const [list, archive] = await Promise.all([items, getSeasonArchive()]);
     return list.filter(item => isPublished(archive, yearOf(item)));
-}
-
-export const getAwardTypes = cached(
-    async () => (await rows<{ name: string; label: string; description: string }>(sql`select name, label, description from league.award_types order by sort_order`)).map(toAwardType),
-    'award-types-v2',
-);
-
-/** the catalogue IDs of the team awards with a published award vote tally (never a rehearsal's) */
-const getPublishedTeamAwards = cached(
-    async () => (await rows<{ award: string }>(sql`select distinct w.award from ${publishedTeamAwardWinners} w`)).map(row => row.award),
-    'published-team-awards',
-    [leagueTags.awardVoteTallies],
-);
-
-/** the awards lists of awards show (lib/awards.ts listedAwards); `catalogue` is the award catalogue, in tests a released one */
-export async function getListedAwards(catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<AwardDefinition[]> {
-    return listedAwards(new Set(await getPublishedTeamAwards()), catalogue);
-}
-
-/** the award API's list: the archive's award types, then each listed team award an award vote decides */
-export async function getListedAwardTypes(catalogue?: readonly AwardDefinition[]): Promise<AwardType[]> {
-    const [types, listed] = await Promise.all([getAwardTypes(), getListedAwards(catalogue)]);
-    return [...types, ...listed.filter(award => award.id === GM_OF_THE_YEAR)
-        .map(award => ({ name: award.name, label: award.label, honor: award.honor }))];
-}
-
-/** the award API's winners of GM of the Year by name, once listed; null for any other name (the award archive answers every other award) */
-export async function getListedAwardWinners(name: string, catalogue?: readonly AwardDefinition[]): Promise<{ award: AwardType; winners: AwardWinner[] } | null> {
-    const id = findAward(name)?.id;
-    const award = id === GM_OF_THE_YEAR ? (await getListedAwards(catalogue)).find(award => award.id === id) : undefined;
-    if (!award) return null;
-    return { award: { name: award.name, label: award.label, honor: award.honor }, winners: await getGmOfTheYearWinners() };
 }
 
 export const getAllTimeLeaderboard = cached(async (position: string, page: number, q: string): Promise<LeaderboardPage> => {
@@ -429,19 +381,6 @@ export const teamSeasonWinnerRows = (criterion: SQL) => rows<AwardWinner>(sql`
     left join league.owners o on o.id = t.owner_id
     where ${criterion}
     order by t.season_year desc, st.name`);
-
-// GM of the Year's winners are the place-one team seasons of its published tallies (never a rehearsal's), co-winners
-// each their own row; it is never in the player-keyed awards table.
-const getGmOfTheYearRows = cached(
-    () => teamSeasonWinnerRows(sql`t.id in (select w.team_season_id from ${publishedTeamAwardWinners} w where w.award = ${GM_OF_THE_YEAR})`),
-    'gm-of-the-year-winners',
-    [leagueTags.awardVoteTallies],
-);
-
-/** GM of the Year's winners in published seasons, newest first */
-export async function getGmOfTheYearWinners(): Promise<AwardWinner[]> {
-    return publishedOnly(getGmOfTheYearRows(), winner => winner.Year);
-}
 
 export const searchPlayers = cached(
     (q: string) =>

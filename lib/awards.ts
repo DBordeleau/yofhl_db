@@ -21,7 +21,7 @@ export interface AwardDefinition {
     /**
      * false for an award the league owner hasn't released: it is on the award vote's ballot and in its tallies, but
      * no list of awards shows it (navigation, the award gallery, search, the award API, share cards, trophy shelves and
-     * the franchise trophy case; see listedAwards). Its own award page still shows its published winners.
+     * the franchise trophy case; see the award archive's listed). Its own award page still shows its published winners.
      */
     released?: false;
     decidedBy: AwardDecidedBy;
@@ -82,15 +82,6 @@ export const AWARD_CATALOGUE: readonly AwardDefinition[] = [
 ];
 
 /**
- * the awards lists of awards show (navigation, the award gallery, search, the award API, the franchise trophy case):
- * the released ones in `catalogue`, a team award decided by an award vote only once one of its tallies is published
- * (`published`, by catalogue ID)
- */
-export function listedAwards(published: ReadonlySet<string>, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): AwardDefinition[] {
-    return catalogue.filter(award => award.released !== false && (award.decidedBy !== 'teamVote' || published.has(award.id)));
-}
-
-/**
  * the awards a season is expected to have stored winners for (the admin season page and season status): every stored
  * award, less those that need playoffs in a season whose playoffs weren't played
  */
@@ -98,7 +89,7 @@ export function expectedAwards(playoffsPlayed: boolean): AwardDefinition[] {
     return AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored' && (playoffsPlayed || !award.needsPlayoffs));
 }
 
-/** the released awards with trophy art, in catalogue order: player trophy shelves and share cards; lists of every award use listedAwards */
+/** the released awards with trophy art, in catalogue order: player trophy shelves and share cards; lists of every award use the award archive's listed */
 export const AWARDS: readonly (AwardDefinition & { image: string })[] =
     AWARD_CATALOGUE.filter((award): award is AwardDefinition & { image: string } => award.released !== false && award.image !== null);
 

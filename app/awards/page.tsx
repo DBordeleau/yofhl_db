@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { TrophyArt } from '@/components/trophy-icons';
 import TrophySparkles from '@/components/trophy-sparkles';
 import { awardHref } from '@/lib/awards';
-import { getListedAwards } from '@/lib/data/league';
+import { listed } from '@/lib/data/award-archive';
 import Arrow from '@/components/arrow';
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AwardsPage() {
-    const awards = await getListedAwards();
+    const awards = await listed();
     return (
         <main className="mx-auto max-w-page px-4 pb-16 pt-8 md:px-8 md:pt-12 3xl:max-w-page-3xl 4xl:max-w-page-4xl">
             <header className="mb-8 max-w-2xl md:mb-10">

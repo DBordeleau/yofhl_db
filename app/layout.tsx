@@ -4,7 +4,8 @@ import { Analytics } from "@vercel/analytics/next";
 import Header, { type NavLeader } from "@/components/header";
 import TeamBrandingProvider from "@/components/team-branding/branding-provider";
 import { getTeamBranding } from "@/lib/data/team-branding";
-import { getAllTimeLeaderboard, getAwardTypes, getListedAwards, getFranchiseCards, getSeasonArchive, getSingleSeasonLeaderboard, type LeaderRow } from "@/lib/data/league";
+import { getAllTimeLeaderboard, getFranchiseCards, getSeasonArchive, getSingleSeasonLeaderboard, type LeaderRow } from "@/lib/data/league";
+import { listed } from "@/lib/data/award-archive";
 import { seasonLabel } from "@/lib/league";
 import { getPublishedEpisodes } from "@/lib/data/coachs-corner";
 import { episodeSeenKey } from "@/lib/coachs-corner/seen";
@@ -32,8 +33,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [awards, listedAwards, palettes, seasonArchive, franchises, allTime, singleSeason, episodes] = await Promise.all([
-    getAwardTypes(), getListedAwards(), getTeamBranding(), getSeasonArchive(), getFranchiseCards(),
+  const [listedAwards, palettes, seasonArchive, franchises, allTime, singleSeason, episodes] = await Promise.all([
+    listed(), getTeamBranding(), getSeasonArchive(), getFranchiseCards(),
     getAllTimeLeaderboard('all', 1, ''), getSingleSeasonLeaderboard('all', 1, ''),
     getPublishedEpisodes(),
   ]);
@@ -41,7 +42,6 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${archivo.variable} min-h-screen overflow-x-hidden bg-ice font-sans text-ink antialiased`}>
         <Header
-          awards={awards}
           listedAwards={listedAwards.map(award => ({ name: award.name, label: award.label, honor: award.honor }))}
           latestCoachsCornerEpisode={episodes[0] ? episodeSeenKey(episodes[0]) : null}
           seasonArchive={seasonArchive}
