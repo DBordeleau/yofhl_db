@@ -205,27 +205,30 @@ export async function readBracket(ports: SeasonSyncPorts, season: CurrentSeason,
 }
 
 /**
- * The games as two parts touching disjoint rows: a stored game (by round and slot) is rewritten only where a value
- * differs, and a game not yet stored is inserted. Each returns one row per game it changed.
+ * The games as two parts touching disjoint rows: any stored championship game in the rewritten rounds whose
+ * pairing is no longer in the planned bracket is deleted, and every planned game is inserted or updated in place
+ * on (season_year, stage, round, away_team_season_id, home_team_season_id) only where a value differs (avoiding
+ * unique-key collisions when games swap slots inside a round). Each returns one row per game it changed.
  */
 export const playoffGamesWrites = (seasonYear: number, games: PlayoffGame[]): SyncWrite[] => [{
     count: 'playoffGames',
     change: 'playoffs',
     statement: sql`
-        update league.matchups m
-        set away_team_season_id = g.away, home_team_season_id = g.home, away_score = round(g."awayScore", 2),
-            home_score = round(g."homeScore", 2), winner_team_season_id = g.winner
-        from ${gamesPayload(games)}
-        where m.season_year = ${seasonYear} and m.stage = 'playoff' and m.bracket = 'championship' and m.round = g.round and m.slot = g.slot
-          and (m.away_team_season_id, m.home_team_season_id, m.away_score, m.home_score, m.winner_team_season_id)
-              is distinct from (g.away, g.home, round(g."awayScore", 2), round(g."homeScore", 2), g.winner)
+        delete from league.matchups m
+        where m.season_year = ${seasonYear} and m.stage = 'playoff' and m.bracket = 'championship'
+          and m.round in (select distinct g.round from ${gamesPayload(games)})
+          and not exists (select 1 from ${gamesPayload(games)}
+              where g.round = m.round and g.away = m.away_team_season_id and g.home = m.home_team_season_id)
         returning m.id`,
 }, {
     count: 'playoffGames',
     change: 'playoffs',
     statement: sql`
         ${insertGames(seasonYear, 'playoff', games)}
-        where not exists (select 1 from league.matchups s
-            where s.season_year = ${seasonYear} and s.stage = 'playoff' and s.bracket = 'championship' and s.round = g.round and s.slot = g.slot)
-        returning id`,
+        on conflict (season_year, stage, round, away_team_season_id, home_team_season_id) do update
+        set bracket = excluded.bracket, slot = excluded.slot, away_score = excluded.away_score,
+            home_score = excluded.home_score, winner_team_season_id = excluded.winner_team_season_id
+        where (m.bracket, m.slot, m.away_score, m.home_score, m.winner_team_season_id)
+              is distinct from (excluded.bracket, excluded.slot, excluded.away_score, excluded.home_score, excluded.winner_team_season_id)
+        returning m.id`,
 }];

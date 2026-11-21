@@ -1,7 +1,7 @@
 // Pick'em seasons (GLOSSARY.md, "Pick'em"): each season year has its own. The season being played is the live
 // season's; a past season is whatever Pick'em has recorded, read from its own record alone. A season's Pick'em is
-// complete once its last regular-season week is frozen, and settle stores that mark because the live season stops
-// describing the season once Fantrax moves on.
+// complete once every regular-season Pick'em week is recorded and frozen, and settle stores that mark because the
+// live season stops describing the season once Fantrax moves on.
 import { sql } from 'drizzle-orm';
 import { cached, rows } from '@/lib/data/db';
 import { loadLivePickem } from './live-weeks';
@@ -25,13 +25,23 @@ const readRecordedSeasons = cached(async () => rows<RecordedSeason>(sql`
 export const isSeasonComplete = async (seasonYear: number) =>
     (await readRecordedSeasons()).some(item => item.seasonYear === seasonYear && item.complete);
 
-// One statement (ADR 0002): the season is marked only once every pairing of its last week is frozen, and only once.
-export const completeSeasonQuery = (seasonYear: number, lastWeek: number) => sql`
-    with completed as (
+// One statement (ADR 0002): the season is marked only once every Pick'em week is recorded and every recorded
+// pairing of the season is frozen (with at least one frozen pairing), and only once.
+export const completeSeasonQuery = (seasonYear: number, weeks: number[]) => sql`
+    with expected as (
+        select distinct value::smallint as week
+        from jsonb_array_elements_text(${JSON.stringify(weeks)}::jsonb)
+    ),
+    completed as (
         insert into league.pickem_completed_seasons (season_year)
         select ${seasonYear}::int
-        where (select bool_and(p.frozen_at is not null) from league.pickem_pairings p
-               where p.season_year = ${seasonYear}::int and p.week = ${lastWeek}::int)
+        where exists (select 1 from expected)
+          and not exists (
+              select 1 from expected e
+              where not exists (select 1 from league.pickem_weeks w where w.season_year = ${seasonYear}::int and w.week = e.week)
+          )
+          and coalesce((select bool_and(p.frozen_at is not null) from league.pickem_pairings p
+                        where p.season_year = ${seasonYear}::int), false)
         on conflict (season_year) do nothing
         returning 1
     )
