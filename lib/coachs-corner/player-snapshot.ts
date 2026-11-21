@@ -2,7 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import fantraxPortraits from '../records/player-portraits.json';
 import { seasonLabel } from '../seasons';
 import { citationLine, type Episode } from './episode';
-import type { Diagnostic, PlayerRef } from './script';
+import { normalizePlayerName, type Diagnostic, type PlayerRef } from './script';
 import type { StudioPlayer } from './teams';
 
 // The player snapshot (GLOSSARY.md): the one place Coach's Corner turns an episode's cited players into the
@@ -76,14 +76,15 @@ const defaultQuery: Query = async query => {
 
 interface ArchiveRow { id: string; name: string; nhlTeam: string | null; positions: string[]; fpts: number | null; fpg: number | null }
 
-const key = (name: string) => name.trim().toLowerCase();
-const loose = (name: string) => name.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+const key = (name: string) => normalizePlayerName(name).toLowerCase();
+const loose = (name: string) => normalizePlayerName(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 // the column is NOT NULL, but numeric allows NaN
 const complete = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const portraits: Record<string, string> = fantraxPortraits;
 
 async function headshotFor(name: string, nhlTeam: string | null, fantraxId: string | null, nhl: NhlPortraits): Promise<string | null> {
-    const same = (await nhl.search(name)).filter(hit => loose(hit.name) === loose(name));
+    const queryName = normalizePlayerName(name);
+    const same = (await nhl.search(queryName)).filter(hit => loose(hit.name) === loose(queryName));
     const narrowed = nhlTeam ? same.filter(hit => hit.teamAbbrev === nhlTeam || hit.lastTeamAbbrev === nhlTeam) : same;
     const face = narrowed.length === 1 && /^\d+$/.test(narrowed[0].playerId) ? await nhl.headshot(narrowed[0].playerId) : null;
     return face ?? (fantraxId ? portraits[fantraxId] ?? null : null);

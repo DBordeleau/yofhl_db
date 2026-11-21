@@ -117,8 +117,10 @@ export function compile(script: Script): Timeline {
     const rest = Object.fromEntries(CHARACTERS.map(c => [c, 'rest'])) as Record<CharacterId, string>;
     const setGesture = (who: CharacterId, gesture: string, t: number) => {
         const track = gestures[who];
-        if (track.length && track[track.length - 1].t === t) track[track.length - 1].value = gesture;
-        else if (track[track.length - 1]?.value !== gesture) track.push({ t, value: gesture });
+        if (track.length && track[track.length - 1].t === t) {
+            track[track.length - 1].value = gesture;
+            if (track.length > 1 && track[track.length - 2].value === gesture) track.pop();
+        } else if (track[track.length - 1]?.value !== gesture) track.push({ t, value: gesture });
     };
 
     // cues ahead of the first line set the opening picture
@@ -232,10 +234,22 @@ export function compile(script: Script): Timeline {
             }
         };
 
-        for (const part of event.parts) {
+        const lastTextPart = event.parts.findLastIndex(p => p.kind === 'text' && /\S/.test(p.text));
+        let trailingCutoffRewound = false;
+        let lastCueT = -1;
+        for (let pi = 0; pi < event.parts.length; pi++) {
+            const part = event.parts[pi];
             if (part.kind === 'text') speak(part.text, part.style);
             else {
+                // On a cut-off line, drop the trailing dash pause before trailing cues so they
+                // stay at t1 instead of landing after the next line's t0.
+                if (pi > lastTextPart && !trailingCutoffRewound) {
+                    const textSoFar = words.map(w => w.space + w.pieces.map(p => p.text).join('')).join('');
+                    const last = words[words.length - 1] as Word | undefined;
+                    if (last?.pause && endsCut(textSoFar)) { t -= last.pause; trailingCutoffRewound = true; }
+                }
                 const g = applyCue(part.cue, event.line, who);
+                lastCueT = Math.max(lastCueT, t);
                 if (g) { inlineGesture = g; if (g !== lastGesture) { setGesture(who, g, t); lastGesture = g; } }
             }
         }
@@ -244,12 +258,13 @@ export function compile(script: Script): Timeline {
         const cutoff = endsCut(text);
         const lastWord = words[words.length - 1] as Word | undefined;
         // the closing punctuation pause becomes the gap before the next line
-        if (lastWord?.pause) t -= lastWord.pause;
+        if (lastWord?.pause && !trailingCutoffRewound) t -= lastWord.pause;
         const t1 = t;
         const after = event.after ?? gestureAfter(who, lastGesture);
-        setGesture(who, after, t1);
+        const afterAt = Math.max(t1, gestures[who][gestures[who].length - 1]?.t ?? 0);
+        setGesture(who, after, afterAt);
         rest[who] = after;
-        const end = cutoff ? t1 : t1 + Math.max(LINE_GAP_MS, lastWord?.pause ?? 0);
+        const end = Math.max(cutoff ? t1 : t1 + Math.max(LINE_GAP_MS, lastWord?.pause ?? 0), lastCueT);
         t = end;
 
         // merge voice runs split only by short pauses so the body keeps moving through a sentence
