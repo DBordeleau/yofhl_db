@@ -108,11 +108,7 @@ export async function publishAwardVote(seasonYear: number): Promise<AdminActionR
     if (!Number.isInteger(seasonYear)) return { error: 'Choose a valid season.' };
     try {
         const result = await awardVote.publish({ seasonYear });
-        if (!result.ok) {
-            return { error: result.reason === 'missing-award-type'
-                ? `The archive has no award type named ${result.awardTypes.join(', ')}. Add it to league/league.yml and import, then publish.`
-                : PUBLISH_REFUSALS[result.reason] };
-        }
+        if (!result.ok) return { error: PUBLISH_REFUSALS[result.reason] };
         revalidatePath(`/admin/seasons/${seasonYear}`);
         return { message: 'Published. The winners are on every award page.' };
     } catch (error) {

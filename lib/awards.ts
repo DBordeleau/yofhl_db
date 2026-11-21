@@ -89,6 +89,9 @@ export function expectedAwards(playoffsPlayed: boolean): AwardDefinition[] {
     return AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored' && (playoffsPlayed || !award.needsPlayoffs));
 }
 
+/** the catalogue IDs of the awards whose winners are stored (`league.awards.award`): the only IDs the curated edits write */
+export const STORED_AWARD_IDS: readonly string[] = AWARD_CATALOGUE.filter(award => award.decidedBy === 'stored').map(award => award.id);
+
 /** the released awards with trophy art, in catalogue order: player trophy shelves and share cards; lists of every award use the award archive's listed */
 export const AWARDS: readonly (AwardDefinition & { image: string })[] =
     AWARD_CATALOGUE.filter((award): award is AwardDefinition & { image: string } => award.released !== false && award.image !== null);

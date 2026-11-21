@@ -2,7 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { cached, rows } from './db';
 import { leagueTags } from './cache-tags';
 import { publishedOnly, teamSeasonWinnerRows, type AwardWinner } from './league';
-import { AWARD_CATALOGUE, expectedAwards, findAward, type AwardDecidedBy, type AwardDefinition } from '../awards';
+import { AWARD_CATALOGUE, STORED_AWARD_IDS, expectedAwards, findAward, type AwardDecidedBy, type AwardDefinition } from '../awards';
 import { publishedTeamAwardWinners } from '../award-vote/published-vote';
 import type { FranchiseHonors } from '../history/model';
 
@@ -44,23 +44,19 @@ const teamSeasonWinners = (source: TeamSeasonSource) => (award: AwardDefinition)
 /** a stored individual-award winner: the award's catalogue ID and the award page's row */
 interface StoredWinner { award: string; winner: AwardWinner }
 
-// Every stored individual-award winner, newest first, co-winners by name. The award table is joined only to find each
-// row's catalogue award; a row the catalogue doesn't know is no award winner.
+// Every stored individual-award winner, newest first, co-winners by name, under the award's catalogue ID. A row under
+// an ID the catalogue doesn't store winners under is no award winner (the curated edits never write one).
 const getStoredWinners = cached(async (): Promise<StoredWinner[]> => {
-    const stored = await rows<AwardWinner & { name: string }>(sql`
-        select at.name, a.season_year as "Year", p.name as "Winner", p.id as "PlayerID", t.name as "Team", t.franchise_id as "TeamID",
+    const stored = await rows<AwardWinner & { award: string }>(sql`
+        select a.award, a.season_year as "Year", p.name as "Winner", p.id as "PlayerID", t.name as "Team", t.franchise_id as "TeamID",
                t.logo as "TeamLogo", ps.fpts::float8 as "FPts", ps.fpg::float8 as "FPG"
         from league.awards a
-        join league.award_types at on at.id = a.award_type_id
         join league.players p on p.id = a.player_id
         left join league.season_teams t on t.team_season_id = a.team_season_id
         left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = a.season_year
         order by a.season_year desc, p.name, p.id`);
-    return stored.flatMap(({ name, ...winner }) => {
-        const award = findAward(name);
-        return award?.decidedBy === 'stored' ? [{ award: award.id, winner }] : [];
-    });
-}, 'award-archive-stored', [leagueTags.awards]);
+    return stored.flatMap(({ award, ...winner }) => STORED_AWARD_IDS.includes(award) ? [{ award, winner }] : []);
+}, 'award-archive-stored-v2', [leagueTags.awards]);
 
 /** the stored individual-award winners in published seasons, newest first */
 const publishedStoredWinners = () => publishedOnly(getStoredWinners(), stored => stored.winner.Year);
@@ -169,19 +165,17 @@ export interface SeasonAwards {
 export async function seasonAwards(year: number): Promise<SeasonAwards | null> {
     const [season] = await rows<{ playoffStatus: string }>(sql`select playoff_status as "playoffStatus" from league.seasons where year = ${year}`);
     if (!season) return null;
-    const stored = await rows<{ name: string; id: string; player: string; positions: string; fpts: number; team: string }>(sql`
-        select at.name, p.id, p.name as player, coalesce(array_to_string(ps.positions, ', '), '') as positions,
+    const stored = await rows<{ award: string; id: string; player: string; positions: string; fpts: number; team: string }>(sql`
+        select a.award, p.id, p.name as player, coalesce(array_to_string(ps.positions, ', '), '') as positions,
                coalesce(ps.fpts, 0)::float8 as fpts, coalesce(t.abbreviation, 'FA') as team
         from league.awards a
-        join league.award_types at on at.id = a.award_type_id
         join league.players p on p.id = a.player_id
         left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = a.season_year
         left join league.team_seasons t on t.id = coalesce(a.team_season_id, ps.team_season_id)
         where a.season_year = ${year}
         order by p.name, p.id`);
-    const winners = stored.flatMap(({ name, player, ...row }) => {
-        const award = findAward(name);
-        return award?.decidedBy === 'stored' ? [{ award: award.id, player: { id: row.id, name: player, positions: row.positions, fpts: row.fpts, team: row.team } }] : [];
-    }).sort((a, b) => catalogueOrder(a.award) - catalogueOrder(b.award));
+    const winners = stored.flatMap(({ award, player, ...row }) => STORED_AWARD_IDS.includes(award)
+        ? [{ award, player: { id: row.id, name: player, positions: row.positions, fpts: row.fpts, team: row.team } }] : [],
+    ).sort((a, b) => catalogueOrder(a.award) - catalogueOrder(b.award));
     return { expected: expectedAwards(season.playoffStatus === 'complete'), winners };
 }

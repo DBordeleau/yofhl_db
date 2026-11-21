@@ -379,24 +379,18 @@ export const matchupOverrides = league.table(
     (t) => [primaryKey({ columns: [t.seasonYear, t.round, t.franchiseA, t.franchiseB] })],
 );
 
-export const awardTypes = league.table('award_types', {
-    id: serial('id').primaryKey(),
-    name: text('name').notNull().unique(), // e.g. "Teemu Trophy" (also the URL slug source)
-    label: text('label').notNull(), // e.g. "Teemu Selanne Trophy"
-    description: text('description').notNull(), // e.g. "Top Rookie"
-    sortOrder: smallint('sort_order').notNull(),
-});
-
-// curated
+// curated. One row per individual-award winner, under the award's catalogue ID ('hasek'; lib/awards.ts). There is no
+// award table and no foreign key or CHECK on the ID: the curated edits refuse IDs the catalogue doesn't store
+// (docs/adr/0009-awards-are-catalogue-ids.md).
 export const awards = league.table(
     'awards',
     {
         seasonYear: integer('season_year').notNull().references(() => seasons.year),
-        awardTypeId: integer('award_type_id').notNull().references(() => awardTypes.id),
+        award: text('award').notNull(),
         playerId: text('player_id').notNull().references(() => players.id),
         teamSeasonId: integer('team_season_id').references(() => teamSeasons.id),
     },
-    (t) => [primaryKey({ columns: [t.seasonYear, t.awardTypeId, t.playerId] })],
+    (t) => [primaryKey({ columns: [t.seasonYear, t.award, t.playerId] })],
 );
 
 // ---- award votes (GLOSSARY.md, "Award vote"): written only by the award vote module (lib/award-vote); the season

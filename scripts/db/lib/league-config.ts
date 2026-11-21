@@ -36,7 +36,6 @@ export interface FantraxSeason {
 
 export interface LeagueConfig {
     franchises: Franchise[];
-    awards: { name: string; label?: string; description: string }[];
     seasons: Record<number, { playoffs?: 'cancelled'; consolation?: string[]; fantrax?: FantraxSeason }>;
     scoreOverrides: ScoreOverride[];
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { sql } from 'drizzle-orm';
 import { disposableLeague } from '../testing/disposable-league';
 
 test('curated edits against disposable Postgres', async t => {
@@ -17,8 +18,7 @@ test('curated edits against disposable Postgres', async t => {
         values ('p1', 2025, 1, array['C'], 99, 2), ('p2', 2025, 2, array['C'], 98, 2),
                ('p1', 2026, 3, array['C'], 99, 2), ('p2', 2026, 4, array['C'], 98, 2), ('p3', 2026, null, array['D'], 50, 1);
         insert into league.championship_rosters values (2025, 'p1'), (2026, 'p1');
-        insert into league.award_types (id, name, label, description, sort_order) values (1, 'mvp', 'MVP', 'MVP', 1), (2, 'rookie', 'Rookie', 'Rookie', 2);
-        insert into league.awards values (2026, 1, 'p1', 3);
+        insert into league.awards (season_year, award, player_id, team_season_id) values (2026, 'wayne-gretzky', 'p1', 3);
         insert into league.matchups (id, season_year, stage, round, bracket, slot, away_team_season_id, home_team_season_id, away_score, home_score, winner_team_season_id)
         values (1, 2025, 'playoff', 1, 'championship', 1, 1, 2, 100, 90, 1), (2, 2026, 'playoff', 1, 'championship', 1, 3, 4, 100, 90, 3),
                (3, 2026, 'regular', 1, 'championship', 1, 3, 4, 50, 60, 4);
@@ -79,44 +79,59 @@ test('curated edits against disposable Postgres', async t => {
         assert.ok(cache.tags.includes('league:season:2026') && cache.tags.length === 6, cache.tags.join());
     });
 
-    const awards = () => query('select award_type_id, player_id, team_season_id from league.awards order by season_year, award_type_id, player_id');
+    const awards = () => query('select award, player_id, team_season_id from league.awards order by season_year, award, player_id');
 
     await t.test('saving awards replaces only the picked awards and refreshes careers', async () => {
         const cache = recorder();
-        assert.deepEqual(await edits.saveAwards(2026, [{ award: 'mvp', playerId: 'p2' }, { award: 'rookie', playerId: 'p3' }], cache), { ok: true, saved: 2 });
+        assert.deepEqual(await edits.saveAwards(2026, [{ award: 'wayne-gretzky', playerId: 'p2' }, { award: 'teemu-selanne', playerId: 'p3' }], cache), { ok: true, saved: 2 });
         assert.deepEqual(await awards(), [
-            { award_type_id: 1, player_id: 'p2', team_season_id: 4 },
-            { award_type_id: 2, player_id: 'p3', team_season_id: null },
+            { award: 'teemu-selanne', player_id: 'p3', team_season_id: null },
+            { award: 'wayne-gretzky', player_id: 'p2', team_season_id: 4 },
         ]);
         assert.deepEqual(await query("select player_id, awards from league.player_careers where player_id in ('p1', 'p2') order by player_id"),
             [{ player_id: 'p1', awards: 0 }, { player_id: 'p2', awards: 1 }]);
         assert.deepEqual(cache.tags.sort(), ['league:awards', 'league:players', 'league:records', 'league:season-leaderboard', 'league:season:2026']);
 
-        assert.deepEqual(await edits.saveAwards(2026, [{ award: 'mvp', playerId: 'p2' }], recorder()), { ok: true, saved: 1 });
-        assert.deepEqual(await edits.saveAwards(2026, [{ award: 'mvp', playerId: 'p2' }, { award: 'rookie', playerId: 'p2' }], recorder()), { ok: true, saved: 2 }, 'one player can win two awards');
-        assert.deepEqual(await edits.saveAwards(2026, [{ award: 'rookie', playerId: null }], recorder()), { ok: true, saved: 0 });
-        assert.deepEqual(await awards(), [{ award_type_id: 1, player_id: 'p2', team_season_id: 4 }]);
+        assert.deepEqual(await edits.saveAwards(2026, [{ award: 'wayne-gretzky', playerId: 'p2' }], recorder()), { ok: true, saved: 1 });
+        assert.deepEqual(await edits.saveAwards(2026, [{ award: 'wayne-gretzky', playerId: 'p2' }, { award: 'teemu-selanne', playerId: 'p2' }], recorder()), { ok: true, saved: 2 }, 'one player can win two awards');
+        assert.deepEqual(await edits.saveAwards(2026, [{ award: 'teemu-selanne', playerId: null }], recorder()), { ok: true, saved: 0 });
+        assert.deepEqual(await awards(), [{ award: 'wayne-gretzky', player_id: 'p2', team_season_id: 4 }]);
     });
 
     await t.test('an awards save is rejected without writing or expiring anything', async () => {
         for (const [year, picks, reason] of [
-            [2031, [{ award: 'mvp', playerId: 'p1' }], 'unknown-season'],
-            [2026, [{ award: 'rookie', playerId: 'p1' }, { award: 'hart', playerId: 'p1' }], 'unknown-award'],
-            [2025, [{ award: 'mvp', playerId: 'p3' }], 'unknown-player'],
+            [2031, [{ award: 'wayne-gretzky', playerId: 'p1' }], 'unknown-season'],
+            [2026, [{ award: 'teemu-selanne', playerId: 'p1' }, { award: 'hart', playerId: 'p1' }], 'unknown-award'],
+            [2026, [{ award: 'Wayne Gretzky Award', playerId: 'p1' }], 'unknown-award'],
+            [2026, [{ award: 'jagr-cup', playerId: 'p1' }], 'unknown-award'],
+            [2026, [{ award: 'prime-minister', playerId: 'p1' }], 'unknown-award'],
+            [2026, [{ award: 'gm-of-the-year', playerId: 'p1' }], 'unknown-award'],
+            [2025, [{ award: 'wayne-gretzky', playerId: 'p3' }], 'unknown-player'],
         ] as const) {
             const cache = recorder();
             assert.deepEqual(await edits.saveAwards(year, [...picks], cache), { ok: false, reason });
             assert.deepEqual(cache.tags, []);
         }
-        assert.deepEqual(await awards(), [{ award_type_id: 1, player_id: 'p2', team_season_id: 4 }]);
+        assert.deepEqual(await awards(), [{ award: 'wayne-gretzky', player_id: 'p2', team_season_id: 4 }]);
+    });
+
+    await t.test("a published vote's winners under an award the catalogue doesn't store are refused without writing anything", async () => {
+        for (const award of ['hart', 'Hasek Trophy', 'jagr-cup', 'gm-of-the-year']) {
+            const cache = recorder();
+            const winners = sql`select * from (values ('hasek'::text, 'p1'::text, 'Player One'::text, 3::int), (${award}::text, 'p2'::text, 'Player Two'::text, 4::int))
+                                as w (award, player_id, name, team_season_id)`;
+            await assert.rejects(edits.savePublishedWinners(2026, { gate: sql`select 1`, winners }, cache), new RegExp(`awards the catalogue doesn't store: ${award}$`));
+            assert.deepEqual(cache.tags, []);
+        }
+        assert.deepEqual(await awards(), [{ award: 'wayne-gretzky', player_id: 'p2', team_season_id: 4 }]);
     });
 
     await t.test('awards whose refresh fails are saved, expire their pages, then throw', async () => {
         const cache = recorder();
-        await withBrokenView('player_careers', () => edits.saveAwards(2026, [{ award: 'rookie', playerId: 'p1' }], cache));
+        await withBrokenView('player_careers', () => edits.saveAwards(2026, [{ award: 'teemu-selanne', playerId: 'p1' }], cache));
         assert.equal((await awards()).length, 2);
         assert.equal(cache.tags.length, 5);
-        await edits.saveAwards(2026, [{ award: 'rookie', playerId: null }], recorder());
+        await edits.saveAwards(2026, [{ award: 'teemu-selanne', playerId: null }], recorder());
     });
 
     const game = async () => ({

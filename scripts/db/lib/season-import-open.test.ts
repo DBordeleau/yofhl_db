@@ -202,7 +202,6 @@ test('validation: a franchise mapped in the Fantrax block with no era for the se
     // Fernvale folded after 2025–26 but is still mapped in the 2026–27 block
     const folded = withLiveSeason();
     folded.franchises[5].eras[0].to = 2026;
-    folded.awards[0].description = 'Changed description';
 
     assert.deepEqual(await run({ config: folded }), {
         ok: false,

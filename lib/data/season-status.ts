@@ -32,7 +32,7 @@ export const SEASON_STATUS_QUERY = sql`
            (select count(*)::int from league.matchups m where m.season_year = s.year and m.stage = 'playoff') as games,
            (select t.name from league.team_seasons t where t.id = r.champion_team_season_id) as champion,
            (select count(*)::int from league.championship_rosters c where c.season_year = s.year) as roster,
-           (select count(distinct a.award_type_id)::int from league.awards a where a.season_year = s.year) as awards,
+           (select count(distinct a.award)::int from league.awards a where a.season_year = s.year) as awards,
            case when s.playoff_status = 'complete' then ${EXPECTED_WITH_PLAYOFFS}::int else ${EXPECTED_WITHOUT_PLAYOFFS}::int end as "awardsExpected",
            (select count(*)::int from league.matchup_overrides o where o.season_year = s.year) as overrides
     from league.seasons s

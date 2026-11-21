@@ -11,13 +11,13 @@ Seasons use the year they end in. `2026` means the 2025–26 season. Franchise I
 | Standings, player seasons with their skater categories, weeks, regular-season games, playoff games and the championship roster of the season being played | Fantrax, through the [season sync](#season-sync) | Written every morning until the season freezes; the season import from CSVs is the repair path. The sync writes a championship roster only while the season has none, or replaces its own untouched one |
 | Standings, player seasons, playoff games of earlier seasons | Fantrax season CSVs | A season import replaces that season's imported data |
 | Skater categories of 2019–2026 | `lib/records/player-category-history.json`, from `scripts/export-record-player-stats.ts` | Checked in and frozen at 2026; later seasons' are in `player_seasons` |
-| Franchises, identity eras, owners, logos, individual award definitions, playoff fixes, each season's Fantrax league and team IDs | [league.yml](../league/league.yml) | Every season import syncs the league configuration |
+| Franchises, identity eras, owners, logos, playoff fixes, each season's Fantrax league and team IDs | [league.yml](../league/league.yml) | Every season import syncs the league configuration |
 | Current team name/logo overrides, account claims and invitation codes | `/owner` and `/admin/teams` | Stored in `team_management`; preserved by imports and logo sync. See [team management](owners.md). |
 | Championship rosters and individual award winners | `/admin/seasons/<end year>` | Admin edits; legacy seeds fill historical seasons with no entries. A saved roster is never overwritten by an import or the season sync |
 | Bracket corrections | Admin bracket review | Saved corrections are reapplied during imports and decide the winner of a game the season sync writes |
 | Trades, free-agent moves, and draft selections | Fantrax history CSVs | History imports replace supplied files or draft seasons |
 | Draft lottery schedule, order, odds, and winner | `/admin/lottery` and the draw service | Stored separately from season imports; see the [lottery guide](lottery.md) |
-| Trophy labels, descriptions, artwork, and stored-name aliases | [lib/awards.ts](../lib/awards.ts) | Code changes, separate from award winner records |
+| Every award's definition: catalogue ID, name, label, honour, description, order, artwork and how its winners are decided | [lib/awards.ts](../lib/awards.ts) (the award catalogue) | Code changes only; the database keeps no copy, so relabelling an award needs no import or migration ([ADR 0009](adr/0009-awards-are-catalogue-ids.md)) |
 | Pick'em picks | `/pickem`, through the Pick'em module ([lib/pickem](../lib/pickem/)) | Owners save and clear them until each week's lock; never touched by imports |
 | Pick'em record: locked weeks, their pairings and frozen results and scores, completed seasons | Pick'em settle, after each Fantrax refresh | Written once per week and never rewritten ([ADR 0005](adr/0005-pickem-keeps-its-own-results.md)); never touched by imports |
 
@@ -114,7 +114,7 @@ npm run db:sync:logos
 
 This updates franchise and team-season logos without reimporting stats. It checks that the configured files exist, but does not apply migrations or sync defunct status. It refreshes the site cache when `SITE_URL` and `REVALIDATE_SECRET` are configured. Regular season imports also apply the logo mappings.
 
-Award images use a separate catalogue. See the [artwork guide](../public/trophies/README.md) before changing display labels or stored award names.
+Award images live in the award catalogue. See the [artwork guide](../public/trophies/README.md) before changing artwork or display labels.
 
 ## Transaction and draft history
 
@@ -205,8 +205,8 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | --- | --- |
 | `seasons`, `team_seasons`, `players`, `player_seasons`, `matchups` | Season data and playoff brackets, from the season import or, for the season being played, the season sync. A player season's goals, assists, shots, hits and blocks (its skater categories, 0026) are written only by the season sync and are null for goalies and every season before 2027. From 2027 `matchups` also holds the season sync's regular-season games (`stage = 'regular'`, `round` the week number); one row per season, stage, round and pair of team seasons (0027) |
 | `weeks` | Each season's Fantrax weeks with their start and end times (`starts_at`, `ends_at`), written by the season sync from 2027 (0027). `ends_at` is the week's last second: Fantrax's end, a second before the next week's first game, or for an end at midnight Eastern the last second of that day |
-| `franchises`, `owners`, `award_types` | Identities and definitions synced from league configuration |
-| `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections. From 2027 a season's award winners are its published award vote's (co-winners each a row, credited to the team the vote credits), and the hand-entry editor is read-only for that season |
+| `franchises`, `owners` | Identities synced from league configuration |
+| `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections. Each individual-award winner is stored under the award's catalogue ID (`award`, such as `'hasek'`; migration 0033) with no foreign key or CHECK: the curated edits refuse any ID the catalogue doesn't store winners under ([ADR 0009](adr/0009-awards-are-catalogue-ids.md)). From 2027 a season's award winners are its published award vote's (co-winners each a row, credited to the team the vote credits), and the hand-entry editor is read-only for that season |
 | `transaction_events`, `transaction_assets`, `draft_picks` | Historical moves and draft slots with source references |
 | `draft_lotteries` | Event snapshots, version, schedule, cancellation, and saved winner |
 | `pickem_picks` | Each Pick'em entry's Pick'em pick per week and matchup (migration 0018) |

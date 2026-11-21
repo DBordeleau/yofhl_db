@@ -9,7 +9,7 @@ import { AWARD_CATALOGUE, findAward } from '../awards';
 
 // 2024 and 2025 are published, each with a Final; 2026 is still being played. Franchise 2 leads 2024 and 2026 on
 // points, and 2025 ends with franchises 1 and 3 level on the most. The Wayne Gretzky Award was entered by hand for
-// every season, shared in 2025; the Hasek Trophy's stored label is stale, so only the catalogue's may show.
+// every season, shared in 2025; the Hasek Trophy once in 2025.
 const SEED = `
     insert into league.seasons values (2024, '2023–24', 'complete'), (2025, '2024–25', 'complete'), (2026, '2025–26', 'complete');
     insert into league.franchises (id, display_name, first_season, logo_url) values
@@ -26,10 +26,9 @@ const SEED = `
     insert into league.player_seasons (player_id, season_year, team_season_id, positions, fpts, fpg) values
         ('p1', 2024, 1, array['C'], 300, 3.5), ('p1', 2025, 4, array['C'], 310, 3.6), ('p2', 2025, 5, array['LW'], 310, 3.4),
         ('p3', 2026, 9, array['G'], 250, 4.1);
-    insert into league.award_types (id, name, label, description, sort_order) values
-        (1, 'Wayne Gretzky Award', 'Wayne Gretzky Award', 'Most points', 1), (2, 'Hasek Trophy', 'Hasek Award', 'Stale', 2);
-    insert into league.awards (season_year, award_type_id, player_id, team_season_id) values
-        (2024, 1, 'p1', 1), (2025, 1, 'p2', 5), (2025, 1, 'p1', 4), (2026, 1, 'p3', 9), (2025, 2, 'p2', 5);
+    insert into league.awards (season_year, award, player_id, team_season_id) values
+        (2024, 'wayne-gretzky', 'p1', 1), (2025, 'wayne-gretzky', 'p2', 5), (2025, 'wayne-gretzky', 'p1', 4),
+        (2026, 'wayne-gretzky', 'p3', 9), (2025, 'hasek', 'p2', 5);
     insert into league.championship_rosters values (2025, 'p1');
 `;
 
