@@ -12,15 +12,12 @@ import { sql, type SQL } from 'drizzle-orm';
 import { GM_OF_THE_YEAR, VOTED_AWARD_POINTS } from './model';
 
 /**
- * Locks the season's award vote row until the transaction ends. Scoring, voiding and restoring run it before their
- * statement, in the same writeInOrder(), so that statement's snapshot is taken only once the lock is held: under READ
- * COMMITTED each statement sees what was committed before it began, and a lock taken inside a statement doesn't change
- * what the rest of it reads. So each reads the ballots and tallies as any other of them, a ballot write
- * (ballot-write.ts) or publishing that held the row left them, and a ballot write waiting on the lock rechecks the
- * state it leaves.
- *
- * Publishing is one statement (docs/adr/0002), so its snapshot is taken before it waits: publishing that starts while
- * a void or restore holds the lock still reads the tallies from before it.
+ * Locks the season's award vote row until the transaction ends. Scoring, voiding, restoring and publishing run it
+ * before their statement, in the same writeInOrder(), so that statement's snapshot is taken only once the lock is
+ * held: under READ COMMITTED each statement sees what was committed before it began, and a lock taken inside a
+ * statement doesn't change what the rest of it reads. So each reads the ballots and tallies as any other of them, a
+ * ballot write (ballot-write.ts) or publishing that held the row left them, and a ballot write waiting on the lock
+ * rechecks the state it leaves.
  */
 export const lockAwardVote = (seasonYear: number) => sql`select 1 from league.award_votes where season_year = ${seasonYear}::int for update`;
 

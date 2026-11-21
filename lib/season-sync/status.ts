@@ -57,7 +57,7 @@ export const failedRunQuery = (seasonYear: number, now: number, error: string) =
 /** the run that froze the season: nothing else is written for it again */
 export const freezeQuery = (seasonYear: number, now: number) => sql`
     insert into league.season_sync_status (season_year, last_run_at, frozen_at) values (${seasonYear}, ${iso(now)}::timestamptz, ${iso(now)}::timestamptz)
-    on conflict (season_year) do update set last_run_at = excluded.last_run_at, frozen_at = excluded.frozen_at`;
+    on conflict (season_year) do update set last_run_at = excluded.last_run_at, frozen_at = excluded.frozen_at, last_error = null`;
 
 /** a timestamptz as epoch milliseconds, which PGlite and Neon return alike (they differ on timestamptz itself) */
 export const epochMs = (column: SQL) => sql`(extract(epoch from ${column}) * 1000)::float8`;

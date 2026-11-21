@@ -2,7 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import { revalidateTag } from 'next/cache';
 import type { TeamColours } from '../team-branding';
 import { curatedEditEffects, leagueTags, teamIdentityTags, type CuratedEdit } from './cache-tags';
-import { rows } from './db';
+import { rows, writeInOrder } from './db';
 import pilotTeams from '../coachs-corner/pilot-teams.json';
 import { inRefreshOrder } from './materialized-views';
 import { matchupWinner } from './matchup-winner';
@@ -116,6 +116,8 @@ export async function saveAwards(year: number, picks: { award: string; playerId:
 
 /** where an award vote's winners come from: the statement that publishes the vote, and the winners it publishes */
 export interface PublishedWinners {
+    /** optional statements run before the publish statement in the same transaction (e.g. a row lock, ADR 0007) */
+    before?: SQL[];
     /** a statement run as the CTE `gate` that returns a row only when the winners may be written (publishing the vote) */
     gate: SQL;
     /**
@@ -134,9 +136,9 @@ export interface PublishedWinners {
 // the archive and every award page shows them; the season sync keeps award players like any other from then on.
 //
 // Publishing can't be repeated, so if a view refresh fails after the commit, refreshPublishedWinners finishes it.
-export async function savePublishedWinners(year: number, { gate, winners }: PublishedWinners, options: EditOptions = {}):
+export async function savePublishedWinners(year: number, { before = [], gate, winners }: PublishedWinners, options: EditOptions = {}):
     Promise<{ published: boolean }> {
-    const [{ published }] = await writeAndRefresh<{ published: boolean }>('awardVotePublished', year, sql`
+    const statement = sql`
         with gate as (${gate}),
              winners as (select w.award_type_id, w.player_id, w.name, w.team_season_id from (${winners}) w
                          where exists (select 1 from gate)),
@@ -149,7 +151,14 @@ export async function savePublishedWinners(year: number, { gate, winners }: Publ
              saved as (insert into league.awards (season_year, award_type_id, player_id, team_season_id)
                        select ${year}::int, award_type_id, player_id, team_season_id from winners
                        on conflict (season_year, award_type_id, player_id) do update set team_season_id = excluded.team_season_id)
-        select exists (select 1 from gate) as published`, options, result => result[0].published);
+        select exists (select 1 from gate) as published`;
+    if (!before.length) {
+        const [{ published }] = await writeAndRefresh<{ published: boolean }>('awardVotePublished', year, statement, options, result => result[0].published);
+        return { published };
+    }
+    const results = await writeInOrder([...before, statement]);
+    const [{ published }] = results.at(-1) as { published: boolean }[];
+    if (published) await refreshAndExpire('awardVotePublished', year, options);
     return { published };
 }
 

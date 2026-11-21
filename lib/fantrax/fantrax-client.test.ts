@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { seasonDates } from '@/lib/award-vote/season-dates';
-import { createFantraxClient, readCore } from './fantrax-client';
+import { createFantraxClient, directoryPlayer, readCore } from './fantrax-client';
 
 // Recorded Fantrax responses (lib/fantrax/fixtures), served by endpoint. `edit` changes one response for a test.
 const recorded = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8'));
@@ -332,4 +332,45 @@ test('a skater table that is not the complete regular-season table of the season
         ['no response', () => ({ responses: [] }), /Unexpected Fantrax stats page/],
     ];
     for (const [what, edit, error] of invalid) await assert.rejects(skaterTable(edit).client.skaterTable(LIVE, 2027), error, what);
+});
+
+test('scoring periods ending at midnight Eastern normalize to the last second of that Eastern day in both leagueInfo and readCore', async () => {
+    const scoringPeriods = [
+        // Standard time (EST -05:00): ends at 00:00:00 on Nov 15 -> 23:59:59 EST (Nov 16 04:59:59Z)
+        { number: 1, startDate: '2026-11-09T19:00:00-0500', endDate: '2026-11-15T00:00:00-0500' },
+        // Spring DST boundary (23h day on Mar 14): 00:00:00 EST -> 23:59:59 EDT (Mar 15 03:59:59Z)
+        { number: 2, startDate: '2027-03-08T19:00:00-0500', endDate: '2027-03-14T00:00:00-0500' },
+        // Fall DST boundary (25h day on Nov 1): 00:00:00 EDT -> 23:59:59 EST (Nov 2 04:59:59Z)
+        { number: 3, startDate: '2026-10-26T19:00:00-0400', endDate: '2026-11-01T00:00:00-0400' },
+    ];
+    const rosterPeriods = [
+        { number: 1, startDate: '2026-11-14T00:00:00-0500', endDate: '2026-11-15T00:00:00-0500' },
+    ];
+    const client = fantrax({
+        getLeagueInfo: body => ({ ...body, scoringPeriods, rosterPeriods }),
+    });
+    const info = await client.leagueInfo(LEAGUE);
+    assert.deepEqual(info.weeks.map(week => week.endDate), [
+        '2026-11-16T04:59:59.000Z',
+        '2027-03-15T03:59:59.000Z',
+        '2026-11-02T04:59:59.000Z',
+    ]);
+    assert.equal(info.rosterPeriods[0].endDate, '2026-11-15T05:00:00.000Z', 'roster periods stay exact');
+    const core = readCore(await client.league(LEAGUE), {});
+    assert.deepEqual(core.weeks.map(week => week.endDate), info.weeks.map(week => week.endDate));
+});
+
+test('directoryPlayer splits comma-separated positions and normalizes (N/A) NHL team sentinels', () => {
+    assert.deepEqual(directoryPlayer({ name: 'McDavid, Connor', position: 'C', team: 'EDM' }), {
+        name: 'Connor McDavid', positions: ['C'], nhlTeam: 'EDM',
+    });
+    assert.deepEqual(directoryPlayer({ name: 'Gauthier, Cutter', position: 'LW, RW', team: '(N/A)' }), {
+        name: 'Cutter Gauthier', positions: ['LW', 'RW'], nhlTeam: null,
+    });
+    assert.deepEqual(directoryPlayer({ name: 'Prospect, Empty', position: ' , ', team: '' }), {
+        name: 'Empty Prospect', positions: [], nhlTeam: null,
+    });
+    assert.deepEqual(directoryPlayer({ name: 'Unlisted', position: 'D' }), {
+        name: 'Unlisted', positions: ['D'], nhlTeam: null,
+    });
 });

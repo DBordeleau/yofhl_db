@@ -44,9 +44,15 @@ export function createRun(ports: SeasonSyncPorts) {
         };
 
         let read;
+        let windowClosed = false;
         try {
             const info = await readLeagueInfo(ports, season);
-            if (correctionWindowClosed(info.weeks.at(-1)!.endDate, now)) {
+            const lastEnd = info.weeks.at(-1)!.endDate;
+            windowClosed = correctionWindowClosed(lastEnd, now);
+            const needsCatchUp = season.lastSuccessAt === null
+                || Date.parse(season.lastSuccessAt) < Date.parse(lastEnd)
+                || season.lastError !== null;
+            if (windowClosed && !needsCatchUp) {
                 await rows(freezeQuery(year, now));
                 return { outcome: 'frozen', seasonYear: year, frozenAt: new Date(now).toISOString() };
             }
@@ -70,6 +76,7 @@ export function createRun(ports: SeasonSyncPorts) {
             } finally {
                 for (const tag of tags) revalidateTag(tag);
             }
+            if (windowClosed) await rows(freezeQuery(year, now));
         } catch (error) {
             return failed(error);
         }

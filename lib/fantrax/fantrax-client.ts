@@ -69,13 +69,41 @@ export interface SavedLiveSeason {
     rosterStats: RosterStats;
 }
 
+const HOUR = 3600 * 1000;
+const easternClock = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+const easternHour = (time: number) => Number(easternClock.format(time).slice(0, 2));
+
+/**
+ * A week ending at its last second. Fantrax ends a week a second before the next week's first game; an end at
+ * midnight Eastern names the week's last day, so the week ends a second before the following midnight instead.
+ */
+export function endingAtItsLastSecond<T extends { endDate: string }>(period: T): T {
+    const end = Date.parse(period.endDate);
+    if (!Number.isFinite(end) || easternClock.format(end) !== '00:00:00' || end % 1000) return period;
+    // a day is 23 or 25 hours long when the clocks change
+    const next = end + 24 * HOUR, hour = easternHour(next);
+    const midnight = hour === 23 ? next + HOUR : hour === 1 ? next - HOUR : next;
+    return { ...period, endDate: new Date(midnight - 1000).toISOString() };
+}
+
 const toIso = (date: string) => new Date(date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')).toISOString();
 const normalizePeriod = (period: SourceWeek): SourceWeek => ({ ...period, startDate: toIso(period.startDate), endDate: toIso(period.endDate) });
+const normalizeScoringPeriod = (period: SourceWeek): SourceWeek => endingAtItsLastSecond(normalizePeriod(period));
 
 /** Fantrax's "Last, First" player name as "First Last" */
 export function playerName(name: string): string {
     const [last, first] = name.split(', ');
     return first ? `${first} ${last}` : last;
+}
+
+/** A player from Fantrax's player directory mapped to normalized archive positions and NHL team. */
+export function directoryPlayer(player: PlayerInfo): { name: string; positions: string[]; nhlTeam: string | null } {
+    const team = player.team?.trim();
+    return {
+        name: playerName(player.name),
+        positions: player.position.split(',').map(position => position.trim()).filter(Boolean),
+        nhlTeam: team && team !== '(N/A)' ? team : null,
+    };
 }
 
 // Future playoff slots contain { TBD: true } on both sides, and an unseeded first round { seed: N } or { bye: true }:
@@ -122,10 +150,12 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     async function leagueInfo(leagueId: string): Promise<{ seasonYear: number; weeks: SourceWeek[]; rosterPeriods: SourceWeek[]; firstPlayoffWeek: number | null }> {
         const info = await request<LeagueInfo>('getLeagueInfo', { leagueId, excludePlayerInfo: 'true' });
         if (!Number.isInteger(info?.seasonYear) || !info.scoringPeriods?.length || !Array.isArray(info.rosterPeriods)) throw new Error('Fantrax returned incomplete league info');
-        const inOrder = (periods: SourceWeek[]) => periods.map(normalizePeriod).sort((a, b) => a.number - b.number);
+        const inOrder = (periods: SourceWeek[], normalize: (period: SourceWeek) => SourceWeek) => periods.map(normalize).sort((a, b) => a.number - b.number);
         const firstPlayoffWeek = info.playoffs?.firstPlayoffPeriod;
         return {
-            seasonYear: readLeagueInfo(info).seasonYear, weeks: inOrder(info.scoringPeriods), rosterPeriods: inOrder(info.rosterPeriods),
+            seasonYear: readLeagueInfo(info).seasonYear,
+            weeks: inOrder(info.scoringPeriods, normalizeScoringPeriod),
+            rosterPeriods: inOrder(info.rosterPeriods, normalizePeriod),
             firstPlayoffWeek: Number.isInteger(firstPlayoffWeek) ? firstPlayoffWeek! : null,
         };
     }
@@ -183,7 +213,7 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     } = {}): Promise<SavedLiveSeason> {
         const now = options.now ?? Date.now();
         const source = await league(leagueId);
-        const weeks = source.info.scoringPeriods.map(normalizePeriod).filter(week =>
+        const weeks = source.info.scoringPeriods.map(normalizeScoringPeriod).filter(week =>
             Date.parse(week.startDate) <= now && Date.parse(week.endDate) + CORRECTION_WINDOW_MS > now);
         const season = await (options.scoringSeason ?? scoringSeason)(leagueId, source.info.seasonYear);
         const [leaders, stats, scores] = await Promise.all([
@@ -211,7 +241,7 @@ export function readCore(league: FantraxLeague, players: PlayerDirectory): Sourc
     return {
         fetchedAt, seasonYear: info.seasonYear,
         teams: Object.entries(info.teamInfo).map(([id, team]) => ({ id, name: team.name })),
-        weeks: info.scoringPeriods.map(normalizePeriod).sort((a, b) => a.number - b.number),
+        weeks: info.scoringPeriods.map(normalizeScoringPeriod).sort((a, b) => a.number - b.number),
         lineupPeriod: lineup ? normalizePeriod(lineup) : null,
         schedule: (info.matchups ?? []).map(round => ({ week: round.period, matchups: publishedMatchups(round.matchupList) })),
         standings: standings.map(standing => ({ teamId: standing.teamId, rank: standing.rank ?? null, record: standing.points ?? null, points: standing.totalPointsFor ?? null })),

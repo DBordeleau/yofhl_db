@@ -374,3 +374,19 @@ test('a failed refresh publishes nothing', async t => {
     await assert.rejects(live.refreshLiveSeason());
     assert.equal((await season()).fetchedAt, '2026-10-07T00:00:00.000Z');
 });
+
+test('a playoff week ending at midnight Eastern stays active through that final day and flips final afterward', async t => {
+    const state = league();
+    const weeks = state.fantrax.core.weeks.map(week => ({ ...week }));
+    // Quarterfinals (week 24): starts Mar 15 04:00Z, Fantrax sets endDate to start of Mar 22 EDT (04:00Z)
+    weeks[23] = { number: 24, startDate: '2027-03-15T04:00:00.000Z', endDate: '2027-03-22T04:00:00.000Z' };
+    state.fantrax.core.weeks = weeks;
+    const { season } = setup(t, state);
+
+    const duringLastDay = await season({ now: Date.parse('2027-03-22T22:00:00Z') });
+    assert.equal(duringLastDay.weeks[23].endDate, '2027-03-23T03:59:59.000Z');
+    assert.equal(duringLastDay.weeks[23].phase, 'active');
+
+    const afterLastDay = await season({ now: Date.parse('2027-03-23T04:00:00Z') });
+    assert.equal(afterLastDay.weeks[23].phase, 'final');
+});

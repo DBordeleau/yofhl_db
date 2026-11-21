@@ -11,6 +11,7 @@ export async function POST(request: Request) {
     if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    revalidateTag(LEAGUE_TAG);
     if (new URL(request.url).searchParams.get('external') === '1') {
         try {
             await refreshLiveSeason();
@@ -20,6 +21,5 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Fantrax refresh failed' }, { status: 503 });
         }
     }
-    revalidateTag(LEAGUE_TAG);
     return NextResponse.json({ revalidated: true });
 }

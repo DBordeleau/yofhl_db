@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { BallotRankings } from './model';
-import { COMPLETE, completeFor, FRANCHISES, lockInHours, SEASON, votingLeague, type AwardVoteLeague } from './testing/award-vote-league';
+import { awardVoteLeague, COMPLETE, completeFor, FRANCHISES, lockInHours, SEASON, votingLeague, type AwardVoteLeague } from './testing/award-vote-league';
 
 /** franchises 2 and 4's ballot: s2 above s1 for the Wayne Gretzky Award, leaving the two level */
 const S2_FIRST: BallotRankings = completeFor(2, { ...COMPLETE, 'wayne-gretzky': ['s2', 's1', 's3', 's4', 's5'] });
@@ -196,4 +196,33 @@ test('if refreshing the archive fails after publishing, the admin refreshes it a
     assert.deepEqual(revalidatedTags.toSorted(),
         [`league:award-vote-ballots:${SEASON}`, 'league:award-vote-tallies', 'league:awards', 'league:players', 'league:records', 'league:season-leaderboard', `league:season:${SEASON}`]);
     assert.equal(await careerAwards(), 1);
+});
+
+test('publishing succeeds when only GM of the Year has a tally', async t => {
+    const harness = await awardVoteLeague(t);
+    const { openVoting, signInAs, asOwner, act, vote, league } = harness;
+    await openVoting();
+    for (const franchise of FRANCHISES) {
+        await signInAs(`owner-${franchise}`);
+        const submitted = await asOwner(() => vote.submitBallot({
+            seasonYear: SEASON,
+            rankings: { 'gm-of-the-year': completeFor(franchise)['gm-of-the-year'] },
+        }));
+        assert.deepEqual(submitted, { ok: true });
+    }
+    assert.deepEqual(await act(() => vote.scoreBallots({ seasonYear: SEASON })), { ok: true });
+    const { result } = await league.runAsRoute('/admin/seasons/[year]', () => vote.publish({ seasonYear: SEASON }));
+    assert.deepEqual(result, { ok: true });
+    assert.equal((await act(() => vote.readPreview({ seasonYear: SEASON }))).vote?.state, 'published');
+});
+
+test('publishing acquires the award vote row lock before writing, leaving state unchanged if acquiring the lock fails', async t => {
+    const { league, publish, admin, awardPage } = await scoredLeague(t);
+    league.failNextQuery('for update', new Error('lock failed'));
+    await assert.rejects(publish(), /lock failed/);
+    assert.equal((await admin()).vote?.state, 'scored');
+    assert.deepEqual(await awardPage('Wayne Gretzky Award'), []);
+
+    assert.deepEqual((await publish()).result, { ok: true });
+    assert.equal((await admin()).vote?.state, 'published');
 });
