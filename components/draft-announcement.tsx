@@ -18,18 +18,23 @@ export default function DraftAnnouncement({ variant = 'notice', fallback = null 
     const [countdown, setCountdown] = useState<ReturnType<typeof draftCountdown>>();
 
     useEffect(() => {
+        const initial = draftCountdown(Date.now());
+        setCountdown(initial);
+        if (initial === null) return;
         const update = () => {
             const next = draftCountdown(Date.now());
             setCountdown(next);
-            if (next === null) clearInterval(timer);
+            if (next === null) {
+                clearInterval(timer);
+                window.removeEventListener('focus', update);
+            }
         };
         const timer = setInterval(update, 1000);
-        update();
         window.addEventListener('focus', update);
         return () => { clearInterval(timer); window.removeEventListener('focus', update); };
     }, []);
 
-    if (countdown === null) return fallback;
+    if (!countdown) return fallback;
 
     if (variant === 'notice') return <aside className={styles.notice} aria-label="Upcoming draft">
         <p>
@@ -37,7 +42,7 @@ export default function DraftAnnouncement({ variant = 'notice', fallback = null 
             <strong className={styles.noticeTitle}>2026 Draft</strong>
             <time dateTime={DRAFT_STARTS_AT}>{noticeDate} · {draftTime} ET</time>
             <span className={styles.noticeClock} role="timer" aria-label="Time until the draft">
-                {countdown ? <>{countdown[0] > 0 && <>{countdown[0]}<small>d</small> </>}{String(countdown[1]).padStart(2, '0')}<small>h</small> {String(countdown[2]).padStart(2, '0')}<small>m</small></> : <>–<small>d</small> ––<small>h</small> ––<small>m</small></>}
+                {countdown[0] > 0 && <>{countdown[0]}<small>d</small> </>}{String(countdown[1]).padStart(2, '0')}<small>h</small> {String(countdown[2]).padStart(2, '0')}<small>m</small>
             </span>
             <a className={styles.draftLink} href={draftRoomUrl} target="_blank" rel="noopener noreferrer">Draft room <Arrow direction="out" /><span className="sr-only"> (opens in a new tab)</span></a>
         </p>
@@ -53,7 +58,7 @@ export default function DraftAnnouncement({ variant = 'notice', fallback = null 
         <dl className={styles.clock} role="timer" aria-label="Time until the draft" aria-live="off">
             {units.map(([unit, short], index) => <div key={unit}>
                 <dt><abbr title={unit}>{short}</abbr></dt>
-                <dd>{countdown ? String(countdown[index]).padStart(2, '0') : '––'}</dd>
+                <dd>{String(countdown[index]).padStart(2, '0')}</dd>
             </div>)}
         </dl>
     </section>;

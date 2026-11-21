@@ -14,6 +14,9 @@ const lockTime = new Intl.DateTimeFormat('en-CA', {
 const lockDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric' });
 
 const HOUR = 3_600_000;
+// Pick'em pages are ISR-cached (revalidate = 60); retry refresh across clock skew and the cache window, then stop.
+const REFRESH_DELAYS_MS = [2_000, 5_000, 10_000, 15_000, 15_000, 15_000, 15_000];
+const PLACEHOLDER_UNITS = [{ key: 'h', value: '––' }, { key: 'm', value: '––' }, { key: 's', value: '––' }];
 
 function parts(left: number) {
     const seconds = Math.max(0, Math.floor(left / 1000));
@@ -29,26 +32,54 @@ function Figure({ value, place }: { value: string; place: number }) {
     if (roll.now !== value) setRoll({ now: value, was: roll.now });
     return <span className={styles.figure} style={{ '--place': place } as CSSProperties}>
         {roll.was !== null && <span key={`was-${roll.now}`} className={styles.figureOut}>{roll.was}</span>}
-        <span key={roll.now} className={roll.was !== null ? styles.figureIn : undefined} suppressHydrationWarning>{roll.now}</span>
+        <span key={roll.now} className={roll.was !== null ? styles.figureIn : undefined}>{roll.now}</span>
     </span>;
 }
 
 export default function LockClock({ lock, locked }: { lock: string; locked: boolean }) {
     const router = useRouter();
     const at = new Date(lock).getTime();
-    const [now, setNow] = useState(() => Date.now());
-    const left = at - now;
-    const done = locked || left <= 0;
+    // Defer wall-clock reads to client mount so SSR/ISR HTML and hydration match cleanly.
+    const [now, setNow] = useState<number | null>(null);
+    const left = now === null ? null : at - now;
+    const expired = left !== null && left <= 0;
+    const done = locked || expired;
 
     useEffect(() => {
-        if (done) return;
-        const timer = window.setInterval(() => setNow(Date.now()), 1000);
+        if (locked) return;
+        const update = () => {
+            const current = Date.now();
+            setNow(current);
+            if (current >= at) window.clearInterval(timer);
+        };
+        const timer = window.setInterval(update, 1000);
+        update();
         return () => window.clearInterval(timer);
-    }, [done]);
+    }, [locked, at]);
 
     useEffect(() => {
-        if (!locked && left <= 0) router.refresh();
-    }, [locked, left <= 0, router]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (locked || !expired) return;
+        let step = 0;
+        let timer = 0;
+        const schedule = () => {
+            if (step >= REFRESH_DELAYS_MS.length) return;
+            timer = window.setTimeout(() => {
+                if (document.visibilityState === 'visible') router.refresh();
+                step++;
+                schedule();
+            }, REFRESH_DELAYS_MS[step]);
+        };
+        router.refresh();
+        schedule();
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') router.refresh();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => {
+            window.clearTimeout(timer);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
+    }, [locked, expired, router]);
 
     const when = `${lockTime.format(new Date(lock))} ET`;
     if (done) return <div className={styles.clock} data-locked="">
@@ -56,17 +87,23 @@ export default function LockClock({ lock, locked }: { lock: string; locked: bool
         <span className={styles.clockTime}>{when}</span>
     </div>;
 
-    const { d, h, m, s } = parts(left);
-    const units = [...(d ? [{ key: 'd', value: String(d) }] : []), { key: 'h', value: two(h) }, { key: 'm', value: two(m) }, { key: 's', value: two(s) }];
+    const units = left === null
+        ? PLACEHOLDER_UNITS
+        : (() => {
+            const { d, h, m, s } = parts(left);
+            return [...(d ? [{ key: 'd', value: String(d) }] : []), { key: 'h', value: two(h) }, { key: 'm', value: two(m) }, { key: 's', value: two(s) }];
+        })();
     let place = units.reduce((sum, unit) => sum + unit.value.length, 0);
     // data-stage-clock: the pick bar docked on a phone shows its own compact clock only once this one is out of view
-    return <div className={styles.clock} data-urgent={left < HOUR ? '' : undefined} role="timer" aria-label={`Locks ${when}`} data-stage-clock="">
+    return <div className={styles.clock} data-urgent={left !== null && left < HOUR ? '' : undefined} role="timer" aria-label={`Locks ${when}`} data-stage-clock="">
         <span className={styles.clockLabel} aria-hidden="true">
             Locks on<small><span className={styles.whenLong}>{when}</span><span className={styles.whenShort}>{lockDay.format(new Date(lock))}</span></small>
         </span>
         <span className={styles.clockTime} aria-hidden="true">
             {units.map(unit => <span key={unit.key} className={styles.unit}>
-                <b>{[...unit.value].map((figure, i) => <Figure key={unit.value.length - i} value={figure} place={--place} />)}</b>
+                <b>{[...unit.value].map((figure, i) => left === null
+                    ? <span key={i} className={styles.figure}>{figure}</span>
+                    : <Figure key={unit.value.length - i} value={figure} place={--place} />)}</b>
                 <small>{unit.key}</small>
             </span>)}
         </span>
@@ -77,9 +114,10 @@ export default function LockClock({ lock, locked }: { lock: string; locked: bool
     shows only once the stage's clock has scrolled out of view, so the two are never on screen together. */
 export function DockClock({ lock }: { lock: string }) {
     const [stageInView, setStageInView] = useState(true);
-    const [now, setNow] = useState(() => Date.now());
-    const left = new Date(lock).getTime() - now;
-    const shown = !stageInView && left > 0;
+    const [now, setNow] = useState<number | null>(null);
+    const at = new Date(lock).getTime();
+    const left = now === null ? null : at - now;
+    const shown = !stageInView && left !== null && left > 0;
 
     useEffect(() => {
         const stage = document.querySelector('[data-stage-clock]');
@@ -90,13 +128,18 @@ export function DockClock({ lock }: { lock: string }) {
     }, []);
 
     useEffect(() => {
-        if (!shown) return;
-        setNow(Date.now());
-        const timer = window.setInterval(() => setNow(Date.now()), 1000);
+        if (stageInView) return;
+        const update = () => {
+            const current = Date.now();
+            setNow(current);
+            if (current >= at) window.clearInterval(timer);
+        };
+        const timer = window.setInterval(update, 1000);
+        update();
         return () => window.clearInterval(timer);
-    }, [shown]);
+    }, [stageInView, at]);
 
-    if (!shown) return null;
+    if (!shown || left === null) return null;
     const { d, h, m, s } = parts(left);
     const units = d ? [[String(d), 'd'], [String(h), 'h']] : h ? [[String(h), 'h'], [two(m), 'm']] : [[String(m), 'm'], [two(s), 's']];
     return <span className={styles.dockClock} data-urgent={left < HOUR ? '' : undefined} aria-hidden="true">
