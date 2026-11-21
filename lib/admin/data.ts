@@ -15,6 +15,8 @@ export interface AdminPlayer {
 }
 
 export interface AdminAward {
+    /** the award's catalogue ID, which the awards editor saves it under */
+    id: string;
     name: string;
     label: string;
     /** the catalogue's honour, e.g. "Top goaltender" */
@@ -121,7 +123,7 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
         // each expected award once per winner, or once with no winner yet
         awards: (awards?.expected ?? []).flatMap((award) => {
             const winners = awards!.winners.filter((winner) => winner.award === award.id).map((winner) => winner.player);
-            return (winners.length ? winners : [null]).map((winner) => ({ name: award.name, label: award.label, honor: award.honor, winner }));
+            return (winners.length ? winners : [null]).map((winner) => ({ id: award.id, name: award.name, label: award.label, honor: award.honor, winner }));
         }),
         games: games.map((g) => ({
             id: g.id,

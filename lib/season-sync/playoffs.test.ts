@@ -103,9 +103,8 @@ test('a saved bracket correction decides the stored winner, and a run leaves the
     await league.league.client.exec(`
         insert into league.matchup_overrides (season_year, round, franchise_a, franchise_b, winner_franchise_id, note)
             values (${SEASON}, 1, 4, 5, 4, 'Goalie start cap');
-        insert into league.award_types (name, label, description, sort_order) values ('Teemu Trophy', 'Teemu Selanne Trophy', 'Top Rookie', 1);
         insert into league.players (id, name) values ('p1', 'Rookie One');
-        insert into league.awards (season_year, award_type_id, player_id, team_season_id) select ${SEASON}, id, 'p1', 13 from league.award_types;
+        insert into league.awards (season_year, award, player_id, team_season_id) values (${SEASON}, 'teemu-selanne', 'p1', 13);
     `);
     const { getSeasonAdmin } = await import('@/lib/admin/data');
     playQuarterfinals(league);

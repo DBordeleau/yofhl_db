@@ -232,6 +232,13 @@
       "when": 1794797927978,
       "tag": "0032_award_vote_daily_points",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795219740754,
+      "tag": "0033_awards_by_catalogue_id",
+      "breakpoints": true
     }
   ]
 }

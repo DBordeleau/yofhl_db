@@ -90,15 +90,6 @@ franchises:
     eras:
       - { from: 2020, to: 2026, name: Johnny T & The PJs, abbreviations: [JTPJ], owner: Johnny James, logo: /logos/jtpj_logo.jpg }
 
-# Individual awards, in display order. `name` is the stored name and URL slug source.
-awards:
-  - { name: Wayne Gretzky Award, description: Top Player }
-  - { name: Le Magnifique, description: MVP }
-  - { name: Bobby Orr Award, description: Top Defenseman }
-  - { name: Hasek Trophy, description: Top Goaltender }
-  - { name: Teemu Trophy, label: Teemu Selanne Trophy, description: Top Rookie }
-  - { name: Danny Briere Award, description: Playoff MVP }
-
 # Season-specific facts
 #   playoffs      "cancelled" for a season with no playoffs
 #   consolation   abbreviations of the teams that played the consolation bracket

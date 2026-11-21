@@ -17,8 +17,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
         select 'p'||f, y, (y-2025)*2+f, array['C'], 100-f, 2
         from generate_series(2025,2026) y cross join generate_series(1,2) f;
         insert into league.championship_rosters values (2025,'p1'), (2026,'p1');
-        insert into league.award_types (id,name,label,description,sort_order) values (1,'Hasek Trophy','Hasek Trophy','Top goaltender',1);
-        insert into league.awards values (2026,1,'p1',3);
+        insert into league.awards (season_year,award,player_id,team_season_id) values (2026,'hasek','p1',3);
         insert into league.matchups (season_year,stage,round,bracket,slot,away_team_season_id,home_team_season_id,away_score,home_score,winner_team_season_id)
         values (2025,'playoff',1,'championship',1,1,2,100,90,1), (2026,'playoff',1,'championship',1,3,4,100,90,3);
     ` });
@@ -82,7 +81,7 @@ test('curated edits expire exactly the cached readers that show their data', asy
     assert.deepEqual((await league.getChampionRoster(2026))?.rows.map(row => row.ID), ['p2']);
     assert.equal((await league.getAllTimeLeaderboard('all', 1, '')).rows.find(row => row.ID === 'p2')?.ChampionshipsWon, 1);
 
-    saved(await edits.saveAwards(2026, [{ award: 'Hasek Trophy', playerId: 'p2' }], cache));
+    saved(await edits.saveAwards(2026, [{ award: 'hasek', playerId: 'p2' }], cache));
     // the trophy cases read the stored winners 'awards' just refreshed, so they show the new winner without a read of their own
     await expectMisses(['champion26', 'season26', 'leaders26', 'leadersAll', 'player1', 'player2', 'awards', 'honors1', 'honors2', 'records']);
     assert.equal((await archive.winners('hasek'))![0].PlayerID, 'p2');

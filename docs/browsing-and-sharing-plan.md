@@ -88,7 +88,7 @@ The query draft replaces the current URL after debouncing. Explicit submission, 
 | --- | --- | --- |
 | Player | Archive player name and canonical ID | Name, positions when known, and archive context; link through `playerHref`. Include valid profiles with no career totals and label missing statistics. |
 | Team | Current managed name, imported names, franchise display name, and recorded abbreviations | Current name and badge. For an alias match, add "Formerly ..." and its season range. One result per franchise; `/teams/<id>`. |
-| Award | Display name, stored name, and catalogue ID | Display name, trophy artwork, and the award's honour; link through `awardHref` to its winners page. |
+| Award | Display name, name, and catalogue ID | Display name, trophy artwork, and the award's honour; link through `awardHref` to its winners page. |
 | Season | End year and season label, accepting `2025-26`, `2025/26`, and `2025-2026` | Full season label and champion or cancelled status; `/season/<end-year>` when that archive route is available. |
 
 Older award names remain searchable. For example, "Teemu Trophy" finds the Teemu Selanne Trophy. Owner-only results are no longer indexed.

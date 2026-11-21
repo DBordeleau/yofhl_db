@@ -145,6 +145,6 @@ test('a failed re-import leaves the regular-season games, weeks and category tot
     const legacy = fixtureLegacy();
     legacy.awards.push({ season: 2026, award: 'Hart Trophy', playerId: '0fx01', player: 'Aaron Ashby', team: 'Ashgrove Anglers' });
 
-    await assert.rejects(run({ dataDir: changed, legacy }), /Legacy award "Hart Trophy" isn't in league.yml awards/);
+    await assert.rejects(run({ dataDir: changed, legacy }), /Legacy award "Hart Trophy" isn't in the award catalogue/);
     assert.deepEqual(await everything(), before);
 });
