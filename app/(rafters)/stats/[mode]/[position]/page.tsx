@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Leaderboard from '@/components/leaderboard';
+import { clampPage, MAX_LEADERBOARD_PAGE } from '@/lib/data/bounds';
 import { getAllTimeLeaderboard, getSeasonArchive, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { LEADERBOARD_MODES as MODES, LEADERBOARD_POSITIONS as POSITIONS, seasonLabel } from '@/lib/league';
 
@@ -22,7 +23,7 @@ export default async function StatsPage({
 
     const search = await searchParams;
     const q = (search.q ?? '').slice(0, 60);
-    const page = Math.max(1, parseInt(search.page ?? '1', 10) || 1);
+    const page = clampPage(parseInt(search.page ?? '1', 10), MAX_LEADERBOARD_PAGE);
 
     const [data, { published }] = await Promise.all([
         mode === 'all-time' ? getAllTimeLeaderboard(position, page, q) : getSingleSeasonLeaderboard(position, page, q),

@@ -1,10 +1,12 @@
 import { publicJson } from '@/lib/public-json';
 import { NextResponse } from 'next/server';
+import { safeDecodeParam } from '@/lib/data/bounds';
 import { getPlayer } from '@/lib/data/league';
 
 // GET /api/players/:id — career summary, season-by-season stats, awards and championships
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-    const player = await getPlayer(decodeURIComponent((await params).id));
+    const playerId = safeDecodeParam((await params).id);
+    const player = playerId ? await getPlayer(playerId) : null;
     if (!player) return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     return publicJson(player);
 }

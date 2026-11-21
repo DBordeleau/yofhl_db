@@ -145,4 +145,26 @@ test('curated edits expire exactly the cached readers that show their data', asy
     saved(await edits.saveRoster(2026, ['p2'], cache));
     assert.equal((await searchPublicDirectory({ q: 'Player', type: 'players', page: 1 })).groups[0].results[0].id, 'p2', 'refreshed career points change prominence ranking');
     assert.equal((await searchPublicDirectory({ q: 'Player One', type: 'players', page: 1 })).groups[0].results[0].id, 'p1', 'a specific name still beats prominence');
+
+    // Cache bounds: filtered leaderboards, deep pages, searchPlayers, 404 misses and out-of-range IDs must not grow the cache.
+    const cacheKeysBefore = new Set(testLeague.cacheEntries().keys());
+    await league.getAllTimeLeaderboard('all', 1, 'Player');
+    await league.getAllTimeLeaderboard('all', 26, '');
+    await league.getSingleSeasonLeaderboard('all', 1, 'Player', 2026);
+    await league.getSingleSeasonLeaderboard('all', 26, '');
+    assert.ok((await league.searchPlayers('Player')).length >= 1);
+    assert.equal(await league.getPlayer('does-not-exist-404'), null);
+    assert.equal(await league.getPlayer('x'.repeat(100)), null);
+    assert.equal(await league.getFranchise(999999), null);
+    assert.equal(await league.getFranchise(2147483648), null);
+    assert.equal(await league.getFranchise(-1), null);
+    assert.equal(await league.getFranchise(0), null);
+    assert.equal(await league.getChampionRoster(1899), null);
+    assert.equal(await league.getAwardWinners('nonexistent-award'), null);
+    assert.equal((await history.getHistory({ playerId: 'does-not-exist-404' })).total, 0);
+    assert.equal((await history.getHistory({ franchiseId: 2147483648 })).total, 0);
+    await history.getHistory({ franchiseId: 1 }, 'all', 2026, 1);
+    await history.getHistory({ franchiseId: 1 }, 'all', null, 6);
+    assert.deepEqual([...testLeague.cacheEntries().keys()], [...cacheKeysBefore],
+        'filtered searches, deep pages and unknown/out-of-range lookups leave cache keys unchanged');
 });
