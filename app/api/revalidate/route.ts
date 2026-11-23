@@ -12,13 +12,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     // external=1 also captures the live season from Fantrax, frozen season or not, and reports whether it changed.
-    // Only a changed capture expires the live season's caches.
+    // Only a changed capture publishes (and expires the live season's tag), but every Fantrax cache is expired
+    // either way: archived final scores, the player directory and the scoring-season selector carry only
+    // FANTRAX_TAG, and a historical correction never changes the live capture.
     let fantraxReport: { fantrax: 'published' | 'unchanged' } | null = null;
     if (new URL(request.url).searchParams.get('external') === '1') {
         try {
             const { changed } = await refreshLiveSeason();
             fantraxReport = { fantrax: changed ? 'published' : 'unchanged' };
-            if (changed) revalidateTag(FANTRAX_TAG);
+            revalidateTag(FANTRAX_TAG);
         } catch (error) {
             console.error('Fantrax revalidation failed:', error);
             return NextResponse.json({ error: 'Fantrax refresh failed' }, { status: 503 });

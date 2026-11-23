@@ -7,7 +7,7 @@ import { disposableLeague } from '../testing/disposable-league';
 import { FANTRAX_CURRENT_TAG, FANTRAX_TAG } from './cache-policy';
 import { fakeFantrax, SEED } from './testing/fake-fantrax';
 
-test('a revalidate with external=1 that finds nothing new on Fantrax reports it and expires no live season tag', async t => {
+test('a revalidate with external=1 that finds nothing new on Fantrax reports it, publishes nothing and still expires every Fantrax cache', async t => {
     let network = 0;
     const league = await disposableLeague(t, { app: true, nextCache: true, seed: SEED, fetch: fakeFantrax(() => true, () => network++) });
     t.mock.method(Date, 'now', () => Date.parse('2026-10-18T22:00:00Z'));
@@ -28,5 +28,7 @@ test('a revalidate with external=1 that finds nothing new on Fantrax reports it 
     const requests = network;
     const unchanged = await revalidate();
     assert.ok(network > requests, 'it captures again');
-    assert.deepEqual(unchanged, { status: 200, body: { revalidated: true, fantrax: 'unchanged' }, revalidatedTags: [LEAGUE_TAG] });
+    // Archived final scores and the player directory carry only FANTRAX_TAG, so historical corrections appear even
+    // when the live capture is unchanged; the live season's own tag (and the frozen-season check) is left alone.
+    assert.deepEqual(unchanged, { status: 200, body: { revalidated: true, fantrax: 'unchanged' }, revalidatedTags: [FANTRAX_TAG, LEAGUE_TAG].sort() });
 });

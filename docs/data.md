@@ -311,7 +311,7 @@ Regular-season Final detection compares each scheduled team's cumulative W-L-T t
 
 Playoff weeks come from Fantrax. The live season treats every week from Fantrax's first playoff week (`firstPlayoffPeriod` in its playoff settings) as one playoff round, however long the week, and every earlier week as the regular season, which is all Pick'em and automatic Final detection cover. The playoff line and first-round byes follow the first round's seeding on Fantrax's schedule, then its byes once seeded (each round halves the bracket, so the byes give the playoff team count; consolation games that week don't move the line), and only failing both Fantrax's playoff team setting. The season sync seeds its bracket from the same line. The league plays three rounds; when Fantrax's schedule from its first playoff week has any other number, the home page still shows what Fantrax has and the live season reports `playoffs.fitsFormat: false`.
 
-The broader `POST /api/revalidate?external=1` remains available for historical corrections. It captures the live season and clears the league caches; only a capture that changed publishes the saved snapshot and clears every Fantrax cache. Use the admin button for routine current-season refreshes.
+The broader `POST /api/revalidate?external=1` remains available for historical corrections. It captures the live season and clears the league caches and every Fantrax cache, archived final scores included, whether or not the capture changed; only a capture that changed publishes the saved snapshot. The frozen-season check the scheduled refreshes read is not cleared by an unchanged capture, so they stay stopped. Use the admin button for routine current-season refreshes.
 
 ## Season sync
 
