@@ -46,8 +46,13 @@ export type Graphic =
     | { type: 'numbers'; team?: string; player?: PlayerRef; caption?: string; items: { value: string; label: string }[] }
     | { type: 'player'; player: PlayerRef; team?: string; caption?: string; mood?: 'hearts' }
     | { type: 'gap'; base: PlayerRef; others: PlayerRef[] }
+    /** one player's number for two teams, the team he left first */
+    | { type: 'split'; player: PlayerRef; label?: string; sides: [SplitSide, SplitSide] }
     /** a free-agent move: claimed by, dropped by, a team's swap (player in, player out), or still unclaimed */
     | { type: 'wire'; action: WireAction; team?: string; player: PlayerRef; out?: PlayerRef; detail?: string; stats?: WireStats[] };
+
+/** one team's half of a split: the team, the player's number there, and an optional line under it */
+export interface SplitSide { team: string; value: string; detail?: string }
 
 /** this season's fantasy line for one wire player, as the writer sourced it (the player snapshot only quotes last season) */
 export interface WireStats { fpts?: string; fpg?: string }
@@ -152,7 +157,7 @@ const ID_ERROR = 'Write the Fantrax id without its asterisks, like "Elias Petter
 const fantraxId = (token: string) => /^#([0-9a-z]+)$/i.exec(token)?.[1].toLowerCase();
 const playerRef = (name: string, id: string | undefined): PlayerRef => (id ? { name, id } : { name });
 
-const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'list', 'standings', 'wire'] as const;
+const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'split', 'list', 'standings', 'wire'] as const;
 
 export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; teams: string[] } => {
     const trimmed = raw.trim();
@@ -271,6 +276,31 @@ export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; 
         case 'gap': {
             if (named.length < 2) return { error: 'A gap compares players by last season’s FPts, like >> gap "Tom Wilson" "William Nylander".', teams };
             return { graphic: { type, base: named[0], others: named.slice(1, 4) }, teams };
+        }
+        case 'split': {
+            // >> split "Alexis Lafreniere" "FP/G" Lali 3.00 "2020–21 to 2024–25", JAGR 5.11 "This season"
+            const usage = 'A split shows one player’s number for two teams, like >> split "Alexis Lafreniere" "FP/G" Lali 3.00 "2020–25", JAGR 5.11 "This season".';
+            const parts = tokens.map(t => (t.quoted ? t : { ...t, value: t.value.replace(/,+$/, '') })).filter(t => t.quoted || t.value);
+            if (!parts[0]?.quoted) return { error: usage, teams };
+            let who = playerRef(smarten(parts[0].value), undefined);
+            let i = 1;
+            if (parts[1] && !parts[1].quoted && parts[1].value.startsWith('#')) {
+                const id = fantraxId(parts[1].value);
+                if (!id) return { error: ID_ERROR, teams };
+                who = playerRef(who.name, id);
+                i = 2;
+            }
+            const label = parts[i]?.quoted ? smarten(parts[i++].value) : undefined;
+            const sides: SplitSide[] = [];
+            while (i < parts.length) {
+                const [ref, value] = [parts[i], parts[i + 1]];
+                if (!ref || ref.quoted || !value || value.quoted || !isNumberish(value.value)) return { error: usage, teams };
+                i += 2;
+                const detail = parts[i]?.quoted ? smarten(parts[i++].value) : undefined;
+                sides.push({ team: team(ref.value), value: value.value, ...(detail ? { detail } : {}) });
+            }
+            if (sides.length !== 2) return { error: usage, teams };
+            return { graphic: { type, player: who, ...(label ? { label } : {}), sides: [sides[0], sides[1]] }, teams };
         }
         case 'standings': {
             const titleMatch = rest.match(/^(?:"([^"]*)"|“([^”]*)”)\s*/);
@@ -651,10 +681,11 @@ export const hasErrors = (script: Script) => script.diagnostics.some(d => d.seve
 /** the season an episode's player cards quote: the one before the episode's, unless `stats:` names an earlier one */
 export const statsSeason = (meta: Meta): number | null => meta.stats ?? (meta.season === undefined ? null : meta.season - 1);
 
-/** the players one graphic cites (player, gap, wire, or stat/numbers with "…") */
+/** the players one graphic cites (player, gap, split, wire, or stat/numbers with "…") */
 export const graphicPlayers = (graphic: Graphic): PlayerRef[] => {
     if (graphic.type === 'player') return [graphic.player];
     if (graphic.type === 'gap') return [graphic.base, ...graphic.others];
+    if (graphic.type === 'split') return [graphic.player];
     if (graphic.type === 'wire') return graphic.out ? [graphic.player, graphic.out] : [graphic.player];
     if ((graphic.type === 'stat' || graphic.type === 'numbers') && graphic.player) return [graphic.player];
     return [];

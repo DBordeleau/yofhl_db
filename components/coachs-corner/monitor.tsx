@@ -294,6 +294,41 @@ function Picture({ graphic, teams, players, running }: { graphic: Graphic; teams
                 </div>
             );
         }
+        case 'split': {
+            // the player's number on each team, each half in that team's colours, the bigger number in gold
+            const player = findPlayer(players, graphic.player);
+            const [before, after] = graphic.sides.map(side => Number(side.value));
+            const places = Math.max(...graphic.sides.map(s => s.value.split('.')[1]?.length ?? 0));
+            const diff = Number.isFinite(before) && Number.isFinite(after) ? after - before : 0;
+            return (
+                <div className={styles.gSplit}>
+                    {graphic.sides.map((side, i) => {
+                        const team = findTeam(teams, side.team);
+                        const mine = i ? after : before;
+                        const other = i ? before : after;
+                        return (
+                            <div key={i} className={styles.gSplitSide} data-side={i ? 'after' : 'before'} data-high={mine > other || undefined} style={teamVars(team)}>
+                                <Logo team={team} />
+                                <strong>{side.value}</strong>
+                                <b>{team?.name ?? side.team}</b>
+                                {side.detail && <span>{side.detail}</span>}
+                            </div>
+                        );
+                    })}
+                    <header className={styles.gSplitHead}>
+                        <div className={styles.gSplitShot}>
+                            {player?.headshot
+                                // eslint-disable-next-line @next/next/no-img-element
+                                ? <img src={player.headshot} alt="" referrerPolicy="no-referrer" />
+                                : <span>{graphic.player.name.split(/\s+/).map(w => w[0]).join('')}</span>}
+                        </div>
+                        <b>{player?.name ?? graphic.player.name}</b>
+                        {graphic.label && <span className={styles.gSlab}>{graphic.label}</span>}
+                    </header>
+                    {diff !== 0 && <em className={styles.gSplitDiff}>{diff > 0 ? '+' : '−'}{Math.abs(diff).toFixed(places)}</em>}
+                </div>
+            );
+        }
         case 'standings':
             return (
                 <div className={styles.gStandings}>
@@ -401,6 +436,7 @@ export const spillColour = (graphic: Graphic, teams: StudioTeam[]) => {
         case 'numbers': return findTeam(teams, graphic.team)?.primary ?? '#2a4d9c';
         case 'player': return graphic.mood === 'hearts' ? '#ff4f7b' : findTeam(teams, graphic.team)?.primary ?? '#2a4d9c';
         case 'wire': return findTeam(teams, graphic.team)?.primary ?? '#d9a12b';
+        case 'split': return findTeam(teams, graphic.sides[1].team)?.primary ?? '#2a4d9c';
         default: return '#2a4d9c';
     }
 };

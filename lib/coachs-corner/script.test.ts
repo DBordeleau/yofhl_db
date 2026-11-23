@@ -176,6 +176,27 @@ test('stat and numbers graphics can feature a player headshot', () => {
     assert.deepEqual(playerRefs(script), [{ name: 'Brady Tkachuk' }, { name: 'Tom Wilson' }]);
 });
 
+test('a split card shows one player’s number on two teams, and his headshot is looked up', () => {
+    const script = parseScript(`${head}>> split "Alexis Lafreniere" "FP/G" Lali 3.00 "2020–25 · 5 seasons", JAGR 5.11 "This season"
+>> split "Elias Pettersson" #048x9 VAN 4.1 HH 3.2
+RON: Hi.`);
+    assert.equal(hasErrors(script), false);
+    const graphics = script.events.flatMap(e => e.kind === 'stage' ? e.cues : []).map(c => c.type === 'monitor' && c.graphic);
+    assert.deepEqual(graphics[0], { type: 'split', player: { name: 'Alexis Lafreniere' }, label: 'FP/G', sides: [
+        { team: 'Lali', value: '3.00', detail: '2020–25 · 5 seasons' }, { team: 'JAGR', value: '5.11', detail: 'This season' },
+    ] });
+    assert.deepEqual(graphics[1], { type: 'split', player: { name: 'Elias Pettersson', id: '048x9' }, sides: [{ team: 'VAN', value: '4.1' }, { team: 'HH', value: '3.2' }] });
+    assert.deepEqual(playerRefs(script), [{ name: 'Alexis Lafreniere' }, { name: 'Elias Pettersson', id: '048x9' }]);
+});
+
+test('a split card without a player or exactly two team numbers says how to write it', () => {
+    for (const cue of ['>> split Lali 3.00 JAGR 5.11', '>> split "Alexis Lafreniere" Lali 3.00', '>> split "Alexis Lafreniere" Lali 3.00 JAGR 5.11 HH 2', '>> split "Alexis Lafreniere" Lali three JAGR 5.11']) {
+        const script = parseScript(`${head}${cue}
+RON: Hi.`);
+        assert.ok(script.diagnostics.some(d => d.severity === 'error' && d.message.includes('>> split')), cue);
+    }
+});
+
 test('wire cards name the move, the team and the players, and their players get headshots', () => {
     const script = parseScript(`${head}>> wire claim JAGR "Ryan O'Reilly" "Mon. Nov. 9 / C · Nashville"
 >> wire drop HUNG "Stuart Skinner"
