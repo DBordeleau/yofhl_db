@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { rows } from '@/lib/data/db';
-import { PLAYOFF_AWARD, SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
+import { SEASON_STATUS_QUERY, type SeasonStatus } from '@/lib/data/season-status';
+import { seasonAwards } from '@/lib/data/award-archive';
+import { awardSummary, type AwardSummary } from '@/lib/awards';
 import { SEASON_SYNC_STATUS_QUERY, toSeasonSyncStatus, type SeasonSyncStatus, type SeasonSyncStatusRow } from '@/lib/season-sync/status';
 
 // Admin reads. Never cached: the panel must show exactly what's in the database.
@@ -13,10 +15,8 @@ export interface AdminPlayer {
     team: string; // fantasy team abbreviation at season end, "FA" when unrostered
 }
 
-export interface AdminAward {
-    name: string;
-    label: string;
-    description: string;
+/** an expected award of the season, under its catalogue ID (which the awards editor saves it under), and its winner */
+export interface AdminAward extends AwardSummary {
     winner: AdminPlayer | null;
 }
 
@@ -87,18 +87,7 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
                   and not exists (select 1 from league.championship_rosters c where c.season_year = ${year} and c.player_id = ps.player_id)
                 order by ps.fpts desc`)
             : Promise.resolve([] as AdminPlayer[]),
-        rows<{ name: string; label: string; description: string; id: string | null; player_name: string | null; positions: string | null; fpts: number | null; team: string | null }>(sql`
-            select at.name, at.label, at.description,
-                   p.id, p.name as player_name, coalesce(array_to_string(ps.positions, ', '), '') as positions,
-                   coalesce(ps.fpts, 0)::float8 as fpts, coalesce(t.abbreviation, 'FA') as team
-            from league.award_types at
-            left join league.awards a on a.award_type_id = at.id and a.season_year = ${year}
-            left join league.players p on p.id = a.player_id
-            left join league.player_seasons ps on ps.player_id = a.player_id and ps.season_year = ${year}
-            -- the team the award credits (a published award vote's may not be the end-of-season one)
-            left join league.team_seasons t on t.id = coalesce(a.team_season_id, ps.team_season_id)
-            where ${season.playoffStatus} = 'complete' or at.name <> ${PLAYOFF_AWARD}
-            order by at.sort_order, p.name`),
+        seasonAwards(year),
         rows<{
             id: number; round: number; bracket: 'championship' | 'consolation'; slot: number; note: string | null; winner: number | null;
             a_id: number; a_name: string; a_score: number; h_id: number; h_name: string; h_score: number;
@@ -127,12 +116,11 @@ export const getSeasonAdmin = async (year: number): Promise<SeasonAdmin | null> 
         roster,
         suggestions,
         awardVotePublished: season.award_vote_published,
-        awards: awards.map((a) => ({
-            name: a.name,
-            label: a.label,
-            description: a.description,
-            winner: a.id ? { id: a.id, name: a.player_name!, positions: a.positions ?? '', fpts: a.fpts ?? 0, team: a.team ?? 'FA' } : null,
-        })),
+        // each expected award once per winner, or once with no winner yet
+        awards: (awards?.expected ?? []).flatMap((award) => {
+            const winners = awards!.winners.filter((winner) => winner.award === award.id).map((winner) => winner.player);
+            return (winners.length ? winners : [null]).map((winner) => ({ ...awardSummary(award), winner }));
+        }),
         games: games.map((g) => ({
             id: g.id,
             round: g.round,

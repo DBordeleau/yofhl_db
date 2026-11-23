@@ -30,7 +30,7 @@ async function fixtureImport(t: TestContext) {
     return { db, result };
 }
 
-test('a clean import stores the player IDs bare, though the Fantrax CSVs wrap them', async (t) => {
+test('a clean import stores the player IDs bare, though the Fantrax CSVs wrap them, and the legacy awards under their catalogue IDs', async (t) => {
     const { db, result } = await fixtureImport(t);
     assert.ok(result.ok);
 
@@ -38,7 +38,7 @@ test('a clean import stores the player IDs bare, though the Fantrax CSVs wrap th
     assert.deepEqual(players, ['0fx01', '0fx02', '0fx03', '0fx04', '0fx05', '0fx06', '0fx07', '0fx08', '0fx09', '0fx0a', '0fx0b', '0fx0c']);
     assert.deepEqual((await db.select().from(schema.playerSeasons)).map((s) => s.playerId).sort(), players);
     assert.deepEqual((await db.select().from(schema.championshipRosters)).map((r) => r.playerId).sort(), ['0fx01', '0fx02', '0fx0c']);
-    assert.deepEqual((await db.select().from(schema.awards)).map((a) => a.playerId).sort(), ['0fx01', '0fx04']);
+    assert.deepEqual((await db.select().from(schema.awards)).map((a) => [a.award, a.playerId]).sort(), [['hasek', '0fx04'], ['wayne-gretzky', '0fx01']]);
 });
 
 test('a clean import of the fixture league writes its standings, bracket, season result and history', async (t) => {
@@ -48,7 +48,7 @@ test('a clean import of the fixture league writes its standings, bracket, season
     assert.ok(result.ok);
     assert.deepEqual({ seasons: result.seasons, legacyNotes: result.legacyNotes }, {
         seasons: [{ year: 2026, players: 12 }],
-        legacyNotes: ['2025–26 Net Minder (Dan Dorsey): old site said "Cobalt Comets", linked to Brimley Badgers, his team at season end'],
+        legacyNotes: ['2025–26 Hasek Trophy (Dan Dorsey): old site said "Cobalt Comets", linked to Brimley Badgers, his team at season end'],
     });
 
     const teams = await db.select().from(schema.teamSeasons).orderBy(asc(schema.teamSeasons.franchiseId));

@@ -59,6 +59,18 @@ _Avoid_: draft season
 The season being played, as Fantrax has it now. Once the season import has opened it, the archive holds it too, as the current season, and the season sync keeps it current. Read Fantrax's view through the live season module (`lib/fantrax/live-season.ts`).
 _Avoid_: current season (when you mean what Fantrax has now)
 
+**Frozen season**:
+A season whose last week's correction window has closed, so nothing Fantrax holds for it can change. The Fantrax refresh and the season sync stop for it. It is usually published a week before it freezes.
+_Avoid_: completed season, finished season, off-season (for the season itself)
+
+**Saved snapshot**:
+The live season's last capture from Fantrax, which the site reads instead of asking Fantrax on every visit. It goes stale a day after it was captured, as when refreshes are missed, except for a frozen season, whose saved snapshot is final.
+_Avoid_: snapshot (alone: Coach's Corner has player and team snapshots), cache
+
+**Fantrax refresh**:
+The evening capture of the live season from Fantrax into the saved snapshot. It publishes only when the capture differs from the saved snapshot, and stops once the live season is a frozen season. Each evening run also settles Pick'em, which stops on its own once the season's Pick'em is complete.
+_Avoid_: sync (that is the season sync), import
+
 **Week**:
 One Fantrax scoring period. "Lineup period" in the roster browser is Fantrax's own label, shown to owners as they see it on Fantrax, so that wording is not a breach of this term.
 _Avoid_: period, outside the Fantrax adapter
@@ -97,8 +109,8 @@ Replacing whole seasons' imported data (standings, player seasons, playoff games
 _Avoid_: sync, load, the importer (when you mean the rules rather than the command)
 
 **Season sync**:
-The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season (with its skater categories) straight from Fantrax, the season's weeks, each regular-season week's games and each playoff round's games once the week is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops seven days after the season's last week ends. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
-_Avoid_: import (for this), refresh (that is the evening Fantrax refresh)
+The daily write of the live season into the archive, once the season import has opened it: each team season's record and points and each player season (with its skater categories) straight from Fantrax, the season's weeks, each regular-season week's games and each playoff round's games once the week is final, and the champion's automatic championship roster. It never writes a team season's identity, an award, a bracket correction or a saved championship roster, and it stops once the season is a frozen season. It is one operation in the season sync module (`lib/season-sync/create-season-sync.ts`); the morning cron and the admin "Sync season stats" action only call it.
+_Avoid_: import (for this), refresh (that is the Fantrax refresh)
 
 **Automatic championship roster**:
 The championship roster the season sync writes when the season first has a champion: everyone on the champion's roster outside the minors on any day of the playoff weeks it played. It is the season sync's until the league owner saves it in the roster editor, and is replaced if the champion changes before then.
@@ -145,6 +157,31 @@ An entry's correct and wrong picks over final weeks. A pick on a tied matchup is
 **Pick'em leaderboard**:
 A season's Pick'em entries ranked by correct picks, then by fewer wrong picks. Entries still level share the place. Always qualified, since the leaderboard at `/stats` ranks players.
 _Avoid_: standings, table
+
+## Awards
+
+**Award**:
+A league honour given once a season: the Jagr Cup, the Prime Minister's Trophy, the six individual awards and GM of the Year. Each has a name, which its URL uses and never changes, and a label, which is what the site shows (the Teemu Trophy's label is "Teemu Selanne Trophy"). Team awards go to a team season, individual awards to a player.
+_Avoid_: trophy (for awards in general; several awards' names end in "Trophy")
+
+**Award winner**:
+Who an award went to in one published season, however it was decided: worked out from results, entered by hand, or published from an award vote. A season can have more than one when a tally leaves candidates level.
+_Avoid_: recipient, champion (that's the Jagr Cup's winner alone)
+
+**Jagr Cup**:
+The award for the league champion, the team season that wins the Final. A cancelled season has no Jagr Cup.
+_Avoid_: championship (when you mean the award)
+
+**Prime Minister's Trophy**:
+The award for the team season with the most fantasy points in a published season. If two or more are level on the most, nobody wins it that season.
+_Avoid_: scoring title, points title
+
+**Released award**:
+An award the league owner has let out. An award that isn't released yet still appears on ballots and in tallies, and its own page shows its published winners, but no list of awards shows it.
+_Avoid_: live, published (that's a season or a vote's winners)
+
+**Listed award**:
+An award that lists of awards show: navigation, the award gallery, search, the award API and trophy cases. It is released, and if it's a voted team award, it also has a published winner.
 
 ## Award voting
 

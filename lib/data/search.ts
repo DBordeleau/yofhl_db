@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
-import { getFranchiseCards, getListedAwards, getSeasonArchive } from './league';
+import { getFranchiseCards, getSeasonArchive } from './league';
+import { listed } from './award-archive';
 import { leagueTags } from './cache-tags';
 import { playerHref } from '../player-url';
 import { seasonLabel } from '../league';
@@ -50,7 +51,7 @@ export const getSearchDirectory = cached(async (): Promise<SearchEntry[]> => {
     return entries;
 }, 'search-directory', [leagueTags.discovery]);
 
-/** the award entries: the listed awards (getListedAwards), outside the cached directory so publishing an award vote lists GM of the Year */
+/** the award entries: the listed awards (the award archive's listed), outside the cached directory so publishing an award vote lists GM of the Year */
 const awardEntries = (awards: readonly AwardDefinition[]): SearchEntry[] => awards.map(award => ({ kind: 'awards', id: award.id,
     title: award.label, subtitle: award.honor, href: awardHref(award.name), aliases: [{ text: award.name }, { text: award.id }] }));
 
@@ -58,6 +59,6 @@ const awardEntries = (awards: readonly AwardDefinition[]): SearchEntry[] => awar
 export async function searchPublicDirectory(state: SearchState, catalogue?: readonly AwardDefinition[]) {
     // Empty search must not wake the database.
     if (normalizeSearch(state.q).length < 2) return searchDirectory([], state);
-    const [directory, awards] = await Promise.all([getSearchDirectory(), getListedAwards(catalogue)]);
+    const [directory, awards] = await Promise.all([getSearchDirectory(), listed(catalogue)]);
     return searchDirectory([...directory, ...awardEntries(awards)], state);
 }

@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { FaTrophy } from 'react-icons/fa';
-import { getAwardDefinition } from '@/lib/awards';
+import { findAward } from '@/lib/awards';
 
 interface TrophyArtProps {
     award: string;
@@ -11,7 +11,7 @@ interface TrophyArtProps {
 }
 
 export function TrophyArt({ award, title, className = 'h-20 w-20', sizes = '80px', priority = false }: TrophyArtProps) {
-    const definition = getAwardDefinition(award);
+    const definition = findAward(award);
     if (!definition?.image) return <FaTrophy className={className} title={title} aria-hidden={title ? undefined : true} />;
     return (
         <Image

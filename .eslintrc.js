@@ -12,11 +12,12 @@ module.exports = {
   // Later overrides win, so the module's own files come last.
   overrides: [
     {
-      // Tests and test harnesses may also run the live season on its in-memory source.
+      // Tests and test harnesses may also run the live season on its in-memory source, or the production live season
+      // over the fake Fantrax.
       files: ['**/*.test.ts', '**/testing/**'],
       rules: {
-        'import/no-restricted-paths': fantraxBoundary([...publicFantraxFiles, './memory-live-season.ts'],
-          `${boundaryMessage}; tests and test harnesses may also import the in-memory live season (lib/fantrax/memory-live-season.ts).`),
+        'import/no-restricted-paths': fantraxBoundary([...publicFantraxFiles, './memory-live-season.ts', './testing/fake-fantrax.ts'],
+          `${boundaryMessage}; tests and test harnesses may also import the in-memory live season (lib/fantrax/memory-live-season.ts) or the fake Fantrax (lib/fantrax/testing/fake-fantrax.ts).`),
       },
     },
     {

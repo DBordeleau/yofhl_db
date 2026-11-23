@@ -1,6 +1,6 @@
 import { seasonLabel } from '../league';
 import { playerHref } from '../player-url';
-import { getAwardDefinition } from '../awards';
+import { catalogueAward, type AwardId } from '../awards';
 import { PLAYER_STATS, type PlayerStat, type PlayerCategories } from './player-stats';
 import type { FranchiseCard } from '../data/league';
 import type { LiveSeason, RosterStats } from '../fantrax/live-season';
@@ -10,11 +10,14 @@ export type Category = 'teams' | 'players' | 'matchups' | 'honours';
 /** `stats`: the season's category totals, each only where it is known */
 export interface PlayerSeason { id: string; name: string; year: number; points: number; positions: string[]; stats?: Partial<PlayerCategories> }
 export interface TeamSeason { team: number; name: string; year: number; wins: number; losses: number; ties: number; points: number; logo?: string | null; abbreviation?: string }
-export interface Award { player: string; name: string; award: string; year: number; team: number | null }
+/** an individual award win, under the award's catalogue ID */
+export interface Award { player: string; name: string; award: AwardId; year: number; team: number | null }
+/** a Prime Minister's Trophy win: the franchise and the season, as the award archive decides them */
+export interface PrimeMinisterWin { team: number; year: number }
 export interface PeriodInfo { year: number; period: number; days: number; era: number; start: string; end: string }
 export interface RecordSource {
-    teams: FranchiseCard[]; players: PlayerSeason[]; seasons: TeamSeason[]; awards: Award[];
-    /** published season years (GLOSSARY.md); a season still being played earns no trophy, no best season record and no "lowest" record */
+    teams: FranchiseCard[]; players: PlayerSeason[]; seasons: TeamSeason[]; awards: Award[]; primeMinisters: PrimeMinisterWin[];
+    /** published season years (GLOSSARY.md); a season still being played earns no best season record and no "lowest" record */
     published: number[];
     /** published seasons whose playoffs were played: the calendar cup and finals streaks run against */
     competitions: number[]; games: RivalryGame[]; periods: PeriodInfo[];
@@ -22,7 +25,8 @@ export interface RecordSource {
 export interface Entry {
     id: string; name: string; value: number; detail: string; href: string; team: number | null; rank?: number; logo?: string | null; abbreviation?: string; portrait?: string;
 }
-export interface RecordList { id: string; category: Category; title: string; unit: string; entries: Entry[] }
+/** `award`: the award an honours record counts (its trophy art and honour in the record book) */
+export interface RecordList { id: string; category: Category; title: string; unit: string; entries: Entry[]; award?: AwardId }
 export interface Chase {
     id: string; name: string; team: number | null; kind: string; unit: string;
     archived: number; current: number; total: number; target: number; gap: number; step: number; href: string;
@@ -81,11 +85,10 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
     const records: RecordList[] = [];
     const teams = source.teams.filter(t => !filter.team || t.ID === filter.team);
     const seasons = source.seasons.filter(s => !filter.team || s.team === filter.team);
-    const published = new Set(source.published);
     // A season still being played sets single-season totals but no record of the season as a whole.
-    const publishedSeasons = source.seasons.filter(s => published.has(s.year));
-    const add = (id: string, category: Category, title: string, unit: string, entries: Entry[], ascending = false) => {
-        records.push({ id, category, title, unit, entries: rankEntries(entries, ascending).filter(entry => entry.rank! <= 10) });
+    const published = new Set(source.published);
+    const add = (id: string, category: Category, title: string, unit: string, entries: Entry[], ascending = false, award?: AwardId) => {
+        records.push({ id, category, title, unit, entries: rankEntries(entries, ascending).filter(entry => entry.rank! <= 10), ...(award && { award }) });
     };
     const teamEntry = (team: FranchiseCard, value: number, detail = ''): Entry => ({ id: String(team.ID), name: team.Team, team: team.ID, value, detail, href: `/teams/${team.ID}` });
     const seasonEntry = (s: TeamSeason, value: number, detail = seasonLabel(s.year)): Entry => ({ id: `${s.team}:${s.year}`, name: s.name, team: s.team, logo: s.logo, abbreviation: s.abbreviation, value, detail, href: `/teams/${s.team}` });
@@ -122,27 +125,29 @@ export function buildRecords(source: RecordSource, filter: { team?: number; posi
             return playerEntry(seasons[0], run.length, yearList(run));
         }).filter(p => p.value > 0));
     }
-    add('cups', 'honours', 'Jagr Cups', 'cups', teams.filter(t => t.championships.length).map(t => teamEntry(t, t.championships.length, yearList(t.championships))));
+    add('cups', 'honours', 'Jagr Cups', 'cups', teams.filter(t => t.championships.length).map(t => teamEntry(t, t.championships.length, yearList(t.championships))), false, 'jagr-cup');
     add('finals', 'honours', 'Finals appearances', 'finals', teams.filter(t => t.finals.length).map(t => teamEntry(t, t.finals.length, yearList(t.finals))));
     add('repeat-cups', 'honours', 'Consecutive championships', 'cups', teams.filter(t => t.championships.length).map(t => {
         const run = longestRun(t.championships, source.competitions);
         return teamEntry(t, run.length, yearList(run));
-    }).filter(t => t.value >= 2));
+    }).filter(t => t.value >= 2), false, 'jagr-cup');
     add('repeat-finals', 'honours', 'Consecutive finals', 'finals', teams.filter(t => t.finals.length).map(t => {
         const run = longestRun(t.finals, source.competitions);
         return teamEntry(t, run.length, yearList(run));
     }));
     const scoringTitles = teams.map(t => {
-        const years = publishedSeasons.filter(s => s.team === t.ID && !publishedSeasons.some(other => other.year === s.year && other.team !== t.ID && other.points >= s.points)).map(s => s.year);
+        const years = source.primeMinisters.filter(win => win.team === t.ID).map(win => win.year);
         return teamEntry(t, years.length, yearList(years));
     }).filter(t => t.value > 0);
-    add('scoring-titles', 'honours', "Prime Minister’s Trophies", 'trophies', scoringTitles);
+    add('scoring-titles', 'honours', "Prime Minister’s Trophies", 'trophies', scoringTitles, false, 'prime-minister');
     for (const award of [...new Set(source.awards.map(a => a.award))]) {
-        if (getAwardDefinition(award)?.id === 'teemu-selanne') continue;
+        const definition = catalogueAward(award);
+        if (definition.oncePerPlayer) continue;
         const winners = new Map<string, Award[]>();
         for (const a of source.awards.filter(a => a.award === award && (!filter.team || a.team === filter.team))) winners.set(a.player, [...(winners.get(a.player) ?? []), a]);
-        add(`award-${award.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, 'honours', award, 'wins', [...winners.values()].map(wins => ({ id: wins[0].player, name: wins[0].name, value: wins.length,
-            detail: yearList(wins.map(a => a.year)), team: filter.team ?? null, href: playerHref(wins[0].player) })));
+        // the record's ID is the catalogue label's (award-hasek-trophy), as links to it have always been
+        add(`award-${definition.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, 'honours', definition.label, 'wins', [...winners.values()].map(wins => ({ id: wins[0].player, name: wins[0].name, value: wins.length,
+            detail: yearList(wins.map(a => a.year)), team: filter.team ?? null, href: playerHref(wins[0].player) })), false, award);
     }
 
     const selectedFormat = filter.format ?? defaultMatchupFormat(source);

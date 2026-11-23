@@ -3,13 +3,14 @@
 // row only when a value differs and records the run on the season's status row. Views refresh after the write
 // and tags are expired even if a refresh fails; a run that changed nothing does neither. A failed read, check or
 // write is recorded on the status row and changes nothing else, so the next run catches up. Seven days after the
-// season's last week ends the run records the freeze and every later run leaves the season alone.
+// season's last week ends the run records the freeze and every later run leaves the season alone, answering from
+// the cache without a database query until the next season is opened.
 import { sql } from 'drizzle-orm';
 import { revalidateTag } from 'next/cache';
 import { seasonSyncEffects } from '@/lib/data/cache-tags';
 import { rows } from '@/lib/data/db';
 import { inRefreshOrder } from '@/lib/data/materialized-views';
-import { correctionWindowClosed } from '@/lib/fantrax/live-season';
+import { scheduleIsFrozen } from '@/lib/fantrax/live-season';
 import { readCurrentSeason } from './current-season';
 import type { SeasonSyncPorts } from './ports';
 import { readLeagueInfo, readSeason } from './read-season';
@@ -33,10 +34,11 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 
 export function createRun(ports: SeasonSyncPorts) {
     return async function run({ now }: RunInput): Promise<SeasonSyncResult> {
-        const { seasonYear, season } = await readCurrentSeason();
-        if (!season) return { outcome: 'not-opened', seasonYear };
+        const current = await readCurrentSeason();
+        if (current.state === 'not-opened') return { outcome: 'not-opened', seasonYear: current.seasonYear };
+        if (current.state === 'frozen') return { outcome: 'frozen', seasonYear: current.seasonYear, frozenAt: current.frozenAt };
+        const { season } = current;
         const year = season.seasonYear;
-        if (season.frozenAt) return { outcome: 'frozen', seasonYear: year, frozenAt: season.frozenAt };
         const failed = async (error: unknown): Promise<SeasonSyncResult> => {
             console.error(`The season sync of ${year} failed:`, error);
             await rows(failedRunQuery(year, now, message(error)));
@@ -46,13 +48,16 @@ export function createRun(ports: SeasonSyncPorts) {
         let read;
         try {
             const info = await readLeagueInfo(ports, season);
-            if (correctionWindowClosed(info.weeks.at(-1)!.endDate, now)) {
-                await rows(freezeQuery(year, now));
-                return { outcome: 'frozen', seasonYear: year, frozenAt: new Date(now).toISOString() };
-            }
-            read = await readSeason(ports, season, info, now);
+            if (scheduleIsFrozen(info.weeks, now)) await rows(freezeQuery(year, now));
+            else read = await readSeason(ports, season, info, now);
         } catch (error) {
             return failed(error);
+        }
+        if (!read) {
+            // The run froze the season. Read it back, so later runs answer frozen from the cache. The freeze is
+            // recorded either way: if the read back fails, the next run reads the frozen mark itself.
+            await readCurrentSeason().catch(error => console.error(`The season sync of ${year} froze it, but could not read it back:`, error));
+            return { outcome: 'frozen', seasonYear: year, frozenAt: new Date(now).toISOString() };
         }
 
         let changed: SyncCounts;

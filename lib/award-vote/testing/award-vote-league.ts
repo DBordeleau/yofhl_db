@@ -6,9 +6,8 @@ import { createMemoryIdentity, createMemoryRequest, createMemoryStorage } from '
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryAwardVoteFantrax, rangeKey, type MemoryAwardVoteFantraxState } from '../memory-fantrax';
 import { createMemoryNhl, type MemoryNhlState } from '../memory-nhl';
-import { PLAYER_AWARD_IDS, type BallotRankings, type PlayerAwardId } from '../model';
+import type { BallotRankings, PlayerAwardId } from '../model';
 import type { AwardTally, PlayerAwardTally } from '../read-tallies';
-import { awardDefinition } from '../voted-awards';
 import type { FantraxRosterPeriod, FantraxWeek, NhlPlayerRecord, RangedGoalie, RangedPlayer, RangedSkater } from '../ports';
 
 export const SEASON = 2027;
@@ -95,8 +94,6 @@ const seed = (champion: boolean, transactions: boolean) => `
         values ${FRANCHISES.map(id => `(${SEASON}, '${LEAGUE_ID}', 'fx${id}', ${id})`).join(', ')};
     insert into league.team_management (franchise_id, owner_uid, owner_email, version)
         values ${FRANCHISES.map(id => `(${id}, 'owner-${id}', 'owner${id}@example.test', 1)`).join(', ')};
-    insert into league.award_types (name, label, description, sort_order)
-        values ${PLAYER_AWARD_IDS.map((award, index) => `('${awardDefinition(award).name}', '${awardDefinition(award).label}', 'Voted', ${index + 1})`).join(', ')};
     ${transactions ? [2026, SEASON].map(year => `
         insert into league.transaction_events (id, season_year, kind, occurred_at, occurred_on, source_file, source_time)
             values ('baseline-${year}', ${year}, 'trade', '2026-10-12T17:00:00Z', '2026-10-12', 'trades.csv', '12:00PM');

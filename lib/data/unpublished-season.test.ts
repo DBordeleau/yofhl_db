@@ -3,6 +3,7 @@ import test from 'node:test';
 import { disposableLeague } from '../testing/disposable-league';
 import { LEAGUE_TAG } from './cache-tags';
 import { MATERIALIZED_VIEWS } from './materialized-views';
+import { catalogueAward } from '../awards';
 
 // A season the season sync is filling in has points but no champion yet: it earns no trophy until it is published.
 test('an unpublished season earns no Prime Minister’s Trophy and stays off the cup-streak calendar until it has a champion', async t => {
@@ -20,17 +21,17 @@ test('an unpublished season earns no Prime Minister’s Trophy and stays off the
         insert into league.matchups (season_year,stage,round,bracket,slot,away_team_season_id,home_team_season_id,away_score,home_score,winner_team_season_id)
         values (2024,'playoff',1,'championship',1,1,2,100,90,1), (2025,'playoff',1,'championship',1,3,4,100,90,3);
     ` });
-    const { getFranchise, getTeamAwardWinners } = await import('./league');
-    const { getFranchiseHonors } = await import('./history');
+    const { getFranchise } = await import('./league');
+    const { winners, franchiseHonors } = await import('./award-archive');
     const { getRecordSource } = await import('../records/data');
     const { buildRecords } = await import('../records/model');
     const record = async (id: string) => buildRecords(await getRecordSource()).find(r => r.id === id)!.entries;
 
-    assert.deepEqual((await getTeamAwardWinners('prime-minister')).map(w => [w.Year, w.TeamID]), [[2025, 1], [2024, 1]]);
-    assert.deepEqual((await getFranchiseHonors(2)).primeMinisters, []);
+    assert.deepEqual((await winners(catalogueAward('prime-minister'))).map(w => [w.Year, w.TeamID]), [[2025, 1], [2024, 1]]);
+    assert.deepEqual((await franchiseHonors(2)).primeMinisters, []);
     assert.deepEqual((await getFranchise(2))!.seasons.map(s => [s.year, s.playoffStatus]), [[2026, 'pending'], [2025, 'complete'], [2024, 'complete']],
         'the season being played has no playoff result yet');
-    assert.deepEqual((await getFranchiseHonors(1)).primeMinisters.map(w => w.year), [2025, 2024]);
+    assert.deepEqual((await franchiseHonors(1)).primeMinisters.map(w => w.year), [2025, 2024]);
     assert.deepEqual((await record('scoring-titles')).map(e => [e.team, e.value]), [[1, 2]]);
     assert.deepEqual((await getRecordSource()).competitions, [2024, 2025], 'cup streaks are measured against published seasons');
     assert.deepEqual((await record('repeat-cups')).map(e => [e.team, e.value]), [[1, 2]]);
@@ -45,8 +46,8 @@ test('an unpublished season earns no Prime Minister’s Trophy and stays off the
     for (const view of MATERIALIZED_VIEWS) await league.client.exec(`refresh materialized view league.${view};`);
     league.expire(LEAGUE_TAG);
 
-    assert.deepEqual((await getTeamAwardWinners('prime-minister')).map(w => [w.Year, w.TeamID]), [[2026, 2], [2025, 1], [2024, 1]]);
-    assert.deepEqual((await getFranchiseHonors(2)).primeMinisters, [{ year: 2026, points: 9000 }]);
+    assert.deepEqual((await winners(catalogueAward('prime-minister'))).map(w => [w.Year, w.TeamID]), [[2026, 2], [2025, 1], [2024, 1]]);
+    assert.deepEqual((await franchiseHonors(2)).primeMinisters, [{ year: 2026, points: 9000 }]);
     assert.equal((await getFranchise(2))!.seasons[0].playoffStatus, 'complete');
     assert.deepEqual((await record('scoring-titles')).map(e => [e.team, e.value]), [[1, 2], [2, 1]]);
     assert.deepEqual((await getRecordSource()).competitions, [2024, 2025, 2026]);

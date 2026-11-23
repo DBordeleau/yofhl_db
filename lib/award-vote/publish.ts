@@ -13,15 +13,13 @@
 // reopening scored), voiding and restoring refuse a published vote, and the hand-entry awards editor refuses the season. There is no un-publishing. Refused for a
 // rehearsal (rehearsal.ts).
 //
-// Awards are keyed by catalogue ID here (lib/awards.ts) and by award type in the archive, matched by the catalogue
-// name. An award type the archive is missing would lose its winners, so publishing is refused until it is added.
+// Awards are keyed by catalogue ID (lib/awards.ts) here and in the archive alike (docs/adr/0009-awards-are-catalogue-ids.md).
 import { sql } from 'drizzle-orm';
 import { savePublishedWinners } from '@/lib/data/curated-edits';
-import { PLAYER_AWARD_IDS, type AwardVoteState } from './model';
+import type { AwardVoteState } from './model';
 import { rankedPlayerName } from './ballot-snapshot';
 import type { AwardVotePorts } from './ports';
 import { rehearsalRefusal, type RehearsalRefusal } from './rehearsal';
-import { awardDefinition } from './voted-awards';
 
 export interface PublishInput {
     seasonYear: number;
@@ -33,21 +31,12 @@ export type PublishRejection = RehearsalRefusal
     /** scored with no ballot counting, so no award has a tally */
     | 'no-tally';
 
-export type PublishResult = { ok: true }
-    | { ok: false; reason: PublishRejection }
-    /** the archive has no award type by these catalogue names, for awards that have a winner */
-    | { ok: false; reason: 'missing-award-type'; awardTypes: string[] };
+export type PublishResult = { ok: true } | { ok: false; reason: PublishRejection };
 
-/** each voted award's catalogue ID and the archive's name for it */
-const archiveNames = () => sql`(values ${sql.join(PLAYER_AWARD_IDS.map(award => sql`(${award}::text, ${awardDefinition(award).name}::text)`), sql`, `)})
-    as names (award, name)`;
-
-/** the season's place-one tally lines as `winner`, with the archive's award type for each, or null where it has none */
+/** the season's place-one tally lines as `winner` */
 const placeOne = (seasonYear: number) => sql`(
-    select t.season_year, t.award, t.player_id, names.name as award_name, ty.id as award_type_id
+    select t.season_year, t.award, t.player_id
     from league.award_vote_tallies t
-    join ${archiveNames()} on names.award = t.award
-    left join league.award_types ty on ty.name = names.name
     where t.season_year = ${seasonYear} and t.place = 1) as winner`;
 
 /** whether the season's award vote has any tally line */
@@ -58,9 +47,7 @@ export function createPublish({ db }: AwardVotePorts) {
         const [vote] = await db.rows<{ state: AwardVoteState }>(sql`select state from league.award_votes where season_year = ${seasonYear}`);
         if (!vote || vote.state !== 'scored') return { ok: false, reason: 'not-scored' };
         const [{ tallied }] = await db.rows<{ tallied: boolean }>(sql`select ${anyTally(seasonYear)} as tallied`);
-        if (!tallied) return { ok: false, reason: 'no-tally' };
-        const missing = await db.rows<{ name: string }>(sql`select distinct winner.award_name as name from ${placeOne(seasonYear)} where winner.award_type_id is null order by 1`);
-        return missing.length ? { ok: false, reason: 'missing-award-type', awardTypes: missing.map(row => row.name) } : null;
+        return tallied ? null : { ok: false, reason: 'no-tally' };
     }
 
     return async function publish({ seasonYear }: PublishInput): Promise<PublishResult> {
@@ -72,10 +59,9 @@ export function createPublish({ db }: AwardVotePorts) {
         const { published } = await savePublishedWinners(seasonYear, {
             gate: sql`update league.award_votes set state = 'published', published_at = clock_timestamp(), updated_at = now()
                       where season_year = ${seasonYear} and state = 'scored' and not rehearsal and ${anyTally(seasonYear)}
-                        and not exists (select 1 from ${placeOne(seasonYear)} where winner.award_type_id is null)
                       returning season_year`,
             // the snapshot names every ranked player and credits each candidate's team season
-            winners: sql`select winner.award_type_id, winner.player_id, ${rankedPlayerName(sql`winner.season_year`, sql`winner.player_id`)} as name,
+            winners: sql`select winner.award, winner.player_id, ${rankedPlayerName(sql`winner.season_year`, sql`winner.player_id`)} as name,
                                 c.team_season_id
                          from ${placeOne(seasonYear)}
                          left join league.award_vote_candidates c

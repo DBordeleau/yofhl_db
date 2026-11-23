@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { daysOf, endOf, SEASON, seasonSyncLeague } from './testing/season-sync-league';
+import { catalogueAward } from '@/lib/awards';
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -49,7 +50,8 @@ test('once the Quarterfinals week is final, its two games are stored in bracket 
 
 test('after the Semifinals and the Final, each round is stored, and the run after the Final gives the season its champion and publishes it', async t => {
     const league = await playoffLeague(t);
-    const { getBannerSeasons, getSeasonArchive, getTeamAwardWinners } = await import('@/lib/data/league');
+    const { getBannerSeasons, getSeasonArchive } = await import('@/lib/data/league');
+    const { winners } = await import('@/lib/data/award-archive');
     league.setPlayers([['p3', 10, 1, 3]]);
     league.setRoster(3, PLAYOFF_DAYS, [['p3', 'ACTIVE']]);
     playQuarterfinals(league);
@@ -78,7 +80,7 @@ test('after the Semifinals and the Final, each round is stored, and the run afte
     const archive = await league.read(() => getSeasonArchive());
     assert.deepEqual([archive.latest?.year, archive.latest?.team, archive.current], [SEASON, 'Club 3', null], 'the season is published and is the latest season');
     assert.deepEqual((await league.read(() => getBannerSeasons())).find(season => season.year === SEASON)?.franchiseId, 3, "the champion's banner");
-    assert.deepEqual((await league.read(() => getTeamAwardWinners('jagr-cup'))).map(winner => [winner.Year, winner.TeamID]), [[SEASON, 3], [2026, 1]], 'the Jagr Cup');
+    assert.deepEqual((await league.read(() => winners(catalogueAward('jagr-cup')))).map(winner => [winner.Year, winner.TeamID]), [[SEASON, 3], [2026, 1]], 'the Jagr Cup');
 });
 
 test("each round's games are stored beside the games that fed them, whatever order Fantrax lists them in", async t => {
@@ -102,9 +104,8 @@ test('a saved bracket correction decides the stored winner, and a run leaves the
     await league.league.client.exec(`
         insert into league.matchup_overrides (season_year, round, franchise_a, franchise_b, winner_franchise_id, note)
             values (${SEASON}, 1, 4, 5, 4, 'Goalie start cap');
-        insert into league.award_types (name, label, description, sort_order) values ('Teemu Trophy', 'Teemu Selanne Trophy', 'Top Rookie', 1);
         insert into league.players (id, name) values ('p1', 'Rookie One');
-        insert into league.awards (season_year, award_type_id, player_id, team_season_id) select ${SEASON}, id, 'p1', 13 from league.award_types;
+        insert into league.awards (season_year, award, player_id, team_season_id) values (${SEASON}, 'teemu-selanne', 'p1', 13);
     `);
     const { getSeasonAdmin } = await import('@/lib/admin/data');
     playQuarterfinals(league);
@@ -112,7 +113,7 @@ test('a saved bracket correction decides the stored winner, and a run leaves the
     assert.deepEqual((await bracket(league))[0], [1, 0, 5, 4, 410.5, 398.25, 4], 'franchise 4 wins on the correction, despite the score');
     const admin = (await getSeasonAdmin(SEASON))!;
     assert.deepEqual(admin.games.find(game => game.round === 1 && game.slot === 0)!.override?.note, 'Goalie start cap', 'bracket review still has the correction');
-    assert.deepEqual(admin.awards.map(award => [award.name, award.winner?.id]), [['Teemu Trophy', 'p1']]);
+    assert.deepEqual(admin.awards.filter(award => award.winner).map(award => [award.name, award.winner?.id]), [['Teemu Trophy', 'p1']]);
 });
 
 test('a level game goes to the team Fantrax placed in the next round', async t => {

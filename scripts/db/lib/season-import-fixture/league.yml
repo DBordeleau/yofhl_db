@@ -24,10 +24,6 @@ franchises:
     eras:
       - { from: 2026, name: Fernvale Foxes, abbreviations: [FERN] }
 
-awards:
-  - { name: Top Gun Award, description: Top Player }
-  - { name: Net Minder, label: Net Minder Trophy, description: Top Goaltender }
-
 seasons:
   2026:
     consolation: [ELM, FERN]
