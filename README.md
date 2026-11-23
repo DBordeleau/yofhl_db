@@ -102,7 +102,7 @@ The build reads league data while generating pages, so it needs a reachable Neon
 | `lib/history/` | History types and the visibility rule for excluded source records |
 | `db/schema.ts` and `db/migrations/` | Database tables and versioned SQL, including materialized views |
 | `scripts/db/` | Migrations, Fantrax imports, logo sync, and legacy verification |
-| `league/league.yml` | Stable franchise IDs, identity eras, defunct status, logos, award definitions, playoff fixes, and each season's Fantrax league and team IDs |
+| `league/league.yml` | Stable franchise IDs, identity eras, defunct status, logos, playoff fixes, and each season's Fantrax league and team IDs |
 | `league/seed/` | Legacy awards and championship rosters used to fill empty historical seasons |
 | `public/logos/` and `public/trophies/` | Team and award artwork; some team logos also live directly in `public/` |
 

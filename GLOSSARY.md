@@ -158,6 +158,31 @@ An entry's correct and wrong picks over final weeks. A pick on a tied matchup is
 A season's Pick'em entries ranked by correct picks, then by fewer wrong picks. Entries still level share the place. Always qualified, since the leaderboard at `/stats` ranks players.
 _Avoid_: standings, table
 
+## Awards
+
+**Award**:
+A league honour given once a season: the Jagr Cup, the Prime Minister's Trophy, the six individual awards and GM of the Year. Each has a name, which its URL uses and never changes, and a label, which is what the site shows (the Teemu Trophy's label is "Teemu Selanne Trophy"). Team awards go to a team season, individual awards to a player.
+_Avoid_: trophy (for awards in general; several awards' names end in "Trophy")
+
+**Award winner**:
+Who an award went to in one published season, however it was decided: worked out from results, entered by hand, or published from an award vote. A season can have more than one when a tally leaves candidates level.
+_Avoid_: recipient, champion (that's the Jagr Cup's winner alone)
+
+**Jagr Cup**:
+The award for the league champion, the team season that wins the Final. A cancelled season has no Jagr Cup.
+_Avoid_: championship (when you mean the award)
+
+**Prime Minister's Trophy**:
+The award for the team season with the most fantasy points in a published season. If two or more are level on the most, nobody wins it that season.
+_Avoid_: scoring title, points title
+
+**Released award**:
+An award the league owner has let out. An award that isn't released yet still appears on ballots and in tallies, and its own page shows its published winners, but no list of awards shows it.
+_Avoid_: live, published (that's a season or a vote's winners)
+
+**Listed award**:
+An award that lists of awards show: navigation, the award gallery, search, the award API and trophy cases. It is released, and if it's a voted team award, it also has a published winner.
+
 ## Award voting
 
 **Award vote**:

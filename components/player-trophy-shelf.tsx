@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { TrophyArt } from '@/components/trophy-icons';
 import TrophySparkles from '@/components/trophy-sparkles';
-import { AWARDS, awardHref, getAwardDefinition } from '@/lib/awards';
+import { awardHref, catalogueOrder } from '@/lib/awards';
+import type { PlayerHonors } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
 import styles from './player-page.module.css';
 
@@ -12,8 +13,8 @@ export interface ShelfTrophy {
     years: number[]; // season end years, newest first
 }
 
-// Jagr Cups first, then each award in league order, with every season it was won
-export function shelfTrophies(championships: { season: number; team: string }[], awards: { Award: string; label: string; Year: number }[]): ShelfTrophy[] {
+// Jagr Cups first, then each award in catalogue order, with every season it was won
+export function shelfTrophies({ championships, awards }: PlayerHonors): ShelfTrophy[] {
     const shelf: ShelfTrophy[] = [];
     const cups = [...championships].sort((a, b) => b.season - a.season);
     if (cups.length) shelf.push({
@@ -23,18 +24,12 @@ export function shelfTrophies(championships: { season: number; team: string }[],
         years: cups.map((c) => c.season),
     });
     const grouped = new Map<string, ShelfTrophy>();
-    for (const award of awards) {
-        const definition = getAwardDefinition(award.Award);
-        const key = definition?.id ?? award.Award;
-        const entry = grouped.get(key) ?? { award: award.Award, label: definition?.label ?? award.label, note: definition?.honor ?? '', years: [] };
-        entry.years.push(award.Year);
-        grouped.set(key, entry);
+    for (const award of [...awards].sort((a, b) => catalogueOrder(a.id) - catalogueOrder(b.id))) {
+        const entry = grouped.get(award.id) ?? { award: award.name, label: award.label, note: award.honor, years: [] };
+        entry.years.push(award.year);
+        grouped.set(award.id, entry);
     }
-    const order = (trophy: ShelfTrophy) => {
-        const index = AWARDS.findIndex((definition) => definition.id === getAwardDefinition(trophy.award)?.id);
-        return index < 0 ? AWARDS.length : index;
-    };
-    return [...shelf, ...Array.from(grouped.values()).sort((a, b) => order(a) - order(b)).map((trophy) => ({ ...trophy, years: trophy.years.sort((a, b) => b - a) }))];
+    return [...shelf, ...Array.from(grouped.values()).map((trophy) => ({ ...trophy, years: trophy.years.sort((a, b) => b - a) }))];
 }
 
 // One navy band under the stage: a column per trophy, split by hairlines

@@ -16,8 +16,9 @@ import { isPublished } from '@/lib/seasons';
 import { getSeasonArchive, getPlayer, getTopPlayerIds } from '@/lib/data/league';
 import { playerHref } from '@/lib/player-url';
 import { getHistory, getHistorySeasons } from '@/lib/data/history';
+import { playerHonors } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
-import { awardHref } from '@/lib/awards';
+import { awardHref, type AwardSummary } from '@/lib/awards';
 
 // Popular profiles build ahead of time; other profiles cache on their first visit.
 export async function generateStaticParams() {
@@ -43,19 +44,20 @@ export async function generateMetadata({ params }: { params: Promise<{ ID: strin
 export default async function PlayerPage({ params }: { params: Promise<{ ID: string }> }) {
     const player = await getPlayer(decodeURIComponent((await params).ID));
     if (!player) notFound();
+    const honors = await playerHonors(player.id);
     const isMemorial = player.id === JOHNNY_GAUDREAU_ID;
-    const compareAction = <><CompareButton href={comparisonHref({ ids: [player.id], metric: 'fpts' })} title="Compare this player with others" dark /><ShareButton card={playerShareCard(player)} dark /></>;
+    const compareAction = <><CompareButton href={comparisonHref({ ids: [player.id], metric: 'fpts' })} title="Compare this player with others" dark /><ShareButton card={playerShareCard(player, honors)} dark /></>;
     const scope = { playerId: player.id };
     const [transactions, historySeasons, archive] = await Promise.all([getHistory(scope), getHistorySeasons(scope), getSeasonArchive()]);
     const bestSeason = [...player.playerStats].filter(row => isPublished(archive, row.Year)).sort((a, b) => b.FPts - a.FPts)[0];
-    const latestAward = [...player.awards].sort((a, b) => b.Year - a.Year)[0];
+    const latestAward = [...honors.awards].sort((a, b) => b.year - a.year)[0];
     const played = player.playerStats.filter(row => row.FPts > 0).map(row => row.Year).sort((a, b) => a - b);
     const span = played.length > 1 ? `${seasonLabel(played[0])} to ${seasonLabel(played.at(-1)!)}` : played.length ? seasonLabel(played[0]) : null;
 
-    const awardsByYear = player.awards.reduce((acc, a) => {
-        (acc[a.Year] ??= []).push(a.Award);
+    const awardsByYear = honors.awards.reduce((acc, { year, ...award }) => {
+        (acc[year] ??= []).push(award);
         return acc;
-    }, {} as Record<number, string[]>);
+    }, {} as Record<number, AwardSummary[]>);
 
     const sections = [
         { id: 'career-stats', label: 'Seasons' },
@@ -78,7 +80,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
                 actions={compareAction}
                 header={isMemorial ? <JohnnyGaudreauMemorial actions={<div className="flex flex-wrap items-center gap-3">{compareAction}</div>} /> : undefined}
             />
-            <PlayerTrophyShelf trophies={shelfTrophies(player.championships, player.awards)} seed={player.id} />
+            <PlayerTrophyShelf trophies={shelfTrophies(honors)} seed={player.id} />
 
             <PageContents variant="bar" title={player.name} contentId="player-sections" sections={sections} />
 
@@ -94,7 +96,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ ID: str
                     { href: comparisonHref({ ids: [player.id], metric: 'fpts' }), title: `Compare ${player.name}`, reason: 'Add another player and compare their seasons' },
                     player.team ? { href: `/teams/${player.team.id}`, title: player.team.name, reason: 'Last recorded team in the archive' } : null,
                     bestSeason ? { href: `/season/${bestSeason.Year}`, title: seasonLabel(bestSeason.Year), reason: 'Their highest-scoring available season' } : null,
-                    latestAward ? { href: awardHref(latestAward.Award), title: latestAward.Award, reason: `Their latest award · ${seasonLabel(latestAward.Year)}` } : null,
+                    latestAward ? { href: awardHref(latestAward.name), title: latestAward.label, reason: `Their latest award · ${seasonLabel(latestAward.year)}` } : null,
                 ]} />
             </div>
         </main>

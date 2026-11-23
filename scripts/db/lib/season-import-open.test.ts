@@ -109,7 +109,7 @@ test('an opened season is the current season, unpublished, and on the admin seas
     const [opened] = await getSeasonStatuses();
     assert.deepEqual(opened, {
         year: 2027, label: '2026–27', playoffStatus: 'complete', teams: 6, players: 0, games: 0,
-        champion: null, roster: 0, awards: 0, awardsExpected: 2, overrides: 0,
+        champion: null, roster: 0, awards: 0, awardsExpected: 6, overrides: 0, // six: the catalogue's stored awards
     });
 });
 
@@ -202,7 +202,6 @@ test('validation: a franchise mapped in the Fantrax block with no era for the se
     // Fernvale folded after 2025–26 but is still mapped in the 2026–27 block
     const folded = withLiveSeason();
     folded.franchises[5].eras[0].to = 2026;
-    folded.awards[0].description = 'Changed description';
 
     assert.deepEqual(await run({ config: folded }), {
         ok: false,

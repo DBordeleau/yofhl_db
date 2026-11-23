@@ -2,6 +2,8 @@ import { sql } from 'drizzle-orm';
 import { cached, rows } from '../data/db';
 import { leagueTags } from '../data/cache-tags';
 import { getFranchiseCards, getSeasonArchive } from '../data/league';
+import { winners } from '../data/award-archive';
+import { STORED_AWARDS, catalogueAward } from '../awards';
 import { fantraxLeagueUrl } from '../fantrax/config';
 import { fantraxLeagueIdOf, getLiveSeason } from '../fantrax/live-season';
 import regularSeason from '../rivalries/regular-season-history.json';
@@ -17,7 +19,7 @@ import { buildChases, buildRecords, HISTORY_THROUGH, matchupFormat, matchupForma
 // Keep checked-in history outside the data cache. Combining it with all player
 // rows exceeds Next's 2 MB entry limit and silently repeats the database reads.
 const getRecordArchive = cached(async () => {
-    const [teams, players, seasons, awards, games, weeks] = await Promise.all([
+    const [teams, players, seasons, games, weeks] = await Promise.all([
         getFranchiseCards(),
         // A stored player season's category totals, each only when it is not null; none when all of them are.
         rows<PlayerSeason & { stats: Partial<PlayerCategories> | null }>(sql`select p.id, p.name, ps.season_year as year, ps.fpts::float8 as points, ps.positions,
@@ -25,22 +27,30 @@ const getRecordArchive = cached(async () => {
             from league.player_seasons ps join league.players p on p.id = ps.player_id order by ps.season_year`),
         rows<TeamSeason>(sql`select t.franchise_id as team, st.name, t.season_year as year, t.wins, t.losses, t.ties, t.fpts_for::float8 as points, st.logo, st.abbreviation
             from league.team_seasons t join league.season_teams st on st.team_season_id = t.id`),
-        rows<Award>(sql`select a.player_id as player, p.name, at.label as award, a.season_year as year, t.franchise_id as team
-            from league.awards a join league.players p on p.id = a.player_id join league.award_types at on at.id = a.award_type_id
-            left join league.team_seasons t on t.id = a.team_season_id`),
         storedRegularSeasonGames(),
         storedWeeks(),
     ]);
-    return { teams, players, seasons, awards, storedGames: games, storedWeeks: weeks };
-}, 'records-archive-v5', [leagueTags.records]);
+    return { teams, players, seasons, storedGames: games, storedWeeks: weeks };
+}, 'records-archive-v6', [leagueTags.records]);
+
+/** every individual award's winners, the award archive's, under the award's catalogue ID, in catalogue order */
+async function individualAwards(): Promise<Award[]> {
+    const wins = await Promise.all(STORED_AWARDS.map(async award => (await winners(award)).map(win =>
+        ({ player: win.PlayerID, name: win.Winner, award: award.id, year: win.Year, team: win.TeamID }))));
+    return wins.flat();
+}
 
 const categories = new Map(playerCategories.players.map(p => [`${p.id}:${p.year}`, p]));
 const historyGames = regularSeason.games.map(g => ({ ...g, stage: 'regular' as const }));
 export async function getRecordSource(): Promise<RecordSource> {
-    // Only the season archive decides which seasons are published (lib/seasons.ts).
-    const [{ storedGames, storedWeeks: weeks, ...archive }, seasons] = await Promise.all([getRecordArchive(), getSeasonArchive()]);
+    // Only the season archive decides which seasons are published (lib/seasons.ts), and only the award archive who won
+    // the Prime Minister's Trophy and each individual award.
+    const [{ storedGames, storedWeeks: weeks, ...archive }, seasons, primeMinisters, awards] = await Promise.all([
+        getRecordArchive(), getSeasonArchive(), winners(catalogueAward('prime-minister')), individualAwards(),
+    ]);
     const published = [...seasons.published].reverse(); // oldest first
-    return { ...archive, published: published.map(season => season.year),
+    return { ...archive, awards, published: published.map(season => season.year),
+        primeMinisters: primeMinisters.flatMap(win => win.TeamID === null ? [] : [{ team: win.TeamID, year: win.Year }]),
         competitions: published.filter(season => season.playoffStatus === 'complete').map(season => season.year), players: archive.players.map(p => ({ ...p, stats: p.year > HISTORY_THROUGH ? p.stats ?? undefined : categories.get(`${p.id}:${p.year}`) })),
         games: [...historyGames, ...storedGames], periods: [...periods, ...weeks] };
 }

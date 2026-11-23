@@ -1,7 +1,8 @@
 import { publicJson } from '@/lib/public-json';
-import { getListedAwardTypes } from '@/lib/data/league';
+import { listed } from '@/lib/data/award-archive';
+import { awardSummary } from '@/lib/awards';
 
-// GET /api/awards — the individual awards, in display order, then GM of the Year once listed
+// GET /api/awards — the listed awards, in catalogue order: team awards and individual awards alike
 export async function GET() {
-    return publicJson(await getListedAwardTypes());
+    return publicJson((await listed()).map(award => ({ ...awardSummary(award), scope: award.scope, image: award.image })));
 }

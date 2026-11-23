@@ -173,7 +173,7 @@ test('a rehearsal is never published, nothing of it is public, and its season\'s
         insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
             values ('s1', 2026, 3, 'EDM', '{C}', 100, 10);`);
     const { saveAwards } = await import('@/lib/data/curated-edits');
-    assert.deepEqual(await saveAwards(2026, [{ award: 'Wayne Gretzky Award', playerId: 's1' }], { invalidate: () => {} }), { ok: true, saved: 1 });
+    assert.deepEqual(await saveAwards(2026, [{ award: 'wayne-gretzky', playerId: 's1' }], { invalidate: () => {} }), { ok: true, saved: 1 });
 });
 
 test('a rehearsal can be prepared again, replacing its snapshot and staying a rehearsal', async t => {

@@ -20,7 +20,7 @@ const tsx = pathToFileURL(createRequire(path.resolve('package.json')).resolve('t
 const config: LeagueConfig = { franchises: [
     { id: 1, eras: [{ from: 2027, name: 'Home Team', abbreviations: ['HOME'] }] },
     { id: 2, eras: [{ from: 2027, name: 'Away Team', abbreviations: ['AWAY'] }] },
-], awards: [], seasons: { 2027: { fantrax: { league: 'liveleague', teams: { h: 1, a: 2 } } } }, scoreOverrides: [] };
+], seasons: { 2027: { fantrax: { league: 'liveleague', teams: { h: 1, a: 2 } } } }, scoreOverrides: [] };
 // league.yml's identity; the database's current identity has Home renamed by its owner
 const yamlTeams: StudioTeam[] = [
     { id: 1, name: 'Home Team', abbreviation: 'HOME', owner: null, ownerFirst: null, logo: null, primary: '#26365F', secondary: '#C8102E' },

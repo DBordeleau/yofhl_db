@@ -1,59 +1,14 @@
 import { sql } from 'drizzle-orm';
 import { cached, rows } from './db';
-import { publishedOnly } from './league';
 import { leagueTags } from './cache-tags';
-import type { DraftSelection, SeasonDraftSelection, FranchiseHonors, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
+import type { DraftSelection, SeasonDraftSelection, HistoryKind, HistoryPage, HistoryScope } from '@/lib/history/model';
 import { visibleTransactionEvents } from '@/lib/history/visibility';
-import { AWARD_CATALOGUE, listedAwards, type AwardDefinition } from '@/lib/awards';
-import { publishedTeamAwardWinners } from '@/lib/award-vote/published-vote';
 import { draftRegretEligible, type DraftDevelopmentFacts } from '@/lib/draft/development';
 
 // Draft and transaction rows show each team's season identity, not the name Fantrax recorded.
 // The recorded name stands in only where the franchise has no team season that year.
 const seasonTeamJson = (season: string, franchise: string, recorded: string) => sql.raw(`jsonb_build_object('id', ${franchise},
     'name', coalesce(${season}.name, ${recorded}), 'abbreviation', ${season}.abbreviation, 'logo', ${season}.logo)`);
-
-const getFranchiseHonorRows = cached(async (id: number): Promise<Omit<FranchiseHonors, 'teamAwards'> & { votedWins: { award: string; year: number }[] }> => {
-    const [primeMinisters, awards, votedWins] = await Promise.all([
-        rows<FranchiseHonors['primeMinisters'][number]>(sql`
-            select t.season_year as year, t.fpts_for::float8 as points
-            from league.team_seasons t
-            where t.franchise_id = ${id}
-              and not exists (select 1 from league.team_seasons other
-                  where other.season_year = t.season_year and other.franchise_id <> t.franchise_id and other.fpts_for >= t.fpts_for)
-            order by t.season_year desc`),
-        rows<FranchiseHonors['awards'][number]>(sql`
-            select a.season_year as year, at.name, at.label, at.description, p.id as "playerId", p.name as player
-            from league.awards a
-            join league.team_seasons t on t.id = a.team_season_id
-            join league.award_types at on at.id = a.award_type_id
-            join league.players p on p.id = a.player_id
-            where t.franchise_id = ${id}
-            order by a.season_year desc, at.sort_order, p.name`),
-        // a team award's winners are its published tallies' place-one team seasons (never a rehearsal's)
-        rows<{ award: string; year: number }>(sql`
-            select w.award, w.season_year as year
-            from ${publishedTeamAwardWinners} w
-            join league.team_seasons t on t.id = w.team_season_id
-            where t.franchise_id = ${id}
-            order by w.season_year desc`),
-    ]);
-    return { primeMinisters, awards, votedWins };
-}, 'franchise-honors-v3', [leagueTags.awards, leagueTags.pointsLeaders, leagueTags.awardVoteTallies]);
-
-/**
- * A season still being played has a points leader but no Prime Minister's Trophy until it is published. A team award
- * an award vote decides is in the trophy case only once listed (lib/awards.ts listedAwards); `catalogue` is the award
- * catalogue, in tests a released one.
- */
-export async function getFranchiseHonors(id: number, catalogue: readonly AwardDefinition[] = AWARD_CATALOGUE): Promise<FranchiseHonors> {
-    const { primeMinisters, awards, votedWins } = await getFranchiseHonorRows(id);
-    const teamAwards = listedAwards(new Set(votedWins.map(win => win.award)), catalogue).flatMap(award => {
-        const years = votedWins.filter(win => win.award === award.id).map(win => win.year);
-        return years.length ? [{ id: award.id, name: award.name, label: award.label, honor: award.honor, years }] : [];
-    });
-    return { primeMinisters: await publishedOnly(primeMinisters, win => win.year), awards, teamAwards };
-}
 
 export const getFranchiseDraft = cached((id: number) => rows<DraftSelection>(sql`
     select d.season_year as year, d.overall, d.round, d.pick, d.player_id as "playerId",

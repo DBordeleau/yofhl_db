@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import { daysOf, endOf, SEASON, seasonSyncLeague } from './testing/season-sync-league';
+import { catalogueAward } from '@/lib/awards';
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -39,6 +40,7 @@ async function rings(league: League) {
 test("the run that writes the champion writes the championship roster: everyone on the champion's roster outside the minors on any day of the weeks it played", async t => {
     const league = await playoffLeague(t);
     const { getPlayer } = await import('@/lib/data/league');
+    const { playerHonors } = await import('@/lib/data/award-archive');
     league.setPlayers([['star', 100, 10, 1], ['pickup', 5, 1, null], ['hurt', 0, null, 1], ['prospect', 0, null, 1], ['byeweek', 3, 1, null]]);
     // Franchise 1 has a bye in the Quarterfinals week, so its run is the Semifinals and the Final.
     league.setRoster(1, daysOf(QUARTERFINALS), [['star', 'ACTIVE'], ['hurt', 'INJURED_RESERVE'], ['prospect', 'MINORS'], ['byeweek', 'ACTIVE']]);
@@ -58,10 +60,9 @@ test("the run that writes the champion writes the championship roster: everyone 
         'a single day counts, injured reserve counts, the minors and the bye week do not');
     for (const tag of [`league:season:${SEASON}`, 'league:players']) assert.ok(revalidatedTags.includes(tag), tag);
 
-    const star = (await league.read(() => getPlayer('star')))!;
-    assert.deepEqual(star.championships, [{ season: SEASON, team: 'Club 1' }], "the ring is on the player's page");
+    assert.deepEqual((await league.read(() => playerHonors('star'))).championships, [{ season: SEASON, team: 'Club 1' }], "the ring is on the player's page");
     const dropped = (await league.read(() => getPlayer('dropped')))!;
-    assert.deepEqual([dropped.name, dropped.championships], ['Dee Dropped', [{ season: SEASON, team: 'Club 1' }]], 'a dropped player with no points gets a player page');
+    assert.deepEqual([dropped.name, (await league.read(() => playerHonors('dropped'))).championships], ['Dee Dropped', [{ season: SEASON, team: 'Club 1' }]], 'a dropped player with no points gets a player page');
     assert.deepEqual(dropped.playerStats.map(season => [season.Year, season.FPts, season.Position, season.YOFHLTeam]), [[SEASON, 0, 'D', 'FA']], 'and a player season');
 });
 
@@ -106,7 +107,7 @@ const AFTER_THE_FLIP = endOf(FINAL) + 3 * DAY;
 test("a flipped Final replaces an automatic roster the league owner hasn't saved with the new champion's", async t => {
     const league = await playoffLeague(t);
     const { getSeasonSyncStatus } = await import('@/lib/admin/data');
-    const { getPlayer } = await import('@/lib/data/league');
+    const { playerHonors } = await import('@/lib/data/award-archive');
     rosterOne(league);
     league.setPlayers([['star', 100, 10, 1], ['hurt', 0, null, 1], ['three', 50, 5, 3]]);
     league.setRoster(3, PLAYOFF_DAYS, [['three', 'ACTIVE']]);
@@ -118,7 +119,7 @@ test("a flipped Final replaces an automatic roster the league owner hasn't saved
     const { result } = await league.run(AFTER_THE_FLIP);
     assert.deepEqual(result.outcome === 'synced' && [result.changed.championshipRoster, result.warnings], [3, []], 'two removed, one added');
     assert.deepEqual(await rings(league), { team: 'Club 3', players: [['three', 'Name three']] });
-    assert.deepEqual((await league.read(() => getPlayer('star')))!.championships, []);
+    assert.deepEqual((await league.read(() => playerHonors('star'))).championships, []);
     assert.equal((await getSeasonSyncStatus(SEASON))!.autoRosterFranchiseId, 3);
 });
 
@@ -183,10 +184,9 @@ test("a champion set in bracket review after a level Final gets its roster from 
 
 test("the points leader cached while the season was played is the Prime Minister's Trophy winner once the Final publishes the season", async t => {
     const league = await playoffLeague(t);
-    const { getTeamAwardWinners } = await import('@/lib/data/league');
-    const { getFranchiseHonors } = await import('@/lib/data/history');
-    const winners = async () => (await league.read(() => getTeamAwardWinners('prime-minister'))).map(winner => winner.Year);
-    const trophies = async () => (await league.read(() => getFranchiseHonors(3))).primeMinisters.map(win => win.year);
+    const archive = await import('@/lib/data/award-archive');
+    const winners = async () => (await league.read(() => archive.winners(catalogueAward('prime-minister')))).map(winner => winner.Year);
+    const trophies = async () => (await league.read(() => archive.franchiseHonors(3))).primeMinisters.map(win => win.year);
     rosterOne(league);
     // read, and so cached, while the opened season has no points
     assert.deepEqual([await winners(), await trophies()], [[], []]);

@@ -11,13 +11,13 @@ Seasons use the year they end in. `2026` means the 2025–26 season. Franchise I
 | Standings, player seasons with their skater categories, weeks, regular-season games, playoff games and the championship roster of the season being played | Fantrax, through the [season sync](#season-sync) | Written every morning until the season freezes; the season import from CSVs is the repair path. The sync writes a championship roster only while the season has none, or replaces its own untouched one |
 | Standings, player seasons, playoff games of earlier seasons | Fantrax season CSVs | A season import replaces that season's imported data |
 | Skater categories of 2019–2026 | `lib/records/player-category-history.json`, from `scripts/export-record-player-stats.ts` | Checked in and frozen at 2026; later seasons' are in `player_seasons` |
-| Franchises, identity eras, owners, logos, individual award definitions, playoff fixes, each season's Fantrax league and team IDs | [league.yml](../league/league.yml) | Every season import syncs the league configuration |
+| Franchises, identity eras, owners, logos, playoff fixes, each season's Fantrax league and team IDs | [league.yml](../league/league.yml) | Every season import syncs the league configuration |
 | Current team name/logo overrides, account claims and invitation codes | `/owner` and `/admin/teams` | Stored in `team_management`; preserved by imports and logo sync. See [team management](owners.md). |
 | Championship rosters and individual award winners | `/admin/seasons/<end year>` | Admin edits; legacy seeds fill historical seasons with no entries. A saved roster is never overwritten by an import or the season sync |
 | Bracket corrections | Admin bracket review | Saved corrections are reapplied during imports and decide the winner of a game the season sync writes |
 | Trades, free-agent moves, and draft selections | Fantrax history CSVs | History imports replace supplied files or draft seasons |
 | Draft lottery schedule, order, odds, and winner | `/admin/lottery` and the draw service | Stored separately from season imports; see the [lottery guide](lottery.md) |
-| Trophy labels, descriptions, artwork, and stored-name aliases | [lib/awards.ts](../lib/awards.ts) | Code changes, separate from award winner records |
+| Every award's definition: catalogue ID, name, label, honour, description, order, artwork and how its winners are decided | [lib/awards.ts](../lib/awards.ts) (the award catalogue) | Code changes only; the database keeps no copy, so relabelling an award needs no import or migration ([ADR 0009](adr/0009-awards-are-catalogue-ids.md)) |
 | Pick'em picks | `/pickem`, through the Pick'em module ([lib/pickem](../lib/pickem/)) | Owners save and clear them until each week's lock; never touched by imports |
 | Pick'em record: locked weeks, their pairings and frozen results and scores, completed seasons | Pick'em settle, on each scheduled Fantrax run | Written once per week and never rewritten ([ADR 0005](adr/0005-pickem-keeps-its-own-results.md)); never touched by imports |
 
@@ -85,7 +85,7 @@ The season import from Fantrax's CSV exports is the repair path for a season the
 
 Until a season freezes, the season sync keeps writing it from Fantrax each morning, so an import of the season being played lasts only where it agrees with Fantrax (playoff games whose correction window has closed are never rewritten). Score overrides apply only to the import.
 
-The season import command applies migrations before it validates season data, because it reads saved bracket corrections and existing championship rosters and awards. Every validation problem is reported in one list before anything is written, including a ring or award player missing from the season's player export. The import is all or nothing ([ADR 0004](adr/0004-season-import-is-one-transaction.md)): league configuration, Fantrax teams, every season, legacy seeding, history replacement, and the materialized view refreshes are one transaction, so a failure at any point leaves the database as it was. Three things run outside it: before it, migrations (which stay applied if the import then fails) and the NHL draft-facts fetch (which writes nothing itself); after it commits, the site cache clear. This is not a dry-run command.
+The season import command applies migrations before it validates season data, because it reads saved bracket corrections and existing championship rosters and awards. Every validation problem is reported in one list before anything is written, including a ring or award player missing from the season's player export and a legacy award the award catalogue doesn't store winners under. The import is all or nothing ([ADR 0004](adr/0004-season-import-is-one-transaction.md)): league configuration, Fantrax teams, every season, legacy seeding, history replacement, and the materialized view refreshes are one transaction, so a failure at any point leaves the database as it was. Three things run outside it: before it, migrations (which stay applied if the import then fails) and the NHL draft-facts fetch (which writes nothing itself); after it commits, the site cache clear. This is not a dry-run command.
 
 Reimports replace what the CSVs hold for the selected seasons: standings, player seasons and playoff games. Existing championship rosters and awards are preserved, and bracket corrections are reapplied. What only the season sync writes survives: regular-season games (with their ids), weeks, and the skater categories of every player season the import rewrites. A player season the keep rule drops is removed with its categories. A frozen season repaired this way keeps everything the season sync wrote before it froze. The legacy seeds can refill an entirely empty historical roster or award list. Lottery snapshots are not changed. Use an isolated database when checking changed exports or import code.
 
@@ -114,7 +114,7 @@ npm run db:sync:logos
 
 This updates franchise and team-season logos without reimporting stats. It checks that the configured files exist, but does not apply migrations or sync defunct status. It refreshes the site cache when `SITE_URL` and `REVALIDATE_SECRET` are configured. Regular season imports also apply the logo mappings.
 
-Award images use a separate catalogue. See the [artwork guide](../public/trophies/README.md) before changing display labels or stored award names.
+Award images live in the award catalogue. See the [artwork guide](../public/trophies/README.md) before changing artwork or display labels.
 
 ## Transaction and draft history
 
@@ -205,8 +205,8 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | --- | --- |
 | `seasons`, `team_seasons`, `players`, `player_seasons`, `matchups` | Season data and playoff brackets, from the season import or, for the season being played, the season sync. A player season's goals, assists, shots, hits and blocks (its skater categories, 0026) are written only by the season sync and are null for goalies and every season before 2027. From 2027 `matchups` also holds the season sync's regular-season games (`stage = 'regular'`, `round` the week number); one row per season, stage, round and pair of team seasons (0027) |
 | `weeks` | Each season's Fantrax weeks with their start and end times (`starts_at`, `ends_at`), written by the season sync from 2027 (0027). `ends_at` is the week's last second: Fantrax's end, a second before the next week's first game, or for an end at midnight Eastern the last second of that day |
-| `franchises`, `owners`, `award_types` | Identities and definitions synced from league configuration |
-| `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections. From 2027 a season's award winners are its published award vote's (co-winners each a row, credited to the team the vote credits), and the hand-entry editor is read-only for that season |
+| `franchises`, `owners` | Identities synced from league configuration |
+| `awards`, `championship_rosters`, `matchup_overrides` | Curated winners, rosters, and bracket corrections. Each individual-award winner is stored under the award's catalogue ID (`award`, such as `'hasek'`; migration 0033) with no foreign key or CHECK: the curated edits refuse any ID the catalogue doesn't store winners under ([ADR 0009](adr/0009-awards-are-catalogue-ids.md)). From 2027 a season's award winners are its published award vote's (co-winners each a row, credited to the team the vote credits), and the hand-entry editor is read-only for that season |
 | `transaction_events`, `transaction_assets`, `draft_picks` | Historical moves and draft slots with source references |
 | `draft_lotteries` | Event snapshots, version, schedule, cancellation, and saved winner |
 | `pickem_picks` | Each Pick'em entry's Pick'em pick per week and matchup (migration 0018) |
@@ -214,7 +214,7 @@ Two plain views resolve team identity ([ADR 0001](adr/0001-team-identity-in-data
 | `pickem_completed_seasons` | Seasons whose Pick'em is complete, so their winner stands once Fantrax moves on (0020) |
 | `season_sync_status` | One row per season year: the season sync's last run, last success, last error, what the last success changed and its warnings, the franchise an automatic championship roster was written for, the champion the roster was last saved for, and the freeze time (0023, 0025, 0026, 0027) |
 
-Player seasons are retained when the player scored, was rostered, or is needed by an award or championship roster. Team trophy cases derive Prime Minister's Trophies from a strict league-wide regular-season FPts lead, for published seasons only; tied leaders do not receive an inferred winner.
+Player seasons are retained when the player scored, was rostered, or is needed by an award or championship roster. The award archive (`lib/data/award-archive.ts`, `winners()`) is the one place that decides each award's winners, and the award pages, the award API, franchise trophy cases and the record book all read it. The Jagr Cup goes to the season results' champion. The Prime Minister's Trophy goes to the team season with a strict league-wide regular-season FPts lead, for published seasons only; tied leaders do not receive an inferred winner.
 
 The season being played counts wherever a published season does: career totals, FP/G and rank, franchise records and season lists, both leaderboards, draft class stats, the record book's season totals, and, once the season sync has stored its final weeks, the record book's matchup records and winning streaks and Compare teams' regular-season head-to-head. The record book and Compare read regular-season games, weeks and skater categories from the checked-in history files for 2026 and earlier, then from the database; a stored game's page is `/records/game/<matchups id>`, a history game's keeps its negative id. It gets no Prime Minister's Trophy, no best season record (win percentage), no season page, banner, picker entry or search result, and the record book leaves it out of the calendar its cup streaks are measured against. A future "lowest" or "fewest" single-season record must use published seasons only. Individual awards use their recorded `awards.team_season_id` association, not the player's current team.
 
@@ -226,13 +226,13 @@ Pages call shared data functions directly. The JSON routes expose these public v
 | --- | --- |
 | `GET /api/leaderboard?mode=all-time\|single-season&position=all\|c\|lw\|rw\|d\|g&page=1&q=` | Up to 25 leaders and pagination metadata |
 | `GET /api/players/search?q=` | Up to ten players; at least three characters required |
-| `GET /api/players/<id>` | Career summary, seasons, awards, and championships |
+| `GET /api/players/<id>` | Career summary, seasons, awards, and championships. Each award is `{ id, name, label, honor, year }` (catalogue ID, name, label and honour, oldest first), and each championship `{ season, team }` |
 | `GET /api/seasons` | Season and champion list |
 | `GET /api/seasons/<end year>` | Season result and championship roster |
 | `GET /api/franchises` | All-time franchise cards, including defunct status |
 | `GET /api/franchises/<id>` | Franchise identity, records, seasons, and player leaders |
-| `GET /api/awards` | Configured individual award types |
-| `GET /api/awards/<slug>` | Winners of one individual award, such as `Wayne_Gretzky_Award` |
+| `GET /api/awards` | The listed awards in catalogue order, team awards included: each one's `{ id, name, label, honor, scope, image }`. An unreleased award, and a voted team award without a published winner, is left out |
+| `GET /api/awards/<slug>` | One listed award's `{ id, name, label, honor }` and its winners in published seasons, newest first, such as `Wayne_Gretzky_Award` or `Jagr_Cup`. A team award's winners (the Jagr Cup, the Prime Minister's Trophy) are team seasons: `Winner` and `Team` are the team season's name, `TeamID` its franchise, with `Owner`, `TeamLogo`, `FPts` and `Record`, and `PlayerID` is empty. An individual award's carry the player (`Winner`, `PlayerID`) and their team. An award that isn't listed is a 404 |
 | `GET /api/history` | Paginated transaction/draft feed for one player or franchise |
 | `GET /api/lottery` | Current lottery, server time, and only the results revealed so far |
 | `GET /api/lottery?id=<UUID>` | A specific non-cancelled lottery |
@@ -243,7 +243,7 @@ Pages call shared data functions directly. The JSON routes expose these public v
 
 `/api/leaderboard` accepts an optional `season=<end year>` in `single-season` mode. The championship page uses it for the Top Players section below the standings, with position filters and 25 players per page. Cup and award indicators refer to that player's selected season. Fantasy teams come from the player's end-of-season roster, with the name and logo recorded for that season and a link to the franchise page. Unrostered players appear as free agents. Omitting `season` keeps the leaderboard across all seasons.
 
-The award gallery includes two team trophies as well as the six individual awards. The individual-award API is not the full eight-trophy gallery catalogue.
+The award gallery and `/api/awards` list the same awards: the two team trophies as well as the six individual awards, and GM of the Year once it is released and has a published winner.
 
 ## Testing
 
