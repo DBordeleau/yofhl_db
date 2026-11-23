@@ -21,6 +21,10 @@ const readRecordedSeasons = cached(async () => rows<RecordedSeason>(sql`
     order by w.season_year desc`),
 'pickem-seasons', [PICKEM_SEASONS_TAG]);
 
+/** Whether the season's Pick'em is complete, from the cached list of Pick'em seasons */
+export const isSeasonComplete = async (seasonYear: number) =>
+    (await readRecordedSeasons()).some(item => item.seasonYear === seasonYear && item.complete);
+
 // One statement (ADR 0002): the season is marked only once every pairing of its last week is frozen, and only once.
 export const completeSeasonQuery = (seasonYear: number, lastWeek: number) => sql`
     with completed as (

@@ -11,9 +11,15 @@ export async function POST(request: Request) {
     if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // external=1 also captures the live season from Fantrax, frozen season or not, and reports whether it changed.
+    // Only a changed capture publishes (and expires the live season's tag), but every Fantrax cache is expired
+    // either way: archived final scores, the player directory and the scoring-season selector carry only
+    // FANTRAX_TAG, and a historical correction never changes the live capture.
+    let fantraxReport: { fantrax: 'published' | 'unchanged' } | null = null;
     if (new URL(request.url).searchParams.get('external') === '1') {
         try {
-            await refreshLiveSeason();
+            const { changed } = await refreshLiveSeason();
+            fantraxReport = { fantrax: changed ? 'published' : 'unchanged' };
             revalidateTag(FANTRAX_TAG);
         } catch (error) {
             console.error('Fantrax revalidation failed:', error);
@@ -21,5 +27,5 @@ export async function POST(request: Request) {
         }
     }
     revalidateTag(LEAGUE_TAG);
-    return NextResponse.json({ revalidated: true });
+    return NextResponse.json({ revalidated: true, ...fantraxReport });
 }
