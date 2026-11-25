@@ -2,7 +2,7 @@ import {
     CAST, CHARACTERS, gestureHelp, LAPELS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
     type CharacterId, type Delivery, type Lapel, type Reaction, type Shot, type Sound,
 } from './cast';
-import { EFFECTS } from './effects';
+import { EFFECTS, scriptLength } from './effects';
 
 // Parser for Coach's Corner screenplays. The format is documented in docs/coachs-corner.md; in short:
 //
@@ -109,7 +109,7 @@ const NAMED_PAUSES: Record<string, number> = { beat: 450, pause: 1000, 'long pau
 /** one example per effect at its default length, taking turns between the hosts */
 const FX_HELP = (() => {
     const examples = Object.entries(EFFECTS).map(([effect, { defaultMs }], i) =>
-        `fx: ${CHARACTERS[i % CHARACTERS.length]} ${effect} ${defaultMs >= 1000 ? `${defaultMs / 1000}s` : `${defaultMs}ms`}`);
+        `fx: ${CHARACTERS[i % CHARACTERS.length]} ${effect} ${scriptLength(defaultMs)}`);
     const last = examples.pop();
     return `Use ${examples.length ? `${examples.join(', ')} or ${last}` : last}; duration must be 100ms–12s.`;
 })();

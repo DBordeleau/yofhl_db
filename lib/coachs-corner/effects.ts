@@ -42,3 +42,6 @@ export const EFFECTS = {
 } satisfies Record<string, Effect>;
 
 export type Reaction = keyof typeof EFFECTS;
+
+/** a show length as a script writes it: 4.5s, or 800ms under a second */
+export const scriptLength = (ms: number) => (ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`);
