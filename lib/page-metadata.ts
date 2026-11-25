@@ -86,7 +86,7 @@ export function franchiseMetadata(id: number, franchise: {
         `${plural(played, 'season')}${franchise.foldedAfterSeason === null ? '' : ' before folding'}`,
         franchise.championships.length ? plural(franchise.championships.length, 'Jagr Cup') : null,
     ].filter(Boolean).join(' and ');
-    return pageMetadata({ path: `/teams/${id}`, name: franchise.name,
+    return pageMetadata({ path: `/teams/${id}`, name: franchise.name, image: 'own',
         description: `${possessive(franchise.name)} YOFHL history: ${history}, with every season, roster and record.` });
 }
 

@@ -58,6 +58,12 @@ test('a franchise that is not in the archive falls back to the franchises page',
     assert.deepEqual(metadata.alternates, { canonical: '/teams/stats' });
     assert.equal(metadata.description, FRANCHISES_DESCRIPTION);
     assert.equal(FRANCHISES_DESCRIPTION, "Every YOFHL franchise's all-time record, playoff runs and Jagr Cups.");
+    assert.deepEqual(metadata.openGraph?.images, [DEFAULT_PREVIEW_IMAGE]);
+});
+
+test("a franchise's link leaves the preview to the team's own link preview", () => {
+    const metadata = franchiseMetadata(3, { name: 'Dangle Berries', seasons: seasons(8), championships: [2026], foldedAfterSeason: null });
+    assert.equal(metadata.openGraph?.images, undefined);
 });
 
 test('the all-time leaderboard says it ranks careers', () => {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import sharp from 'sharp';
-import type { PlayerShareCard } from './model';
+import type { PlayerShareCard, TeamShareCard } from './model';
 import { renderLinkPreview } from './link-preview';
 import { fallbackColours, suggestedPalettes } from '../team-branding';
 
@@ -43,4 +43,24 @@ test("a player's preview is revalidated rather than cached as immutable", async 
     const cacheControl = (await renderLinkPreview(mcdavid, suggestedPalettes[3])).headers.get('cache-control') ?? '';
     assert.doesNotMatch(cacheControl, /immutable/);
     assert.match(cacheControl, /max-age=0/);
+});
+
+const dangleBerries: TeamShareCard = {
+    kind: 'team', href: '/teams/3', title: 'Dangle Berries', summary: 'Franchise card',
+    team: { id: 3, name: 'Dangle Berries', abbreviation: 'DB', logo: '/hhlogo.png' },
+    owner: 'Dillon', span: '2017–2026', defunct: false, record: '96–54–6', winRate: 63.5, fptsFor: 48210.4, cups: 2, finals: 3,
+    seasons: [{ year: 2026, record: '12–5–0', result: 'cup' }],
+};
+
+test("a team's link preview is a landscape PNG in its colours", async () => {
+    assert.deepEqual(await picture(await renderLinkPreview(dangleBerries, suggestedPalettes[3])),
+        { format: 'png', width: 1200, height: 630 });
+});
+
+test('a team whose logo is a WebP previews', async () => {
+    // Satori can't decode WebP, which is what owner uploads and one checked-in logo are
+    const honkers = { ...dangleBerries, team: { id: 14, name: 'Hooterville Honkers', abbreviation: 'HH', logo: '/logos/hooterville_honkers.webp' },
+        owner: null, defunct: true, cups: 0, finals: 0 };
+    assert.deepEqual(await picture(await renderLinkPreview(honkers, fallbackColours)),
+        { format: 'png', width: 1200, height: 630 });
 });

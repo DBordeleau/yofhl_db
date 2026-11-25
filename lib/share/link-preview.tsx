@@ -78,10 +78,32 @@ async function playerFrame(card: PlayerShareCard): Promise<PreviewFrame> {
     };
 }
 
+const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+
+// The team share card's facts: its owner and span over the name, its record, win rate and points for along the bottom,
+// and its Jagr Cups and finals on the gold slab the card draws its honours in.
+async function teamFrame(card: TeamShareCard): Promise<PreviewFrame> {
+    return {
+        label: card.defunct ? 'Defunct franchise' : 'Franchise',
+        tag: [card.cups ? plural(card.cups, 'Jagr Cup') : null, card.finals ? plural(card.finals, 'Final') : null].filter(Boolean).join('  ·  ') || null,
+        name: card.team.name,
+        subtitle: [card.owner, card.span].filter(Boolean).join('  ·  ') || null,
+        chips: [],
+        detail: card.seasons.length ? plural(card.seasons.length, 'season') : null,
+        stats: [
+            { value: card.record, label: 'Record' },
+            { value: `${card.winRate.toFixed(1)}%`, label: 'Win rate' },
+            { value: formatFpts(card.fptsFor), label: 'Points for' },
+        ],
+        ...await teamPicture(card.team),
+    };
+}
+
 function frameFor(card: PlayerShareCard | TeamShareCard | SeasonShareCard): Promise<PreviewFrame> {
     switch (card.kind) {
         case 'player': return playerFrame(card);
-        // team and season pages get their link previews in later work on #206
+        case 'team': return teamFrame(card);
+        // season pages get their link previews in later work on #206
         default: throw new Error(`No link preview is drawn for a ${card.kind} card yet`);
     }
 }

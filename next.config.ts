@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/coachs-corner/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/coachs-corner/media/{don,ron}-*-640.*.avif'],
     '/player/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/*logo*.png', './public/logos/*'],
+    '/teams/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/*logo*.png', './public/logos/*'],
   },
   experimental: { serverActions: { bodySizeLimit: '3mb' } },
   images: { remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com', pathname: '/team-logos/**' }] },
