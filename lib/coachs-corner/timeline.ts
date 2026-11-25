@@ -190,8 +190,8 @@ export function compile(script: Script): Timeline {
     const edges = script.flashbacks.flatMap(block => [{ at: block.from, block, entering: true }, { at: block.to, block, entering: false }]);
     let nextEdge = 0;
     let inFlashback = false;
-    /** the studio as a flashback starts, which its end puts back */
-    let before = { monitor: monitor[0], shot: shots[0].value, rest: { ...rest } };
+    /** the present as a flashback starts, which its end puts back */
+    let present = { monitor: monitor[0], shot: shots[0].value, rest: { ...rest } };
     const crossEdgesBefore = (index: number) => {
         for (; nextEdge < edges.length && edges[nextEdge].at <= index; nextEdge++) {
             const { block, entering } = edges[nextEdge];
@@ -202,7 +202,7 @@ export function compile(script: Script): Timeline {
                     line: block.line, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0,
                     ...(block.lapel !== undefined ? { lapel: block.lapel } : {}),
                 });
-                before = { monitor: monitor[monitor.length - 1], shot: shots[shots.length - 1].value, rest: { ...rest } };
+                present = { monitor: monitor[monitor.length - 1], shot: shots[shots.length - 1].value, rest: { ...rest } };
                 // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
                 if (block.don) { rest.don = block.don; setGesture('don', block.don, t); }
                 monitor.push({ t, value: { type: 'static' }, line: block.line, flashbackEdge: true });
@@ -213,9 +213,9 @@ export function compile(script: Script): Timeline {
                 t += FLASHBACK_EXIT_MS;
                 span.t1 = t;
                 // the present resumes exactly as it was left
-                monitor.push({ t, value: before.monitor.value, line: before.monitor.line, flashbackEdge: true });
-                shots.push({ t, value: before.shot });
-                for (const c of CHARACTERS) { rest[c] = before.rest[c]; setGesture(c, rest[c], t); }
+                monitor.push({ t, value: present.monitor.value, line: present.monitor.line, flashbackEdge: true });
+                shots.push({ t, value: present.shot });
+                for (const c of CHARACTERS) { rest[c] = present.rest[c]; setGesture(c, rest[c], t); }
             }
             inFlashback = entering;
         }
@@ -349,11 +349,11 @@ export function compile(script: Script): Timeline {
     const art = Object.fromEntries(CHARACTERS.map(c => [c, Array.from(new Set(gestures[c].flatMap(key => posesFor(c, key.value))))])) as Timeline['art'];
     // A new reaction replaces the same host's previous one. Neither particles nor
     // their audio may linger beyond the replacement, a flashback's edge or the end of the scene.
-    const cuts = flashbacks.flatMap(span => [span.t0, span.leaving]);
+    const transitionStarts = flashbacks.flatMap(span => [span.t0, span.leaving]);
     for (let i = 0; i < reactions.length; i++) {
         const next = reactions.slice(i + 1).find(r => r.who === reactions[i].who);
-        const edge = cuts.find(cut => cut >= reactions[i].t);
-        reactions[i].duration = Math.max(0, Math.min(reactions[i].duration, (next?.t ?? showEnd) - reactions[i].t, (edge ?? showEnd) - reactions[i].t, showEnd - reactions[i].t));
+        const nextTransition = transitionStarts.find(at => at >= reactions[i].t);
+        reactions[i].duration = Math.max(0, Math.min(reactions[i].duration, (next?.t ?? showEnd) - reactions[i].t, (nextTransition ?? showEnd) - reactions[i].t, showEnd - reactions[i].t));
     }
     return {
         meta, duration: showEnd + OUTRO_MS, showEnd, segment: meta.segment ?? showEnd - INTRO_MS,
