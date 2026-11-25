@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm';
-import type { Nhl } from '../nhl/model';
+import type { IdentifyRequest, Nhl, NhlIdentity } from '../nhl/model';
 import fantraxPortraits from '../records/player-portraits.json';
 import { seasonLabel } from '../seasons';
 import { citationLine, type Episode } from './episode';
@@ -52,15 +52,23 @@ const key = (name: string) => normalizePlayerName(name).toLowerCase();
 const complete = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const portraits: Record<string, string> = fantraxPortraits;
 
+/** The snapshot's NHL, forgiving: a failed identify is no NHL identity, and a failed profile read is no headshot. */
+function forgiving(nhl: SnapshotNhl) {
+    return {
+        async identify(player: IdentifyRequest): Promise<NhlIdentity | null> {
+            try { return await nhl.identify(player); } catch { return null; }
+        },
+        async headshot(nhlId: NhlIdentity): Promise<string | null> {
+            try { return (await nhl.player(nhlId)).headshot; } catch { return null; }
+        },
+    };
+}
+
 /** The NHL headshot when the player has an NHL identity, else the Fantrax portrait. An NHL failure never fails a snapshot. */
-async function headshotFor(player: { name: string; id: string | null; positions?: string[]; nhlTeam?: string | null }, nhl: SnapshotNhl): Promise<string | null> {
-    const fantrax = player.id ? portraits[player.id] ?? null : null;
-    try {
-        const nhlId = await nhl.identify({ name: normalizePlayerName(player.name), playerId: player.id, positions: player.positions, nhlTeam: player.nhlTeam });
-        return (nhlId === null ? null : (await nhl.player(nhlId)).headshot) ?? fantrax;
-    } catch {
-        return fantrax;
-    }
+async function headshotFor(player: IdentifyRequest, nhl: ReturnType<typeof forgiving>): Promise<string | null> {
+    const fantrax = player.playerId ? portraits[player.playerId] ?? null : null;
+    const nhlId = await nhl.identify({ ...player, name: normalizePlayerName(player.name) });
+    return (nhlId === null ? null : await nhl.headshot(nhlId)) ?? fantrax;
 }
 
 const unresolved = (ref: PlayerRef, headshot: string | null): SnapshotRow => ({
@@ -80,6 +88,7 @@ export async function playerSnapshot(season: number | null, refs: PlayerRef[], {
         from league.players p join league.player_seasons ps on ps.player_id = p.id
         where ps.season_year = ${season} and lower(trim(p.name)) in ${names}
         order by ps.fpts desc, p.id`)).map(row => ({ ...row, fpts: complete(row.fpts), fpg: complete(row.fpg) }) as ArchiveRow);
+    const faces = forgiving(nhl);
     const diagnostics: SnapshotDiagnostic[] = [];
     const players = await Promise.all(refs.map(async (ref): Promise<SnapshotRow> => {
         const named = found.filter(row => key(row.name) === key(ref.name));
@@ -91,11 +100,11 @@ export async function playerSnapshot(season: number | null, refs: PlayerRef[], {
         const [row] = matches;
         if (!row) {
             diagnostics.push({ kind: 'no-record', ref });
-            return unresolved(ref, await headshotFor({ name: ref.name, id: ref.id ?? null }, nhl));
+            return unresolved(ref, await headshotFor({ name: ref.name, playerId: ref.id ?? null }, faces));
         }
         if (row.fpts === null || row.fpg === null) diagnostics.push({ kind: 'incomplete-fpts', ref });
         return {
-            id: row.id, name: row.name, headshot: await headshotFor(row, nhl),
+            id: row.id, name: row.name, headshot: await headshotFor({ name: row.name, playerId: row.id, positions: row.positions, nhlTeam: row.nhlTeam }, faces),
             nhlTeam: row.nhlTeam, positions: row.positions, season, fpts: row.fpts, fpg: row.fpg, games: null,
         };
     }));
