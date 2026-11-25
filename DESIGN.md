@@ -104,6 +104,12 @@ typography:
     fontWeight: 560
     lineHeight: 1.25
     letterSpacing: "-0.005em"
+  preview-wordmark:
+    fontFamily: "Archivo SemiExpanded"
+    fontSize: "25px"
+    fontWeight: 900
+    lineHeight: 1
+    letterSpacing: "-0.04em"
 rounded:
   none: "0px"
   xs: "2px"
@@ -272,6 +278,7 @@ Cold rink neutrals with one hot red, a broadcast navy for stages, and gold kept 
 
 **Display Font:** Archivo variable with the `wdth` axis (system-ui, sans-serif fallback). Coach's Corner also loads the true Archivo italic (`--font-cc-italic`) for its display lettering and mocking asides.
 **Label Font (scoped):** Barlow Condensed 600/700/800, italic and upright, used only for the home matchup cards and roster sheet (`--font-matchup-display`).
+**Link Preview Font (scoped):** Archivo SemiExpanded Black Italic, a static cut of Archivo loaded from `assets/fonts/archivo/` by `loadPreviewFonts()`. The image renderer can't read the variable font, so the episode and link previews use this cut for the YOFHL wordmark and their display lettering.
 
 **Character:** One family stretched to play every role. Wide italic is the arena voice. Condensed heavy numerals read as the scoreboard. Plain upright Archivo carries the reading.
 
