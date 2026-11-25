@@ -3,6 +3,7 @@
 // one seam with the outside world, and keeps no cache. A failed request, a timeout, an unexpected status or answer,
 // or a profile for a different player than the one asked for throws; no match is no NHL identity.
 import verifiedIdentities from '../../league/nhl-player-ids.json';
+import { countGamesBefore } from './games';
 import { matchIdentity, type NhlCandidate } from './match';
 import type { Nhl, NhlIdentity, NhlPlayer, NhlSeasonLine } from './model';
 
@@ -127,21 +128,10 @@ export function createNhl({ fetcher = (url, init) => fetch(url, init), timeoutMs
             return matchIdentity(player, hits.map(candidate));
         },
         player,
-        gamesBefore: async (nhlId, seasonYear, date) => {
-            const { seasons } = await player(nhlId);
-            if (!seasons) return null;
-            let games = 0;
-            for (const [year, line] of Object.entries(seasons)) {
-                if (Number(year) >= seasonYear) continue;
-                if (line.games === null) return null;
-                games += line.games;
-            }
-            // only a season they played in the NHL has a game log worth asking for
-            if (!seasons[seasonYear]) return games;
+        gamesBefore: async (nhlId, seasonYear, date) => countGamesBefore((await player(nhlId)).seasons, seasonYear, date, async () => {
             const log = await request(GAME_LOG(nhlId, seasonYear));
             if (!isObject(log) || !Array.isArray(log.gameLog)) unexpected('player game log');
-            const dates = log.gameLog.map(game => isObject(game) && typeof game.gameDate === 'string' && DATE.test(game.gameDate) ? game.gameDate : unexpected('player game log'));
-            return games + dates.filter(played => played < date).length;
-        },
+            return log.gameLog.map(game => isObject(game) && typeof game.gameDate === 'string' && DATE.test(game.gameDate) ? game.gameDate : unexpected('player game log'));
+        }),
     };
 }

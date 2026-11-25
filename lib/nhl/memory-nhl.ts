@@ -1,8 +1,8 @@
 // The NHL module in memory, for every caller's tests: NHL players held by NHL identity, their game dates by season
-// year, the league's verified
-// identities by Player ID, and the same match rule as the NHL module over the held players (their one team standing
-// for current and last team). Tests arrange `players`, `gameLogs`, `verified`, `failing` and `down` directly, and read what was
-// asked from `identified` and `read`.
+// year, the league's verified identities by Player ID, and the same identity rule and games count as the NHL module
+// over the held players (their one team standing for current and last team). Tests arrange `players`, `gameLogs`,
+// `verified`, `failing` and `down` directly, and read what was asked from `identified` and `read`.
+import { countGamesBefore } from './games';
 import { matchIdentity } from './match';
 import type { IdentifyRequest, Nhl, NhlIdentity, NhlPlayer, NhlSeasonLine } from './model';
 
@@ -55,14 +55,8 @@ export function createMemoryNhl(state: MemoryNhlState): Nhl {
             const candidates = Object.values(state.players).map(held => ({ nhlId: held.nhlId, name: held.name, position: held.position, teams: [held.team] }));
             return matchIdentity(player, candidates);
         },
-        player: async nhlId => read(nhlId),
-        gamesBefore: async (nhlId, seasonYear, date) => {
-            const { seasons } = await read(nhlId);
-            if (!seasons) return null;
-            const earlier = Object.entries(seasons).filter(([year]) => Number(year) < seasonYear).map(([, line]) => line.games);
-            if (earlier.some(games => games === null)) return null;
-            const logged = (state.gameLogs[nhlId]?.[seasonYear] ?? []).filter(played => played < date).length;
-            return earlier.reduce<number>((total, games) => total + games!, 0) + logged;
-        },
+        player: read,
+        gamesBefore: async (nhlId, seasonYear, date) =>
+            countGamesBefore((await read(nhlId)).seasons, seasonYear, date, async () => state.gameLogs[nhlId]?.[seasonYear] ?? []),
     };
 }
