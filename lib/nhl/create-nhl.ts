@@ -35,7 +35,7 @@ const text = (value: unknown) => typeof value === 'string' && value !== '' ? val
 const localized = (value: unknown) => isObject(value) ? text(value.default) : null;
 const stat = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : null;
 /** a count of games: a whole number no less than zero, or null; a ratio such as a GAA is a `stat` */
-const games = (value: unknown) => Number.isInteger(value) && (value as number) >= 0 ? value as number : null;
+const gameCount = (value: unknown) => Number.isInteger(value) && (value as number) >= 0 ? value as number : null;
 
 function unexpected(what: string): never {
     throw new Error(`The NHL ${what} answered unexpectedly`);
@@ -59,18 +59,19 @@ function seasonLine(lines: Record<string, unknown>[]): NhlSeasonLine {
     const [only] = combined ? [combined] : lines;
     if (combined || lines.length === 1) {
         return {
-            games: games(only.gamesPlayed), goals: stat(only.goals), assists: stat(only.assists), points: stat(only.points),
+            games: gameCount(only.gamesPlayed), goals: stat(only.goals), assists: stat(only.assists), points: stat(only.points),
             wins: stat(only.wins), goalsAgainstAverage: stat(only.goalsAgainstAvg), savePercentage: stat(only.savePctg),
         };
     }
     const sum = (values: (number | null)[]) => values.every(value => value !== null) ? values.reduce((total, value) => total + value, 0) : null;
     const total = (key: string) => sum(lines.map(line => stat(line[key])));
-    // each team line's games must be a count, so an invalid line can't hide inside a plausible total
+    // every team line's games must be a count, so an invalid line can't hide inside a plausible total
+    const games = sum(lines.map(line => gameCount(line.gamesPlayed)));
     const goalsAgainst = total('goalsAgainst');
     const shotsAgainst = total('shotsAgainst');
     const played = sum(lines.map(line => minutes(line.timeOnIce)));
     return {
-        games: sum(lines.map(line => games(line.gamesPlayed))), goals: total('goals'), assists: total('assists'), points: total('points'), wins: total('wins'),
+        games, goals: total('goals'), assists: total('assists'), points: total('points'), wins: total('wins'),
         goalsAgainstAverage: goalsAgainst !== null && played ? goalsAgainst / played * 60 : null,
         savePercentage: goalsAgainst !== null && shotsAgainst ? (shotsAgainst - goalsAgainst) / shotsAgainst : null,
     };

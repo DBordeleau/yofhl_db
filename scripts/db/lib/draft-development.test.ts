@@ -82,7 +82,8 @@ test('the import paces its NHL requests, waits out rate limits and keeps answers
 /** an NHL profile for the import's fake upstream */
 const landing = (playerId: number) => JSON.stringify({ playerId, firstName: { default: 'Test' }, lastName: { default: 'Player' }, birthDate: '2001-05-26', seasonTotals: [] });
 
-for (const [rejected, answer] of [['malformed', '<html>temporary upstream failure</html>'], ['wrong-player', landing(999)]] as const) {
+const rejections = [['malformed', '<html>temporary upstream failure</html>', /JSON/], ['wrong-player', landing(999), /999 when asked for 123/]] as const;
+for (const [rejected, answer, reason] of rejections) {
     test(`a ${rejected} NHL answer the module rejects isn't kept, so a later import gets the NHL's next answer`, async t => {
         const cacheDir = await mkdtemp(join(tmpdir(), 'draft-development-'));
         t.after(() => rm(cacheDir, { recursive: true, force: true }));
@@ -90,7 +91,7 @@ for (const [rejected, answer] of [['malformed', '<html>temporary upstream failur
         const asked: string[] = [];
         const nhl = importNhl({ cacheDir, pause: async () => {}, fetch: async url => { asked.push(String(url)); return new Response(answers.shift() ?? landing(123)); } });
 
-        await assert.rejects(nhl.player(123));
+        await assert.rejects(nhl.player(123), reason);
         assert.equal((await nhl.player(123)).nhlId, 123);
         assert.equal(asked.length, 2, 'the second attempt asked the NHL again');
         // the good answer is kept: another import reads it from the file cache
@@ -107,7 +108,7 @@ for (const [rejected, answer] of [['malformed', '<html>temporary upstream failur
         const asked: string[] = [];
         const nhl = importNhl({ cacheDir, pause: async () => {}, fetch: async url => { asked.push(String(url)); return new Response(landing(123)); } });
 
-        await assert.rejects(nhl.player(123));
+        await assert.rejects(nhl.player(123), reason);
         assert.deepEqual(asked, [], 'the first attempt read the kept answer');
         assert.equal((await nhl.player(123)).nhlId, 123);
         assert.deepEqual(asked, [url]);
