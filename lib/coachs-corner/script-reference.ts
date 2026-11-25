@@ -1,8 +1,11 @@
 import { CHARACTERS } from './cast';
-import { EFFECTS, scriptLength, type Reaction } from './effects';
+import { EFFECTS, type Reaction } from './effects';
 
 // The editor's Script reference, as data. Lists that have a registry (effects, monitor graphics)
 // are derived from it, so a new entry shows up here with no edit to this file.
+
+/** a show length as a script writes it: 4.5s, or 800ms under a second */
+const scriptLength = (ms: number) => (ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`);
 
 export interface FxReference {
     effect: Reaction;
