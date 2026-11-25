@@ -69,6 +69,8 @@ export const ROBOT_DELIVERIES = {
 /** Don keeps the clearer cadence, with a fuller vowel body and less abrasive shout. */
 export const DON_DELIVERY_TUNING = { bodyLift: 0.16, yell: { brightness: 1.2, grit: 1.5, range: 1.2 } };
 
+// Voices inside a flashback: dulled by a low-pass, with a short, quiet room echo behind them.
+export const FLASHBACK_MUFFLE = { lowpass: 1300, q: 0.7, dry: 0.9, echoSeconds: 0.075, echoGain: 0.22, feedback: 0.28 };
 export const STUDIO_ROOM = { noiseGain: 0.014, lowpass: 680, highpass: 95, humGain: 0.0012, fadeSeconds: 0.35 };
 // Uneven swishes for grasp, pull and release. No pitched mechanical layer.
 export const TIE_RUSTLE = { clothGain: 0.055, strokes: [
