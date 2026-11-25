@@ -105,7 +105,9 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         return muffle;
     };
 
-    const bus = (id: SoundId, muffled = false) => {
+    /** the sound's level into the master, or into the muffle for a voice said in a flashback */
+    const bus = (id: SoundId, voice?: VoiceCue) => {
+        const muffled = !!voice?.flashback;
         const map = muffled ? muffledBuses : buses;
         if (!map.has(id)) {
             const node = ctx!.createGain();
@@ -156,7 +158,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         gain.gain.exponentialRampToValueAtTime(0.0001, at + attack + release);
     };
 
-    const tone = (id: SoundId, freq: number, type: OscillatorType, at: number, peak: number, attack: number, release: number, filter?: number, muffled = false) => {
+    const tone = (id: SoundId, freq: number, type: OscillatorType, at: number, peak: number, attack: number, release: number, filter?: number, out = bus(id)) => {
         const c = ctx!;
         const osc = c.createOscillator();
         const gain = c.createGain();
@@ -173,7 +175,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
             node = lp;
             nodes.push(lp);
         }
-        node.connect(gain).connect(bus(id, muffled));
+        node.connect(gain).connect(out);
         env(gain, at, peak, attack, release);
         track(id, osc, gain, nodes);
         osc.start(at);
@@ -181,7 +183,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         return osc;
     };
 
-    const hiss = (id: SoundId, at: number, peak: number, dur: number, band: number, q = 1.2, attack = 0.004, muffled = false) => {
+    const hiss = (id: SoundId, at: number, peak: number, dur: number, band: number, q = 1.2, attack = 0.004, out = bus(id)) => {
         const c = ctx!;
         const src = c.createBufferSource();
         src.buffer = noise;
@@ -191,7 +193,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         bp.Q.value = q;
         const gain = c.createGain();
         gain.gain.value = 0.0001;
-        src.connect(bp).connect(gain).connect(bus(id, muffled));
+        src.connect(bp).connect(gain).connect(out);
         env(gain, at, peak, attack, dur);
         track(id, src, gain, [bp]);
         src.start(at, (Math.sin(at * 17) + 1) * 0.2);
@@ -204,10 +206,10 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         const freq = (spec.base + (Math.random() * 2 - 1) * spec.spread) * style.pitch;
         const len = (voice.delivery === 'sneak' ? 0.035 : voice.delivery === 'yell' ? 0.075 : 0.055) / Math.sqrt(rate);
         const peak = 0.16 * style.volume;
-        const muffled = !!voice.flashback;
-        const osc = tone(id, freq, spec.wave, at, peak, 0.004, len, who === 'don' ? 1400 : 2600, muffled);
+        const out = bus(id, voice);
+        const osc = tone(id, freq, spec.wave, at, peak, 0.004, len, who === 'don' ? 1400 : 2600, out);
         osc.frequency.exponentialRampToValueAtTime(freq * (voice.delivery === 'yell' ? 0.82 : 0.92), at + len);
-        if (spec.grit) hiss(id, at, peak * spec.grit * 0.5, len * 0.8, who === 'don' ? 900 : 2200, 2, undefined, muffled);
+        if (spec.grit) hiss(id, at, peak * spec.grit * 0.5, len * 0.8, who === 'don' ? 900 : 2200, 2, undefined, out);
     };
 
     const robotVoice = (id: SoundId, who: CharacterId, voice: VoiceCue, rate: number, at: number) => {
@@ -242,11 +244,12 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         gain.gain.exponentialRampToValueAtTime(peak * syllable.body, at + syllable.bodyAt);
         gain.gain.linearRampToValueAtTime(peak * syllable.body * 0.8, at + syllable.releaseAt);
         gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
-        node.connect(gain).connect(bus(id, !!voice.flashback));
+        const out = bus(id, voice);
+        node.connect(gain).connect(out);
         track(id, osc, gain, filters);
         osc.start(at);
         osc.stop(at + length + 0.01);
-        hiss(id, at, syllable.grit, length * 0.32, syllable.gritBand, 1.4, syllable.attack, !!voice.flashback);
+        hiss(id, at, syllable.grit, length * 0.32, syllable.gritBand, 1.4, syllable.attack, out);
     };
 
     const load = async (url: string) => {
@@ -279,7 +282,7 @@ export function createShowAudio(initialBank: SoundBank = CURRENT_SOUND_BANK): Sh
         const { followsShow } = cue;
         src.playbackRate.value = style ? style.pitch : followsShow ? rate : 1;
         const peak = style ? 0.2 * style.volume : loop ? 0.06 : 0.25;
-        src.connect(gain).connect(bus(cue.id, !!cue.voice?.flashback));
+        src.connect(gain).connect(bus(cue.id, cue.voice));
         let duration = 0;
         if (loop) {
             gain.gain.setValueAtTime(0, at);
