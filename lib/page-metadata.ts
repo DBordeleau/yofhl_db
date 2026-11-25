@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import type { BannerSeason, FranchiseSeason } from './data/league';
+import { JOHNNY_GAUDREAU_ID, type BannerSeason, type FranchiseSeason } from './data/league';
 import { awardHref, type AwardDefinition } from './awards';
-import { seasonLabel } from './league';
+import { plural, seasonLabel } from './league';
 import { playerHref } from './player-url';
 import { pageMetadata } from './site-metadata';
 
@@ -23,9 +23,6 @@ export function seasonMetadata(season: Pick<BannerSeason, 'year' | 'team' | 'own
         : `The ${label} YOFHL season, whose playoffs were cancelled. Final standings, leaders and draft class.`;
     return pageMetadata({ path: `/season/${season.year}`, name: `${label} Season`, description, image: 'own' });
 }
-
-/** the player whose page is a memorial */
-export const JOHNNY_GAUDREAU_ID = '02b81';
 
 /**
  * A player's page, under the player's own name. The page has a link preview of its own (app/player/[ID]/opengraph-image.tsx),
@@ -67,7 +64,6 @@ export function seasonBallotsMetadata(year: number): Metadata {
 /** every franchise's page, and the fallback for a franchise the archive doesn't hold */
 export const FRANCHISES_DESCRIPTION = "Every YOFHL franchise's all-time record, playoff runs and Jagr Cups.";
 
-const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 /** "Sens Fan's", "Dangle Berries'" */
 const possessive = (name: string) => `${name}${/s$/i.test(name) ? "'" : "'s"}`;
 

@@ -5,7 +5,6 @@ import { getTeamBranding } from '@/lib/data/team-branding';
 import { renderLinkPreview } from '@/lib/share/link-preview';
 import { teamShareCard } from '@/lib/share/model';
 import { PREVIEW_HEIGHT, PREVIEW_WIDTH } from '@/lib/share/preview';
-import { paletteFor } from '@/lib/team-branding';
 
 // The franchise's link preview. It reads the franchise and the team colours through the same tag-cached lookups as
 // the page, so a sync or a branding change (which expire those tags) refreshes it. X uses this image too, through
@@ -22,6 +21,5 @@ export default async function Image({ params }: { params: Promise<{ ID: string }
     const id = parsePositiveInt4((await params).ID);
     const franchise = id === null ? null : await getFranchise(id);
     if (!franchise) notFound();
-    const card = teamShareCard(franchise);
-    return renderLinkPreview(card, paletteFor(await getTeamBranding(), card.team));
+    return renderLinkPreview(teamShareCard(franchise), await getTeamBranding());
 }

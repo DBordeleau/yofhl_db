@@ -37,6 +37,9 @@ export const playoffTeamId = (franchiseId: number, round: number, bracket = 'cha
 export const teamSeasonHref = (year: number, franchiseId: number, playoffRound: number | null = null) =>
     `/season/${year}#${playoffRound === null ? standingsTeamId(franchiseId) : playoffTeamId(franchiseId, playoffRound)}`;
 
+/** "1 season", "8 seasons" */
+export const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+
 export const formatFpts = (value: number) =>
     value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 

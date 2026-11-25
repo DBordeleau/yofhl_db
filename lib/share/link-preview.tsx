@@ -1,8 +1,8 @@
 import React from 'react';
 import { ImageResponse } from 'next/og';
 import sharp from 'sharp';
-import { formatFpts, positionNames, seasonLabel } from '../league';
-import type { TeamColours } from '../team-branding';
+import { formatFpts, plural, positionNames, seasonLabel } from '../league';
+import { paletteFor, rgba, type TeamColours } from '../team-branding';
 import { BRAND_SLAB, GOLD, Glow, ICE, loadPreviewFonts, pngDataUrl, PREVIEW_BACKGROUND, PREVIEW_HEIGHT, PREVIEW_WIDTH,
     publicArt, Slab } from './preview';
 import { SHARE_SITE, type PlayerShareCard, type SeasonShareCard, type ShareTeam, type TeamShareCard } from './model';
@@ -16,7 +16,7 @@ const W = PREVIEW_WIDTH, H = PREVIEW_HEIGHT, PAD = 60;
 const COLUMN = 720, ART = 350, ART_LEFT = 790, ART_TOP = 110;
 
 /** what one kind of page puts in the frame */
-export interface PreviewFrame {
+interface PreviewFrame {
     /** the page kind, on the slab beside the wordmark: "Player" */
     label: string;
     /** a gold slab after the label, for a standing worth leading with: "All-time #4" */
@@ -42,7 +42,7 @@ const BLOB_HOST = /\.public\.blob\.vercel-storage\.com$/;
  * A team's logo as a PNG data URL: a public path read from disk, or an owner's upload fetched from Blob storage.
  * Satori decodes neither the WebP uploads nor every JPEG, so sharp converts it. Null when there's no logo or it can't be read.
  */
-export async function logoPicture(logo: string | null): Promise<string | null> {
+async function logoPicture(logo: string | null): Promise<string | null> {
     if (!logo) return null;
     try {
         let art: ReturnType<typeof sharp>;
@@ -62,6 +62,8 @@ export async function logoPicture(logo: string | null): Promise<string | null> {
 }
 
 const teamPicture = async (team: ShareTeam | null) => ({ picture: await logoPicture(team?.logo ?? null), abbreviation: team?.abbreviation ?? null });
+/** the parts that are there, spaced dots between them: "Dillon  ·  2017–2026" */
+const dotted = (...parts: (string | null)[]) => parts.filter(Boolean).join('  ·  ') || null;
 
 async function playerFrame(card: PlayerShareCard): Promise<PreviewFrame> {
     return {
@@ -70,27 +72,25 @@ async function playerFrame(card: PlayerShareCard): Promise<PreviewFrame> {
         name: card.name,
         subtitle: card.team?.name ?? null,
         chips: card.positions,
-        detail: [card.positions.map(position => positionNames[position] ?? position).join(' / '),
-            card.seasons ? `${card.seasons} season${card.seasons === 1 ? '' : 's'}` : null].filter(Boolean).join('  ·  ') || null,
+        detail: dotted(card.positions.map(position => positionNames[position] ?? position).join(' / '),
+            card.seasons ? plural(card.seasons, 'season') : null),
         stats: [
             { value: formatFpts(card.totalFPts), label: 'Career FPts' },
             { value: card.fpg.toFixed(2), label: 'FP/G' },
             { value: String(card.cups), label: card.cups === 1 ? 'Jagr Cup' : 'Jagr Cups' },
         ],
-        ...(card.team ? await teamPicture(card.team) : { picture: null, abbreviation: null }),
+        ...await teamPicture(card.team),
     };
 }
-
-const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 
 // The team share card's facts: its owner and span over the name, its record, win rate and points for along the bottom,
 // and its Jagr Cups and finals on the gold slab the card draws its honours in.
 async function teamFrame(card: TeamShareCard): Promise<PreviewFrame> {
     return {
         label: card.defunct ? 'Defunct franchise' : 'Franchise',
-        tag: [card.cups ? plural(card.cups, 'Jagr Cup') : null, card.finals ? plural(card.finals, 'Final') : null].filter(Boolean).join('  ·  ') || null,
+        tag: dotted(card.cups ? plural(card.cups, 'Jagr Cup') : null, card.finals ? plural(card.finals, 'Final') : null),
         name: card.team.name,
-        subtitle: [card.owner, card.span].filter(Boolean).join('  ·  ') || null,
+        subtitle: dotted(card.owner, card.span),
         chips: [],
         detail: card.seasons.length ? plural(card.seasons.length, 'season') : null,
         stats: [
@@ -102,6 +102,14 @@ async function teamFrame(card: TeamShareCard): Promise<PreviewFrame> {
     };
 }
 
+const SUFFIX = /^(jr|sr)\.?$|^(ii|iii|iv)$/i;
+/** "McDavid", "van Riemsdyk", and "Tkachuk" for Matthew Tkachuk Jr.: the name after the first, as the share card draws it, less any suffix */
+function surname(name: string) {
+    const words = name.trim().split(/\s+/);
+    while (words.length > 1 && SUFFIX.test(words.at(-1)!)) words.pop();
+    return words.length > 1 ? words.slice(1).join(' ') : words[0];
+}
+
 // The season share card's facts: the season and its Jagr Cup champion, the champion's owner and logo, and the top
 // scorers on its roster along the bottom. A season whose playoffs were cancelled has no champion, so it leads with the
 // season itself over a faint Jagr Cup.
@@ -109,13 +117,14 @@ async function seasonFrame(card: SeasonShareCard): Promise<PreviewFrame> {
     const label = seasonLabel(card.year);
     return {
         label: 'Season',
-        tag: label,
+        // with no champion to name, the season's label is the name, so it isn't tagged as well
+        tag: card.team ? label : null,
         name: card.team?.name ?? label,
         subtitle: card.cancelled ? 'Playoffs cancelled' : 'Jagr Cup champions',
         chips: [],
         detail: card.owner,
         stats: card.scorers.map(scorer => ({ value: formatFpts(scorer.points),
-            label: [scorer.name.split(' ').at(-1), scorer.position].filter(Boolean).join(' · ') })),
+            label: [surname(scorer.name), scorer.position].filter(Boolean).join(' · ') })),
         ...(card.team ? await teamPicture(card.team) : { picture: await logoPicture(JAGR_CUP), abbreviation: null, faded: true }),
     };
 }
@@ -130,7 +139,6 @@ function frameFor(card: PlayerShareCard | TeamShareCard | SeasonShareCard): Prom
     }
 }
 
-const rgba = (hex: string, alpha: number) => `rgba(${[1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16)).join(',')},${alpha})`;
 // Satori can't shrink text to fit, so the name steps down with length; lineClamp (block boxes only) catches the rest.
 const nameSize = (name: string) => name.length <= 10 ? 100 : name.length <= 17 ? 88 : name.length <= 24 ? 76 : 62;
 
@@ -145,7 +153,7 @@ function statSize(stats: PreviewFrame['stats']) {
 }
 
 function Frame({ frame, colours }: { frame: PreviewFrame; colours: TeamColours }) {
-    const size = statSize(frame.stats);
+    const statValueSize = statSize(frame.stats);
     const slabText = { fontWeight: 800, fontSize: 22, letterSpacing: '0.1em', textTransform: 'uppercase' } as const;
     return (
         <div style={{ display: 'flex', position: 'relative', width: W, height: H, fontFamily: 'Archivo', color: '#fff', backgroundImage: PREVIEW_BACKGROUND }}>
@@ -191,9 +199,9 @@ function Frame({ frame, colours }: { frame: PreviewFrame; colours: TeamColours }
             {/* one row, so the stats can't run into yofhl.com: they step down in size to fit, and yofhl.com never shrinks */}
             <div style={{ position: 'absolute', left: PAD, right: PAD, bottom: 52, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
-                    {frame.stats.map((stat, index) => <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', flexShrink: 0,
+                    {frame.stats.map((stat, index) => <div key={index} style={{ display: 'flex', flexDirection: 'column', flexShrink: 0,
                         paddingLeft: index ? STAT_GAP : 0, marginLeft: index ? STAT_GAP : 0, borderLeft: index ? '2px solid rgba(255,255,255,.14)' : 'none' }}>
-                        <span style={{ fontWeight: 800, fontSize: size, lineHeight: 1, letterSpacing: '-0.03em', whiteSpace: 'nowrap' }}>{stat.value}</span>
+                        <span style={{ fontWeight: 800, fontSize: statValueSize, lineHeight: 1, letterSpacing: '-0.03em', whiteSpace: 'nowrap' }}>{stat.value}</span>
                         <span style={{ marginTop: 10, fontWeight: 800, fontSize: 22, letterSpacing: '0.14em', textTransform: 'uppercase', color: ICE, whiteSpace: 'nowrap' }}>{stat.label}</span>
                     </div>)}
                 </div>
@@ -203,10 +211,14 @@ function Frame({ frame, colours }: { frame: PreviewFrame; colours: TeamColours }
     );
 }
 
-/** a 1200×630 PNG link preview of a player, team or season share card, lit in the team's colours */
-export async function renderLinkPreview(card: PlayerShareCard | TeamShareCard | SeasonShareCard, colours: TeamColours): Promise<ImageResponse> {
+/**
+ * A 1200×630 PNG link preview of a player, team or season share card, lit in its team's colours: the owner's from
+ * `palettes` (getTeamBranding()), else the team's suggested palette.
+ */
+export async function renderLinkPreview(card: PlayerShareCard | TeamShareCard | SeasonShareCard,
+    palettes: Record<number, TeamColours>): Promise<ImageResponse> {
     const [frame, fonts] = await Promise.all([frameFor(card), loadPreviewFonts()]);
-    return new ImageResponse(<Frame frame={frame} colours={colours} />,
+    return new ImageResponse(<Frame frame={frame} colours={paletteFor(palettes, card.team)} />,
         // The og:image URL doesn't change when the page's data does, so nothing between here and an unfurler may keep
         // this as immutable (next/og's default). The route's tag-cached lookups still serve it until a sync expires them.
         { width: W, height: H, fonts, headers: { 'cache-control': 'public, max-age=0, must-revalidate' } });

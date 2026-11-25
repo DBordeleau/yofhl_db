@@ -1,9 +1,20 @@
 import assert from 'node:assert/strict';
+import type { Metadata } from 'next';
 import test from 'node:test';
-import { awardMetadata, franchiseMetadata, FRANCHISES_DESCRIPTION, headToHeadMetadata, JOHNNY_GAUDREAU_ID, leaderboardMetadata,
+import { awardMetadata, franchiseMetadata, FRANCHISES_DESCRIPTION, headToHeadMetadata, leaderboardMetadata,
     matchupRecordMetadata, playerComparisonMetadata, playerMetadata, RECORD_BOOK_DESCRIPTION, seasonBallotsMetadata,
     seasonMetadata } from './page-metadata';
+import { JOHNNY_GAUDREAU_ID } from './data/league';
 import { DEFAULT_PREVIEW_IMAGE } from './site-metadata';
+
+/**
+ * Next drops a page's opengraph-image file whenever its metadata has an images key, even one set to undefined, so a
+ * page with a link preview of its own must have none.
+ */
+function assertOwnLinkPreview(metadata: Metadata) {
+    assert.ok(metadata.openGraph, 'the page has Open Graph metadata');
+    assert.ok(!('images' in metadata.openGraph), 'the page names no image of its own');
+}
 
 // What each public page tells the group chat, Discord, Slack, X and a search engine. Every description is built from
 // lasting facts — seasons, Jagr Cups, champions, owners — because a chat app can hold a preview for months.
@@ -29,10 +40,8 @@ test('a season with no owner on record still names its champion', () => {
         'The 2018–19 YOFHL season: Sens Fan won the Jagr Cup. Final standings, playoff bracket, leaders and draft class.');
 });
 
-test("a season's link leaves the preview to the season's own link preview", () => {
-    const metadata = seasonMetadata({ year: 2026, team: 'Dangle Berries', owner: 'Dillon', playoffStatus: 'complete' });
-    // Next drops the page's opengraph-image file when its metadata names images of its own
-    assert.equal(metadata.openGraph?.images, undefined);
+test("a season's link leaves the season page to its own link preview", () => {
+    assertOwnLinkPreview(seasonMetadata({ year: 2026, team: 'Dangle Berries', owner: 'Dillon', playoffStatus: 'complete' }));
 });
 
 /** a franchise's seasons, of which the one being played is still pending */
@@ -67,9 +76,8 @@ test('a franchise that is not in the archive falls back to the franchises page',
     assert.deepEqual(metadata.openGraph?.images, [DEFAULT_PREVIEW_IMAGE]);
 });
 
-test("a franchise's link leaves the preview to the team's own link preview", () => {
-    const metadata = franchiseMetadata(3, { name: 'Dangle Berries', seasons: seasons(8), championships: [2026], foldedAfterSeason: null });
-    assert.equal(metadata.openGraph?.images, undefined);
+test("a franchise's link leaves the team page to its own link preview", () => {
+    assertOwnLinkPreview(franchiseMetadata(3, { name: 'Dangle Berries', seasons: seasons(8), championships: [2026], foldedAfterSeason: null }));
 });
 
 test('the all-time leaderboard says it ranks careers', () => {
@@ -110,19 +118,18 @@ test("a season's award ballots say whose ballots they are", () => {
     assert.equal(metadata.description, "Every franchise's award ballot for the 2025–26 YOFHL season.");
 });
 
-test("a player's link names the player and leaves the preview to the player's own image", () => {
+test("a player's link names the player and leaves the player page to its own link preview", () => {
     const metadata = playerMetadata({ id: 'abc123', name: 'Connor McDavid' });
     assert.equal(metadata.title, 'Connor McDavid · YOFHL');
     assert.deepEqual(metadata.alternates, { canonical: '/player/abc123' });
-    // Next drops the page's opengraph-image file when its metadata names images of its own
-    assert.equal(metadata.openGraph?.images, undefined);
+    assertOwnLinkPreview(metadata);
 });
 
 test("Johnny Gaudreau's link remembers him", () => {
     const metadata = playerMetadata({ id: JOHNNY_GAUDREAU_ID, name: 'Johnny Gaudreau' });
     assert.equal(metadata.title, 'Remembering Johnny Gaudreau · YOFHL');
     assert.equal(metadata.description, 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.');
-    assert.equal(metadata.openGraph?.images, undefined);
+    assertOwnLinkPreview(metadata);
 });
 
 // Their subjects are chosen in the query, which unfurlers don't send (docs/adr/0011-link-previews-follow-the-page-not-its-query.md).
