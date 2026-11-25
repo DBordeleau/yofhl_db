@@ -387,12 +387,14 @@ function Studio({ episode, frame, jumped, teams, players, banners, started, play
     cut.current = look.cut;
     const rippleId = `cc-ripple-${useId().replace(/:/g, '')}`;
     const rewinding = look.blip > 0 || look.ripple > 0;
+    /** how far through a flashback transition, 0 outside one */
+    const roll = frame.flashback?.transition?.progress ?? 0;
     const chyron = fullscreen && live && frame.line >= 0 && tl.lines[frame.line].t0 - INTRO_MS < CHYRON_WINDOW_MS && frame.phase === 'segment';
 
     return (
         <div ref={studioRef} className={styles.studio} data-shot={frame.shot} data-flashback={frame.flashback ? '' : undefined} data-rewinding={rewinding || undefined}
-            style={{ '--spill': spill, '--fb-grade': look.grade, '--fb-blip': look.blip, '--fb-roll': frame.flashback?.transition?.progress ?? 0, '--fb-ripple': rewinding ? `url(#${rippleId})` : undefined } as React.CSSProperties}>
-            {rewinding && <FlashbackRipple id={rippleId} ripple={look.ripple} progress={frame.flashback?.transition?.progress ?? 0} />}
+            style={{ '--spill': spill, '--fb-grade': look.grade, '--fb-blip': look.blip, '--fb-roll': roll, '--fb-ripple': rewinding ? `url(#${rippleId})` : undefined } as React.CSSProperties}>
+            {rewinding && <FlashbackRipple id={rippleId} ripple={look.ripple} progress={roll} />}
             {/* alternating animation names restart the punch without remounting the set */}
             <div className={styles.jolt} data-jolt={frame.punch?.who === 'don' ? frame.punch.index % 2 : undefined}>
                 <div className={styles.world}>
