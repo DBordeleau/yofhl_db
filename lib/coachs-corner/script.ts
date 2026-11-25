@@ -1,5 +1,5 @@
 import {
-    CAST, CHARACTERS, gestureHelp, LAPELS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
+    CAST, CHARACTERS, gestureHelp, isLapel, LAPELS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
     type CharacterId, type Delivery, type Lapel, type Reaction, type Shot, type Sound,
 } from './cast';
 import { EFFECTS, scriptLength } from './effects';
@@ -662,7 +662,7 @@ export function parseScript(source: string): Script {
                     if (n !== null) meta.pace = n;
                     else report('error', `pace is words per minute (${MIN_WPM}–${MAX_WPM}), like 180.`);
                 }
-                else if (key === 'lapel') { if ((LAPELS as readonly string[]).includes(value)) meta.lapel = value as Lapel; else report('error', `lapel is one of: ${LAPELS.join(', ')}.`); }
+                else if (key === 'lapel') { if (isLapel(value)) meta.lapel = value; else report('error', `lapel is one of: ${LAPELS.join(', ')}.`); }
                 else report('warning', `“${m[1]}” isn’t a front matter key; it’s ignored.`);
             }
             i = end + 1;
@@ -712,7 +712,7 @@ export function parseScript(source: string): Script {
             } else if (key === 'lapel') {
                 const lapel = value.toLowerCase();
                 if (lapel === 'none') block.lapel = null;
-                else if ((LAPELS as readonly string[]).includes(lapel)) block.lapel = lapel as Lapel;
+                else if (isLapel(lapel)) block.lapel = lapel;
                 else report('error', `A flashback’s lapel is one of: ${LAPELS.join(', ')}, or none.`);
             } else report('error', `A flashback header takes only don: and lapel:, like [flashback: week 4, don: remembrance-rest, lapel: poppy]. Put “${option.trim()}” on a stage line inside the block.`);
         }

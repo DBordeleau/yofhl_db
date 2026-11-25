@@ -305,3 +305,5 @@ export type Sound = typeof SOUNDS[number];
 // Pinned on both hosts for a whole episode, chosen in the front matter.
 export const LAPELS = ['poppy'] as const;
 export type Lapel = typeof LAPELS[number];
+/** exactly as spelled in LAPELS; callers decide whether case matters */
+export const isLapel = (value: string): value is Lapel => (LAPELS as readonly string[]).includes(value);
