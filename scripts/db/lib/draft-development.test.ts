@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMemoryNhl, memoryNhlState, nhlPlayer, nhlSeason } from '../../../lib/nhl/memory-nhl';
 import type { Db } from './connect';
-import { draftFactsLoader, enrichDraftDevelopment, importFetcher } from './draft-development';
+import { draftFactsLoader, enrichDraftDevelopment, importFetcher, importNhl } from './draft-development';
 import { writeHistory, type HistoryImport } from './history';
 import { draftRegretEligible } from '../../../lib/draft/development';
 import { disposableLeague } from '../../../lib/testing/disposable-league';
@@ -78,6 +78,41 @@ test('the import paces its NHL requests, waits out rate limits and keeps answers
     assert.equal((await fetcher('https://api-web.nhle.com/v1/player/2/landing')).status, 503);
     assert.equal((await readdir(cacheDir)).length, 1);
 });
+
+/** an NHL profile for the import's fake upstream */
+const landing = (playerId: number) => JSON.stringify({ playerId, firstName: { default: 'Test' }, lastName: { default: 'Player' }, birthDate: '2001-05-26', seasonTotals: [] });
+
+for (const [rejected, answer] of [['malformed', '<html>temporary upstream failure</html>'], ['wrong-player', landing(999)]] as const) {
+    test(`a ${rejected} NHL answer the module rejects isn't kept, so a later import gets the NHL's next answer`, async t => {
+        const cacheDir = await mkdtemp(join(tmpdir(), 'draft-development-'));
+        t.after(() => rm(cacheDir, { recursive: true, force: true }));
+        const answers = [answer, landing(123)];
+        const asked: string[] = [];
+        const nhl = importNhl({ cacheDir, pause: async () => {}, fetch: async url => { asked.push(String(url)); return new Response(answers.shift() ?? landing(123)); } });
+
+        await assert.rejects(nhl.player(123));
+        assert.equal((await nhl.player(123)).nhlId, 123);
+        assert.equal(asked.length, 2, 'the second attempt asked the NHL again');
+        // the good answer is kept: another import reads it from the file cache
+        const later = importNhl({ cacheDir, pause: async () => {}, fetch: async () => { throw new Error('offline'); } });
+        assert.equal((await later.player(123)).nhlId, 123);
+    });
+
+    test(`a ${rejected} NHL answer already in the file cache is dropped once rejected`, async t => {
+        const cacheDir = await mkdtemp(join(tmpdir(), 'draft-development-'));
+        t.after(() => rm(cacheDir, { recursive: true, force: true }));
+        // an earlier import kept the answer before it was checked
+        const url = 'https://api-web.nhle.com/v1/player/123/landing';
+        await importFetcher({ cacheDir, pause: async () => {}, fetch: async () => new Response(answer) })(url);
+        const asked: string[] = [];
+        const nhl = importNhl({ cacheDir, pause: async () => {}, fetch: async url => { asked.push(String(url)); return new Response(landing(123)); } });
+
+        await assert.rejects(nhl.player(123));
+        assert.deepEqual(asked, [], 'the first attempt read the kept answer');
+        assert.equal((await nhl.player(123)).nhlId, 123);
+        assert.deepEqual(asked, [url]);
+    });
+}
 
 test('migration backfills existing picks by season, identity and draft date', async t => {
     const league = await disposableLeague(t, { migrateThrough: '0008', seed: `

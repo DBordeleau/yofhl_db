@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { DraftDevelopmentFacts } from '../../../lib/draft/development';
 import { splitPositions } from '../../../lib/league';
@@ -22,6 +23,8 @@ interface ImportFetcherOptions {
     cacheDir: string;
     fetch?: typeof fetch;
     pause?: (ms: number) => Promise<void>;
+    /** told the cache file of every answer given from the cache or kept in it */
+    kept?: (path: string) => void;
 }
 
 /**
@@ -29,10 +32,14 @@ interface ImportFetcherOptions {
  * every request so a long import stays under the NHL's rate limit, retries a rate-limited answer after the wait the
  * NHL asks for, and keeps every good answer in the cache. Any other answer goes back to the module as it came.
  */
-export function importFetcher({ cacheDir, fetch: request = fetch, pause = sleep }: ImportFetcherOptions): NhlFetcher {
+export function importFetcher({ cacheDir, fetch: request = fetch, pause = sleep, kept = () => {} }: ImportFetcherOptions): NhlFetcher {
     return async (url, init) => {
         const path = join(cacheDir, `${url.replace(/^https:\/\//, '').replace(/[^a-zA-Z0-9]+/g, '-')}.json`);
-        try { return new Response(await readFile(path, 'utf8')); }
+        try {
+            const body = await readFile(path, 'utf8');
+            kept(path);
+            return new Response(body);
+        }
         catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
         for (let attempt = 0; ; attempt++) {
             await pause(850);
@@ -48,9 +55,32 @@ export function importFetcher({ cacheDir, fetch: request = fetch, pause = sleep 
             const body = await response.text();
             await mkdir(cacheDir, { recursive: true });
             await writeFile(path, body);
+            kept(path);
             return new Response(body);
         }
     };
+}
+
+/**
+ * The NHL module as the import uses it, over `importFetcher`. The cache keeps answers before the module has read them,
+ * so when an operation rejects (a malformed answer, a profile for another player), the answers it was given from the
+ * cache or kept in it are dropped: a later attempt asks the NHL again instead of failing on the same answer forever.
+ */
+export function importNhl(options: Omit<ImportFetcherOptions, 'kept'>): Nhl {
+    // the cache files each operation was answered from, however many operations are under way
+    const operation = new AsyncLocalStorage<Set<string>>();
+    const nhl = createNhl({ fetcher: importFetcher({ ...options, kept: path => operation.getStore()?.add(path) }), timeoutMs: REQUEST_TIMEOUT_MS });
+    const dropOnRejection = <Args extends unknown[], Result>(run: (...args: Args) => Promise<Result>) => (...args: Args) => {
+        const answers = new Set<string>();
+        return operation.run(answers, async () => {
+            try { return await run(...args); }
+            catch (error) {
+                await Promise.all([...answers].map(path => rm(path, { force: true })));
+                throw error;
+            }
+        });
+    };
+    return { identify: dropOnRejection(nhl.identify), player: dropOnRejection(nhl.player), gamesBefore: dropOnRejection(nhl.gamesBefore) };
 }
 
 function needsExperience(pick: DraftPick, birthDate: string) {
@@ -88,8 +118,7 @@ export function draftFactsLoader(nhl: Nhl): DraftFactsLoader {
 
 function createLoader(newestYear: number): DraftFactsLoader {
     // Refresh NHL answers when importing a new season; birth dates and completed draft facts remain reusable.
-    const fetcher = importFetcher({ cacheDir: `.cache/draft-development/${newestYear}` });
-    return draftFactsLoader(createNhl({ fetcher, timeoutMs: REQUEST_TIMEOUT_MS }));
+    return draftFactsLoader(importNhl({ cacheDir: `.cache/draft-development/${newestYear}` }));
 }
 
 // Fetch before the import writes anything. Matching historical picks reuse their persisted facts.
