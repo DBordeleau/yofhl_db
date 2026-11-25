@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { episodeFrom } from './episode';
 import { FLASHBACK_ENTRY_MS, FLASHBACK_EXIT_MS, frameAt, frameSignature } from './timeline';
+import { createTransport } from './transport';
 
 const head = (week: number | null = 6, season: number | null = 2027) =>
     `---\ntitle: Test\n${season === null ? '' : `season: ${season}\n`}${week === null ? '' : `week: ${week}\n`}---\n`;
@@ -204,4 +205,25 @@ test('a line replayed in a flashback performs the same syllables it did the firs
     const [ron, don] = original.timeline.lines;
     const [, first, second] = replayed.timeline.lines;
     assert.deepEqual(performance(replayed.audioCues, first.t0, second.t1), performance(original.audioCues, ron.t0, don.t1));
+});
+
+test('seeking into a flashback plays its voices muffled with no rewind, then rewinds on the way out', () => {
+    const { timeline: tl, audioCues } = episodeFrom(withFlashback('[flashback: week 4]'));
+    const span = tl.flashbacks![0];
+    for (const target of [span.t0 + FLASHBACK_ENTRY_MS / 2, middle(tl.lines[1])]) {
+        const transport = createTransport(tl, audioCues);
+        transport.seek(target);
+        transport.play(0);
+        const fired: typeof audioCues = [];
+        // 16 ms frames until the exit transition is over
+        for (let now = 16, out = transport.tick(now); ; now += 16, out = transport.tick(now)) {
+            fired.push(...out.cues);
+            if (out.time >= span.t1) break;
+        }
+        const ids = (until: number) => fired.filter(cue => cue.t < until).map(cue => cue.id);
+        assert.ok(!ids(span.leaving).includes('flashback-entry'), `no rewind after a seek to ${target}`);
+        const voices = fired.filter(cue => cue.voice && cue.t < span.leaving);
+        assert.ok(voices.length > 0 && voices.every(cue => cue.voice!.flashback), 'voices play muffled');
+        assert.deepEqual(fired.filter(cue => cue.id === 'flashback-exit').map(cue => cue.t), [span.leaving]);
+    }
 });
