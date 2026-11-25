@@ -1,4 +1,4 @@
-import { actionInWardrobeOf, CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
+import { actionInWardrobeOf, CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Lapel, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
 import type { Cue, FlashbackSource, Graphic, Meta, Script, Span } from './script';
 import { spokenForm } from './spoken-numbers';
 import { INTRO_MS, phaseAt, type Phase } from './transport';
@@ -80,6 +80,8 @@ export interface FlashbackSpan {
     leaving: number;
     /** the exit transition is over and the present resumes */
     t1: number;
+    /** the lapel worn from t0 to t1, null for none; absent when it's the episode's */
+    lapel?: Lapel | null;
 }
 
 interface Key<T> { t: number; value: T }
@@ -194,7 +196,10 @@ export function compile(script: Script): Timeline {
             // plates clear as each transition begins, so the present and the past never share the screen
             clears.push(t);
             if (entering) {
-                flashbacks.push({ line: block.line, source: block.source, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0 });
+                flashbacks.push({
+                    line: block.line, source: block.source, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0,
+                    ...(block.lapel !== undefined ? { lapel: block.lapel } : {}),
+                });
                 // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
                 if (block.don) { rest.don = block.don; setGesture('don', block.don, t); }
                 t += FLASHBACK_ENTRY_MS;
@@ -402,6 +407,8 @@ export interface Frame {
     clock: number;
     /** the flashback playing, from the start of its entry transition to the end of its exit */
     flashback: FlashbackFrame | null;
+    /** what both hosts wear on the lapel: the episode's, or a flashback's own while it plays */
+    lapel: Lapel | null;
 }
 
 const flashbackAt = (tl: Timeline, t: number): FlashbackFrame | null => {
@@ -459,12 +466,15 @@ export function frameAt(tl: Timeline, t: number): Frame {
         for (const who of CHARACTERS) if (gestureAction(hosts[who].gesture) === 'lean' && line >= 0 && tl.lines[line].speaker === who) shot = `close ${who}` as Shot;
     }
 
+    const flashback = flashbackAt(tl, t);
+    const spanLapel = flashback ? tl.flashbacks![flashback.span].lapel : undefined;
     return {
         phase, hosts, captions,
         monitor: Math.max(0, lastAt(tl.monitor, t, k => k.t)),
         shot, punch, line,
         clock: tl.segment - Math.max(0, Math.min(t, tl.showEnd) - INTRO_MS),
-        flashback: flashbackAt(tl, t),
+        flashback,
+        lapel: spanLapel !== undefined ? spanLapel : tl.meta.lapel ?? null,
     };
 }
 
@@ -481,7 +491,7 @@ export const frameSignature = (f: Frame) => {
     }
     // transitions publish in steps, like a reaction's particles, then the look holds still
     const fb = f.flashback;
-    if (fb) s += `|flashback:${fb.span}${fb.transition ? `:${fb.transition.edge}:${Math.floor(fb.transition.progress * 24)}` : ''}`;
+    if (fb) s += `|flashback:${fb.span}${fb.transition ? `:${fb.transition.edge}:${Math.floor(fb.transition.progress * 24)}` : ''}|lapel:${f.lapel ?? '-'}`;
     return s;
 };
 

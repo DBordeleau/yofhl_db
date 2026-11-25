@@ -182,3 +182,18 @@ test('an unknown header gesture or lapel, or any other cue in the header, is an 
     assert.deepEqual(errors(withFlashback('[flashback: week 4, don: remembrance-rest, lapel: none]')), []);
     assert.deepEqual(errors(withFlashback('[flashback: week 4, lapel: Poppy]')), []);
 });
+
+test('the header lapel is worn for the flashback, lapel: none drops the episode’s, and leaving it out keeps it', () => {
+    const poppyWeek = `---\ntitle: Test\nseason: 2027\nweek: 6\nlapel: poppy\n---\n`;
+    const lapels = (header: string, front: string) => {
+        const episode = episodeFrom(withFlashback(header, front));
+        assert.deepEqual(episode.diagnostics, []);
+        const { lines, flashbacks } = episode.timeline;
+        const at = (t: number) => frameAt(episode.timeline, t).lapel;
+        return [at(middle(lines[0])), at(flashbacks![0].t0), at(middle(lines[1])), at(flashbacks![0].t1 - 1), at(middle(lines[3]))];
+    };
+    assert.deepEqual(lapels('[flashback: week 4, lapel: poppy]', head()), [null, 'poppy', 'poppy', 'poppy', null]);
+    assert.deepEqual(lapels('[flashback: week 4, lapel: none]', poppyWeek), ['poppy', null, null, null, 'poppy']);
+    assert.deepEqual(lapels('[flashback: week 4]', poppyWeek), ['poppy', 'poppy', 'poppy', 'poppy', 'poppy']);
+    assert.deepEqual(lapels('[flashback: week 4]', head()), [null, null, null, null, null]);
+});

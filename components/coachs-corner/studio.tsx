@@ -379,7 +379,7 @@ function Studio({ episode, frame, jumped, teams, players, banners, started, play
                         <div className={styles.deskTop} aria-hidden="true" />
                         <div className={styles.spill} aria-hidden="true" />
                         <Monitor graphic={graphic} index={frame.monitor} previous={tl.monitor[frame.monitor - 1]?.value} teams={teams} players={players} running={playing} />
-                        {CHARACTERS.map(who => <Host key={who} who={who} host={frame.hosts[who]} jumped={jumped} art={art.current![who]} lapel={tl.meta.lapel} />)}
+                        {CHARACTERS.map(who => <Host key={who} who={who} host={frame.hosts[who]} jumped={jumped} art={art.current![who]} lapel={frame.lapel ?? undefined} />)}
                         <div className={styles.keyLight} aria-hidden="true" />
                         <div className={styles.desk} aria-hidden="true">
                             <div className={styles.deskFront}>
