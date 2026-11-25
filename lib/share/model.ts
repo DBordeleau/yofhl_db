@@ -1,7 +1,7 @@
 import type { PlayerProfile, FranchiseDetail, BannerSeason, FranchiseCard, LeaderRow, AwardWinner } from '../data/league';
 import type { PlayerHonors } from '../data/award-archive';
 import { seasonLabel, splitPositions, winPercentage } from '../league';
-import { episodeLabel } from '../coachs-corner/episode-label';
+import { episodeHeadline, episodeLabel } from '../coachs-corner/episode-label';
 import type { Episode } from '../coachs-corner/episode';
 import type { Lapel } from '../coachs-corner/cast';
 import { playerHref } from '../player-url';
@@ -159,10 +159,10 @@ export function awardShareCard(award: ShareAward, winner: AwardWinner, winners: 
 export function episodeShareCard(episode: { slug: string; title: string; week: number | null; publishedAt: string | null; durationMs: number },
     compiled: Pick<Episode, 'pullQuote' | 'openingWardrobe'> & { meta: Pick<Episode['meta'], 'lapel'> }): EpisodeShareCard {
     const label = episodeLabel(episode);
-    const week = label ? `${label}: ` : '';
+    const headline = episodeHeadline(episode);
     const quote = compiled.pullQuote;
-    return { kind: 'episode', title: `Coach's Corner ${week}${episode.title}`, href: `/coachs-corner/${episode.slug}`,
-        summary: `Coach's Corner, ${week}${episode.title}.${quote ? ` ${quote.who === 'don' ? 'Don' : 'Ron'}: “${quote.text}”` : ''}`,
+    return { kind: 'episode', title: `Coach's Corner ${headline}`, href: `/coachs-corner/${episode.slug}`,
+        summary: `Coach's Corner, ${headline}.${quote ? ` ${quote.who === 'don' ? 'Don' : 'Ron'}: “${quote.text}”` : ''}`,
         episode: episode.title, week: episode.week, label, aired: episode.publishedAt, runtimeMs: episode.durationMs,
         quote, wardrobe: compiled.openingWardrobe, lapel: compiled.meta.lapel ?? null };
 }

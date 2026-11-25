@@ -64,13 +64,13 @@ const quoteSize = (text: string) => text.length <= 32 ? 42 : text.length <= 56 ?
 /** with no quote the title takes the bubble's space */
 const titleStyle = (title: string, quoted: boolean) => quoted
     ? { fontSize: title.length <= 30 ? 38 : 32, lineClamp: 2 }
-    : { fontSize: title.length <= 24 ? 60 : title.length <= 48 ? 50 : 42, lineClamp: 3 };
+    : { fontSize: title.length <= 24 ? 72 : title.length <= 48 ? 60 : 50, lineClamp: 3 };
 
 /** a 1200×630 PNG link preview of an episode share card */
 export async function renderEpisodePreview(card: EpisodeShareCard): Promise<ImageResponse> {
     const { quote, wardrobe, lapel } = card;
-    // As on the share card, the speaker yells and the other host takes it in; with no quote, Don stares and Ron is skeptical.
-    // Don is in the episode's opening wardrobe; Ron has only the normal one.
+    // As on the share card, the speaker yells and the other host takes it in. With no quote, Don stares and Ron is skeptical
+    // (the share card has Don yell even then). Don is in the episode's opening wardrobe; Ron has only the normal one.
     const donPose = quote?.who === 'don' ? artFor('don', 'angry', { wardrobe, mouth: 'open' }) : artFor('don', 'stare', { wardrobe, mouth: 'closed' });
     const ronPose = quote?.who === 'ron' ? artFor('ron', 'rest', { mouth: 'open' }) : artFor('ron', 'skeptical', { mouth: 'open' });
     const [don, ron, fontList] = await Promise.all([hostImage('don', donPose, lapel), hostImage('ron', ronPose, lapel), loadFonts()]);
@@ -127,6 +127,8 @@ export async function renderEpisodePreview(card: EpisodeShareCard): Promise<Imag
                 </div>}
             </div>
         </div>,
-        { width: W, height: H, fonts: fontList },
+        // The og:image URL doesn't change when an episode is republished, so nothing between here and an unfurler may keep
+        // this as immutable (next/og's default). The page's tag-cached render still serves it until publication expires it.
+        { width: W, height: H, fonts: fontList, headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
     );
 }

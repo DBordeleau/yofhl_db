@@ -31,3 +31,10 @@ test('a Remembrance episode previews with Don in its wardrobe and both hosts wea
     const remembrance = { ...week6, quote: { who: 'ron' as const, text: 'We will remember them.' }, wardrobe: 'remembrance-2026', lapel: 'poppy' as const };
     assert.deepEqual(await picture(remembrance), { format: 'png', width: 1200, height: 630 });
 });
+
+test("a republished episode's preview is revalidated rather than cached as immutable", async () => {
+    // the og:image URL stays the same across republishes, so caches between here and the unfurler must check back
+    const cacheControl = (await renderEpisodePreview(week6)).headers.get('cache-control') ?? '';
+    assert.doesNotMatch(cacheControl, /immutable/);
+    assert.match(cacheControl, /max-age=0/);
+});
