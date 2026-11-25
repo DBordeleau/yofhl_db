@@ -1,6 +1,6 @@
 # Annotated opening-week pilot
 
-Read `lib/coachs-corner/pilot.ts` alongside these notes. It is the canonical performed script; `assets/coachs-corner/scripts/opening-week.transcript.txt` is a plain-dialogue companion. These annotations use searchable dialogue anchors so line-number changes do not break them. The pilot's October 15, 2026 scores and schedule remarks belong to that episode.
+This is the voice reference for every episode (show bible, "The voice reference"). Read `lib/coachs-corner/pilot.ts` alongside these notes. It is the canonical performed script; `assets/coachs-corner/scripts/opening-week.transcript.txt` is a plain-dialogue companion. These annotations use searchable dialogue anchors so line-number changes do not break them. The pilot's October 15, 2026 scores and schedule remarks belong to that episode.
 
 ## Opening: "The other thing. With the kid."
 

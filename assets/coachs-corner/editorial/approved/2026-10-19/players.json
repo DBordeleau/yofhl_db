@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Brady Tkachuk",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/FLA/8480801.png",
+    "nhlTeam": "OTT",
+    "positions": [
+      "LW"
+    ],
+    "season": 2026,
+    "fpts": 350.25,
+    "fpg": 5.84,
+    "games": null
+  },
+  {
+    "name": "Zayne Parekh",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/CGY/8484768.png",
+    "nhlTeam": "CGY",
+    "positions": [
+      "D"
+    ],
+    "season": 2026,
+    "fpts": 82,
+    "fpg": 2.22,
+    "games": null
+  },
+  {
+    "name": "Tom Wilson",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/WSH/8476880.png",
+    "nhlTeam": "WSH",
+    "positions": [
+      "RW"
+    ],
+    "season": 2026,
+    "fpts": 372,
+    "fpg": 5.17,
+    "games": null
+  }
+]

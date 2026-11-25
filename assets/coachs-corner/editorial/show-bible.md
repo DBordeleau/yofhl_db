@@ -1,6 +1,10 @@
 # Coach's Corner show bible
 
-Version 3. Source of authority: the owner's character brief, the revised opening-week Episode 1 accepted on October 17, 2026, and the explicit junior-club guidance approved that day. These are fictional robot hosts in a YOFHL comedy segment. The user wants abrasive, erratic Don and controlled, polite Ron. Preserve that imbalance as stories change.
+Version 4. Source of authority: the owner's character brief, the revised opening-week Episode 1 accepted on October 17, 2026, the explicit junior-club guidance approved that day, and the owner's October 23 verdict that the pilot, not Week 1, is the voice to write toward. These are fictional robot hosts in a YOFHL comedy segment. The user wants abrasive, erratic Don and controlled, polite Ron. Preserve that imbalance as stories change.
+
+## The voice reference
+
+The opening-week pilot is the voice reference for both hosts. Later approved episodes are references for facts, running bits and continuity, not for how Don and Ron talk. Week 1 (October 19) was approved for its content, but the owner judged Don's voice and tone better in the pilot: "Going forward Don should be more like the pilot than week 1's episode." Week 1 drifted in a measurable way: Ron took 40% of the words (pilot 22%) with stat-argument paragraphs, Don never yelled and never lost the thread, and nobody interrupted anybody. `assets/coachs-corner/editorial/voice-notes.md` records the specifics and the owner's later corrections.
 
 ## What stays stable
 
@@ -41,6 +45,8 @@ Avoid having either character explain a diagnosis or announce that Don is senile
 ### Names and Canadian bias
 
 For every player born outside North America, every spoken Don reference should use his established wrong form. Use birthplace, not nationality, language or surname appearance. A Swedish player's birthplace may be in North America. An unfamiliar surname does not establish origin.
+
+One exception, from the owner on October 26, 2026: a player who has represented Canada internationally keeps his real name, even if born outside North America. Mason McTavish, born in Zurich, is the example. Verify the Canada appearance from a dated source; never assume it from a surname or reputation. See `assets/coachs-corner/editorial/voice-notes.md`.
 
 The episode's `pronunciations.json` maps the canonical name to Don's spoken form. The fact packet supplies birthplace evidence. Unknown origin remains unknown until researched. For a player with no uniquely matched NHL record, record a reliable source, observation time and resolved birthplace in the packet and brief. Never guess from the name.
 

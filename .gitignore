@@ -71,3 +71,9 @@ next-env.d.ts
 # Alternate suit 5 ships AVIF only; retain authoring files locally.
 /assets/coachs-corner/robots-v2/don-alternate-5-*.png
 /assets/coachs-corner/robots-v2/don-alternate-5-*.webp
+
+# Claude Code session state. Parts of .claude/ are tracked (the coachs-corner
+# skill, launch.json), so keep the worktrees and local permissions out.
+/.claude/worktrees/
+/.claude/settings.local.json
+/.cache/

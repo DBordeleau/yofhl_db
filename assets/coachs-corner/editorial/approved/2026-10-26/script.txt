@@ -1,0 +1,244 @@
+---
+title: Say thank you
+season: 2027
+week: 2
+date: 2026-10-26
+segment: 5:30
+---
+
+# Cold open: tight on the Halloween suit. Don is showing it to the kids before Ron can start the show.
+[don: halloween-rest, ron: rest, cam: close don]
+>> off
+
+DON (halloween-thumbs): Look at this, kids. Pumpkins, ghosts, little bats. Ron said it was too much. I said it's Halloween, Ron. When am I supposed to wear it, Easter?
+
+DON (halloween-point): Now Saturday, you go out, you bring a grown-up. You say please, you say thank you at every door.
+  And if somebody hands you an apple-- [beat] that's a cheap house. Keep walking.
+
+[cam: wide]
+RON (deadpan): I said it was a lot.
+
+DON (halloween-rest): Same thing.
+
+# Ron leads into the payoff of last week's picks; the scoreboard is new this week.
+RON: Welcome to Coach's Corner. We start with last week's featured matchup. [>> matchup VWIZ 252.85 SKGS 194.25 final "Last week's featured matchup"] Varrock and Skellige. You took Varrock--
+
+DON (halloween-thumbs): [fx: don happy 3s] And who won, Ron?
+
+RON: Varrock. By fifty-eight.
+
+DON (halloween-point): And who'd you take?
+
+RON: [ron: down] Skellige.
+
+DON (halloween-rest): I just wanted everybody to hear it.
+
+RON: [>> list "Featured matchup picks" "Don" 1-0, "Ron" 0-1] We're keeping score this year. Don's one and oh.
+
+DON (halloween-thumbs): Leave that up till June.
+
+RON: [>> compare VWIZ 252.85 SKGS 194.25, G 18 11, Hit 39 31, *W 1 3, SV 47 80] Skellige's goalies won three games to one. That's why I picked them.
+
+DON (halloween-point): And they lost.
+
+RON: Hellebuyck was on Dillon's IR all week--
+
+DON (halloween-angry, yell): !!THAT'S AN EXCUSE, RON!!! [halloween-point] You had the goalies. He had no Hellebuyck. {firm: And you still picked the wrong team.}
+  [halloween-rest] Where is Hellebuyck, anyway?
+
+RON: [>> list "Hellebuyck trade" "To New Jersey" "C. Hellebuyck", "To Winnipeg" "Mercer · Daws · Bjugstad", "Plus" "Command rights · 2 picks"] New Jersey. Traded Friday.
+
+DON (halloween-surprised, slow): New Jersey. [beat] Dan's team?
+
+RON (deadpan): The Devils. Dan has the New Purrsey Devils.
+
+[don: halloween-stare, ron: rest, 900ms]
+
+DON (halloween-rest, deadpan): I know what Dan has.
+
+RON: [>> numbers 928 thousand, 0 games with "Connor Hellebuyck" "Dollars forfeited · suspended Sept. 16"] He skipped camp. Gave up about nine hundred thousand dollars.
+
+DON (halloween-angry, yell): !!NINE HUNDRED THOUSAND DOLLARS!!! To not be in Winnipeg!
+  [halloween-point] {firm: Winnipeg drafted him. Winnipeg paid him.} Good hockey people. Cold? [beat] Put on a coat!
+  You show up, you stop the puck, you go home and complain like everybody else.
+
+RON: He asked for a trade in the summer.
+
+DON (halloween-rest): And they gave him one. Who'd they get?
+
+RON: [>> list "Hellebuyck trade" "To New Jersey" "C. Hellebuyck", "To Winnipeg" "Mercer · Daws · Bjugstad", "Plus" "Command rights · 2 picks"] Dawson Mercer, among others.
+
+DON (halloween-thumbs, warm): [fx: don happy 4s] Mercer. Newfoundland boy. Drummondville Voltigeurs. Kills penalties. Works.
+  [halloween-point] Winnipeg, you got the better fella. {firm: He shows up.}
+
+RON: [>> stat "33" "Points" "Connor McDavid / 11 GP · 8 G · 25 A" with "Connor McDavid"] Speaking of showing up. Connor McDavid. Thirty-three points in eleven games.
+
+DON (halloween-surprised): Thirty-three!
+
+RON: Only Mario Lemieux has started hotter.
+
+DON (halloween-thumbs): Mario! That's who he's with now. Bobby, Mario, Wayne, and him. Bobby first. I coached Bobby in Boston.
+  [halloween-point] Best player in the world, and he still comes back to help his goalie. You get a guy like that once. You sit down and you watch.
+
+RON: [>> list "Most points in a season" "Gretzky 1985–86" 215, "McDavid 84-game pace" 252] He's on pace for over two-fifty. Gretzky's record is two-fifteen.
+
+DON (halloween-angry, yell): !!DON'T PUT THAT UP!!! [halloween-point] Eleven games! The hockey gods see that! [>> off]
+  [halloween-rest] Leave the man alone. [beat] Who's got him?
+
+RON: Dillon.
+
+[don: halloween-stare, ron: rest, 1.4s]
+
+DON (halloween-rest, deadpan): Course he does.
+
+RON: [>> numbers VWIZ 6 goals, 3 assists with "Leon Draisaitl" "Oct 19–25 · 3 GP"] Leon Draisaitl had six goals this week.
+
+DON (halloween-surprised): Dry saddle? Whose is--
+
+RON (deadpan): Also Dillon.
+
+[don: halloween-stare, ron: rest, 1.2s]
+
+DON (halloween-rest, deadpan): Dillon's doing fine.
+
+# Around the league: Ron turns from Varrock on the week's real top score.
+RON: [>> matchup Lali 140.4 NPD 256.55 final "Week 2 / Final"] He still didn't have the top score. New Purrsey did. Two fifty-six.
+
+DON (halloween-thumbs, warm): Dan! There you go. [>> compare Lali 140.4 NPD 256.55, G 12 13, A 6 26, SOG 74 95, *Hit 34 52, W 0 3] Fifty-two hits. Ninety-five shots. That's a team going to work.
+
+RON: [>> matchup Carolina 187.5 PVLS 209.1 final "Week 2 / Final"] Paddyville beat Carolina. Pat's first win.
+
+DON (halloween-point): Pat! Week one he gets run over by a hundred and twenty. Could've packed it in. Didn't.
+  [halloween-thumbs] {warm: Shows up the next week, twelve goals, gets the win.} That's what you do. You lose, you don't quit on your guys.
+
+RON: [>> stat "2" "Days later" "Tom Wilson / Dropped Wed. Oct. 21" Lali with "Tom Wilson"] Speaking of quitting on your guys. Tom Wilson. Dropped by the Lalibirdies.
+
+[don: halloween-surprised, ron: rest, fx: don shocked 800ms, 900ms]
+
+DON (halloween-rest, deadpan): Dropped.
+
+RON: Wednesday.
+
+DON (halloween-point): I sat right here. Monday. I looked in that camera and I said, Eric--
+
+[don: halloween-tie, 1.2s] Adjusts tie. Looks at the desk.
+
+DON (halloween-rest, deadpan): What'd I say?
+
+RON (deadpan): Don't get stupid with him.
+
+DON (halloween-angry, yell): !!AND HE GOT STUPID!!!
+
+[don: halloween-pound-ready, 220ms]
+[don: halloween-pound, sfx: desk-pound, ron: surprised, 480ms]
+
+DON (halloween-point): Two days! I gave him a whole week and he lasted two days!
+
+RON: [>> title "Wilson Watch" "Oct 19–25 / NHL scoring"] Wilson Watch. [>> numbers 0 goals, 0 assists, 6 hits with "Tom Wilson" "Oct 19–25 · 2 GP"] Two games. No points. Six hits.
+
+DON (halloween-thumbs, warm): Six hits! Two games! {firm: That's a man working.}
+
+RON: No points in six straight.
+
+DON (halloween-rest): He's due. Give him time.
+
+[ron: down, 700ms] Ron looks down.
+
+DON (halloween-point): Who picked him up?
+
+RON: [>> stat "FA" "Unclaimed" "Tom Wilson / Since Wed. Oct. 21" with "Tom Wilson"] Nobody.
+
+[don: halloween-stare, ron: rest, 1.5s]
+
+DON (halloween-angry, yell): !!NOBODY?!! [halloween-point] Ten teams! Big fella, goes to the net, and he's sitting there on the wire. {firm: Seventy-six all over again.}
+
+DON (halloween-lean, firm): Eric. He's still there. [beat] Go get him. {mock slow: "Sorry, Tom."} That's all you have to say.
+
+RON: [>> matchup TEEHAW 151.7 HUNG 226.95 final "Week 2 / Final"] Hamhung's two and oh. They beat West Texas by seventy-five.
+
+DON (halloween-point): West Texas had a shutout!
+
+RON: [>> numbers TEEHAW 26 saves, 0 goals against with "Arturs Silovs" "Thu. Oct. 22 vs Florida"] Arturs Silovs. Thursday against Florida.
+
+DON (halloween-angry, yell): !!AND THEY LEFT HIM OUT THERE!!! !!ARTHUR SLIVERS!!!
+  [halloween-point] Stands on his head. Twenty-six saves, nothing gets by him. {firm: And the rest of them lose by seventy-five.}
+  [halloween-rest] Kaley, that goalie did his job. {deadpan: Somebody go apologize to him.}
+
+RON: [>> matchup HH 223 JAGR 222.7 final "Week 2 / Final"] Hooterville beat Jagrtown.
+
+DON (halloween-surprised, slow): What's that? Point three?
+
+RON: Point three.
+
+[don: halloween-stare, ron: down, 1.6s]
+
+RON: [>> standings "Points for" VWIZ 2 0 561.45, JAGR 0 2 445.80, HH 2 0 435.35] Nick has the second-most points in the league. He's oh and two.
+
+DON (halloween-lean, firm): Nick. [beat] That's not a slump. That's a curse.
+
+RON: How does he break it?
+
+DON (halloween-point): Old-time hockey. First thing, he stops washing his socks.
+
+RON (deadpan): It's fantasy hockey.
+
+DON (halloween-angry, yell): !!THE CURSE DOESN'T KNOW THAT!!!
+
+DON (halloween-point): Second. Saturday night, he gets a pumpkin, carves Jeremy's name in it, puts it on the step.
+  The kids come by, they smash it. Curse goes with it.
+
+RON (deadpan): That's vandalism.
+
+DON (halloween-rest): That's tradition. [beat] {firm halloween-point: And nobody says "point three" in that house till Christmas.}
+
+# Week 3 feature. Ron picked first last week, so Don picks first; Ron takes the other side.
+RON: [>> matchup JAGR Lali "Week 3 / Featured matchup"] Which brings us to our featured matchup for week three. Jagrtown at the Lalibirdies.
+
+DON (halloween-point): Both oh and two. Somebody's finally getting a win.
+
+RON: We take turns picking first. Your pick, Don.
+
+DON (halloween-thumbs): Nick.
+
+RON: Then I've got Eric.
+
+DON (halloween-surprised): You want Eric? He dropped Wilson!
+
+RON: [>> numbers Lali 3 goals, 3 assists with "William Nylander" "Oct 19–25 · 4 GP"] Nylander had six points.
+
+DON (halloween-thumbs, warm): Noodles. [beat] Noodles had a week. Good for Noodles. [halloween-point] [>> matchup JAGR Lali "Week 3 / Featured matchup"] Still Nick.
+
+RON: Why Nick?
+
+DON (halloween-rest): Because Nick's gonna make a phone call.
+
+RON (skeptical): To who?
+
+DON (halloween-lean, firm): Dillon. Tonight. [beat] He just won by fifty-eight. He's in a good mood.
+  [>> list "The Tkachuks" "Florida Panthers" "Brady & Matthew", VWIZ Brady, JAGR Matthew]
+  Nick's got Matthew. Dillon's got Brady. Same family, same team in Florida, and in this league somebody split them up.
+
+RON: Dillon's not giving up Brady.
+
+DON (halloween-point): You go in there, {mock warm: "Dillon. Happy Halloween."} [beat] Get Brady. {warm: Christmas dinner, nobody's mad.}
+
+RON (deadpan): And what does Dillon get?
+
+DON (halloween-angry, yell): !!A CLEAN CONSCIENCE!!!
+
+[ron: down, 900ms] Ron looks down.
+
+RON: [>> list "Week 3 picks" "Don" Jagrtown, "Ron" Lalibirdies] Jagrtown for Don. The Lalibirdies for me.
+
+RON: Three NHL games tonight, first puck seven Eastern. Happy Halloween, everybody.
+
+# The outro calls back to the cold open and the Wilson story.
+[cam: close don]
+>> logo
+DON (halloween-thumbs): Kids, remember. Somebody hands you an apple, keep walking. [beat] Somebody hands you Tom Wilson--
+
+RON (warning): Don.
+
+DON (halloween-point): You say thank you!
+
+[1.5s]
