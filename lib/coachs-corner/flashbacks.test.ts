@@ -197,3 +197,23 @@ test('the header lapel is worn for the flashback, lapel: none drops the episodeâ
     assert.deepEqual(lapels('[flashback: week 4]', poppyWeek), ['poppy', 'poppy', 'poppy', 'poppy', 'poppy']);
     assert.deepEqual(lapels('[flashback: week 4]', head()), [null, null, null, null, null]);
 });
+
+test('the monitor shows static for the whole flashback, ignores cuts in the copied lines, and gets its graphic back after', () => {
+    const episode = episodeFrom(`${head()}>> team HH "This week"
+DON: This week.
+
+[flashback: week 4]
+>> matchup HH 41.5 NPD 38
+RON: Who's he going to get in a trade?
+[end flashback]
+
+RON: Back to now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const tl = episode.timeline;
+    const [span] = tl.flashbacks!;
+    const graphic = (t: number) => tl.monitor[frameAt(tl, t).monitor].value;
+    assert.deepEqual(graphic(middle(tl.lines[0])), { type: 'team', team: 'HH', caption: 'This week' });
+    for (const t of [span.t0, middle(tl.lines[1]), span.t1 - 1]) assert.deepEqual(graphic(t), { type: 'static' });
+    assert.deepEqual(graphic(span.t1), { type: 'team', team: 'HH', caption: 'This week' });
+    assert.ok(!tl.monitor.some(cut => cut.value.type === 'matchup'));
+});

@@ -179,7 +179,8 @@ export function compile(script: Script): Timeline {
                 break;
             case 'cam': shots.push({ t, value: cue.shot }); break;
             case 'sfx': sounds.push({ t, value: cue.sound }); break;
-            case 'monitor': monitor.push({ t, value: cue.graphic, line }); break;
+            // a flashback's monitor stays on static: this week's numbers never show in the past
+            case 'monitor': if (!inFlashback) monitor.push({ t, value: cue.graphic, line }); break;
             case 'clear': clears.push(t); break;
         }
         return undefined;
@@ -190,6 +191,8 @@ export function compile(script: Script): Timeline {
     const edges = script.flashbacks.flatMap(block => [{ at: block.from, block, entering: true }, { at: block.to, block, entering: false }]);
     let nextEdge = 0;
     let inFlashback = false;
+    /** the studio as a flashback starts, which its end puts back */
+    let before = { monitor: monitor[0] };
     const crossEdgesBefore = (index: number) => {
         for (; nextEdge < edges.length && edges[nextEdge].at <= index; nextEdge++) {
             const { block, entering } = edges[nextEdge];
@@ -201,13 +204,17 @@ export function compile(script: Script): Timeline {
                     ...(block.lapel !== undefined ? { lapel: block.lapel } : {}),
                 });
                 // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
+                before = { monitor: monitor[monitor.length - 1] };
                 if (block.don) { rest.don = block.don; setGesture('don', block.don, t); }
+                monitor.push({ t, value: { type: 'static' }, line: block.line });
                 t += FLASHBACK_ENTRY_MS;
             } else {
                 const span = flashbacks[flashbacks.length - 1];
                 span.leaving = t;
                 t += FLASHBACK_EXIT_MS;
                 span.t1 = t;
+                // the present resumes exactly as it was left
+                monitor.push({ ...before.monitor, t });
             }
             inFlashback = entering;
         }
