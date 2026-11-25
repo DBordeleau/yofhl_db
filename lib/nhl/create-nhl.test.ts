@@ -173,6 +173,27 @@ test("a stat the NHL didn't give is null, never zero", async () => {
     assert.equal((await nhl.player(8474596)).seasons![2024].points, null);
 });
 
+test('games the NHL gave as anything but a whole, non-negative count are missing, while goalie ratios stay fractional', async () => {
+    const withGames = (profile: typeof landingOReilly | typeof landingAllen, games: Record<string, unknown>) => ({
+        ...profile, seasonTotals: profile.seasonTotals.map(line => {
+            const key = `${line.season}/${line.sequence}`;
+            return line.gameTypeId === 2 && line.leagueAbbrev === 'NHL' && key in games ? { ...line, gamesPlayed: games[key] } : line;
+        }),
+    });
+    const seasons = async (profile: Record<string, unknown>) => (await recordedNhl({ profiles: { [profile.playerId as number]: profile } }).nhl.player(profile.playerId as number)).seasons!;
+    // 2023-24, one line for Nashville
+    assert.equal((await seasons(withGames(landingOReilly, { '20232024/1': -1 })))[2024].games, null);
+    assert.equal((await seasons(withGames(landingOReilly, { '20232024/1': 81.5 })))[2024].games, null);
+    assert.equal((await seasons(withGames(landingOReilly, { '20232024/1': '82' })))[2024].games, null);
+    assert.equal((await seasons(withGames(landingOReilly, { '20232024/1': -1 })))[2024].points, 69, 'only the games are missing');
+    // 2022-23, split between St. Louis and Toronto: a total of 53 hiding a negative or fractional team line is still missing
+    assert.equal((await seasons(withGames(landingOReilly, { '20222023/1': 54, '20222023/2': -1 })))[2023].games, null);
+    assert.equal((await seasons(withGames(landingOReilly, { '20222023/1': 39.5, '20222023/2': 13.5 })))[2023].games, null);
+    // a goalie's GAA and save percentage are fractions, as the NHL gives them, even when a line's games are missing
+    const allen = await seasons(withGames(landingAllen, { '20122013/1': 14.5 }));
+    assert.deepEqual([allen[2013].games, allen[2013].goalsAgainstAverage, allen[2013].savePercentage], [null, 2.463041, 0.904624]);
+});
+
 test('a player with no NHL games has no seasons, and one with no season history or birth date has none to give', async () => {
     const { birthDate, team, seasons } = await recordedNhl().nhl.player(8481026);
     // the other Ryan O'Reilly: never played in the NHL and on no NHL team
@@ -226,6 +247,19 @@ test("games before a date the NHL didn't give are null, and an unexpected game l
     await assert.rejects(log({ gameLog: { gameDate: '2023-10-11' } }), /game log answered unexpectedly/);
     await assert.rejects(log({ gameLog: [{ gameDate: 'Oct 11, 2023' }] }), /game log answered unexpectedly/);
     await assert.rejects(recordedNhl({ gameLogs: { '8474596/game-log/20232024': undefined } }).nhl.gamesBefore(8474596, 2024, '2023-11-02'), /404/);
+});
+
+test('games before a date with an earlier season of invalid games are null, even when the total looks plausible', async () => {
+    const line = (season: number, gamesPlayed: unknown, team = 'Ottawa Senators') => ({ season, gamesPlayed, leagueAbbrev: 'NHL', gameTypeId: 2, teamName: { default: team } });
+    const profile = (...seasonTotals: unknown[]) => ({ playerId: 123, firstName: { default: 'Test' }, lastName: { default: 'Skater' }, birthDate: '2002-03-01', seasonTotals });
+    const before = (...seasonTotals: unknown[]) => recordedNhl({ profiles: { 123: profile(...seasonTotals) } }).nhl.gamesBefore(123, 2026, '2025-10-01');
+    assert.equal(await before(line(20232024, 82), line(20242025, 1)), 83);
+    // 82 and -1 would be 81 games, short of the 82 a 23-year-old skater needs for draft regret
+    assert.equal(await before(line(20232024, 82), line(20242025, -1)), null);
+    assert.equal(await before(line(20232024, 82), line(20242025, 0.5)), null);
+    // a season split between teams counts each team's line, and one invalid line leaves the season missing
+    assert.equal(await before(line(20232024, 82), line(20242025, 30, 'Ottawa Senators'), line(20242025, 20, 'Boston Bruins')), 132);
+    assert.equal(await before(line(20232024, 82), line(20242025, 52, 'Ottawa Senators'), line(20242025, -2, 'Boston Bruins')), null);
 });
 
 test('a request that takes longer than the timeout fails', async () => {

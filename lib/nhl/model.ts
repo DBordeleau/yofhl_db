@@ -21,6 +21,7 @@ export interface IdentifyRequest {
  * when it gave none. Each stat is a number, or null when the NHL didn't give it.
  */
 export interface NhlSeasonLine {
+    /** a whole number of games, never negative: null when the NHL didn't give one, or gave one for any team that isn't */
     games: number | null;
     goals: number | null;
     assists: number | null;
