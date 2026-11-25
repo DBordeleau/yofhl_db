@@ -192,7 +192,7 @@ export function compile(script: Script): Timeline {
     let nextEdge = 0;
     let inFlashback = false;
     /** the studio as a flashback starts, which its end puts back */
-    let before = { monitor: monitor[0] };
+    let before = { monitor: monitor[0], shot: shots[0].value, rest: { ...rest } };
     const crossEdgesBefore = (index: number) => {
         for (; nextEdge < edges.length && edges[nextEdge].at <= index; nextEdge++) {
             const { block, entering } = edges[nextEdge];
@@ -204,7 +204,7 @@ export function compile(script: Script): Timeline {
                     ...(block.lapel !== undefined ? { lapel: block.lapel } : {}),
                 });
                 // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
-                before = { monitor: monitor[monitor.length - 1] };
+                before = { monitor: monitor[monitor.length - 1], shot: shots[shots.length - 1].value, rest: { ...rest } };
                 if (block.don) { rest.don = block.don; setGesture('don', block.don, t); }
                 monitor.push({ t, value: { type: 'static' }, line: block.line });
                 t += FLASHBACK_ENTRY_MS;
@@ -215,6 +215,8 @@ export function compile(script: Script): Timeline {
                 span.t1 = t;
                 // the present resumes exactly as it was left
                 monitor.push({ ...before.monitor, t });
+                shots.push({ t, value: before.shot });
+                for (const c of CHARACTERS) { rest[c] = before.rest[c]; setGesture(c, rest[c], t); }
             }
             inFlashback = entering;
         }

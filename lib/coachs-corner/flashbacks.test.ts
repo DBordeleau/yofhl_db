@@ -217,3 +217,32 @@ RON: Back to now.`);
     assert.deepEqual(graphic(span.t1), { type: 'team', team: 'HH', caption: 'This week' });
     assert.ok(!tl.monitor.some(cut => cut.value.type === 'matchup'));
 });
+
+test('after [end flashback] both hosts’ gestures, Don’s wardrobe, the lapel and the shot are what they were before it', () => {
+    const episode = episodeFrom(`---\ntitle: Test\nseason: 2027\nweek: 6\nlapel: poppy\n---\n[don: alternate-4-rest] [ron: down] [cam: don]
+DON: This week.
+
+[flashback: week 4, don: remembrance-rest, lapel: none]
+[cam: close ron]
+RON: Who's he going to get in a trade?
+
+DON (remembrance-point): He's sitting right there.
+[end flashback]
+
+DON: Same suit as before.
+
+DON (yell): Still that suit!`);
+    assert.deepEqual(episode.diagnostics, []);
+    const tl = episode.timeline;
+    const [span] = tl.flashbacks!;
+    const look = (t: number) => {
+        const frame = frameAt(tl, t);
+        return { don: frame.hosts.don.gesture, ron: frame.hosts.ron.gesture, shot: frame.shot, lapel: frame.lapel };
+    };
+    const left = look(span.t0 - 1);
+    assert.deepEqual(left, { don: 'alternate-4-rest', ron: 'down', shot: 'don', lapel: 'poppy' });
+    assert.deepEqual(look(middle(tl.lines[1])), { don: 'remembrance-rest', ron: 'rest', shot: 'close ron', lapel: null });
+    assert.deepEqual(look(span.t1), left);
+    assert.equal(look(middle(tl.lines[3])).don, 'alternate-4-rest');
+    assert.equal(look(middle(tl.lines[4])).don, 'alternate-4-angry');
+});
