@@ -128,6 +128,15 @@ test('the check counts and times numbers as said, so digits and spelled-out numb
     assert.equal(words.segmentSeconds, digits.segmentSeconds);
 });
 
+test('the word count leaves out lines replayed in a flashback, but the runtime keeps them', async () => {
+    const plain = await checkDraft(draft('RON: Two and oh.\n\nDON: Three and oh.'));
+    const replayed = await checkDraft(draft('RON: Two and oh.\n\n[flashback: pilot]\n\nDON: We said this before.\n\nRON: We did indeed.\n\n[end flashback]\n\nDON: Three and oh.'));
+    assert.deepEqual(replayed.diagnostics.filter(d => d.severity === 'error'), []);
+    assert.deepEqual(replayed.words, { don: 3, ron: 3 });
+    assert.deepEqual(replayed.words, plain.words);
+    assert.ok(replayed.segmentSeconds > plain.segmentSeconds);
+});
+
 test('file loader reloads edits, reports missing artwork, and rejects symlink escapes', async t => {
     const prefix = path.join(os.tmpdir(), 'coachs-production-');
     const root = await mkdtemp(prefix);

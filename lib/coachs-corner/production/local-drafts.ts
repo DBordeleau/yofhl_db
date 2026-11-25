@@ -144,7 +144,7 @@ export async function checkDraft(draft: LocalDraft, { root = process.cwd(), epis
         catch { report('error', `Missing asset: ${url}`); }
     }
     const words = { don: 0, ron: 0 };
-    // counted as said, so 1910-1911 counts the same as nineteen-ten, nineteen-eleven
-    for (const line of timeline.lines) words[line.speaker] += spokenWords(line).length;
+    // counted as said, so 1910-1911 counts the same as nineteen-ten, nineteen-eleven; lines replayed in a flashback were written weeks ago
+    for (const line of timeline.lines) if (!line.flashback) words[line.speaker] += spokenWords(line).length;
     return { diagnostics, segmentSeconds: episode.summary.segment / 1000, words, art };
 }
