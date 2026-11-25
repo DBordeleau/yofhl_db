@@ -1,0 +1,75 @@
+{
+  "file": "/coachs-corner/audio/flashback-exit.wav",
+  "description": "A softer, shorter rewind: a darker whine sweeping down with light flutter and hiss, no clunk.",
+  "origin": "Original deterministic offline synthesis; no external audio source or text-to-sound generator.",
+  "generator": "scripts/audio/generate-flashback-rewinds.mjs",
+  "generatorSha256": "7f1df3687e70c44c0b02bd9f72482fa41398285f6505083bfe870e7c009beb86",
+  "regenerate": "node scripts/audio/generate-flashback-rewinds.mjs",
+  "sha256": "c8fd84ff91e22179cc7d435c3745d95453bb1e3572e44efe05a8edc2a82eff36",
+  "encoding": {
+    "codec": "pcm_s16le",
+    "channels": 1,
+    "sampleRate": 48000,
+    "bitsPerSample": 16
+  },
+  "recipe": {
+    "revision": 1,
+    "description": "A softer, shorter rewind: a darker whine sweeping down with light flutter and hiss, no clunk.",
+    "durationSeconds": 0.5,
+    "startSeconds": 0.01,
+    "fadeInSeconds": 0.04,
+    "fadeOutAtSeconds": 0.32,
+    "silenceAtSeconds": 0.46,
+    "sweep": {
+      "fromHz": 1500,
+      "toHz": 420,
+      "curve": 0.8
+    },
+    "harmonics": 5,
+    "toneAmplitude": 0.5,
+    "wobble": {
+      "hz": 13,
+      "depth": 0.025
+    },
+    "garble": {
+      "minHz": 14,
+      "maxHz": 26,
+      "depth": 0.5
+    },
+    "hiss": {
+      "amplitude": 0.25,
+      "bandRatio": 2,
+      "q": 0.8
+    },
+    "lowpassHz": 3800,
+    "highpassHz": 120,
+    "clunk": null,
+    "peakTargetDbfs": -16,
+    "seed": 20261126,
+    "recommendedBankGain": 0.5
+  },
+  "normalizationGain": 0.19449653993871818,
+  "measurements": {
+    "durationSeconds": 0.5,
+    "sampleCount": 24000,
+    "bytes": 48044,
+    "peakDbfs": -16.000632247293233,
+    "rmsDbfs": -26.131115795908148,
+    "dcOffset": 3.178914388020833e-8,
+    "lastNonzeroAtSeconds": 0.4585416666666667,
+    "trailingSilenceSeconds": 0.0414375
+  },
+  "ffmpeg": {
+    "command": "node scripts/audio/ffmpeg.mjs -i public/coachs-corner/audio/flashback-exit.wav -af astats=metadata=1:reset=0 -f null -",
+    "peakDbfs": -16.000367,
+    "rmsDbfs": -26.130851,
+    "sampleCount": 24000
+  },
+  "integration": {
+    "soundId": "flashback-exit",
+    "recommendedBankGain": 0.5,
+    "cue": "Scheduled automatically as a flashback ends, over its exit transition. Not a script sfx: cue.",
+    "note": "Plays at the show rate and stops by the end of its transition, so faster speeds shorten it with the transition."
+  },
+  "listening": "No subjective listening review performed by the generator; measurements only."
+}

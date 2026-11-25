@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { episodeFrom } from './episode';
 import { FLASHBACK_ENTRY_MS, FLASHBACK_EXIT_MS, frameAt, frameSignature } from './timeline';
+import { createTransport } from './transport';
 
 const head = (week: number | null = 6, season: number | null = 2027) =>
     `---\ntitle: Test\n${season === null ? '' : `season: ${season}\n`}${week === null ? '' : `week: ${week}\n`}---\n`;
@@ -284,4 +285,76 @@ test('with no line of Don’s outside a flashback, the opening wardrobe is norma
     const episode = episodeFrom(`${head()}[flashback: week 4]\nDON (remembrance-point): Back then.\n[end flashback]\n\nRON: Now.`);
     assert.deepEqual(episode.diagnostics, []);
     assert.equal(episode.openingWardrobe, 'normal');
+});
+
+test('a flashback rewinds on the way in and, more softly, on the way out, each over its transition', () => {
+    const episode = episodeFrom(`${withFlashback('[flashback: week 4]')}\n\n[flashback: week 2]\nDON: Again.\n[end flashback]\n\nRON: Done.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const rewinds = episode.audioCues.filter(cue => cue.id === 'flashback-entry' || cue.id === 'flashback-exit');
+    const spans = episode.timeline.flashbacks!;
+    assert.equal(spans.length, 2);
+    assert.deepEqual(rewinds, spans.flatMap(span => [
+        { t: span.t0, id: 'flashback-entry', followsShow: { duration: FLASHBACK_ENTRY_MS } },
+        { t: span.leaving, id: 'flashback-exit', followsShow: { duration: FLASHBACK_EXIT_MS } },
+    ]));
+});
+
+test('a script can’t cue the rewinds itself', () => {
+    for (const id of ['flashback-entry', 'flashback-exit']) {
+        const found = errors(`${head()}DON: Hi.\n[sfx: ${id}]\nRON: Hello.`);
+        assert.ok(found.some(([at]) => at === 7), `sfx: ${id} should be an error: ${JSON.stringify(found)}`);
+    }
+});
+
+test('voices inside a flashback are marked to sound like a memory, with one syllable per mouth flap as before', () => {
+    const episode = episodeFrom(withFlashback('[flashback: week 4]'));
+    const { timeline: tl, audioCues } = episode;
+    const voices = audioCues.filter(cue => cue.voice);
+    assert.equal(voices.length, tl.flaps.don.length + tl.flaps.ron.length);
+    const [now, first, second, after] = tl.lines;
+    const within = (line: { t0: number; t1: number }) => voices.filter(cue => cue.t >= line.t0 && cue.t < line.t1);
+    for (const line of [first, second]) {
+        assert.ok(within(line).length > 0);
+        assert.ok(within(line).every(cue => cue.voice!.flashback === true), `line ${line.index} is muffled`);
+    }
+    for (const line of [now, after]) {
+        assert.ok(within(line).length > 0);
+        assert.ok(within(line).every(cue => !('flashback' in cue.voice!)), `line ${line.index} plays dry`);
+    }
+});
+
+test('a line replayed in a flashback performs the same syllables it did the first time', () => {
+    const original = episodeFrom(`${head()}RON: Who's he going to get in a trade?\n\nDON (point): He's sitting right there.`);
+    const replayed = episodeFrom(withFlashback('[flashback: week 4]'));
+    const performance = (cues: typeof original.audioCues, from: number, to: number) => cues
+        .filter(cue => cue.voice && cue.t >= from && cue.t < to)
+        .map(({ t, voice }) => {
+            const { flashback: _, variation: __, progress, duration, ...rest } = voice!;
+            const round = (n: number) => Math.round(n * 1e6) / 1e6;
+            return { t: round(t - from), progress: round(progress), duration: round(duration), ...rest };
+        });
+    const [ron, don] = original.timeline.lines;
+    const [, first, second] = replayed.timeline.lines;
+    assert.deepEqual(performance(replayed.audioCues, first.t0, second.t1), performance(original.audioCues, ron.t0, don.t1));
+});
+
+test('seeking into a flashback plays its voices muffled with no rewind, then rewinds on the way out', () => {
+    const { timeline: tl, audioCues } = episodeFrom(withFlashback('[flashback: week 4]'));
+    const span = tl.flashbacks![0];
+    for (const target of [span.t0 + FLASHBACK_ENTRY_MS / 2, middle(tl.lines[1])]) {
+        const transport = createTransport(tl, audioCues);
+        transport.seek(target);
+        transport.play(0);
+        const fired: typeof audioCues = [];
+        // 16 ms frames until the exit transition is over
+        for (let now = 16, out = transport.tick(now); ; now += 16, out = transport.tick(now)) {
+            fired.push(...out.cues);
+            if (out.time >= span.t1) break;
+        }
+        const ids = (until: number) => fired.filter(cue => cue.t < until).map(cue => cue.id);
+        assert.ok(!ids(span.leaving).includes('flashback-entry'), `no rewind after a seek to ${target}`);
+        const voices = fired.filter(cue => cue.voice && cue.t < span.leaving);
+        assert.ok(voices.length > 0 && voices.every(cue => cue.voice!.flashback), 'voices play muffled');
+        assert.deepEqual(fired.filter(cue => cue.id === 'flashback-exit').map(cue => cue.t), [span.leaving]);
+    }
 });

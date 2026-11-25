@@ -1,5 +1,5 @@
 import { CHARACTERS, gestureAction, type CharacterId, type Delivery } from './cast';
-import { spokenWords, type Timeline } from './timeline';
+import { FLASHBACK_ENTRY_MS, FLASHBACK_EXIT_MS, spokenWords, type Timeline } from './timeline';
 import { INTRO_MS } from './transport';
 import type { SoundId } from './sound-bank';
 import { EFFECTS } from './effects';
@@ -18,6 +18,8 @@ export interface VoiceCue {
     cutoff: boolean;
     /** First syllable when taking over directly from an unfinished line. */
     interrupting: boolean;
+    /** Said inside a flashback, so it plays muffled. Absent everywhere else. */
+    flashback?: true;
 }
 export interface AudioCue {
     t: number;
@@ -54,6 +56,7 @@ export function compileAudioCues(tl: Timeline): AudioCue[] {
                 cutoff: lineEnd && line.cutoff,
                 interrupting: Math.abs(flap[0] - line.t0) < 0.01 && !!previousLine?.cutoff
                     && previousLine.speaker !== who && line.t0 - previousLine.t1 < 1,
+                ...line.flashback && { flashback: true },
             } });
         }
     }
@@ -62,6 +65,10 @@ export function compileAudioCues(tl: Timeline): AudioCue[] {
         const sound = EFFECTS[r.effect].sound;
         if (sound) cues.push({ t: r.t, id: sound.id, ...sound.followsShow && { followsShow: { duration: r.duration } } });
     }
+    // The rewinds follow the show clock so they stay inside their transitions at any speed.
+    for (const span of tl.flashbacks ?? []) cues.push(
+        { t: span.t0, id: 'flashback-entry', followsShow: { duration: FLASHBACK_ENTRY_MS } },
+        { t: span.leaving, id: 'flashback-exit', followsShow: { duration: FLASHBACK_EXIT_MS } });
     for (const m of tl.monitor) if (m.t > 0) cues.push({ t: m.t, id: 'monitor' });
     for (const p of tl.punches) if (p.who === 'don') cues.push({ t: p.t, id: 'thud' });
     // Only this physical action gets Foley. Mouth swaps and automatic rest poses stay silent.

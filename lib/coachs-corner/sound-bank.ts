@@ -2,7 +2,10 @@ import { mediaUrl } from './media';
 import type { CharacterId, Sound, SynthSound } from './cast';
 import type { EffectSound } from './effects';
 
-export type SoundId = CharacterId | 'room' | 'tie' | 'monitor' | Sound | EffectSound;
+/** recorded sounds that play over a flashback's entry and exit transitions; scripts can't name them in sfx: */
+export const FLASHBACK_SOUNDS = ['flashback-entry', 'flashback-exit'] as const;
+export type FlashbackSound = typeof FLASHBACK_SOUNDS[number];
+export type SoundId = CharacterId | 'room' | 'tie' | 'monitor' | Sound | EffectSound | FlashbackSound;
 export type SynthId = 'classic-don' | 'classic-ron' | 'robot-don' | 'robot-ron' | 'studio-room' | 'tie-rustle' | 'monitor' | SynthSound;
 export type SoundSource = { synth: SynthId } | { files: readonly string[] };
 export interface SoundSlot { source: SoundSource; gain: number }
@@ -27,6 +30,8 @@ export const CLASSIC_SOUND_BANK: SoundBank = {
     thud: { source: { synth: 'thud' }, gain: 1 },
     'desk-pound': { source: { files: [mediaUrl('/coachs-corner/audio/desk-pound.wav')] }, gain: 0.8 },
     'happy-twinkle': { source: { files: [mediaUrl('/coachs-corner/audio/happy-twinkle.wav')] }, gain: 0.16 },
+    'flashback-entry': { source: { files: [mediaUrl('/coachs-corner/audio/flashback-entry.wav')] }, gain: 0.5 },
+    'flashback-exit': { source: { files: [mediaUrl('/coachs-corner/audio/flashback-exit.wav')] }, gain: 0.5 },
 };
 
 /** Approved studio mix, shared by episodes and the sound-check baseline. */
@@ -64,6 +69,8 @@ export const ROBOT_DELIVERIES = {
 /** Don keeps the clearer cadence, with a fuller vowel body and less abrasive shout. */
 export const DON_DELIVERY_TUNING = { bodyLift: 0.16, yell: { brightness: 1.2, grit: 1.5, range: 1.2 } };
 
+// Voices inside a flashback: dulled by a low-pass, with a short, quiet room echo behind them.
+export const FLASHBACK_MUFFLE = { lowpass: 1300, q: 0.7, dry: 0.9, echoSeconds: 0.075, echoGain: 0.22, feedback: 0.28 };
 export const STUDIO_ROOM = { noiseGain: 0.014, lowpass: 680, highpass: 95, humGain: 0.0012, fadeSeconds: 0.35 };
 // Uneven swishes for grasp, pull and release. No pitched mechanical layer.
 export const TIE_RUSTLE = { clothGain: 0.055, strokes: [

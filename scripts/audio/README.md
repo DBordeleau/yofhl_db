@@ -91,6 +91,26 @@ reduced motion. Twinkle is a single playback, truncated to the effect duration
 with a fade; it never loops. Pause, mute and seek stop it without replaying an
 old cue. `[fx: don shocked 800ms]` is silent.
 
+## Flashback rewinds
+
+`public/coachs-corner/audio/flashback-entry.wav` (0.9 s) and `flashback-exit.wav`
+(0.5 s) are original synthesized tape rewinds, with no downloaded sample. The
+entry is a whine sweeping up with garbled flutter and hiss, ending on a soft
+transport clunk. The exit is shorter, darker and 4 dB quieter, sweeping down with
+no clunk. Each adjacent `.json` records the recipe, hashes and FFmpeg measurements.
+Rebuild them with:
+
+```powershell
+node scripts/audio/generate-flashback-rewinds.mjs
+npm run coachs:assets
+```
+
+They aren't `sfx:` cues. The audio cues schedule one entry rewind as each
+flashback starts and one exit rewind as it ends, each following the show clock
+and stopping by the end of its transition (`FLASHBACK_ENTRY_MS`,
+`FLASHBACK_EXIT_MS`). Both use bank gain 0.5. Voices inside a flashback go through
+a low-pass with a short room echo instead of their dry bus.
+
 ## FFmpeg
 
 FFmpeg is installed locally in `.cache/audio-tools/`. It does not change the

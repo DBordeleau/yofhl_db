@@ -62,6 +62,8 @@ class Context {
     createGain() { const n = new Node(this); this.gains.push(n); return n; }
     createDynamicsCompressor() { return new Node(this); }
     createBiquadFilter() { return new Node(this); }
+    delays: Node[] = [];
+    createDelay() { const n = Object.assign(new Node(this), { delayTime: new Param(0, this) }); this.delays.push(n); return n; }
     createOscillator() { const n = new Node(this); this.sources.push(n); return n; }
     createBufferSource() { return this.createOscillator(); }
     createBuffer(_channels: number, length: number, sampleRate: number) { return { duration: length / sampleRate, getChannelData: () => new Float32Array(length) }; }
@@ -133,7 +135,8 @@ test('replacement samples are cached, fit the voice slot, and stop on seeking', 
     audio.unlock();
     await Promise.all([audio.prepare(), audio.prepare()]);
     assert.deepEqual(fetch.mock.calls.map(call => call.arguments[0]).sort(),
-        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav'), '/voice.wav']);
+        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/flashback-entry.wav'),
+            mediaUrl('/coachs-corner/audio/flashback-exit.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav'), '/voice.wav']);
     audio.fire({ t: 6000, id: 'don', voice: { who: 'don', delivery: 'normal', duration: 100, progress: 0, variation: 0, question: false,
         wordStart: true, phraseEnd: false, cutoff: false, interrupting: false } }, 1);
     const ctx = Context.instances.at(-1)!;
@@ -151,7 +154,8 @@ test('the default mix caches recorded effects once, plays each cue once and stop
     audio.unlock();
     await Promise.all([audio.prepare(), audio.prepare()]);
     assert.deepEqual(fetch.mock.calls.map(call => call.arguments[0]).sort(),
-        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav')]);
+        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/flashback-entry.wav'),
+            mediaUrl('/coachs-corner/audio/flashback-exit.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav')]);
     const ctx = Context.instances.at(-1)!;
     audio.fire({ t: 31000, id: 'tie' }, 1);
     assert.equal(ctx.sources.length, 1);
@@ -320,4 +324,22 @@ test('pause or mute via sync clears queued cold-resume cues even when nothing is
         assert.equal(ctx.sources.length, 0, `queued cue must not play after sync(${playing}, ${audible})`);
         audio.dispose();
     }
+});
+
+test('voices in a flashback play through one shared echo, and stop like any other voice', t => {
+    installContext(t);
+    const audio = createShowAudio(STUDIO_SOUND_BANK);
+    audio.unlock();
+    const ctx = Context.instances.at(-1)!;
+    const voice = (flashback: boolean) => ({ who: 'don' as const, delivery: 'normal' as const, duration: 100, progress: 0, variation: 0,
+        question: false, wordStart: true, phraseEnd: false, cutoff: false, interrupting: false, ...flashback && { flashback: true as const } });
+    audio.fire({ t: 6000, id: 'don', voice: voice(false) }, 1);
+    assert.equal(ctx.delays.length, 0, 'voices outside a flashback stay dry');
+    audio.fire({ t: 6100, id: 'don', voice: voice(true) }, 1);
+    audio.fire({ t: 6200, id: 'don', voice: voice(true) }, 1);
+    assert.equal(ctx.delays.length, 1);
+    assert.ok(ctx.sources.length >= 3);
+    audio.stop();
+    assert.ok(ctx.sources.every(source => source.stops.at(-1) === 0.025));
+    audio.dispose();
 });
