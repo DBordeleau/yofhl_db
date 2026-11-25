@@ -1513,6 +1513,45 @@
     .chyron { font-size: 2.9cqw; bottom: calc(var(--desk-h) + 2%); }
 }
 
+/* ---------- flashback ----------
+   The past takes a warm, faded grade over the set, hosts and plates, darkened at the edges.
+   The tag sits top-centre, clear of the bug and the clock in every layout. */
+
+.studio[data-flashback] .jolt,
+.studio[data-flashback] .plates {
+    filter: sepia(.72) saturate(.62) contrast(1.06) brightness(.94);
+}
+
+.flashbackVignette {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    background: radial-gradient(ellipse 72% 68% at 50% 46%, transparent 52%, rgba(38, 22, 6, .38) 78%, rgba(18, 10, 2, .78) 100%);
+}
+
+.flashbackTag {
+    position: absolute;
+    top: 3.2%;
+    left: 50%;
+    z-index: 5;
+    translate: -50% 0;
+    padding: .3em 1.1em .25em;
+    font-size: clamp(9px, 1.15cqw, 17px);
+    font-weight: 900;
+    font-stretch: 112%;
+    letter-spacing: .08em;
+    white-space: nowrap;
+    color: #f6e7c8;
+    background: rgba(13, 20, 48, .92);
+    box-shadow: inset 0 0 0 1px rgba(214, 170, 96, .7);
+    clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%);
+}
+
+@container player (max-width: 640px) {
+    .flashbackTag { top: 3%; font-size: 2.3cqw; letter-spacing: .04em; }
+}
+
 /* ---------- the bumper and title card ----------
    Timed to the theme: hits at 0.1, 0.4, 0.75, 1.75 and 4.05 s; it decays from 4.8 s. */
 
