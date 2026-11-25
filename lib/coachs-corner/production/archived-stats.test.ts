@@ -34,7 +34,7 @@ test('graphic stats freeze the episode stats season through the player snapshot,
     const query = async (sql: SQL) => (await db.execute(sql)).rows;
     const now = () => new Date('2026-10-17T22:00:00Z');
     const refs = [...episode.playerRefs, ...['tom wilson', 'Zero Player', 'Future Player', 'Older Player', 'Elias Pettersson', "Nobody's Player"].map(name => ({ name }))];
-    const captured = await captureArchivedStats(packet, refs, { season: episode.statsSeason!, query, portraits: noNhl, now });
+    const captured = await captureArchivedStats(packet, refs, { season: episode.statsSeason!, query, nhl: noNhl, now });
     assert.deepEqual(packet, before, 'capture does not mutate the input snapshot');
     const { players, sources, limitations, playerSnapshot, ...league } = captured;
     const { players: oldPlayers, sources: oldSources, limitations: oldLimits, ...oldLeague } = before;
@@ -60,17 +60,17 @@ test('graphic stats freeze the episode stats season through the player snapshot,
     assert.deepEqual(wilson.statsSource, { url: 'yofhl-db:league.player_seasons?season_year=2026', fetchedAt: now().toISOString(), season: 2026, playerId: '003vz' });
     assert.deepEqual(sources, [birthSource, { url: wilson.statsSource.url, fetchedAt: now().toISOString() }]);
     assert.deepEqual(parseFactPacket(JSON.parse(JSON.stringify(captured))), captured);
-    const historical = await captureArchivedStats(captured, [{ name: 'Tom Wilson' }], { query, season: 2025, portraits: noNhl });
+    const historical = await captureArchivedStats(captured, [{ name: 'Tom Wilson' }], { query, season: 2025, nhl: noNhl });
     assert.equal(historical.players[0].fpts, 100);
     assert.equal(historical.players[0].season, 2025);
-    await assert.rejects(captureArchivedStats(packet, [{ name: 'Tom Wilson' }], { query, season: 2027, portraits: noNhl }), /before the episode/);
+    await assert.rejects(captureArchivedStats(packet, [{ name: 'Tom Wilson' }], { query, season: 2027, nhl: noNhl }), /before the episode/);
 });
 
 test('database failure rejects without altering saved evidence, and graphics-free drafts need no DB access', async () => {
     const packet = referencePacket(loadLeagueConfig(), 2027, pilotTeams);
     const before = structuredClone(packet);
     const query = async () => { throw new Error('database unavailable'); };
-    assert.equal(await captureArchivedStats(packet, [], { query, season: 2026, portraits: noNhl }), packet);
-    await assert.rejects(captureArchivedStats(packet, [{ name: 'Tom Wilson' }], { query, season: 2026, portraits: noNhl }), /database unavailable/);
+    assert.equal(await captureArchivedStats(packet, [], { query, season: 2026, nhl: noNhl }), packet);
+    await assert.rejects(captureArchivedStats(packet, [{ name: 'Tom Wilson' }], { query, season: 2026, nhl: noNhl }), /database unavailable/);
     assert.deepEqual(packet, before);
 });

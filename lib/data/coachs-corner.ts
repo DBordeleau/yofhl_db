@@ -4,7 +4,9 @@ import { PILOT_SCRIPT, PILOT_SLUG } from '@/lib/coachs-corner/pilot';
 import pilotPlayers from '@/lib/coachs-corner/pilot-players.json';
 import pilotTeams from '@/lib/coachs-corner/pilot-teams.json';
 import { episodeFrom, scriptAirDate, type Episode as CompiledEpisode } from '@/lib/coachs-corner/episode';
-import { forgiving, nhlLive, noNhl, playerSnapshot, type PlayerSnapshot } from '@/lib/coachs-corner/player-snapshot';
+import { noNhl, playerSnapshot, type PlayerSnapshot } from '@/lib/coachs-corner/player-snapshot';
+import { createNhl } from '@/lib/nhl/create-nhl';
+import type { Nhl } from '@/lib/nhl/model';
 import type { PlayerRef } from '@/lib/coachs-corner/script';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import { fallbackColours } from '@/lib/team-branding';
@@ -101,20 +103,22 @@ export const getStudioBanners = async (): Promise<StudioBanner[]> => {
 
 // the NHL's own headshot is far sharper than the league's 96 px portraits
 const week = 60 * 60 * 24 * 7;
-// an outage rejects inside the cache, so only real answers are kept and the next publish asks again
-const cachedNhl = forgiving({
-    search: unstable_cache(nhlLive.search, ['coachs-corner-nhl-search-v1'], { revalidate: week }),
-    headshot: unstable_cache(nhlLive.headshot, ['coachs-corner-nhl-headshot-v1'], { revalidate: week }),
-});
+// an outage rejects inside the cache, so only real answers are kept and the next publish asks again; the snapshot
+// forgives it outside, with the Fantrax portrait
+const liveNhl = createNhl();
+const cachedNhl: Nhl = {
+    identify: unstable_cache(liveNhl.identify, ['coachs-corner-nhl-identify-v1'], { revalidate: week }),
+    player: unstable_cache(liveNhl.player, ['coachs-corner-nhl-player-v1'], { revalidate: week }),
+};
 
 /** Admin preview and publishing only: NHL lookups never run while serving a public page. */
 export const getPlayerSnapshot = (season: number | null, refs: PlayerRef[]): Promise<PlayerSnapshot> =>
-    playerSnapshot(season, refs, { portraits: cachedNhl });
+    playerSnapshot(season, refs, { nhl: cachedNhl });
 
 // Episodes stored without a snapshot resolve under the same policy at their own stats season, with
 // Fantrax portraits only, until explicitly republished. The pilot has its own snapshot.
 const legacyPlayers = cached(async (season: number | null, refs: PlayerRef[]): Promise<StudioPlayer[]> =>
-    (await playerSnapshot(season, refs, { portraits: noNhl })).players, 'coachs-corner-legacy-players-v1');
+    (await playerSnapshot(season, refs, { nhl: noNhl })).players, 'coachs-corner-legacy-players-v1');
 /** `compiled` is the episode module's output, so the loader never parses a script itself. */
 export const getEpisodePlayers = (episode: Episode, compiled: Pick<CompiledEpisode, 'statsSeason' | 'playerRefs'>): Promise<StudioPlayer[]> =>
     episode.players !== null ? Promise.resolve(episode.players) : legacyPlayers(compiled.statsSeason, compiled.playerRefs);
