@@ -17,11 +17,17 @@ export type Phase = 'intro' | 'segment' | 'end';
 export const phaseAt = (t: number, showEnd: number): Phase =>
     t < INTRO_MS ? 'intro' : t >= showEnd + END_CARD_DELAY_MS ? 'end' : 'segment';
 
-/** A stalled/background tab must not replay a backlog of syllables all at once. Cues fire in (from, to]. */
-export const audioCuesBetween = (cues: AudioCue[], from: number, to: number, rate: number) => {
-    const start = Math.max(from, to - BACKLOG_MS * rate);
+/** A stalled/background tab must not replay a backlog of syllables all at once. Cues fire in (from, to], or [from, to] when inclusive. */
+export const audioCuesBetween = (cues: AudioCue[], from: number, to: number, rate: number, inclusive = false) => {
+    if (to <= from) return [];
+    const backlog = to - BACKLOG_MS * rate;
+    const includeStart = inclusive && from >= backlog;
+    const start = Math.max(from, backlog);
     let lo = 0, hi = cues.length;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (cues[mid].t <= start) lo = mid + 1; else hi = mid; }
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (includeStart ? cues[mid].t < start : cues[mid].t <= start) lo = mid + 1; else hi = mid;
+    }
     const out: AudioCue[] = [];
     for (let i = lo; i < cues.length && cues[i].t <= to; i++) out.push(cues[i]);
     return out;
@@ -74,6 +80,8 @@ export function createTransport(tl: Timeline, cues: AudioCue[], { time: startAt 
     let mounted = false;
     let mount = 0;
     let offset = 0;
+    // Include the cue at `time` on the first advancing tick after init, seek, or restart.
+    let atBoundary = true;
 
     const remount = () => { mounted = true; mount = ++mounts; offset = time; };
     const rateAt = (t: number) => t < INTRO_MS ? 1 : speed;
@@ -98,14 +106,15 @@ export function createTransport(tl: Timeline, cues: AudioCue[], { time: startAt 
             const from = time;
             time = advance(time, Math.max(0, now - last));
             last = now;
-            const fired = audioCuesBetween(cues, from, time, rateAt(time));
+            const fired = audioCuesBetween(cues, from, time, rateAt(time), atBoundary);
+            if (time > from) atBoundary = false;
             if (time >= tl.duration) playing = false;
             if (from < INTRO_MS && time >= INTRO_MS) { mounted = false; return output('pause', fired); }
             return output(null, fired);
         },
         play: now => {
             const restart = time >= tl.duration;
-            if (restart) { time = 0; mounted = false; }
+            if (restart) { time = 0; mounted = false; atBoundary = true; }
             playing = true;
             last = now;
             if (time >= INTRO_MS) return output();
@@ -118,6 +127,7 @@ export function createTransport(tl: Timeline, cues: AudioCue[], { time: startAt 
         },
         seek: t => {
             time = Math.max(0, Math.min(tl.duration, t));
+            atBoundary = true;
             if (time >= INTRO_MS) { mounted = false; return output('pause', [], true); }
             remount();
             return output(playing ? { play: time } : 'pause', [], true);

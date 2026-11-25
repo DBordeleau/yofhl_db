@@ -10,6 +10,7 @@ import TeamCandidateList from '@/components/award-vote/team-candidate-list';
 import type { BallotActionResult } from '@/app/owner/ballot/actions';
 import { ballotProblems, rankedAwards, withCandidates, type BallotProblem, type RankedAward } from '@/lib/award-vote/ballot';
 import type { BallotRankings, OwnerBallotView } from '@/lib/award-vote/create-award-vote';
+import { createBallotSaveQueue } from '@/lib/award-vote/draft-queue';
 import { teamCandidateId, type VotedAwardId } from '@/lib/award-vote/model';
 import { refreshOwnerNavigation } from '@/lib/owner/navigation';
 
@@ -38,15 +39,23 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
         ...(gm?.candidates ?? []).map(candidate => [teamCandidateId(candidate.teamSeasonId), candidate.name] as const),
     ]), [view, gm]);
 
-    const [draft, setDraft] = useState(() => filledOut(view.ballot?.draft ?? {}, ranked));
+    const actionRef = useRef({ seasonYear: view.seasonYear, saveAction, submitAction });
+    actionRef.current = { seasonYear: view.seasonYear, saveAction, submitAction };
+    const [queue] = useState(() => createBallotSaveQueue<BallotRankings>({
+        initial: filledOut(view.ballot?.draft ?? {}, ranked),
+        save: next => actionRef.current.saveAction(actionRef.current.seasonYear, next),
+        onRollback: (restored, result) => {
+            setDraft(restored);
+            setError({ message: result.error, fix: result.fix });
+        },
+    }));
+    const [draft, setDraft] = useState(() => queue.current());
     const [submitted, setSubmitted] = useState(view.ballot?.submitted ? filledOut(view.ballot.submitted, ranked) : null);
     const [submittedAt, setSubmittedAt] = useState(view.ballot?.submittedAt ?? null);
     const [selected, setSelected] = useState<VotedAwardId | undefined>(tabs[0]?.award);
     const [error, setError] = useState<{ message: string; fix?: string } | null>(null);
     const [problems, setProblems] = useState<BallotProblem[] | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const saved = useRef(draft);
-    const saves = useRef(0);
 
     const editable = !view.locked && view.ballot !== null;
     const tab = tabs.find(item => item.award === selected) ?? tabs[0];
@@ -56,41 +65,34 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
     const refused = (result: Exclude<BallotActionResult, { ok: true }>) => setError({ message: result.error, fix: result.fix });
 
     /** put `candidate` (a player ID, or a team season's for GM of the Year) at `rank` (from 1) of `awardId`, or take them off it with null */
-    async function rank(awardId: VotedAwardId, candidate: string, rankTo: number | null) {
-        if (!editable) return;
-        const ranks = (draft[awardId] ?? []).map(id => id === candidate ? null : id);
+    function rank(awardId: VotedAwardId, candidate: string, rankTo: number | null) {
+        if (!editable || submitting || queue.submitting()) return;
+        const current = queue.current();
+        const ranks = (current[awardId] ?? []).map(id => id === candidate ? null : id);
         if (rankTo !== null) ranks[rankTo - 1] = candidate;
-        const next = { ...draft, [awardId]: ranks };
+        const next = { ...current, [awardId]: ranks };
         setDraft(next);
         setError(null);
         setProblems(null);
-        const save = ++saves.current;
-        const result: BallotActionResult = await saveAction(view.seasonYear, next).catch(() => ({ error: 'Could not save your ballot. Try again.' }));
-        if ('error' in result) {
-            // only the latest change rolls back, to what the site last kept
-            if (save === saves.current) setDraft(saved.current);
-            refused(result);
-            return;
-        }
-        saved.current = next;
+        void queue.enqueue(next);
     }
 
     async function submit() {
-        if (!editable || submitting) return;
-        const missing = ballotProblems(draft, ranked);
+        if (!editable || submitting || queue.submitting()) return;
+        const current = queue.current();
+        const missing = ballotProblems(current, ranked);
         setError(null);
         setProblems(missing.length ? missing : null);
         if (missing.length) return;
         setSubmitting(true);
-        const result: BallotActionResult = await submitAction(view.seasonYear, draft).catch(() => ({ error: 'Could not submit your ballot. Try again.' }));
+        const result = await queue.submit(current, rankings => actionRef.current.submitAction(actionRef.current.seasonYear, rankings));
         setSubmitting(false);
         if ('error' in result) {
             if (result.problems) setProblems(result.problems);
             else refused(result);
             return;
         }
-        saved.current = draft;
-        setSubmitted(draft);
+        setSubmitted(current);
         setSubmittedAt(new Date().toISOString());
         refreshOwnerNavigation();
     }
@@ -98,9 +100,9 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
     /** the rank picker on a candidate's row */
     const rankPicker = (awardId: VotedAwardId, depth: number, candidate: string, name: string) => {
         const at = (draft[awardId] ?? []).indexOf(candidate);
-        return <select aria-label={`Rank ${name}`} value={at === -1 ? '' : at + 1}
-            onChange={event => void rank(awardId, candidate, event.target.value ? Number(event.target.value) : null)}
-            className="h-11 rounded-lg border border-line-strong bg-white px-2 text-sm">
+        return <select aria-label={`Rank ${name}`} value={at === -1 ? '' : at + 1} disabled={submitting}
+            onChange={event => rank(awardId, candidate, event.target.value ? Number(event.target.value) : null)}
+            className="h-11 rounded-lg border border-line-strong bg-white px-2 text-sm disabled:cursor-wait disabled:opacity-50">
             <option value="">–</option>
             {Array.from({ length: depth }, (_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}
         </select>;
@@ -116,7 +118,7 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
     };
 
     return <div>
-        <h1 className="text-2xl font-extrabold">{view.team ? `${view.team.name} ballot` : 'Award vote ballot'}</h1>
+        <h1 className="text-2xl font-extrabold">{view.team.name} ballot</h1>
         <p className="mt-2 text-sm">
             <span className="font-bold">{view.locked ? 'Ballot lock passed ' : 'Ballot lock: '}</span>{eastern(view.ballotLock)}
         </p>
@@ -124,7 +126,7 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
             {submittedAt ? `Submitted ${eastern(submittedAt)}.${changed ? ' You have changes that are not submitted.' : ''}` : 'Not submitted yet.'}
             {editable && ' You can change it until the ballot lock.'}
         </p>
-        {!view.ballot && <p className="mt-3 text-sm"><Link href="/owner" className="font-bold text-rink-blue hover:underline">Claim your team</Link> to cast a ballot.</p>}
+        {!view.ballot && <p className="mt-3 text-sm text-ink-soft">{view.team.name} did not take part in this season&apos;s award vote, so this ballot is read-only.</p>}
 
         <div role="tablist" aria-label="Voted awards" className="mt-5 flex flex-wrap gap-2">
             {tabs.map(item => {
@@ -142,8 +144,8 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
                 {(draft[tab.award] ?? []).map((candidate, index) => <li key={index} className="flex min-h-11 items-center gap-3 border-b border-line/60">
                     <span className="w-6 font-bold">{index + 1}</span>
                     <span className={`flex-1 ${candidate ? 'font-semibold' : 'text-ink-soft'}`}>{candidate ? names.get(candidate) ?? candidate : 'Empty'}</span>
-                    {candidate && editable && <button type="button" className="min-h-11 px-2 text-sm font-bold text-rink-blue hover:underline"
-                        onClick={() => void rank(tab.award, candidate, null)}>Clear<span className="sr-only"> rank {index + 1}</span></button>}
+                    {candidate && editable && <button type="button" disabled={submitting} className="min-h-11 px-2 text-sm font-bold text-rink-blue hover:underline disabled:cursor-wait disabled:opacity-50"
+                        onClick={() => rank(tab.award, candidate, null)}>Clear<span className="sr-only"> rank {index + 1}</span></button>}
                 </li>)}
             </ol>
             <div className="mt-5">

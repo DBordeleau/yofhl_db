@@ -38,9 +38,21 @@ export default function HeaderSearch({ onOpen }: { onOpen: () => void }) {
     useEffect(() => { setOpen(false); setQuery(''); setType('all'); setActive(-1); }, [pathname]);
     useEffect(() => {
         if (!open) return;
-        const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
+        const onWindowBlur = () => {
+            setOpen(false);
+            setActive(-1);
+        };
+        const outside = (event: Event) => {
+            if (!(event.target instanceof Node) || !root.current?.contains(event.target)) onWindowBlur();
+        };
         document.addEventListener('pointerdown', outside);
-        return () => document.removeEventListener('pointerdown', outside);
+        document.addEventListener('focusin', outside);
+        window.addEventListener('blur', onWindowBlur);
+        return () => {
+            document.removeEventListener('pointerdown', outside);
+            document.removeEventListener('focusin', outside);
+            window.removeEventListener('blur', onWindowBlur);
+        };
     }, [open]);
     useEffect(() => {
         if (!open || !enough) return;
@@ -82,8 +94,7 @@ export default function HeaderSearch({ onOpen }: { onOpen: () => void }) {
 
     let offset = 0;
     return <div ref={root} className={styles.root} data-header-search-open={open || undefined}
-        onKeyDown={event => { if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.preventDefault(); dismiss(); } }}
-        onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) close(); }}>
+        onKeyDown={event => { if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.preventDefault(); dismiss(); } }}>
         <form action="/search" role="search" aria-label="Quick search" className={styles.field} onSubmit={event => { event.preventDefault(); show(); choose(); }}>
             <FiSearch aria-hidden="true" />
             <input ref={input} id="header-search" name="q" type="search" role="combobox" aria-label="Search the league"

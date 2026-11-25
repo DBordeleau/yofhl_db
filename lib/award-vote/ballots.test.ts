@@ -142,8 +142,8 @@ test('before voting opens, owners see no ballot and every ballot write is refuse
     assert.equal((await headerAnswer()).awardVote, null);
 });
 
-test('ballot writes are refused signed out and for an owner with no team, who still sees who has submitted', async t => {
-    const { signInAs, saveDraft, submit, read, headerAnswer } = await votingLeague(t);
+test('ballot writes are refused signed out and for an owner with no team, who cannot read open-vote ballot data', async t => {
+    const { signInAs, saveDraft, submit, read, headerAnswer, league } = await votingLeague(t);
     await signInAs(null);
     assert.deepEqual(await saveDraft(COMPLETE), { ok: false, reason: 'session-expired' });
     assert.deepEqual(await submit(COMPLETE), { ok: false, reason: 'session-expired' });
@@ -152,12 +152,23 @@ test('ballot writes are refused signed out and for an owner with no team, who st
     await signInAs('owner-none');
     assert.deepEqual(await saveDraft(COMPLETE), { ok: false, reason: 'no-team' });
     assert.deepEqual(await submit(COMPLETE), { ok: false, reason: 'no-team' });
-    const view = await read();
-    assert.ok(view.status === 'ballot');
-    assert.equal(view.team, null);
-    assert.equal(view.ballot, null);
-    assert.equal(view.ballotStatus.length, 4);
+    assert.deepEqual(await read(), { status: 'no-team' });
     assert.equal((await headerAnswer()).awardVote, null);
+
+    // An active expansion franchise that did not play in SEASON gets a read-only ballot with ballot: null
+    await league.client.exec(`
+        insert into league.franchises (id, display_name, first_season) values (5, 'Franchise 5', ${SEASON + 1});
+        insert into league.owners (id, name) values (5, 'Owner 5');
+        insert into league.team_management (franchise_id, owner_uid, owner_email, name, version)
+            values (5, 'owner-5', 'owner5@example.test', 'Club 5', 1);
+    `);
+    await signInAs('owner-5');
+    assert.deepEqual(await saveDraft(COMPLETE), { ok: false, reason: 'no-team' });
+    assert.deepEqual(await submit(COMPLETE), { ok: false, reason: 'no-team' });
+    const expansionView = await read();
+    assert.ok(expansionView.status === 'ballot');
+    assert.deepEqual(expansionView.team, { franchiseId: 5, name: 'Club 5', abbreviation: 'Clu', logo: null });
+    assert.equal(expansionView.ballot, null);
 });
 
 test('a ballot belongs to the franchise: a new owner inherits it, and the old owner and a folded franchise are refused', async t => {

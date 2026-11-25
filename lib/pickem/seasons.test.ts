@@ -190,3 +190,24 @@ test('a season with no Pick\'em has no Pick\'em leaderboard and no weeks', async
     assert.deepEqual(await league.act(p => p.readPickemLeaderboard({ now: now(), seasonYear: SEASON - 1 })), { status: 'no-season' });
     assert.deepEqual(await league.act(p => p.readWeek({ now: now(), seasonYear: SEASON - 1, asker: 'nobody' })), { status: 'no-week' });
 });
+
+test('settle does not mark a season complete while an earlier week is held with missing scores', async t => {
+    const league = await pickemLeague(t, { launch, live: shortSeason() });
+    const lastWindowCloses = await playSeason(league);
+    // Drop one pairing from week 5's Fantrax scores so week 5 is held while week 6 freezes
+    league.setScores(5, SCORES.slice(1));
+
+    const heldRun = await settleAt(league, lastWindowCloses);
+    assert.deepEqual(heldRun.frozen, [{ seasonYear: SEASON, week: 6 }]);
+    assert.deepEqual(heldRun.held, [{ seasonYear: SEASON, week: 5 }]);
+    assert.deepEqual(heldRun.completed, []);
+    assert.deepEqual((await leaderboardAt(league, lastWindowCloses)).leaderboard.winners, []);
+
+    // Restore week 5's scores: week 5 freezes and the season completes now
+    league.setScores(5, SCORES);
+    const doneRun = await settleAt(league, lastWindowCloses + DAY);
+    assert.deepEqual(doneRun.frozen, [{ seasonYear: SEASON, week: 5 }]);
+    assert.deepEqual(doneRun.held, []);
+    assert.deepEqual(doneRun.completed, [SEASON]);
+    assert.deepEqual(records((await leaderboardAt(league, lastWindowCloses + DAY)).leaderboard.winners), [[1, 1, 3, 0]]);
+});

@@ -39,6 +39,10 @@ export const issueInviteQuery = (id: number, hash: string) => sql`
     where league.team_management.owner_uid is null
     returning franchise_id`;
 
+export const rateLimitAttemptsQuery = (key: string) => sql`
+    select attempts from league.owner_rate_limits
+    where key = ${key} and resets_at > now()`;
+
 export const rateLimitQuery = (key: string) => sql`
     insert into league.owner_rate_limits (key, attempts, resets_at)
     values (${key}, 1, now() + interval '15 minutes')

@@ -133,3 +133,36 @@ test('without a season there are no stats to look up', async () => {
     assert.deepEqual([players[0].fpts, diagnostics[0].kind], [null, 'no-record']);
     assert.match(snapshotMessage(diagnostics[0], null).message, /Tom Wilson.*season:/);
 });
+
+test('apostrophe player names resolve archive stats and NHL headshots across all cue types', async t => {
+    const { db } = await disposableLeague(t, { seed: `
+        insert into league.seasons values (2026, '2025–26', 'complete'), (2027, '2026–27', 'in-progress');
+        insert into league.players values ('00ore', 'Ryan O''Reilly'), ('003vz', 'Tom Wilson');
+        insert into league.player_seasons (player_id, season_year, nhl_team, positions, fpts, fpg) values
+            ('00ore', 2026, 'NSH', '{C}', 245.5, 3.25),
+            ('003vz', 2026, 'WSH', '{RW}', 372, 5.17);
+    ` });
+    const query = async (q: SQL) => (await db.execute(q)).rows;
+    const searched: string[] = [];
+    const portraits: NhlPortraits = {
+        search: async name => {
+            searched.push(name);
+            return name === "Ryan O'Reilly"
+                ? [{ playerId: '8475158', name: "Ryan O'Reilly", teamAbbrev: 'NSH' }]
+                : [{ playerId: '8476880', name: 'Tom Wilson', teamAbbrev: 'WSH' }];
+        },
+        headshot: async id => `https://assets.nhle.com/mugs/${id}.png`,
+    };
+    const curly = "Ryan O\u2019Reilly";
+    const ep = episodeFrom(script(
+        `>> player "${curly}" JAGR "JAGR's center"\n>> gap "Ryan O'Reilly" "Tom Wilson"\n>> stat "245.5" "FPts" with "${curly}"\n>> numbers JAGR 1 goal with "${curly}"`,
+    ));
+    assert.deepEqual(ep.diagnostics, []);
+    const { players, diagnostics } = await playerSnapshot(ep.statsSeason, ep.playerRefs, { query, portraits });
+    assert.deepEqual(diagnostics, []);
+    assert.deepEqual(players.map(p => [p.id, p.name, p.fpts, p.headshot]), [
+        ['00ore', "Ryan O'Reilly", 245.5, 'https://assets.nhle.com/mugs/8475158.png'],
+        ['003vz', 'Tom Wilson', 372, 'https://assets.nhle.com/mugs/8476880.png'],
+    ]);
+    assert.ok(searched.includes("Ryan O'Reilly"));
+});

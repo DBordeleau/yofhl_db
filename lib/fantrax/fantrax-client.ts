@@ -78,6 +78,16 @@ export function playerName(name: string): string {
     return first ? `${first} ${last}` : last;
 }
 
+/** A player from Fantrax's player directory mapped to normalized archive positions and NHL team. */
+export function directoryPlayer(player: PlayerInfo): { name: string; positions: string[]; nhlTeam: string | null } {
+    const team = player.team?.trim();
+    return {
+        name: playerName(player.name),
+        positions: player.position.split(',').map(position => position.trim()).filter(Boolean),
+        nhlTeam: team && team !== '(N/A)' ? team : null,
+    };
+}
+
 // Future playoff slots contain { TBD: true } on both sides, and an unseeded first round { seed: N } or { bye: true }:
 // none of them are real teams or byes.
 const publishedMatchups = (matchups: RawMatchup[]): ScheduledMatchup[] => matchups.filter(matchup => matchup.away.id || matchup.home.id);

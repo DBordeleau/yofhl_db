@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HostArtwork } from '../../components/coachs-corner/artwork';
 import { compileAudioCues } from './audio-cues';
-import { actionInWardrobeOf, actionsOf, allArt, artFor, CAST, CHARACTERS, gestureAfter, resolveGesture, wardrobesOf, type CharacterId } from './cast';
+import { actionInWardrobeOf, actionsOf, allArt, artFor, CAST, CHARACTERS, gestureAfter, lapelFor, resolveGesture, wardrobesOf, type CharacterId } from './cast';
 import { parseScript } from './script';
 import { compile, frameAt, frameSignature } from './timeline';
 
@@ -150,4 +150,13 @@ test('every wardrobe places the poppy exactly where the normal wardrobe does', (
     for (const who of CHARACTERS) for (const wardrobe of wardrobesOf(who)) for (const action of actionsOf(who)) {
         assert.equal(poppy(who, wardrobe.prefix + action), poppy(who, action), `${who}/${wardrobe.id}/${action}`);
     }
+});
+
+test('open-mouth poses use the same lapel spot as their closed pose (including HeroStudio point-talk)', () => {
+    for (const who of CHARACTERS) for (const wardrobe of wardrobesOf(who)) for (const action of actionsOf(who)) {
+        const closed = artFor(who, action, { wardrobe: wardrobe.id, mouth: 'closed' });
+        const open = artFor(who, action, { wardrobe: wardrobe.id, mouth: 'open' });
+        assert.deepEqual(lapelFor(who, open), lapelFor(who, closed), `${who}/${wardrobe.id}/${action}`);
+    }
+    assert.deepEqual(lapelFor('don', artFor('don', 'point', { wardrobe: 'remembrance-2026', mouth: 'open' })), [777, 665, 0.85]);
 });

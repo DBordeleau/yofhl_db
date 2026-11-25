@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { getDb, rows, writeInOrder } from '@/lib/data/db';
-import { saveTeamBranding, saveTeamIdentity, type Actor } from '@/lib/data/curated-edits';
+import { checkTeamEditable, saveTeamBranding, saveTeamIdentity, type Actor } from '@/lib/data/curated-edits';
 import { parseTeamColours } from '@/lib/team-branding';
 import type { KeeperReminderState } from '@/components/keepers/reminder';
 import { getKeeperReminder } from '@/lib/keepers/data';
@@ -78,8 +78,8 @@ export interface SaveBrandingInput {
 const isUniqueViolation = (error: unknown): boolean => typeof error === 'object' && error !== null &&
     (('code' in error && error.code === '23505') || ('cause' in error && isUniqueViolation(error.cause)));
 
-// An id of 0 or below passes: saving a team refuses it as an unknown team, saving branding as invalid.
-const validTeam = (id: number, version: number) => Number.isSafeInteger(id) && Number.isSafeInteger(version) && version >= 0;
+const validTeam = (id: number, version: number) =>
+    Number.isSafeInteger(id) && id > 0 && id <= 2147483647 && Number.isSafeInteger(version) && version >= 0;
 
 /** Whether a logo URL is an upload in this team's own folder, never checked-in or historical artwork. */
 const isTeamUpload = (url: string, franchiseId: number) => {
@@ -246,6 +246,10 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         let name;
         try { name = teamName(input.name); }
         catch { return { ok: false, reason: 'invalid-name' }; }
+        try {
+            const rejection = await checkTeamEditable(start.actor, id, version);
+            if (rejection) return { ok: false, reason: rejection };
+        } catch { return { ok: false, reason: 'save-failed' }; }
         let uploaded: string | null = null;
         if (input.logo?.size) {
             if (input.logo.size > MAX_LOGO_BYTES) return { ok: false, reason: 'image-too-large' };
@@ -274,7 +278,7 @@ export function createOwnerSession({ identity, storage, request }: OwnerSessionP
         const start = await preamble('save-branding');
         if (!start.ok) return start;
         const { franchiseId: id, version } = input;
-        if (!validTeam(id, version) || id <= 0) return { ok: false, reason: 'invalid-team' };
+        if (!validTeam(id, version)) return { ok: false, reason: 'invalid-team' };
         const branding = parseTeamColours(input.branding, id);
         if (!branding) return { ok: false, reason: 'invalid-branding' };
         return saveTeamBranding(start.actor, id, version, branding);
