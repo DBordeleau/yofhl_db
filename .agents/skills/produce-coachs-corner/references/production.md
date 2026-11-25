@@ -77,6 +77,10 @@ Copy the relevant totals, computed gaps, season and `statsSource` provenance int
 
 If database access fails, the command stops without replacing the packet. Missing player-season records stay unknown, with specific limitations; it never substitutes zero, a namesake or another season. Resolve names/source access and rerun. When a player genuinely has no relevant archived record (for example, a prospect), document the lookup and use an appropriate `pick`, sourced `stat`, or other honest graphic instead of presenting an unexplained blank stats card. Re-run `coachs:check` and inspect the actual graphic before delivery.
 
+## Flashbacks
+
+A `[flashback: week N]` … `[end flashback]` block replays 1–8 lines copied from an approved past episode, with Don's wardrobe and the lapel from that week. Syntax, header options, tag rules and when to use one are in [Flashbacks](../../../../docs/coachs-corner.md#flashbacks).
+
 ## Image work
 
 Choose the episode's wardrobe before selecting or generating poses. Follow [Don's wardrobes](../../../../docs/coachs-corner.md#dons-wardrobes) for the default, available variants and cue rules. Record the choice and any intentional costume changes in `brief.md`, and retain it in `handoff.md`.

@@ -25,7 +25,7 @@ stats: 2025           # the season player cards quote, if not the one before sea
 date: 2026-10-15      # air date, shown on the page (optional)
 segment: 4:11         # planned length; the on-air clock goes red past it (optional)
 pace: 198             # words per minute at normal delivery (optional)
-lapel: poppy          # both hosts wear it all episode (optional)
+lapel: poppy          # both hosts wear it all episode, outside a flashback that sets its own (optional)
 ---
 
 [don: point, ron: rest]
@@ -178,7 +178,45 @@ That's all. The new wardrobe gets every action, the aliases, the editor help and
 
 ### Lapel poppy
 
-`lapel: poppy` in the front matter pins a Remembrance poppy over both hosts' hearts, on the wearer's left lapel, for the whole episode, including the title card, the episode share card, the episode link preview and, while it's the latest episode, the home page studio. It works with every wardrobe and needs no gesture changes. The poppy's shapes live in `lib/coachs-corner/poppy.ts`, drawn as SVG by `components/coachs-corner/artwork.tsx`, on the share card's canvas by `lib/share/render-card.ts` and over the link preview's host art by `lib/share/episode-preview.tsx`, and placed per pose by `lapelFor` in `lib/coachs-corner/cast.ts`; it slides with Don between poses and is hidden while his hand covers that lapel in `mic`. Leave the key out once the Remembrance episodes are done. Spots are keyed by the normal pose, and every wardrobe shares them. A new action needs its own spot in cast's `LAPEL_SPOTS` if its lapel moves.
+`lapel: poppy` in the front matter pins a Remembrance poppy over both hosts' hearts, on the wearer's left lapel, for the whole episode, including the title card, the episode share card, the episode link preview and, while it's the latest episode, the home page studio. It works with every wardrobe and needs no gesture changes. The poppy's shapes live in `lib/coachs-corner/poppy.ts`, drawn as SVG by `components/coachs-corner/artwork.tsx`, on the share card's canvas by `lib/share/render-card.ts` and over the link preview's host art by `lib/share/episode-preview.tsx`, and placed per pose by `lapelFor` in `lib/coachs-corner/cast.ts`; it slides with Don between poses and is hidden while his hand covers that lapel in `mic`. Leave the key out once the Remembrance episodes are done. Spots are keyed by the normal pose, and every wardrobe shares them. A new action needs its own spot in cast's `LAPEL_SPOTS` if its lapel moves. A [flashback](#flashbacks) can set its own lapel for its span; the front matter's lapel holds everywhere else.
+
+### Flashbacks
+
+A **flashback** replays a few lines from a past episode inside this one, the way a film cuts to a memory. It opens with a `[flashback: …]` stage line, holds 1–8 dialogue lines copied from the earlier script, and closes with `[end flashback]`:
+
+```text
+[flashback: week 4, don: remembrance-rest, lapel: poppy]
+RON: Who's he going to get in a trade? Nobody wants--
+DON (remembrance-point): He's sitting right there.
+[end flashback]
+```
+
+**The header** is `[flashback: <source>[, don: <gesture>][, lapel: <lapel>|none]]`.
+
+- `<source>` is `week N`, `pilot`, or `<season> week N` (`2027 week 4`), where the season is the year it ends in, as in front matter `season`. The pilot is week 0 of the 2027 season, whatever its own `week` says.
+- `don:` is Don's starting pose for the flashback, an ordinary gesture. The header takes no other pose, camera, sound or reaction cues; put those on stage lines inside the block.
+- `lapel:` takes a lapel such as `poppy`, or `none` to drop the episode's lapel for the span.
+- Leave `don:` or `lapel:` out and Don keeps the wardrobe and lapel he has as the block opens.
+
+**Why the header sets Don's pose.** A wardrobe is spelled in gesture prefixes (see [Don's wardrobes](#dons-wardrobes)), and a line that names no gesture keeps whatever wardrobe Don is holding. Copied lines often name no gesture, so without `don:` they'd play in this week's suit. Set `don:` to a gesture in the wardrobe he wore that week, and copy the lines with their original gestures: a prefixed one such as `alternate-4-thumbs` puts him in that wardrobe exactly as it did the first time.
+
+**Inside the block:**
+
+- 1–8 dialogue lines. Stage lines don't count toward the limit, and they play as written: poses, beats, `fx:`, `sfx:` and `cam:`.
+- The monitor shows static for the whole span. Monitor cuts in the copied lines are ignored, so a past scene never shows this week's numbers.
+- A tag at the top of the screen counts back from this episode: **FLASHBACK · 2 WEEKS AGO** (**1 WEEK AGO** in the singular) within a season, with the pilot as week 0; **LAST SEASON** for the season before, then **2 SEASONS AGO** and so on.
+- The studio takes a sepia grade with a vignette and grain, and the voices are muffled. A rewind blip and sound play on the way in, and a softer one on the way out. Both transitions count toward runtime.
+- Plates clear on entry and exit. At `[end flashback]`, both hosts' gestures, Don's wardrobe, the lapel, the camera shot and the monitor graphic return to what they were just before the block.
+
+**Errors** block **Publish**: an unclosed block, a nested one, an `[end flashback]` with none open, a block with no dialogue lines or more than 8, a source that is this week or later (or a later season), a missing `week` in front matter (or a missing `season` when the source names one), and an unknown gesture or lapel in the header. The copied lines are never checked against the source episode; close enough is fine.
+
+**When to use one.** At most one flashback per episode, and only when a past line really pays off; never force one. Good payoffs:
+
+- a prediction that hit or blew up;
+- Ron pulling receipts on Don;
+- a running bit coming back around.
+
+Propose it at the angle checkpoint, quoting the exact past lines and the week they aired, so the owner can approve or veto it before drafting. Copy the lines from the approved archive (`assets/coachs-corner/editorial/approved/<slug>/script.txt`) with their original gestures, and fill in the header's `don:` with the gesture Don was holding at that point in the source script, so he enters in that week's wardrobe.
 
 ### Camera and sound
 
