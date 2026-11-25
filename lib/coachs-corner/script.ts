@@ -2,7 +2,8 @@ import {
     CAST, CHARACTERS, gestureHelp, isLapel, LAPELS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
     type CharacterId, type Delivery, type Lapel, type Reaction, type Shot, type Sound,
 } from './cast';
-import { EFFECTS, scriptLength } from './effects';
+import { EFFECTS } from './effects';
+import { FX_REFERENCE } from './script-reference';
 
 // Parser for Coach's Corner screenplays. The format is documented in docs/coachs-corner.md; in short:
 //
@@ -131,10 +132,9 @@ const parseWpm = (raw: string): number | null => {
 };
 const NAMED_PAUSES: Record<string, number> = { beat: 450, pause: 1000, 'long pause': 2400 };
 
-/** one example per effect at its default length, taking turns between the hosts */
+/** the Script reference's fx: examples, each at its default length */
 const FX_HELP = (() => {
-    const examples = Object.entries(EFFECTS).map(([effect, { defaultMs }], i) =>
-        `fx: ${CHARACTERS[i % CHARACTERS.length]} ${effect} ${scriptLength(defaultMs)}`);
+    const examples = FX_REFERENCE.map(fx => `${fx.example} ${fx.length}`);
     const last = examples.pop();
     return `Use ${examples.length ? `${examples.join(', ')} or ${last}` : last}; duration must be 100ms–12s.`;
 })();
