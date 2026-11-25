@@ -1,14 +1,15 @@
 // A league to exercise the award vote module through its operations: a disposable league for the database, the
-// in-memory Fantrax and NHL lookup, and a fake clock. Tests arrange what Fantrax says through the helpers below
-// (or `fantrax` directly), arrange the archive with the roster helpers, and read results through the module.
+// in-memory Fantrax, the NHL module's in-memory adapter (lib/nhl/memory-nhl.ts) and a fake clock. Tests arrange what
+// Fantrax says through the helpers below (or `fantrax` directly), what the NHL knows through `nhl.knows`, arrange the
+// archive with the roster helpers, and read results through the module.
 import type { TestContext } from 'node:test';
 import { createMemoryIdentity, createMemoryRequest, createMemoryStorage } from '@/lib/owner/memory-ports';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryAwardVoteFantrax, rangeKey, type MemoryAwardVoteFantraxState } from '../memory-fantrax';
-import { createMemoryNhl, type MemoryNhlState } from '../memory-nhl';
+import { createMemoryNhl, memoryNhlState, nhlPlayer, nhlSeason } from '@/lib/nhl/memory-nhl';
 import type { BallotRankings, PlayerAwardId } from '../model';
 import type { AwardTally, PlayerAwardTally } from '../read-tallies';
-import type { FantraxRosterPeriod, FantraxWeek, NhlPlayerRecord, RangedGoalie, RangedPlayer, RangedSkater } from '../ports';
+import type { FantraxRosterPeriod, FantraxWeek, RangedGoalie, RangedPlayer, RangedSkater } from '../ports';
 
 export const SEASON = 2027;
 export const LEAGUE_ID = 'league27';
@@ -135,7 +136,26 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
     const { createAwardVote } = await import('../create-award-vote');
     const { createOwnerSession } = await import('@/lib/owner/create-owner-session');
     const fantrax = fantraxState();
-    const nhlState: MemoryNhlState = { players: {}, failing: new Set(), lookups: [] };
+    const nhlState = memoryNhlState();
+    const nhl = {
+        state: nhlState,
+        /** Player IDs whose NHL lookup fails, as an NHL outage would */
+        failing: nhlState.failing,
+        /** the Player IDs looked up in the NHL, in order */
+        get lookups() { return nhlState.identified.map(player => player.playerId!); },
+        /**
+         * the NHL knows Fantrax player `playerId`, through the league's verified identity: born `birthDate` (a
+         * 22-year-old in 2026–27 unless given), with `[seasonYear, games]` NHL regular-season games per season (e.g.
+         * `[2026, 12]` for 2025–26), under `nhlId` or the next one free from 8480000
+         */
+        knows(playerId: string, seasons: [number, number][] = [], birthDate = '2004-03-01', nhlId?: number) {
+            let id = nhlId ?? 8480000;
+            while (nhlId === undefined && nhlState.players[id]) id++;
+            const games = Object.fromEntries(seasons.map(([seasonYear, played]) => [seasonYear, nhlSeason({ games: played })]));
+            nhlState.players[id] = nhlPlayer({ nhlId: id, name: `NHL player ${playerId}`, birthDate, seasons: games });
+            nhlState.verified[playerId] = id;
+        },
+    };
     /** the fake clock: tests set or advance `clock.time`, and the module's waits advance it */
     const clock = { time: AFTER_FINAL };
     const identity = createMemoryIdentity();
@@ -240,19 +260,12 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
                 ${playerId ? `'${playerId}'` : 'null'}, ${playerId ? `'Drafted ${playerId}'` : 'null'}, 'C', '2026-09-20', '7:00', 'draft.csv');`);
     };
     return {
-        league, vote, fantrax, nhl: nhlState, clock, request: request.state, act, asOwner, signInAs, headerAnswer, setRegularSeason, scoredOn, prepareFully,
+        league, vote, fantrax, nhl, clock, request: request.state, act, asOwner, signInAs, headerAnswer, setRegularSeason, scoredOn, prepareFully,
         openVoting, ballotLockPasses, endedSeasonWith, dropped, claimed, trade, traded, drafted,
     };
 }
 
-/**
- * the NHL's record of a player: born `birthDate` (a 22-year-old in 2026–27 unless given), with `[season, games]`
- * NHL regular-season games per season (e.g. `[20252026, 12]`)
- */
 export type AwardVoteLeague = Awaited<ReturnType<typeof awardVoteLeague>>;
-
-export const nhlRecord = (seasons: [number, number][] = [], birthDate = '2004-03-01', nhlId = 8480000): NhlPlayerRecord =>
-    ({ nhlId, birthDate, seasons: seasons.map(([season, games]) => ({ season, games })) });
 
 /**
  * A league with voting open on a ballot of: skaters s1–s6, defensemen d1–d5, goalies g1–g5 and rookies r1–r2 for the
@@ -270,8 +283,8 @@ export async function votingLeague(t: TestContext, options: { open?: boolean; ar
         ...ids('d', 5).map((id, index) => skater(id, 250 - index * 10, { positions: 'D' })),
         ...ids('r', 2).map((id, index) => skater(id, 150 - index * 10, { age: 21 })),
     ], ids('g', 5).map((id, index) => goalie(id, 300 - index * 10)));
-    nhl.players.r1 = nhlRecord();
-    nhl.players.r2 = nhlRecord([], '2004-03-01', 8480001);
+    nhl.knows('r1');
+    nhl.knows('r2', [], '2004-03-01', 8480001);
     fantrax.skaters[rangeKey(PLAYOFF_ROUNDS)] = [skater('s1', 40), skater('s2', 30)];
     fantrax.skaters[rangeKey(FINAL)] = [skater('s1', 15), skater('s2', 10)];
     for (const period of ROSTER_PERIODS.slice(-7)) fantrax.rosters[period.number].fx1.push({ id: 's1', status: 'ACTIVE' }, { id: 's2', status: 'ACTIVE' });

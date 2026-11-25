@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rangeKey } from './memory-fantrax';
 import { GM_OF_THE_YEAR } from './model';
-import { awardVoteLeague, BASELINE_TRADE, FINAL, FRANCHISES, goalie, lockInHours, nhlRecord, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
+import { awardVoteLeague, BASELINE_TRADE, FINAL, FRANCHISES, goalie, lockInHours, PLAYOFF_ROUNDS, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
 
 // The rehearsal: the season before the live season (2026 here, the live season being 2027) prepared and previewed
 // like a live award vote, but never opened. Its Fantrax league is the 2025–26 one, league26, mapped like league27.
@@ -26,7 +26,7 @@ test('the season before the live season is prepared and previewed as a rehearsal
     const { act, vote, fantrax, nhl, setRegularSeason, scoredOn, prepareFully, fantraxIs2026, league } = await rehearsalLeague(t);
     setRegularSeason([skater('s1', 300), skater('d1', 200, { positions: 'D' })], [goalie('g1', 100)]);
     // a rookie in both seasons
-    nhl.players.d1 = nhlRecord();
+    nhl.knows('d1');
     fantrax.skaters[rangeKey(PLAYOFF_ROUNDS)] = [skater('s1', 40)];
     fantrax.skaters[rangeKey(FINAL)] = [skater('s1', 15)];
     const livePrepared = (await prepareFully(SEASON)).result;

@@ -1,5 +1,6 @@
 import type { SQL } from 'drizzle-orm';
-import { nhlApi, playerSnapshot, snapshotMessage, type NhlPortraits } from '../player-snapshot';
+import { createNhl } from '../../nhl/create-nhl';
+import { playerSnapshot, snapshotMessage, type SnapshotNhl } from '../player-snapshot';
 import { refKey, type PlayerRef } from '../script';
 import { unknownPlayer, type FactPacket, type FeaturedPlayer } from './facts';
 
@@ -11,7 +12,7 @@ const STALE = ['Player cards have no archived fantasy statistics in this referen
 export async function captureArchivedStats(packet: FactPacket, refs: PlayerRef[], options: {
     season: number;
     query?: (query: SQL) => Promise<Record<string, unknown>[]>;
-    portraits?: NhlPortraits;
+    nhl?: SnapshotNhl;
     now?: () => Date;
 }): Promise<FactPacket> {
     const { season } = options;
@@ -21,7 +22,7 @@ export async function captureArchivedStats(packet: FactPacket, refs: PlayerRef[]
     const cited = [...new Map(refs.filter(ref => ref.name.trim()).map(ref => [refKey(ref), { ...ref, name: ref.name.trim() }])).values()];
     if (!cited.length) return packet;
     // the same module publishing uses, so the draft shows exactly the numbers the episode will freeze
-    const snapshot = await playerSnapshot(season, cited, { query: options.query, portraits: options.portraits ?? nhlApi });
+    const snapshot = await playerSnapshot(season, cited, { query: options.query, nhl: options.nhl ?? createNhl() });
     const source = { url: `yofhl-db:league.player_seasons?season_year=${season}`, fetchedAt: (options.now?.() ?? new Date()).toISOString() };
     // Each row joins the featured player it is (keeping birthplace evidence): the same id, or the same name
     // when the cue gave none. This capture's rows come first, so the preview's lookup always finds them.

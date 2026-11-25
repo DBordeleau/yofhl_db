@@ -1,4 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm';
+import type { IdentifyRequest, Nhl, NhlIdentity } from '../nhl/model';
 import fantraxPortraits from '../records/player-portraits.json';
 import { seasonLabel } from '../seasons';
 import { citationLine, type Episode } from './episode';
@@ -12,7 +13,8 @@ import type { StudioPlayer } from './teams';
 // - Season: exactly the stats season. Never a player's latest row, never a substitute season.
 // - Identity: a bare name must be one player that season; an id picks one of several, and its name must match too.
 // - Games played: the archive has none, and dividing FPts by rounded FP/G would invent one.
-// - Headshot: the one NHL player left after narrowing exact-name matches by NHL team, else the Fantrax portrait.
+// - Headshot: the NHL headshot of the player's NHL identity (GLOSSARY.md), found from their Player ID, positions and
+//   NHL team when the archive has them, else the Fantrax portrait. An NHL failure is the Fantrax portrait too.
 
 /** a snapshot row always says which Fantrax player it is (null when none was resolved) */
 export type SnapshotRow = StudioPlayer & { id: string | null };
@@ -28,45 +30,14 @@ export interface PlayerSnapshot {
     diagnostics: SnapshotDiagnostic[];
 }
 
-export interface NhlSearchHit { playerId: string; name: string; teamAbbrev?: string | null; lastTeamAbbrev?: string | null }
-/** the NHL's player search and headshots */
-export interface NhlPortraits {
-    search(name: string): Promise<NhlSearchHit[]>;
-    headshot(nhlId: string): Promise<string | null>;
-}
+/** the NHL lookups a snapshot makes: who a cited player is, then their headshot */
+export type SnapshotNhl = Pick<Nhl, 'identify' | 'player'>;
 
-const nhlJson = async (url: URL | string): Promise<unknown> => {
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!response.ok) throw new Error(`NHL API returned HTTP ${response.status}`);
-    return response.json();
+/** public pages never call the NHL: nobody has an NHL identity, so every face is the Fantrax portrait */
+export const noNhl: SnapshotNhl = {
+    identify: async () => null,
+    player: async nhlId => { throw new Error(`No NHL lookups here, so no player ${nhlId}`); },
 };
-
-/** The NHL's public search and landing APIs. Outages reject, so a cache in front of this never keeps one. */
-export const nhlLive: NhlPortraits = {
-    search: async name => {
-        const url = new URL('https://search.d3.nhle.com/api/v1/search/player');
-        url.search = new URLSearchParams({ culture: 'en-us', limit: '20', q: name }).toString();
-        const found = await nhlJson(url);
-        if (!Array.isArray(found)) throw new Error('Unexpected NHL search response');
-        return found.filter(hit => typeof hit?.name === 'string' && hit.playerId != null)
-            .map((hit): NhlSearchHit => ({ ...hit, playerId: String(hit.playerId) }));
-    },
-    headshot: async nhlId => {
-        const { headshot } = await nhlJson(`https://api-web.nhle.com/v1/player/${nhlId}/landing`) as { headshot?: unknown };
-        return typeof headshot === 'string' && headshot.startsWith('https://') ? headshot : null;
-    },
-};
-
-/** An outage means no NHL face, so the Fantrax portrait stands in; it never blocks a snapshot. */
-export const forgiving = (nhl: NhlPortraits): NhlPortraits => ({
-    search: name => nhl.search(name).catch(() => []),
-    headshot: nhlId => nhl.headshot(nhlId).catch(() => null),
-});
-
-export const nhlApi = forgiving(nhlLive);
-
-/** public pages never call the NHL: every face is the Fantrax portrait */
-export const noNhl: NhlPortraits = { search: async () => [], headshot: async () => null };
 
 type Query = (query: SQL) => Promise<Record<string, unknown>[]>;
 const defaultQuery: Query = async query => {
@@ -77,17 +48,27 @@ const defaultQuery: Query = async query => {
 interface ArchiveRow { id: string; name: string; nhlTeam: string | null; positions: string[]; fpts: number | null; fpg: number | null }
 
 const key = (name: string) => normalizePlayerName(name).toLowerCase();
-const loose = (name: string) => normalizePlayerName(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 // the column is NOT NULL, but numeric allows NaN
 const complete = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const portraits: Record<string, string> = fantraxPortraits;
 
-async function headshotFor(name: string, nhlTeam: string | null, fantraxId: string | null, nhl: NhlPortraits): Promise<string | null> {
-    const queryName = normalizePlayerName(name);
-    const same = (await nhl.search(queryName)).filter(hit => loose(hit.name) === loose(queryName));
-    const narrowed = nhlTeam ? same.filter(hit => hit.teamAbbrev === nhlTeam || hit.lastTeamAbbrev === nhlTeam) : same;
-    const face = narrowed.length === 1 && /^\d+$/.test(narrowed[0].playerId) ? await nhl.headshot(narrowed[0].playerId) : null;
-    return face ?? (fantraxId ? portraits[fantraxId] ?? null : null);
+/** The snapshot's NHL, forgiving: a failed identify is no NHL identity, and a failed profile read is no headshot. */
+function forgiving(nhl: SnapshotNhl) {
+    return {
+        async identify(player: IdentifyRequest): Promise<NhlIdentity | null> {
+            try { return await nhl.identify(player); } catch { return null; }
+        },
+        async headshot(nhlId: NhlIdentity): Promise<string | null> {
+            try { return (await nhl.player(nhlId)).headshot; } catch { return null; }
+        },
+    };
+}
+
+/** The NHL headshot when the player has an NHL identity, else the Fantrax portrait. An NHL failure never fails a snapshot. */
+async function headshotFor(player: IdentifyRequest, nhl: ReturnType<typeof forgiving>): Promise<string | null> {
+    const fantrax = player.playerId ? portraits[player.playerId] ?? null : null;
+    const nhlId = await nhl.identify({ ...player, name: normalizePlayerName(player.name) });
+    return (nhlId === null ? null : await nhl.headshot(nhlId)) ?? fantrax;
 }
 
 const unresolved = (ref: PlayerRef, headshot: string | null): SnapshotRow => ({
@@ -95,8 +76,9 @@ const unresolved = (ref: PlayerRef, headshot: string | null): SnapshotRow => ({
 });
 
 /** Resolve every ref, in order, at exactly `season`. No cap on how many. */
-export async function playerSnapshot(season: number | null, refs: PlayerRef[], { portraits: nhl, query = defaultQuery }: {
-    portraits: NhlPortraits;
+export async function playerSnapshot(season: number | null, refs: PlayerRef[], { nhl, query = defaultQuery }: {
+    /** where headshots come from; its failures are forgiven */
+    nhl: SnapshotNhl;
     query?: Query;
 }): Promise<PlayerSnapshot> {
     const names = [...new Set(refs.map(ref => key(ref.name)))].filter(Boolean);
@@ -106,6 +88,7 @@ export async function playerSnapshot(season: number | null, refs: PlayerRef[], {
         from league.players p join league.player_seasons ps on ps.player_id = p.id
         where ps.season_year = ${season} and lower(trim(p.name)) in ${names}
         order by ps.fpts desc, p.id`)).map(row => ({ ...row, fpts: complete(row.fpts), fpg: complete(row.fpg) }) as ArchiveRow);
+    const faces = forgiving(nhl);
     const diagnostics: SnapshotDiagnostic[] = [];
     const players = await Promise.all(refs.map(async (ref): Promise<SnapshotRow> => {
         const named = found.filter(row => key(row.name) === key(ref.name));
@@ -117,11 +100,11 @@ export async function playerSnapshot(season: number | null, refs: PlayerRef[], {
         const [row] = matches;
         if (!row) {
             diagnostics.push({ kind: 'no-record', ref });
-            return unresolved(ref, await headshotFor(ref.name, null, ref.id ?? null, nhl));
+            return unresolved(ref, await headshotFor({ name: ref.name, playerId: ref.id ?? null }, faces));
         }
         if (row.fpts === null || row.fpg === null) diagnostics.push({ kind: 'incomplete-fpts', ref });
         return {
-            id: row.id, name: row.name, headshot: await headshotFor(row.name, row.nhlTeam, row.id, nhl),
+            id: row.id, name: row.name, headshot: await headshotFor({ name: row.name, playerId: row.id, positions: row.positions, nhlTeam: row.nhlTeam }, faces),
             nhlTeam: row.nhlTeam, positions: row.positions, season, fpts: row.fpts, fpg: row.fpg, games: null,
         };
     }));

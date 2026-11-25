@@ -2,6 +2,7 @@ import type { StudioPlayer, StudioTeam } from '../teams';
 import type { PlayerRef } from '../script';
 import type { SnapshotDiagnostic } from '../player-snapshot';
 import { createFantraxClient, playerName, readCore, toWeekScores, type Fetcher, type SourceCore, type SourceWeek as Period } from '../../fantrax/fantrax-client';
+import { createNhl } from '../../nhl/create-nhl';
 import { seasonLabel } from '../../seasons';
 import { eraFor, liveFantraxLeague, type Franchise, type LeagueConfig } from '../../../scripts/db/lib/league-config';
 
@@ -42,7 +43,6 @@ export interface FactPacket {
     limitations: string[];
 }
 
-const normalize = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 /** Wraps the capture's fetcher: each response that comes back OK becomes a source, in request order, timed at its arrival. */
@@ -55,13 +55,6 @@ function sourceRecorder(fetcher: Fetcher) {
         return response;
     };
     return { fetcher: recording, sources: () => requests.filter((source): source is Source => source !== null) };
-}
-
-async function nhlRequest(url: string, fetcher: Fetcher): Promise<{ value: unknown; source: Source }> {
-    const response = await fetcher(url, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
-    if (!response.ok) throw new Error(`NHL returned HTTP ${response.status}: ${url}`);
-    const fetchedAt = new Date().toISOString();
-    return { value: await response.json(), source: { url, fetchedAt } };
 }
 
 /** the franchise's team season, or none when it hadn't started or had folded by then */
@@ -118,22 +111,20 @@ export const birthRegion = (country: string | null): boolean | null => {
 export const unknownPlayer = (name: string): FeaturedPlayer => ({ name, nhlId: null, birthCountry: null, birthCity: null, bornInNorthAmerica: null,
     source: null, headshot: null, nhlTeam: null, positions: [], season: null, fpts: null, fpg: null, games: null });
 
+/**
+ * The featured player through the NHL module, by name alone: one exact match is the player, none or several are
+ * unknown. Its source is the profile the answer came from: the last request this lookup's own recorder saw.
+ */
 export async function lookupFeaturedPlayer(name: string, fetcher: Fetcher = fetch): Promise<FeaturedPlayer> {
     const empty = unknownPlayer(name);
-    const search = new URL('https://search.d3.nhle.com/api/v1/search/player');
-    search.search = new URLSearchParams({ culture: 'en-us', limit: '20', q: name }).toString();
-    const { value } = await nhlRequest(search.href, fetcher);
-    if (!Array.isArray(value)) throw new Error(`Invalid NHL search for ${name}`);
-    const exact = value.filter((p: { name?: string }) => typeof p.name === 'string' && normalize(p.name) === normalize(name));
-    if (exact.length !== 1 || !/^\d+$/.test(String(exact[0]?.playerId))) return empty;
-    const nhlId = Number(exact[0].playerId);
-    const landing = await nhlRequest(`https://api-web.nhle.com/v1/player/${nhlId}/landing`, fetcher);
-    const p = landing.value as { playerId?: number; firstName?: { default: string }; lastName?: { default: string }; birthCountry?: string; birthCity?: { default: string }; headshot?: string; currentTeamAbbrev?: string; position?: string };
-    if (p.playerId !== nhlId || normalize(`${p.firstName?.default} ${p.lastName?.default}`) !== normalize(name)) return empty;
-    const country = typeof p.birthCountry === 'string' ? p.birthCountry : null;
-    return { ...empty, nhlId, source: landing.source, birthCountry: country, birthCity: p.birthCity?.default ?? null,
-        bornInNorthAmerica: birthRegion(country), headshot: p.headshot?.startsWith('https://') ? p.headshot : null,
-        nhlTeam: p.currentTeamAbbrev ?? null, positions: p.position ? [p.position] : [] };
+    const recorder = sourceRecorder(fetcher);
+    const nhl = createNhl({ fetcher: recorder.fetcher, timeoutMs: 15000 });
+    const nhlId = await nhl.identify({ name });
+    if (nhlId === null) return empty;
+    const player = await nhl.player(nhlId);
+    return { ...empty, nhlId, source: recorder.sources().at(-1) ?? null, birthCountry: player.birthCountry, birthCity: player.birthCity,
+        bornInNorthAmerica: birthRegion(player.birthCountry), headshot: player.headshot, nhlTeam: player.team,
+        positions: player.position ? [player.position] : [] };
 }
 
 /** Select the previous Monday through Sunday in Toronto, independently of Fantrax's Monday evening rollover. */

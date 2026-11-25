@@ -1,5 +1,4 @@
 import type { LivePlayer } from '../fantrax/live-season';
-import type { PlayerDetails } from './player-details';
 
 // Re-enable after updating the season, deadline and Fantrax mapping for the next submission window.
 export const KEEPERS_ENABLED = false;
@@ -15,6 +14,17 @@ export const CALDER_SEASON = 2026;
 export const CALDER_SEASON_LABEL = '2025–2026';
 export const POSITION_LABELS = { F: 'Forwards', D: 'Defence', G: 'Goalies', OTHER: 'Other positions' };
 export type KeeperPosition = keyof typeof KEEPER_LIMITS | 'OTHER';
+/**
+ * What the keeper page shows about a player beyond their roster line: their age and previous NHL season, from the NHL
+ * module, and their previous fantasy season. Saved with each submission's roster, so it stays plain JSON. A stat the
+ * NHL didn't give is null, never zero; `stats` is null when the player has no NHL identity or the NHL failed.
+ */
+export interface PlayerDetails {
+    nhlId: number | null; birthDate: string | null; age: number | null;
+    previousSeason: number; stats: { games: number | null; goals: number | null; assists: number | null; points: number | null;
+        wins: number | null; gaa: number | null; savePct: number | null } | null;
+    fantasyPoints: number | null; fantasyPerGame: number | null; checkedAt: string | null;
+}
 export type KeeperPlayer = Pick<LivePlayer, 'id' | 'name' | 'position' | 'lineupPosition' | 'nhlTeam' | 'status'> & { details?: PlayerDetails };
 export interface RookieReview { status: 'approved' | 'rejected'; note: string; reviewedAt: string; calderSeason?: number }
 export interface KeeperSubmission {

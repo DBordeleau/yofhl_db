@@ -32,6 +32,7 @@
     "test:pickem": "node --import tsx --test lib/pickem/*.test.ts",
     "test:season-sync": "node --import tsx --test lib/season-sync/*.test.ts",
     "test:award-vote": "node --import tsx --test lib/award-vote/*.test.ts",
+    "test:nhl": "node --import tsx --test lib/nhl/*.test.ts",
     "db:import:history": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import-history.ts",
     "db:sync:logos": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/sync-logos.ts",
     "db:import": "node --env-file-if-exists=.env.local --env-file-if-exists=.env --import tsx scripts/db/import.ts",

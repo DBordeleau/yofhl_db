@@ -59,7 +59,7 @@ import { createRefreshArchive } from './refresh-archive';
 import { createReadPublishedBallots } from './read-published-ballots';
 import { createReadPublishedTallies } from './read-published-tallies';
 
-export type { AwardVoteClock, AwardVoteDatabase, AwardVoteFantrax, AwardVoteLeagueInfo, AwardVoteNhl, AwardVoteOwnerSession, AwardVotePorts, AwardVoteRange, NhlLookupPlayer, NhlPlayerRecord } from './ports';
+export type { AwardVoteClock, AwardVoteDatabase, AwardVoteFantrax, AwardVoteLeagueInfo, AwardVoteOwnerSession, AwardVotePorts, AwardVoteRange } from './ports';
 export type { AdjustRookieInput, AdjustRookieRejection, AdjustRookieResult } from './adjust-rookie';
 export type { BallotProblem, OwnerBallotAward, OwnerTeamAward, RankedAward } from './ballot';
 export type { BallotStatus } from './ballot-status';

@@ -34,7 +34,7 @@ _Avoid_: retired, inactive
 ## Seasons
 
 **Season year**:
-The year a season ends in. `2027` is the 2026–27 season. Every URL, slug, column, variable and file past the Fantrax adapter uses it; Fantrax's own start year never leaves `lib/fantrax/`.
+The year a season ends in. `2027` is the 2026–27 season. Every URL, slug, column, variable and file past the Fantrax adapter uses it; Fantrax's own start year never leaves `lib/fantrax/`, and the NHL's own season IDs (`20262027`) never leave the NHL module (`lib/nhl/`), which keys a player's NHL seasons by season year.
 _Avoid_: start year, Fantrax year
 
 **Published season**:
@@ -97,6 +97,10 @@ The Quarterfinals, Semifinals or Final, each one Fantrax week, which can be long
 **Player ID**:
 Fantrax's identifier for a player (`02b81`), the same in the archive, the live season, URLs and scripts. Fantrax's CSV exports wrap it in asterisks (`*02b81*`); the Fantrax CSV reading code strips them, and that wrapped form never gets past it.
 _Avoid_: archive ID, Fantrax ID (as if they were different things), slug
+
+**NHL identity**:
+The NHL's own ID for a player (`8475158`), which their NHL profile is read by. Every feature finds it the same way, through the NHL module (`lib/nhl/`): the league's verified identity for the Player ID when `league/nhl-player-ids.json` has one, otherwise the one NHL player whose name matches exactly once accents and punctuation are stripped, narrowed by position group and then by NHL team. No match, or more than one, is no NHL identity, never the closest name, so the two Ryan O'Reillys are never given each other's record.
+_Avoid_: NHL ID (in prose), NHL match, NHL player (when you mean the ID)
 
 **Skater categories**:
 A skater's goals, assists, shots, hits and blocks for a season, the record book's player categories. 2019–2026's are in a checked-in history file (`lib/records/player-category-history.json`); from 2027 the season sync writes them onto each skater's player season from Fantrax's skater table. A skater with no games played has zeros; a goalie has none.
