@@ -4,11 +4,9 @@ import ShowPage from '@/components/coachs-corner/show-page';
 import { episodeFrom } from '@/lib/coachs-corner/episode';
 import { SHOW_DESCRIPTION } from '@/lib/coachs-corner/episode-metadata';
 import { getPublishedEpisode, getPublishedEpisodes, getStudioBanners, getEpisodePlayers, getEpisodeTeams } from '@/lib/data/coachs-corner';
+import { pageMetadata } from '@/lib/site-metadata';
 
-export const metadata: Metadata = {
-    title: "Coach's Corner · YOFHL",
-    description: SHOW_DESCRIPTION,
-};
+export const metadata: Metadata = pageMetadata({ path: '/coachs-corner', name: "Coach's Corner", description: SHOW_DESCRIPTION });
 
 // the latest episode
 export default async function CoachsCorner() {

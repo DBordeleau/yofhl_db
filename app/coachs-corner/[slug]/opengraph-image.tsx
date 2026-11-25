@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import { episodeFrom } from '@/lib/coachs-corner/episode';
 import { getPublishedEpisode } from '@/lib/data/coachs-corner';
 import { episodeShareCard } from '@/lib/share/model';
-import { PREVIEW_HEIGHT, PREVIEW_WIDTH, renderEpisodePreview } from '@/lib/share/episode-preview';
+import { renderEpisodePreview } from '@/lib/share/episode-preview';
+import { PREVIEW_HEIGHT, PREVIEW_WIDTH } from '@/lib/share/preview';
 
 // The episode's link preview. It reads the episode through the same tag-cached lookup as the page, so publishing
 // or republishing (which expires that tag) refreshes it. X uses this image too, through summary_large_image.

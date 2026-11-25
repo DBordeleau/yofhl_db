@@ -16,6 +16,7 @@ import { isPublished } from '@/lib/seasons';
 import { safeDecodeParam } from '@/lib/data/bounds';
 import { getSeasonArchive, getPlayer, getTopPlayerIds } from '@/lib/data/league';
 import { playerHref } from '@/lib/player-url';
+import { pageMetadata } from '@/lib/site-metadata';
 import { getHistory, getHistorySeasons } from '@/lib/data/history';
 import { playerHonors } from '@/lib/data/award-archive';
 import { seasonLabel } from '@/lib/league';
@@ -30,16 +31,17 @@ const JOHNNY_GAUDREAU_ID = '02b81';
 // 2018–19 through 2023–24 Player Stats CSVs: 2,177.50 FPts, with 36 players ahead.
 const JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE = '#37 on August 29, 2024';
 
+// A player the archive doesn't hold is a 404: their link falls back to what the site is (app/layout.tsx).
 export async function generateMetadata({ params }: { params: Promise<{ ID: string }> }) {
     const playerId = safeDecodeParam((await params).ID);
     const player = playerId ? await getPlayer(playerId) : null;
-    if (player?.id === JOHNNY_GAUDREAU_ID) {
-        return {
-            title: 'Remembering Johnny Gaudreau · YOFHL',
-            description: 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.',
-        };
-    }
-    return { title: player ? `${player.name} · YOFHL` : 'YOFHL' };
+    if (!player) return {};
+    const memorial = player.id === JOHNNY_GAUDREAU_ID;
+    return pageMetadata({
+        path: playerHref(player.id),
+        name: memorial ? 'Remembering Johnny Gaudreau' : player.name,
+        description: memorial ? 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.' : undefined,
+    });
 }
 
 // player stage and trophy shelf, then season-by-season stats, the points chart and transactions at /player/[ID]

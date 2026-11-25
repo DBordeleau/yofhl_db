@@ -1,5 +1,4 @@
 import { playerHref } from '@/lib/player-url';
-import type { Metadata } from 'next';
 import Link from 'next/link';
 import TeamBadge from '@/components/team-badge';
 import TeamBranding from '@/components/team-branding/team-branding';
@@ -20,11 +19,10 @@ import { PICKEM_LAUNCH } from '@/lib/pickem/settings';
 import { pickemPrize } from '@/components/pickem/prizes';
 import styles from '@/components/home/home.module.css';
 import Arrow from '@/components/arrow';
+import { pageMetadata } from '@/lib/site-metadata';
 
-export const metadata: Metadata = {
-    title: 'YOFHL · League home',
-    description: 'Ye Olde Fantasy Hockey League standings, matchups, rosters, scoring leaders, and season history.',
-};
+export const metadata = pageMetadata({ path: '/', name: 'League home',
+    description: 'Ye Olde Fantasy Hockey League standings, matchups, rosters, scoring leaders, and season history.' });
 
 export const revalidate = 300;
 

@@ -1,30 +1,17 @@
 import React from 'react';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { ImageResponse } from 'next/og';
-import sharp from 'sharp';
 import { ART_FRAME, artFor, lapelFor, type CharacterId, type Pose } from '../coachs-corner/cast';
 import { POPPY, POPPY_TILT, type PoppyShape } from '../coachs-corner/poppy';
 import { artUrl } from '../coachs-corner/media';
+import { BLUE, BRAND_SLAB, GOLD, Glow, ICE, loadPreviewFonts, NAVY, pngDataUrl, PREVIEW_BACKGROUND, PREVIEW_HEIGHT,
+    PREVIEW_WIDTH, publicArt, RED, Slab } from './preview';
 import type { EpisodeShareCard } from './model';
 
-// An episode's link preview: the episode share card's data in a 1200×630 landscape that unfurlers show whole.
+// An episode's link preview: the episode share card's data in the landscape every preview shares (./preview.tsx).
 // The share card (render-card.ts) draws the same card in the browser; colours and type follow it.
 
-export const PREVIEW_WIDTH = 1200, PREVIEW_HEIGHT = 630;
 const W = PREVIEW_WIDTH, H = PREVIEW_HEIGHT, PAD = 56;
-const NAVY = '#0b1426', ICE = '#b6dcf5', GOLD = '#f3d995', RED = '#c8102e', BLUE = '#3d8bda';
 const DESK = 568, HOST = 480, COLUMN = 600;
-
-// Satori needs static instances and can't stretch type, so the semi-expanded cut is its own family.
-const FONT_DIR = path.join(process.cwd(), 'assets/fonts/archivo');
-let fonts: Promise<NonNullable<ConstructorParameters<typeof ImageResponse>[1]>['fonts']> | undefined;
-const loadFonts = () => fonts ??= Promise.all([
-    ['Archivo-ExtraBold.ttf', 'Archivo', 800, 'normal'],
-    ['Archivo-BlackItalic.ttf', 'Archivo', 900, 'italic'],
-    ['Archivo_SemiExpanded-BlackItalic.ttf', 'Archivo SemiExpanded', 900, 'italic'],
-] as const).then(files => Promise.all(files.map(async ([file, name, weight, style]) =>
-    ({ name, weight, style, data: await readFile(path.join(FONT_DIR, file)) }))));
 
 const svgShape = (shape: PoppyShape) => {
     switch (shape.kind) {
@@ -36,7 +23,7 @@ const svgShape = (shape: PoppyShape) => {
 
 /** A pose from the published art as a PNG data URL (Satori can't decode AVIF), with the lapel poppy pinned on when the card wears one. */
 async function hostImage(who: CharacterId, pose: Pose, lapel: EpisodeShareCard['lapel']) {
-    const art = sharp(await readFile(path.join(process.cwd(), 'public', artUrl(pose, true))));
+    const art = await publicArt(artUrl(pose, true));
     const { width = 640 } = await art.metadata();
     const spot = lapel === 'poppy' ? lapelFor(who, pose) : null;
     if (spot) {
@@ -45,19 +32,8 @@ async function hostImage(who: CharacterId, pose: Pose, lapel: EpisodeShareCard['
             + `<g transform="translate(${x} ${y}) scale(${scale}) rotate(${POPPY_TILT})">${POPPY.map(svgShape).join('')}</g></svg>`;
         art.composite([{ input: Buffer.from(poppy), top: 0, left: 0 }]);
     }
-    return `data:image/png;base64,${(await art.png().toBuffer()).toString('base64')}`;
+    return pngDataUrl(art);
 }
-
-/** a soft ellipse of light centred on cx, cy */
-const Glow = ({ cx, cy, rx, ry, colour }: { cx: number; cy: number; rx: number; ry: number; colour: string }) =>
-    <div style={{ position: 'absolute', left: cx - rx, top: cy - ry, width: rx * 2, height: ry * 2,
-        backgroundImage: `radial-gradient(${colour} 0%, rgba(0,0,0,0) 71%)` }} />;
-
-/** a slanted slab, as on the share card's brand bar */
-const Slab = ({ background, children }: { background: string; children: React.ReactNode }) =>
-    <div style={{ display: 'flex', alignItems: 'center', height: 46, padding: '0 30px', marginRight: -14, background, transform: 'skewX(-17deg)' }}>
-        <div style={{ display: 'flex', transform: 'skewX(17deg)' }}>{children}</div>
-    </div>;
 
 // Satori can't shrink text to fit, so sizes step down with length; lineClamp (block boxes only) catches the rest.
 const quoteSize = (text: string) => text.length <= 32 ? 42 : text.length <= 56 ? 36 : text.length <= 80 ? 31 : 27;
@@ -73,13 +49,13 @@ export async function renderEpisodePreview(card: EpisodeShareCard): Promise<Imag
     // (the share card has Don yell even then). Don is in the episode's opening wardrobe; Ron has only the normal one.
     const donPose = quote?.who === 'don' ? artFor('don', 'angry', { wardrobe, mouth: 'open' }) : artFor('don', 'stare', { wardrobe, mouth: 'closed' });
     const ronPose = quote?.who === 'ron' ? artFor('ron', 'rest', { mouth: 'open' }) : artFor('ron', 'skeptical', { mouth: 'open' });
-    const [don, ron, fontList] = await Promise.all([hostImage('don', donPose, lapel), hostImage('ron', ronPose, lapel), loadFonts()]);
+    const [don, ron, fonts] = await Promise.all([hostImage('don', donPose, lapel), hostImage('ron', ronPose, lapel), loadPreviewFonts()]);
     const hostTop = DESK - Math.round(HOST * 0.63);
     const mark = { fontFamily: 'Archivo SemiExpanded', fontStyle: 'italic', fontWeight: 900, fontSize: 92, lineHeight: 0.92, letterSpacing: '-0.05em' } as const;
 
     return new ImageResponse(
         <div style={{ display: 'flex', position: 'relative', width: W, height: H, fontFamily: 'Archivo', color: '#fff',
-            backgroundImage: `linear-gradient(180deg, #0a1324 0%, ${NAVY} 60%, #07101e 100%)` }}>
+            backgroundImage: PREVIEW_BACKGROUND }}>
             <Glow cx={600} cy={0} rx={560} ry={380} colour="rgba(214,232,255,.07)" />
             <Glow cx={790} cy={540} rx={420} ry={330} colour="rgba(200,16,46,.3)" />
             <Glow cx={1090} cy={540} rx={420} ry={330} colour="rgba(61,139,218,.24)" />
@@ -97,7 +73,7 @@ export async function renderEpisodePreview(card: EpisodeShareCard): Promise<Imag
 
             <div style={{ position: 'absolute', left: PAD, top: 40, width: COLUMN - PAD, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', overflow: 'hidden', marginLeft: -12, paddingLeft: 12 }}>
-                    <Slab background="linear-gradient(180deg, #df1a3c 0%, #b00d28 100%)">
+                    <Slab background={BRAND_SLAB}>
                         <span style={{ fontFamily: 'Archivo SemiExpanded', fontStyle: 'italic', fontWeight: 900, fontSize: 25, letterSpacing: '-0.04em' }}>YOFHL</span>
                     </Slab>
                     {card.label && <Slab background="#050c18">
@@ -129,6 +105,6 @@ export async function renderEpisodePreview(card: EpisodeShareCard): Promise<Imag
         </div>,
         // The og:image URL doesn't change when an episode is republished, so nothing between here and an unfurler may keep
         // this as immutable (next/og's default). The page's tag-cached render still serves it until publication expires it.
-        { width: W, height: H, fonts: fontList, headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
+        { width: W, height: H, fonts, headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
     );
 }

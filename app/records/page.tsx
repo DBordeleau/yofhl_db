@@ -1,9 +1,11 @@
 import RecordBook from '@/components/records/record-book';
 import { getRecordBook } from '@/lib/records/data';
 import { PLAYER_STATS } from '@/lib/records/player-stats';
+import { RECORD_BOOK_DESCRIPTION } from '@/lib/page-metadata';
+import { pageMetadata } from '@/lib/site-metadata';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Record book · YOFHL', description: 'League records, franchise milestones, and career scoring chases.' };
+export const metadata = pageMetadata({ path: '/records', name: 'Record book', description: RECORD_BOOK_DESCRIPTION });
 
 export default async function RecordsPage({ searchParams }: { searchParams: Promise<{ category?: string; record?: string; team?: string; position?: string; format?: string; stat?: string }> }) {
     const params = await searchParams;

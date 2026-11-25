@@ -4,10 +4,10 @@ import Arrow from '@/components/arrow';
 import TeamBadge from '@/components/team-badge';
 import { awardVote } from '@/lib/award-vote/award-vote';
 import { seasonLabel } from '@/lib/league';
+import { seasonBallotsMetadata } from '@/lib/page-metadata';
 
 export async function generateMetadata({ params }: { params: Promise<{ year: string }> }) {
-    const { year } = await params;
-    return { title: `${seasonLabel(Number(year))} Award Ballots · YOFHL` };
+    return seasonBallotsMetadata(Number((await params).year));
 }
 
 // A season's award vote, once published: every franchise's ballot under its name and owner that season. A season

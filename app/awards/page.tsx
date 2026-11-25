@@ -5,11 +5,10 @@ import TrophySparkles from '@/components/trophy-sparkles';
 import { awardHref } from '@/lib/awards';
 import { listed } from '@/lib/data/award-archive';
 import Arrow from '@/components/arrow';
+import { pageMetadata } from '@/lib/site-metadata';
 
-export const metadata: Metadata = {
-    title: 'League awards · YOFHL',
-    description: 'Explore the YOFHL trophies, what they honour, and the teams and players who have won them.',
-};
+export const metadata: Metadata = pageMetadata({ path: '/awards', name: 'League awards',
+    description: 'Explore the YOFHL trophies, what they honour, and the teams and players who have won them.' });
 
 export default async function AwardsPage() {
     const awards = await listed();

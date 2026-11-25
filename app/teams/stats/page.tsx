@@ -1,7 +1,9 @@
 import TeamGrid from '@/components/team-grid';
 import { getFranchiseCards } from '@/lib/data/league';
+import { FRANCHISES_DESCRIPTION } from '@/lib/page-metadata';
+import { pageMetadata } from '@/lib/site-metadata';
 
-export const metadata = { title: 'Franchises · YOFHL' };
+export const metadata = pageMetadata({ path: '/teams/stats', name: 'Franchises', description: FRANCHISES_DESCRIPTION });
 
 // every franchise's all-time record as cards at /teams/stats
 export default async function TeamStatsPage() {
