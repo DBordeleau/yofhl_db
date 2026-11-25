@@ -109,7 +109,14 @@ They aren't `sfx:` cues. The audio cues schedule one entry rewind as each
 flashback starts and one exit rewind as it ends, each following the show clock
 and stopping by the end of its transition (`FLASHBACK_ENTRY_MS`,
 `FLASHBACK_EXIT_MS`). Both use bank gain 0.5. Voices inside a flashback go through
-a low-pass with a short room echo instead of their dry bus.
+a low-pass with a short room echo instead of their dry bus. Change either
+length in step with its constant; `flashbacks.test.ts` checks the generated
+files against them.
+
+Both synthesized generators share `scripts/audio/synth.mjs` for seeded noise,
+filter coefficients, WAV encoding, the FFmpeg check and the provenance file.
+The recorded `generatorSha256` hashes the generator with LF line endings, so it
+matches on any checkout.
 
 ## FFmpeg
 

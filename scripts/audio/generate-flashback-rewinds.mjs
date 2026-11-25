@@ -1,8 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
-import { root, runFfmpeg } from './ffmpeg.mjs';
+import { encodeWav, ffmpegCheck, generatorSha256, highpassAlpha, lowpassAlpha, seededRandom, sha256, writeProvenance, writeWav } from './synth.mjs';
 
 // Original deterministic tape-rewind sounds for a flashback's entry and exit transitions.
 // Each is a band-limited whine sweeping in pitch, like tape spooling past the head, with
@@ -57,23 +53,18 @@ const recipes = {
 };
 
 const twoPi = 2 * Math.PI;
-const onePole = hz => 1 - Math.exp(-twoPi * hz / SAMPLE_RATE);
 
 function synthesize(recipe) {
     const samples = new Float64Array(Math.round(SAMPLE_RATE * recipe.durationSeconds));
-    let seed = recipe.seed;
-    const random = () => {
-        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-        return seed / 2147483648 - 1;
-    };
+    const random = seededRandom(recipe.seed);
     const span = recipe.silenceAtSeconds - recipe.startSeconds;
     let phase = 0, garblePhase = 0, garbleHz = recipe.garble.minHz;
     // a state-variable bandpass for the hiss, retuned every sample to follow the whine
     let bandLow = 0, bandBand = 0;
     let clunkNoise = 0, lowpass = 0, highpass = 0, previous = 0;
-    const outAlpha = onePole(recipe.lowpassHz);
-    const highAlpha = Math.exp(-twoPi * recipe.highpassHz / SAMPLE_RATE);
-    const clunkAlpha = recipe.clunk && onePole(recipe.clunk.lowpassHz);
+    const outAlpha = lowpassAlpha(recipe.lowpassHz, SAMPLE_RATE);
+    const highAlpha = highpassAlpha(recipe.highpassHz, SAMPLE_RATE);
+    const clunkAlpha = recipe.clunk && lowpassAlpha(recipe.clunk.lowpassHz, SAMPLE_RATE);
     for (let i = 0; i < samples.length; i++) {
         const time = i / SAMPLE_RATE;
         const local = time - recipe.startSeconds;
@@ -114,82 +105,20 @@ function synthesize(recipe) {
     return samples;
 }
 
-function encode(samples, recipe) {
-    const rawPeak = samples.reduce((peak, sample) => Math.max(peak, Math.abs(sample)), 0);
-    const normalizationGain = 10 ** (recipe.peakTargetDbfs / 20) / rawPeak;
-    const dataBytes = samples.length * 2;
-    const wav = Buffer.alloc(44 + dataBytes);
-    wav.write('RIFF', 0);
-    wav.writeUInt32LE(36 + dataBytes, 4);
-    wav.write('WAVEfmt ', 8);
-    wav.writeUInt32LE(16, 16);
-    wav.writeUInt16LE(1, 20); // Integer PCM.
-    wav.writeUInt16LE(1, 22); // Mono.
-    wav.writeUInt32LE(SAMPLE_RATE, 24);
-    wav.writeUInt32LE(SAMPLE_RATE * 2, 28);
-    wav.writeUInt16LE(2, 32);
-    wav.writeUInt16LE(16, 34);
-    wav.write('data', 36);
-    wav.writeUInt32LE(dataBytes, 40);
-    let peak = 0, sumSquares = 0, dcSum = 0, lastNonzeroSample = -1;
-    for (let i = 0; i < samples.length; i++) {
-        const pcm = Math.round(samples[i] * normalizationGain * 32767);
-        if (pcm < -32768 || pcm > 32767) throw new Error('PCM overflow');
-        wav.writeInt16LE(pcm, 44 + i * 2);
-        const value = pcm / 32768;
-        peak = Math.max(peak, Math.abs(value));
-        sumSquares += value * value;
-        dcSum += value;
-        if (pcm !== 0) lastNonzeroSample = i;
-    }
-    const peakDbfs = 20 * Math.log10(peak);
-    const rmsDbfs = 20 * Math.log10(Math.sqrt(sumSquares / samples.length));
-    if (peakDbfs > recipe.peakTargetDbfs + 1 || !Number.isFinite(rmsDbfs)) throw new Error('Invalid audio level');
-    return { wav, normalizationGain, measurements: {
-        durationSeconds: samples.length / SAMPLE_RATE,
-        sampleCount: samples.length,
-        bytes: wav.length,
-        peakDbfs,
-        rmsDbfs,
-        dcOffset: dcSum / samples.length,
-        lastNonzeroAtSeconds: lastNonzeroSample / SAMPLE_RATE,
-        trailingSilenceSeconds: (samples.length - 1 - lastNonzeroSample) / SAMPLE_RATE,
-    } };
-}
 
-const output = path.join(root, 'public/coachs-corner/audio');
-mkdirSync(output, { recursive: true });
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-const generatorSha256 = hash(readFileSync(fileURLToPath(import.meta.url)));
+const hashOfGenerator = generatorSha256(import.meta.url);
 for (const [id, recipe] of Object.entries(recipes)) {
-    const { wav, normalizationGain, measurements } = encode(synthesize(recipe), recipe);
-    const wavPath = path.join(output, `${id}.wav`);
-    writeFileSync(wavPath, wav);
-    // Decode with FFmpeg and independently measure the final 16-bit file. Failure
-    // leaves the WAV for inspection but does not report a completed provenance file.
-    const analysis = runFfmpeg(['-i', wavPath, '-af', 'astats=metadata=1:reset=0', '-f', 'null', '-']).stderr.toString();
-    const stat = label => {
-        const matches = [...analysis.matchAll(new RegExp(`${label}: ([^\\r\\n]+)`, 'g'))];
-        const value = Number(matches.at(-1)?.[1]);
-        if (!Number.isFinite(value)) throw new Error(`FFmpeg omitted ${label}`);
-        return value;
-    };
-    const ffmpeg = {
-        command: `node scripts/audio/ffmpeg.mjs -i public/coachs-corner/audio/${id}.wav -af astats=metadata=1:reset=0 -f null -`,
-        peakDbfs: stat('Peak level dB'),
-        rmsDbfs: stat('RMS level dB'),
-        sampleCount: stat('Number of samples'),
-    };
-    if (ffmpeg.sampleCount !== measurements.sampleCount || Math.abs(ffmpeg.peakDbfs - measurements.peakDbfs) > 0.001
-        || Math.abs(ffmpeg.rmsDbfs - measurements.rmsDbfs) > 0.001) throw new Error(`${id}: FFmpeg validation differs from PCM measurements`);
+    const { wav, normalizationGain, measurements } = encodeWav(synthesize(recipe), SAMPLE_RATE, recipe.peakTargetDbfs);
+    writeWav(id, wav);
+    const ffmpeg = ffmpegCheck(id, measurements);
     const provenance = {
         file: `/coachs-corner/audio/${id}.wav`,
         description: recipe.description,
         origin: 'Original deterministic offline synthesis; no external audio source or text-to-sound generator.',
         generator: 'scripts/audio/generate-flashback-rewinds.mjs',
-        generatorSha256,
+        generatorSha256: hashOfGenerator,
         regenerate: 'node scripts/audio/generate-flashback-rewinds.mjs',
-        sha256: hash(wav),
+        sha256: sha256(wav),
         encoding: { codec: 'pcm_s16le', channels: 1, sampleRate: SAMPLE_RATE, bitsPerSample: 16 },
         recipe,
         normalizationGain,
@@ -205,6 +134,6 @@ for (const [id, recipe] of Object.entries(recipes)) {
         },
         listening: 'No subjective listening review performed by the generator; measurements only.',
     };
-    writeFileSync(path.join(output, `${id}.json`), JSON.stringify(provenance, null, 2) + '\n');
+    writeProvenance(id, provenance);
     console.log(JSON.stringify({ file: provenance.file, sha256: provenance.sha256, ...measurements }, null, 2));
 }

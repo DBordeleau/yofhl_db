@@ -3,7 +3,7 @@
   "description": "A softer, shorter rewind: a darker whine sweeping down with light flutter and hiss, no clunk.",
   "origin": "Original deterministic offline synthesis; no external audio source or text-to-sound generator.",
   "generator": "scripts/audio/generate-flashback-rewinds.mjs",
-  "generatorSha256": "7f1df3687e70c44c0b02bd9f72482fa41398285f6505083bfe870e7c009beb86",
+  "generatorSha256": "5070b19e4a42114d4bf931e62d2e1d76dba560c225273ad2ef7b3099d7a01247",
   "regenerate": "node scripts/audio/generate-flashback-rewinds.mjs",
   "sha256": "c8fd84ff91e22179cc7d435c3745d95453bb1e3572e44efe05a8edc2a82eff36",
   "encoding": {
