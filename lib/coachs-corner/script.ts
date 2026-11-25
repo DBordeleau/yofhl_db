@@ -603,15 +603,16 @@ const parseFlashbackSource = (raw: string): FlashbackSource | null => {
 /** how far back a source is from this episode, as the tag reads it, or why it can't be counted */
 const flashbackTag = (meta: Meta, source: FlashbackSource): { tag: string } | { error: string } => {
     if (meta.week === undefined) return { error: 'A flashback counts back from this week. Add week: to the front matter.' };
-    const aired: { season?: number; week: number } = 'pilot' in source ? PILOT_AIRED : source;
+    const pilot = 'pilot' in source;
+    const aired: { season?: number; week: number } = pilot ? PILOT_AIRED : source;
     // an unnamed season is this one; so is the pilot's when the episode doesn't say which season it's in
-    const current = meta.season ?? ('pilot' in source ? PILOT_AIRED.season : undefined);
+    const current = meta.season ?? (pilot ? PILOT_AIRED.season : undefined);
     if (aired.season !== undefined && current === undefined) return { error: 'A flashback to an earlier season counts back from this one. Add season: to the front matter.' };
     const seasons = aired.season === undefined || current === undefined ? 0 : current - aired.season;
     if (seasons < 0) return { error: `The ${aired.season} season is later than this one. A flashback goes back to an earlier week.` };
     if (seasons > 0) return { tag: seasons === 1 ? 'LAST SEASON' : `${seasons} SEASONS AGO` };
     const weeks = meta.week - aired.week;
-    if (weeks <= 0) return { error: `${'pilot' in source ? 'The pilot' : `Week ${aired.week}`} is ${weeks === 0 ? 'this week' : 'later than this week'}. A flashback goes back to an earlier week.` };
+    if (weeks <= 0) return { error: `${pilot ? 'The pilot' : `Week ${aired.week}`} is ${weeks === 0 ? 'this week' : 'later than this week'}. A flashback goes back to an earlier week.` };
     return { tag: weeks === 1 ? '1 WEEK AGO' : `${weeks} WEEKS AGO` };
 };
 
