@@ -1513,6 +1513,106 @@
     .chyron { font-size: 2.9cqw; bottom: calc(var(--desk-h) + 2%); }
 }
 
+/* ---------- flashback ----------
+   The past takes a warm, faded grade over the set, hosts and plates, darkened at the edges, with
+   light film grain. Going in, a tape-rewind blip tears the picture while it ripples into the grade;
+   coming out plays a softer one. The studio sets the strengths from show time (flashback-look.ts):
+   --fb-grade, --fb-blip, --fb-roll (how far through the transition) and --fb-ripple (the ripple
+   filter, only while it runs). The tag sits top-centre, clear of the bug and the clock in every layout. */
+
+.studio[data-flashback] {
+    --fb-sepia: sepia(calc(.72 * var(--fb-grade, 1))) saturate(calc(1 - .38 * var(--fb-grade, 1))) contrast(calc(1 + .06 * var(--fb-grade, 1))) brightness(calc(1 - .06 * var(--fb-grade, 1) + .22 * var(--fb-blip, 0)));
+}
+
+.studio[data-flashback] .jolt { filter: var(--fb-ripple,) var(--fb-sepia); }
+.studio[data-flashback] .plates { filter: var(--fb-sepia); }
+
+/* the tape tear: the picture slips sideways as the blip hits, and settles as it fades */
+.studio[data-rewinding] .jolt { translate: calc(var(--fb-blip, 0) * -1.1%) 0; }
+
+.flashbackFilters {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+.flashbackVignette {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: var(--fb-grade, 1);
+    background: radial-gradient(ellipse 72% 68% at 50% 46%, transparent 52%, rgba(38, 22, 6, .38) 78%, rgba(18, 10, 2, .78) 100%);
+}
+
+/* Film grain: one fine noise tile drifting slowly along an uneven path, so it reads as grain on the
+   film rather than flicker. It is the only loop in the flashback, and it stops when the show is paused. */
+.flashbackGrain {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: calc(.16 * var(--fb-grade, 1));
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.6 -.3'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-size: 220px 220px;
+    animation: grain 9.7s linear infinite;
+}
+.flashbackGrain[data-paused] { animation-play-state: paused; }
+
+@keyframes grain {
+    0%, 100% { background-position: 0 0; }
+    23% { background-position: -31px 18px; }
+    41% { background-position: -12px 47px; }
+    64% { background-position: 26px 33px; }
+    83% { background-position: 19px -9px; }
+}
+
+/* the rewind blip: tape tracking lines over the picture, and one bright band rolling down it */
+.flashbackBlip {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: var(--fb-blip, 0);
+    background:
+        linear-gradient(to bottom, transparent calc(var(--fb-roll, 0) * 100% - 9%), rgba(255, 244, 222, .5) calc(var(--fb-roll, 0) * 100% - 1%), rgba(255, 255, 255, .78) calc(var(--fb-roll, 0) * 100%), transparent calc(var(--fb-roll, 0) * 100% + 2.5%)),
+        repeating-linear-gradient(to bottom, rgba(255, 238, 205, .12) 0 2px, transparent 2px 5px, rgba(10, 6, 2, .14) 5px 7px, transparent 7px 11px);
+    mix-blend-mode: screen;
+}
+
+/* Reduced motion keeps the grade, vignette and tag at full strength from the first frame, and drops the
+   blip, the ripple, the tear and the grain. */
+@media (prefers-reduced-motion: reduce) {
+    .studio[data-flashback] { --fb-grade: 1 !important; --fb-blip: 0 !important; }
+    .studio[data-flashback] .jolt { filter: var(--fb-sepia); translate: none; }
+    .flashbackBlip, .flashbackGrain { display: none; }
+}
+
+.flashbackTag {
+    position: absolute;
+    top: 3.2%;
+    left: 50%;
+    opacity: var(--fb-grade, 1);
+    z-index: 5;
+    translate: -50% 0;
+    padding: .3em 1.1em .25em;
+    font-size: clamp(9px, 1.15cqw, 17px);
+    font-weight: 900;
+    font-stretch: 112%;
+    letter-spacing: .08em;
+    white-space: nowrap;
+    color: #f6f9fc;
+    background: rgba(13, 20, 48, .92);
+    box-shadow: inset 0 0 0 1px rgba(246, 249, 252, .3), inset 0 -.2em 0 var(--red);
+    clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%);
+}
+
+@container player (max-width: 640px) {
+    .flashbackTag { top: 3%; font-size: 2.3cqw; letter-spacing: .04em; }
+}
+
 /* ---------- the bumper and title card ----------
    Timed to the theme: hits at 0.1, 0.4, 0.75, 1.75 and 4.05 s; it decays from 4.8 s. */
 

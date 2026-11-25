@@ -3,7 +3,7 @@
   "description": "One short, dull desk impact: irregular low body, dry broadband contact, and no pitched or metallic ring.",
   "origin": "Original deterministic offline synthesis; no external audio source or text-to-sound generator.",
   "generator": "scripts/audio/generate-desk-pound.mjs",
-  "generatorSha256": "810f2019650e8af882f626f94047924d8a63ebdbc396eaaab332636efe2b3a99",
+  "generatorSha256": "aaa63305ac006c557fb146d41ad33f4b6074c0b65bf1c3753e15c17510f86ff7",
   "regenerate": "node scripts/audio/generate-desk-pound.mjs",
   "sha256": "ed9104aff856c61316db8bab7453114cf5ab4fe4467c9f65dfae272f23a85f4f",
   "encoding": {

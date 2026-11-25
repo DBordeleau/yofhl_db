@@ -1,0 +1,80 @@
+{
+  "file": "/coachs-corner/audio/flashback-entry.wav",
+  "description": "Tape rewinding: a whine sweeping up with garbled flutter and hiss, ending on a soft transport clunk.",
+  "origin": "Original deterministic offline synthesis; no external audio source or text-to-sound generator.",
+  "generator": "scripts/audio/generate-flashback-rewinds.mjs",
+  "generatorSha256": "5070b19e4a42114d4bf931e62d2e1d76dba560c225273ad2ef7b3099d7a01247",
+  "regenerate": "node scripts/audio/generate-flashback-rewinds.mjs",
+  "sha256": "62dde8385757b14fbc118fc51a2ab23311d5dd43afc7a395b335ab70cdc16657",
+  "encoding": {
+    "codec": "pcm_s16le",
+    "channels": 1,
+    "sampleRate": 48000,
+    "bitsPerSample": 16
+  },
+  "recipe": {
+    "revision": 1,
+    "description": "Tape rewinding: a whine sweeping up with garbled flutter and hiss, ending on a soft transport clunk.",
+    "durationSeconds": 0.9,
+    "startSeconds": 0.01,
+    "fadeInSeconds": 0.06,
+    "fadeOutAtSeconds": 0.76,
+    "silenceAtSeconds": 0.86,
+    "sweep": {
+      "fromHz": 260,
+      "toHz": 2300,
+      "curve": 1.6
+    },
+    "harmonics": 7,
+    "toneAmplitude": 0.5,
+    "wobble": {
+      "hz": 17,
+      "depth": 0.035
+    },
+    "garble": {
+      "minHz": 18,
+      "maxHz": 38,
+      "depth": 0.7
+    },
+    "hiss": {
+      "amplitude": 0.35,
+      "bandRatio": 2.2,
+      "q": 0.9
+    },
+    "lowpassHz": 6500,
+    "highpassHz": 120,
+    "clunk": {
+      "atSeconds": 0.8,
+      "amplitude": 0.55,
+      "decaySeconds": 0.012,
+      "lowpassHz": 900
+    },
+    "peakTargetDbfs": -12,
+    "seed": 20261125,
+    "recommendedBankGain": 0.5
+  },
+  "normalizationGain": 0.2517625111044705,
+  "measurements": {
+    "durationSeconds": 0.9,
+    "sampleCount": 43200,
+    "bytes": 86444,
+    "peakDbfs": -11.999946665424783,
+    "rmsDbfs": -23.534870710815454,
+    "dcOffset": -1.1020236545138888e-7,
+    "lastNonzeroAtSeconds": 0.8599791666666666,
+    "trailingSilenceSeconds": 0.04
+  },
+  "ffmpeg": {
+    "command": "node scripts/audio/ffmpeg.mjs -i public/coachs-corner/audio/flashback-entry.wav -af astats=metadata=1:reset=0 -f null -",
+    "peakDbfs": -11.999682,
+    "rmsDbfs": -23.534606,
+    "sampleCount": 43200
+  },
+  "integration": {
+    "soundId": "flashback-entry",
+    "recommendedBankGain": 0.5,
+    "cue": "Scheduled automatically as a flashback starts, over its entry transition. Not a script sfx: cue.",
+    "note": "Plays at the show rate and stops by the end of its transition, so faster speeds shorten it with the transition."
+  },
+  "listening": "No subjective listening review performed by the generator; measurements only."
+}

@@ -1,8 +1,9 @@
 import {
-    CAST, CHARACTERS, gestureHelp, LAPELS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
+    CAST, CHARACTERS, gestureHelp, isLapel, LAPELS, SHOTS, SOUNDS, SPEEDS, resolveDelivery, resolveGesture,
     type CharacterId, type Delivery, type Lapel, type Reaction, type Shot, type Sound,
 } from './cast';
 import { EFFECTS } from './effects';
+import { FX_REFERENCE } from './script-reference';
 
 // Parser for Coach's Corner screenplays. The format is documented in docs/coachs-corner.md; in short:
 //
@@ -89,13 +90,38 @@ export interface Diagnostic {
     message: string;
 }
 
+/** where a flashback's lines were first said: a week of this season or an earlier one, or the pilot */
+export type FlashbackSource = { week: number; season?: number } | { pilot: true };
+
+/** A [flashback: …] … [end flashback] block: earlier lines copied in, played as the past. */
+export interface Flashback {
+    /** the script line of its [flashback: …] header */
+    line: number;
+    /** null when the header names no source the parser understands */
+    source: FlashbackSource | null;
+    /** how far back the source is, as the tag reads it: "2 WEEKS AGO", "LAST SEASON"; empty when it can't be counted */
+    tag: string;
+    /** the header's don: gesture, Don's pose as the block starts; absent when he keeps what he's holding */
+    don?: string;
+    /** the header's lapel: for the block, null for lapel: none; absent when it keeps the episode's */
+    lapel?: Lapel | null;
+    /** the events inside it, from `from` up to but not including `to` */
+    from: number;
+    to: number;
+}
+
 export interface Script {
     meta: Meta;
     events: ScriptEvent[];
+    /** in script order, never overlapping */
+    flashbacks: Flashback[];
     diagnostics: Diagnostic[];
     /** every team the graphics name, in script order; the teams module checks them against a team list */
     teamRefs: TeamRef[];
 }
+
+/** whether `script.events[index]` sits inside a flashback, so it's another week's material */
+export const replayed = (script: Script, index: number) => script.flashbacks.some(block => block.from <= index && index < block.to);
 
 export const DEFAULT_PACE = 198;
 const MIN_WPM = 40;
@@ -106,10 +132,9 @@ const parseWpm = (raw: string): number | null => {
 };
 const NAMED_PAUSES: Record<string, number> = { beat: 450, pause: 1000, 'long pause': 2400 };
 
-/** one example per effect at its default length, taking turns between the hosts */
+/** the Script reference's fx: examples, each at its default length */
 const FX_HELP = (() => {
-    const examples = Object.entries(EFFECTS).map(([effect, { defaultMs }], i) =>
-        `fx: ${CHARACTERS[i % CHARACTERS.length]} ${effect} ${defaultMs >= 1000 ? `${defaultMs / 1000}s` : `${defaultMs}ms`}`);
+    const examples = FX_REFERENCE.map(fx => `${fx.example} ${fx.length}`);
     const last = examples.pop();
     return `Use ${examples.length ? `${examples.join(', ')} or ${last}` : last}; duration must be 100ms–12s.`;
 })();
@@ -166,7 +191,7 @@ const ID_ERROR = 'Write the Fantrax id without its asterisks, like "Elias Petter
 const fantraxId = (token: string) => /^#([0-9a-z]+)$/i.exec(token)?.[1].toLowerCase();
 const playerRef = (name: string, id: string | undefined): PlayerRef => (id ? { name, id } : { name });
 
-const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'split', 'list', 'standings', 'wire'] as const;
+export const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'split', 'list', 'standings', 'wire'] as const;
 
 export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; teams: string[] } => {
     const trimmed = raw.trim();
@@ -559,6 +584,38 @@ const parseDialogue = (text: string, who: CharacterId, ctx: CueContext): Part[] 
     return parts;
 };
 
+// ---------- flashbacks ----------
+
+/** The pilot aired as week 0 of the 2027 season, whatever its own front matter says. */
+const PILOT_AIRED = { season: 2027, week: 0 };
+const MAX_FLASHBACK_LINES = 8;
+const FLASHBACK_OPEN_RE = /^\[\s*flashback\s*:([^\]]*)\]/i;
+const FLASHBACK_CLOSE_RE = /^\[\s*end\s+flashback\s*\]/i;
+
+const parseFlashbackSource = (raw: string): FlashbackSource | null => {
+    const text = raw.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (text === 'pilot') return { pilot: true };
+    const m = text.match(/^(?:(\d{4}) )?week (\d+)$/);
+    if (!m) return null;
+    return m[1] ? { season: Number(m[1]), week: Number(m[2]) } : { week: Number(m[2]) };
+};
+
+/** how far back a source is from this episode, as the tag reads it, or why it can't be counted */
+const flashbackTag = (meta: Meta, source: FlashbackSource): { tag: string } | { error: string } => {
+    if (meta.week === undefined) return { error: 'A flashback counts back from this week. Add week: to the front matter.' };
+    const pilot = 'pilot' in source;
+    const aired: { season?: number; week: number } = pilot ? PILOT_AIRED : source;
+    // an unnamed season is this one; so is the pilot's when the episode doesn't say which season it's in
+    const current = meta.season ?? (pilot ? PILOT_AIRED.season : undefined);
+    if (aired.season !== undefined && current === undefined) return { error: 'A flashback to an earlier season counts back from this one. Add season: to the front matter.' };
+    const seasons = aired.season === undefined || current === undefined ? 0 : current - aired.season;
+    if (seasons < 0) return { error: `The ${aired.season} season is later than this one. A flashback goes back to an earlier week.` };
+    if (seasons > 0) return { tag: seasons === 1 ? 'LAST SEASON' : `${seasons} SEASONS AGO` };
+    const weeks = meta.week - aired.week;
+    if (weeks <= 0) return { error: `${pilot ? 'The pilot' : `Week ${aired.week}`} is ${weeks === 0 ? 'this week' : 'later than this week'}. A flashback goes back to an earlier week.` };
+    return { tag: weeks === 1 ? '1 WEEK AGO' : `${weeks} WEEKS AGO` };
+};
+
 // ---------- the document ----------
 
 const SPEAKER_RE = /^([A-Za-z][A-Za-z .'-]{0,24}?)\s*(?:\(([^)]*)\))?\s*:\s?(.*)$/;
@@ -606,7 +663,7 @@ export function parseScript(source: string): Script {
                     if (n !== null) meta.pace = n;
                     else report('error', `pace is words per minute (${MIN_WPM}–${MAX_WPM}), like 180.`);
                 }
-                else if (key === 'lapel') { if ((LAPELS as readonly string[]).includes(value)) meta.lapel = value as Lapel; else report('error', `lapel is one of: ${LAPELS.join(', ')}.`); }
+                else if (key === 'lapel') { if (isLapel(value)) meta.lapel = value; else report('error', `lapel is one of: ${LAPELS.join(', ')}.`); }
                 else report('warning', `“${m[1]}” isn’t a front matter key; it’s ignored.`);
             }
             i = end + 1;
@@ -630,6 +687,46 @@ export function parseScript(source: string): Script {
         openText = '';
     };
 
+    const flashbacks: Flashback[] = [];
+    let flashback: Flashback | null = null;
+    const openFlashback = (header: string, line: number) => {
+        const report = reporter(line);
+        if (flashback) { report('error', `A flashback can’t start inside another. Close the one on line ${flashback.line} with [end flashback] first.`); return; }
+        const [sourceText, ...options] = header.split(',');
+        const source = parseFlashbackSource(sourceText);
+        let tag = '';
+        if (!source) report('error', 'Name where the lines come from, like [flashback: week 4], [flashback: pilot] or [flashback: 2027 week 4].');
+        else {
+            const counted = flashbackTag(meta, source);
+            if ('error' in counted) report('error', counted.error); else tag = counted.tag;
+        }
+        const block: Flashback = { line, source, tag, from: events.length, to: events.length };
+        flashback = block;
+        for (const option of options) {
+            const kv = option.trim().match(/^([a-z]+)\s*:\s*(.+)$/i);
+            const key = kv?.[1].toLowerCase();
+            const value = kv?.[2].trim() ?? '';
+            if (key === 'don') {
+                const gesture = resolveGesture('don', value);
+                if (gesture) block.don = gesture;
+                else report('error', `Don has no “${value}” gesture. Try: ${gestureHelp('don')}`);
+            } else if (key === 'lapel') {
+                const lapel = value.toLowerCase();
+                if (lapel === 'none') block.lapel = null;
+                else if (isLapel(lapel)) block.lapel = lapel;
+                else report('error', `A flashback’s lapel is one of: ${LAPELS.join(', ')}, or none.`);
+            } else report('error', `A flashback header takes only don: and lapel:, like [flashback: week 4, don: remembrance-rest, lapel: poppy]. Put “${option.trim()}” on a stage line inside the block.`);
+        }
+    };
+    const closeFlashback = (block: Flashback) => {
+        block.to = events.length;
+        const spoken = events.slice(block.from, block.to).filter(e => e.kind === 'line').length;
+        if (!spoken) reporter(block.line)('error', 'This flashback has no lines. Copy in the dialogue it replays.');
+        else if (spoken > MAX_FLASHBACK_LINES) reporter(block.line)('error', `This flashback has ${spoken} lines. Keep it to ${MAX_FLASHBACK_LINES}.`);
+        flashbacks.push(block);
+        flashback = null;
+    };
+
     for (; i < lines.length; i++) {
         const lineNo = i + 1;
         const raw = lines[i];
@@ -648,6 +745,15 @@ export function parseScript(source: string): Script {
             if (error) report('error', error);
             teamRefs(lineNo)(teams);
             if (graphic) events.push({ kind: 'stage', line: lineNo, cues: [{ type: 'monitor', graphic }] });
+            continue;
+        }
+
+        const opening = trimmed.match(FLASHBACK_OPEN_RE);
+        if (opening || FLASHBACK_CLOSE_RE.test(trimmed)) {
+            closeLine();
+            if (opening) openFlashback(opening[1], lineNo);
+            else if (flashback) closeFlashback(flashback);
+            else report('error', 'There’s an [end flashback] with no [flashback: …] open.');
             continue;
         }
 
@@ -686,12 +792,18 @@ export function parseScript(source: string): Script {
         report('error', 'This line isn’t dialogue, a [cue] or a >> monitor graphic. Start dialogue with DON: or RON:, and indent lines that continue it.');
     }
     closeLine();
+    // openFlashback sets it, which the type checker can't see from here
+    const unclosed = flashback as Flashback | null;
+    if (unclosed) {
+        reporter(unclosed.line)('error', 'This flashback is never closed. End it with [end flashback].');
+        closeFlashback(unclosed);
+    }
 
     if (!meta.title) diagnostics.push({ line: 1, severity: 'error', message: 'Give the episode a title in the front matter: title: Draft and opening matchups.' });
     if (!events.some(e => e.kind === 'line')) diagnostics.push({ line: 1, severity: 'error', message: 'The script has no dialogue yet.' });
 
     diagnostics.sort((a, b) => a.line - b.line);
-    return { meta, events, diagnostics, teamRefs: named };
+    return { meta, events, flashbacks, diagnostics, teamRefs: named };
 }
 
 export const hasErrors = (script: Script) => script.diagnostics.some(d => d.severity === 'error');
@@ -712,10 +824,11 @@ export const graphicPlayers = (graphic: Graphic): PlayerRef[] => {
 /** the same player cited twice: names compare loosely, ids exactly */
 export const refKey = (ref: PlayerRef) => `${normalizePlayerName(ref.name).toLowerCase()}#${ref.id ?? ''}`;
 
-/** players named by graphics, first citation first, for looking up headshots and stats */
+/** players named by graphics, first citation first, for looking up headshots and stats; a flashback's graphics never show, so they cite no one */
 export const playerRefs = (script: Script): PlayerRef[] => {
     const refs = new Map<string, PlayerRef>();
-    for (const e of script.events) {
+    for (const [index, e] of script.events.entries()) {
+        if (replayed(script, index)) continue;
         const cues = e.kind === 'stage' ? e.cues : e.parts.flatMap(p => (p.kind === 'cue' ? [p.cue] : []));
         for (const c of cues) if (c.type === 'monitor') for (const ref of graphicPlayers(c.graphic)) if (!refs.has(refKey(ref))) refs.set(refKey(ref), ref);
     }

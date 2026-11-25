@@ -307,3 +307,11 @@ _Avoid_: pose (when you mean what the script asks for)
 **Pose**:
 One drawn image of a host in a wardrobe, with the mouth closed or open. A talking gesture has two poses; the rest have one.
 _Avoid_: gesture (when you mean the image), frame
+
+**Lapel**:
+The pin both hosts wear over the heart, such as the Remembrance poppy, or none. An episode's lapel holds for the whole show except inside a flashback that sets its own.
+_Avoid_: pin, badge
+
+**Flashback**:
+A block of a script that replays a few lines from a past episode, with Don's wardrobe and the lapel from that week, before the studio returns to the present.
+_Avoid_: callback (a line that refers back without replaying it), replay, rewind
