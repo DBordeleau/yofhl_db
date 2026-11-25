@@ -11,7 +11,7 @@ test('publishing and real Next data caching against disposable Postgres', async 
     const nhl = async (url: string | URL | Request) => {
         network++;
         if (String(url).includes('search.d3.nhle.com')) return Response.json(new URL(String(url)).searchParams.get('q') === 'Player One' ? [{ playerId: '123', name: 'Player One', teamAbbrev: 'TOR' }] : []);
-        if (String(url).includes('/123/landing')) return Response.json({ headshot: 'https://assets.nhle.com/test-player.png' });
+        if (String(url).includes('/123/landing')) return Response.json({ playerId: 123, firstName: { default: 'Player' }, lastName: { default: 'One' }, headshot: 'https://assets.nhle.com/test-player.png' });
         throw new Error(`Unexpected network request: ${url}`);
     };
     let nhlFetch: typeof fetch = nhl;
