@@ -323,18 +323,21 @@ test('voices inside a flashback are marked to sound like a memory, with one syll
     }
 });
 
-test('a line replayed in a flashback performs the same syllables it did the first time', () => {
+test('a line replayed in a flashback keeps its words, syllable timing and delivery from the first time', () => {
     const original = episodeFrom(`${head()}RON: Who's he going to get in a trade?\n\nDON (point): He's sitting right there.`);
     const replayed = episodeFrom(withFlashback('[flashback: week 4]'));
+    // `variation` (pitch and vowel colour) follows each host's syllable count so far in the episode,
+    // so a replay lands close to the original's pitch and vowels but not exactly on them
     const performance = (cues: typeof original.audioCues, from: number, to: number) => cues
         .filter(cue => cue.voice && cue.t >= from && cue.t < to)
         .map(({ t, voice }) => {
-            const { flashback: _, variation: __, progress, duration, ...rest } = voice!;
+            const { who, delivery, duration, progress, question, wordStart, phraseEnd, cutoff, interrupting } = voice!;
             const round = (n: number) => Math.round(n * 1e6) / 1e6;
-            return { t: round(t - from), progress: round(progress), duration: round(duration), ...rest };
+            return { t: round(t - from), who, delivery, duration: round(duration), progress: round(progress), question, wordStart, phraseEnd, cutoff, interrupting };
         });
     const [ron, don] = original.timeline.lines;
     const [, first, second] = replayed.timeline.lines;
+    assert.deepEqual([first.text, second.text], [ron.text, don.text]);
     assert.deepEqual(performance(replayed.audioCues, first.t0, second.t1), performance(original.audioCues, ron.t0, don.t1));
 });
 
