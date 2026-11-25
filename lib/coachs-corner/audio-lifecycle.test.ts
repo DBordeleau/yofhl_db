@@ -133,7 +133,8 @@ test('replacement samples are cached, fit the voice slot, and stop on seeking', 
     audio.unlock();
     await Promise.all([audio.prepare(), audio.prepare()]);
     assert.deepEqual(fetch.mock.calls.map(call => call.arguments[0]).sort(),
-        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav'), '/voice.wav']);
+        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/flashback-entry.wav'),
+            mediaUrl('/coachs-corner/audio/flashback-exit.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav'), '/voice.wav']);
     audio.fire({ t: 6000, id: 'don', voice: { who: 'don', delivery: 'normal', duration: 100, progress: 0, variation: 0, question: false,
         wordStart: true, phraseEnd: false, cutoff: false, interrupting: false } }, 1);
     const ctx = Context.instances.at(-1)!;
@@ -151,7 +152,8 @@ test('the default mix caches recorded effects once, plays each cue once and stop
     audio.unlock();
     await Promise.all([audio.prepare(), audio.prepare()]);
     assert.deepEqual(fetch.mock.calls.map(call => call.arguments[0]).sort(),
-        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav')]);
+        [mediaUrl('/coachs-corner/audio/desk-pound.wav'), mediaUrl('/coachs-corner/audio/flashback-entry.wav'),
+            mediaUrl('/coachs-corner/audio/flashback-exit.wav'), mediaUrl('/coachs-corner/audio/happy-twinkle.wav'), mediaUrl('/coachs-corner/audio/tie-cloth-7.wav')]);
     const ctx = Context.instances.at(-1)!;
     audio.fire({ t: 31000, id: 'tie' }, 1);
     assert.equal(ctx.sources.length, 1);
