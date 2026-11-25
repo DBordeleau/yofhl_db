@@ -145,3 +145,12 @@ test('a jump into the middle of a flashback lands in it, the same frame every ti
     assert.deepEqual(frameAt(episode.timeline, t), landed);
     assert.equal(frameSignature(frameAt(episode.timeline, t)), frameSignature(landed));
 });
+
+test('a flashback that opens the episode is played, not part of the opening picture', () => {
+    const episode = episodeFrom(`${head()}[don: point]\n[flashback: week 4]\n[don: stare]\nDON: Back then.\n[end flashback]\n\nDON: Now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    assert.equal(episode.openingPicture.hosts.don.gesture, 'point');
+    assert.equal(episode.openingPicture.flashback, null);
+    const [span] = episode.timeline.flashbacks!;
+    assert.equal(span.t0, 6000);
+});
