@@ -1,12 +1,15 @@
-// The NHL module in memory, for every caller's tests: NHL players held by NHL identity, the league's verified
+// The NHL module in memory, for every caller's tests: NHL players held by NHL identity, their game dates by season
+// year, the league's verified
 // identities by Player ID, and the same match rule as the NHL module over the held players (their one team standing
-// for current and last team). Tests arrange `players`, `verified`, `failing` and `down` directly, and read what was
+// for current and last team). Tests arrange `players`, `gameLogs`, `verified`, `failing` and `down` directly, and read what was
 // asked from `identified` and `read`.
 import { matchIdentity } from './match';
 import type { IdentifyRequest, Nhl, NhlIdentity, NhlPlayer, NhlSeasonLine } from './model';
 
 export interface MemoryNhlState {
     players: Record<NhlIdentity, NhlPlayer>;
+    /** each held player's regular-season game dates (`YYYY-MM-DD`) by season year; none held is no games */
+    gameLogs: Record<NhlIdentity, Record<number, string[]>>;
     /** the league's verified identities: each Player ID's NHL identity */
     verified: Record<string, NhlIdentity>;
     /** Player IDs and names whose identify fails, and NHL identities whose read fails, as an NHL outage would */
@@ -20,7 +23,7 @@ export interface MemoryNhlState {
 }
 
 export const memoryNhlState = (state: Partial<MemoryNhlState> = {}): MemoryNhlState =>
-    ({ players: {}, verified: {}, failing: new Set(), down: false, identified: [], read: [], ...state });
+    ({ players: {}, gameLogs: {}, verified: {}, failing: new Set(), down: false, identified: [], read: [], ...state });
 
 /** an NHL regular-season line, every stat not given missing */
 export const nhlSeason = (line: Partial<NhlSeasonLine> = {}): NhlSeasonLine =>
@@ -35,6 +38,14 @@ export const nhlPlayer = (player: Partial<NhlPlayer> = {}): NhlPlayer => ({
 const outage = () => Promise.reject(new Error('The NHL returned 503'));
 
 export function createMemoryNhl(state: MemoryNhlState): Nhl {
+    async function read(nhlId: NhlIdentity): Promise<NhlPlayer> {
+        state.read.push(nhlId);
+        if (state.down || state.failing.has(nhlId)) return outage();
+        const player = state.players[nhlId];
+        if (!player) throw new Error(`The NHL returned 404 for player ${nhlId}`);
+        return structuredClone(player);
+    }
+
     return {
         identify: async player => {
             state.identified.push(structuredClone(player));
@@ -44,12 +55,14 @@ export function createMemoryNhl(state: MemoryNhlState): Nhl {
             const candidates = Object.values(state.players).map(held => ({ nhlId: held.nhlId, name: held.name, position: held.position, teams: [held.team] }));
             return matchIdentity(player, candidates);
         },
-        player: async nhlId => {
-            state.read.push(nhlId);
-            if (state.down || state.failing.has(nhlId)) return outage();
-            const player = state.players[nhlId];
-            if (!player) throw new Error(`The NHL returned 404 for player ${nhlId}`);
-            return structuredClone(player);
+        player: async nhlId => read(nhlId),
+        gamesBefore: async (nhlId, seasonYear, date) => {
+            const { seasons } = await read(nhlId);
+            if (!seasons) return null;
+            const earlier = Object.entries(seasons).filter(([year]) => Number(year) < seasonYear).map(([, line]) => line.games);
+            if (earlier.some(games => games === null)) return null;
+            const logged = (state.gameLogs[nhlId]?.[seasonYear] ?? []).filter(played => played < date).length;
+            return earlier.reduce<number>((total, games) => total + games!, 0) + logged;
         },
     };
 }

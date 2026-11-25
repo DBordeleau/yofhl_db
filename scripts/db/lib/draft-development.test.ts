@@ -2,25 +2,81 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { drizzle } from 'drizzle-orm/pglite';
 import * as schema from '../../../db/schema';
-import type { NhlProfile, NhlSeasonStats } from '../../../lib/keepers/player-details';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createMemoryNhl, memoryNhlState, nhlPlayer, nhlSeason } from '../../../lib/nhl/memory-nhl';
 import type { Db } from './connect';
-import { enrichDraftDevelopment, priorNhlGames } from './draft-development';
+import { draftFactsLoader, enrichDraftDevelopment, importFetcher } from './draft-development';
 import { writeHistory, type HistoryImport } from './history';
 import { draftRegretEligible } from '../../../lib/draft/development';
 import { disposableLeague } from '../../../lib/testing/disposable-league';
 
-const row = (season: number, gamesPlayed: number, team = 'Team', leagueAbbrev = 'NHL', gameTypeId = 2): NhlSeasonStats =>
-    ({ season, gamesPlayed, leagueAbbrev, gameTypeId, teamName: { default: team } });
-const profile = (seasonTotals: NhlSeasonStats[]): NhlProfile =>
-    ({ playerId: 1, firstName: { default: 'Test' }, lastName: { default: 'Player' }, position: 'D', birthDate: '2001-01-01', seasonTotals });
+const draftPick = (pick: Partial<HistoryImport['picks'][number]> = {}): HistoryImport['picks'][number] => ({
+    seasonYear: 2025, overall: 1, round: 1, pick: 1, playerId: '0abcd', playerName: 'Lane Hutson', positions: 'D', nhlTeam: 'MTL',
+    draftedOn: '2024-10-04', sourceTime: 'Oct 4, 2024', sourceFile: 'draft.csv', ...pick,
+});
 
-test('experience combines traded teams once and excludes playoffs, other leagues and future games', () => {
-    const player = profile([row(20222023, 10, 'A'), row(20222023, 20, 'B'), row(20222023, 30, '2 Teams'),
-        row(20232024, 5, 'A'), row(20232024, 7, 'B'), row(20232024, 50, 'Farm', 'AHL'), row(20232024, 10, 'A', 'NHL', 3), row(20242025, 82)]);
-    const log = { gameLog: [{ gameDate: '2024-10-01' }, { gameDate: '2024-10-04' }, { gameDate: '2024-10-06' }] };
-    assert.equal(priorNhlGames(player, 2025, '2024-10-04', log), 43);
-    assert.equal(priorNhlGames(profile([]), 2025, '2024-09-21', { gameLog: [] }), 0);
-    assert.throws(() => priorNhlGames(profile([row(20232024, NaN)]), 2025, '2024-09-21', { gameLog: [] }), /Incomplete/);
+test("a pick's draft facts come from the NHL player it identifies, by Player ID, every position and NHL team", async () => {
+    const state = memoryNhlState({
+        players: { 8483457: nhlPlayer({ nhlId: 8483457, name: 'Lane Hutson', position: 'D', team: 'MTL', birthDate: '2004-02-14', seasons: { 2024: nhlSeason({ games: 2 }) } }) },
+    });
+    const facts = await draftFactsLoader(createMemoryNhl(state))(draftPick({ positions: 'D,LW' }));
+    // 20 on the draft date, so too young for draft regret: no games counted
+    assert.deepEqual(facts, { draftedOn: '2024-10-04', birthDate: '2004-02-14', nhlId: 8483457, priorNhlGames: null });
+    assert.deepEqual(state.identified, [{ name: 'Lane Hutson', playerId: '0abcd', positions: ['D', 'LW'], nhlTeam: 'MTL' }]);
+});
+
+test("a pick old enough for draft regret counts the NHL games played before its draft date", async () => {
+    const state = memoryNhlState({
+        players: { 8480000: nhlPlayer({ position: 'D', birthDate: '2001-05-26', seasons: { 2024: nhlSeason({ games: 60 }), 2025: nhlSeason({ games: 3 }) } }) },
+        gameLogs: { 8480000: { 2025: ['2024-10-01', '2024-10-04', '2024-10-06'] } },
+    });
+    const facts = await draftFactsLoader(createMemoryNhl(state))(draftPick({ playerName: 'Test Player' }));
+    assert.equal(facts.priorNhlGames, 61);
+});
+
+test("a pick's stored NHL identity is read without identifying the pick again", async () => {
+    const state = memoryNhlState({ players: { 123: nhlPlayer({ nhlId: 123, name: 'Someone Else' }) } });
+    const facts = await draftFactsLoader(createMemoryNhl(state))(draftPick(), 123);
+    assert.equal(facts.nhlId, 123);
+    assert.deepEqual(state.identified, []);
+});
+
+test('an unmatched pick, or an NHL player with no birth date, season history or games, has no draft facts', async () => {
+    const state = memoryNhlState({
+        players: {
+            1: nhlPlayer({ nhlId: 1, name: 'No Birthday', position: 'D', birthDate: null }),
+            2: nhlPlayer({ nhlId: 2, name: 'No History', position: 'D', seasons: null }),
+            3: nhlPlayer({ nhlId: 3, name: 'No Games', position: 'D', birthDate: '2001-05-26', seasons: { 2024: nhlSeason() } }),
+        },
+    });
+    const load = draftFactsLoader(createMemoryNhl(state));
+    await assert.rejects(load(draftPick({ playerName: 'Nobody' })), /Ambiguous or unmatched NHL identity/);
+    await assert.rejects(load(draftPick({ playerName: 'No Birthday' })), /Incomplete NHL profile/);
+    await assert.rejects(load(draftPick({ playerName: 'No History' })), /Incomplete NHL profile/);
+    await assert.rejects(load(draftPick({ playerName: 'No Games' })), /Incomplete NHL games history/);
+});
+
+test('the import paces its NHL requests, waits out rate limits and keeps answers in its file cache', async t => {
+    const cacheDir = await mkdtemp(join(tmpdir(), 'draft-development-'));
+    t.after(() => rm(cacheDir, { recursive: true, force: true }));
+    const waits: number[] = [];
+    const answers = [new Response('slow down', { status: 429, headers: { 'retry-after': '10' } }), new Response('{"playerId":1}')];
+    const asked: string[] = [];
+    const fetcher = importFetcher({ cacheDir, pause: async ms => { waits.push(ms); }, fetch: async url => { asked.push(String(url)); return answers.shift() ?? new Response('gone', { status: 503 }); } });
+    const url = 'https://api-web.nhle.com/v1/player/1/landing';
+
+    assert.equal(await (await fetcher(url)).text(), '{"playerId":1}');
+    // a pause before each request, and the 10 seconds the NHL asked for after its rate limit
+    assert.deepEqual(waits, [850, 10000, 850]);
+    assert.equal(await (await fetcher(url)).text(), '{"playerId":1}', 'answered from the file cache');
+    assert.equal(asked.length, 2);
+    assert.equal((await readdir(cacheDir)).length, 1);
+
+    // a failure isn't kept, and is the NHL's answer for the module to report
+    assert.equal((await fetcher('https://api-web.nhle.com/v1/player/2/landing')).status, 503);
+    assert.equal((await readdir(cacheDir)).length, 1);
 });
 
 test('migration backfills existing picks by season, identity and draft date', async t => {
