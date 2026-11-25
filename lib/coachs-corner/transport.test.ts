@@ -185,3 +185,31 @@ test('a speed change during the intro waits for the segment; during the segment 
     transport.setSpeed(1);
     assert.equal(transport.tick(7100).time, 7600);
 });
+
+test('playing after seeking to a line t0 fires that t0 cue once, without double-firing on pause/resume or replaying stale backlog', () => {
+    const { tl, transport } = setup();
+    const t0 = tl.lines[0].t0;
+    const seekOut = transport.seek(t0);
+    assert.deepEqual(seekOut.cues, [], 'seeking itself stays silent');
+
+    transport.play(0);
+    const first = transport.tick(16);
+    assert.ok(first.cues.some(cue => cue.id === 'ron' && cue.t === t0), 't0 boundary cue fires on first advancing tick');
+
+    // Pausing and resuming without moving must not re-fire the t0 cue.
+    transport.seek(t0);
+    transport.play(0);
+    transport.tick(0); // non-advancing frame at 0ms must keep boundary pending
+    const afterPause = transport.tick(16);
+    assert.ok(afterPause.cues.some(cue => cue.id === 'ron' && cue.t === t0));
+    transport.pause();
+    transport.play(20);
+    const resumed = transport.tick(36);
+    assert.ok(!resumed.cues.some(cue => cue.t === t0));
+
+    // After a multi-second stall from t0, stale t0 cue outside backlog window is dropped.
+    transport.seek(t0);
+    transport.play(0);
+    const stalled = transport.tick(2000);
+    assert.ok(!stalled.cues.some(cue => cue.t === t0));
+});

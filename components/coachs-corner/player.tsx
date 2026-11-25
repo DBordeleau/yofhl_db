@@ -230,6 +230,7 @@ export default function Player({ episode, episodeKey, teams, players = [], banne
 
     useEffect(() => {
         if (!cue) return;
+        if (soundOn) enableAudio();
         seek(cue.t);
         show.play();
     }, [cue]); // eslint-disable-line react-hooks/exhaustive-deps
