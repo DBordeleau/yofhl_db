@@ -70,3 +70,20 @@ test('a header that names no source is an error', () => {
     flashbackError(withFlashback('[flashback: last tuesday]'), 8, /like \[flashback: week 4\]/);
     flashbackError(withFlashback('[flashback: week 4, cam: wide]'), 8, /like \[flashback: week 4\]/);
 });
+
+test('the tag counts weeks back in this season and seasons back before it; the pilot is week 0 of 2027', () => {
+    const tag = (header: string, front = head()) => {
+        const episode = episodeFrom(withFlashback(header, front));
+        assert.deepEqual(episode.diagnostics, []);
+        return frameAt(episode.timeline, middle(episode.timeline.lines[1])).flashback?.tag;
+    };
+    assert.equal(tag('[flashback: week 5]'), '1 WEEK AGO');
+    assert.equal(tag('[flashback: week 2]'), '4 WEEKS AGO');
+    assert.equal(tag('[flashback: pilot]'), '6 WEEKS AGO');
+    assert.equal(tag('[flashback: pilot]', head(1)), '1 WEEK AGO');
+    assert.equal(tag('[flashback: 2027 week 3]'), '3 WEEKS AGO');
+    assert.equal(tag('[flashback: 2027 week 3]', head(1, 2028)), 'LAST SEASON');
+    assert.equal(tag('[flashback: pilot]', head(20, 2028)), 'LAST SEASON');
+    assert.equal(tag('[flashback: 2027 week 12]', head(2, 2030)), '3 SEASONS AGO');
+    assert.equal(tag('[Flashback:  2027  Week 3]'), '3 WEEKS AGO');
+});
