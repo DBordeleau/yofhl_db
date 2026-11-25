@@ -238,3 +238,28 @@ test('a playoff week an admin marked final is written before it ends', async t =
     await league.run(endOf(QUARTERFINALS) - HOUR);
     assert.equal((await bracket(league)).length, 2);
 });
+
+test('swapping game slots or replacing pairings inside an unfrozen playoff round updates without unique-key conflicts', async t => {
+    const league = await playoffLeague(t);
+    playQuarterfinals(league);
+    await league.run(endOf(QUARTERFINALS) + 7 * HOUR);
+
+    // Swap the two Quarterfinal pairings' order in Fantrax inside the correction window
+    league.setPairings(QUARTERFINALS, [[null, 1], [6, 3], [null, 2], [5, 4], [7, 8]]);
+    const swapped = await league.run(endOf(QUARTERFINALS) + 31 * HOUR);
+    assert.equal(swapped.result.outcome === 'synced' && swapped.result.changed.playoffGames, 2);
+    assert.deepEqual(await bracket(league), [
+        [1, 0, 6, 3, 350, 402.1, 3],
+        [1, 1, 5, 4, 410.5, 398.25, 5],
+    ]);
+
+    // Changing a pairing (flipping away/home) deletes the old pairing and writes the new one without collision
+    league.setPairings(QUARTERFINALS, [[null, 1], [3, 6], [null, 2], [5, 4], [7, 8]]);
+    league.setScores(QUARTERFINALS, [[3, 6, 402.1, 350], [5, 4, 410.5, 398.25], [7, 8, 300, 200]]);
+    const replaced = await league.run(endOf(QUARTERFINALS) + 55 * HOUR);
+    assert.equal(replaced.result.outcome === 'synced' && replaced.result.changed.playoffGames, 2);
+    assert.deepEqual(await bracket(league), [
+        [1, 0, 3, 6, 402.1, 350, 3],
+        [1, 1, 5, 4, 410.5, 398.25, 5],
+    ]);
+});

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { seasonDates } from '@/lib/award-vote/season-dates';
-import { createFantraxClient, readCore } from './fantrax-client';
+import { createFantraxClient, directoryPlayer, readCore } from './fantrax-client';
 
 // Recorded Fantrax responses (lib/fantrax/fixtures), served by endpoint. `edit` changes one response for a test.
 const recorded = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8'));
@@ -332,4 +332,19 @@ test('a skater table that is not the complete regular-season table of the season
         ['no response', () => ({ responses: [] }), /Unexpected Fantrax stats page/],
     ];
     for (const [what, edit, error] of invalid) await assert.rejects(skaterTable(edit).client.skaterTable(LIVE, 2027), error, what);
+});
+
+test('directoryPlayer splits comma-separated positions and normalizes (N/A) NHL team sentinels', () => {
+    assert.deepEqual(directoryPlayer({ name: 'McDavid, Connor', position: 'C', team: 'EDM' }), {
+        name: 'Connor McDavid', positions: ['C'], nhlTeam: 'EDM',
+    });
+    assert.deepEqual(directoryPlayer({ name: 'Gauthier, Cutter', position: 'LW, RW', team: '(N/A)' }), {
+        name: 'Cutter Gauthier', positions: ['LW', 'RW'], nhlTeam: null,
+    });
+    assert.deepEqual(directoryPlayer({ name: 'Prospect, Empty', position: ' , ', team: '' }), {
+        name: 'Empty Prospect', positions: [], nhlTeam: null,
+    });
+    assert.deepEqual(directoryPlayer({ name: 'Unlisted', position: 'D' }), {
+        name: 'Unlisted', positions: ['D'], nhlTeam: null,
+    });
 });
