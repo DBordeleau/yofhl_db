@@ -68,7 +68,6 @@ test('the tag needs this episode’s week, and its season when the source names 
 
 test('a header that names no source is an error', () => {
     flashbackError(withFlashback('[flashback: last tuesday]'), 8, /like \[flashback: week 4\]/);
-    flashbackError(withFlashback('[flashback: week 4, cam: wide]'), 8, /like \[flashback: week 4\]/);
 });
 
 test('the tag counts weeks back in this season and seasons back before it; the pilot is week 0 of 2027', () => {
@@ -153,4 +152,33 @@ test('a flashback that opens the episode is played, not part of the opening pict
     assert.equal(episode.openingPicture.flashback, null);
     const [span] = episode.timeline.flashbacks!;
     assert.equal(span.t0, 6000);
+});
+
+test('don: in the header puts Don in that wardrobe for lines naming no gesture, and a prefixed gesture overrides it', () => {
+    const episode = episodeFrom(`${head()}DON: This week.
+
+[flashback: week 4, don: remembrance-rest]
+DON: Back then.
+
+DON (yell): Loud back then!
+
+DON (alternate-4-point): Another suit.
+[end flashback]
+
+RON: Back to now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const [, plain, loud, prefixed] = episode.timeline.lines;
+    const don = (line: { t0: number; t1: number }) => frameAt(episode.timeline, middle(line)).hosts.don.gesture;
+    assert.equal(don(plain), 'remembrance-rest');
+    assert.equal(don(loud), 'remembrance-angry');
+    assert.equal(don(prefixed), 'alternate-4-point');
+});
+
+test('an unknown header gesture or lapel, or any other cue in the header, is an error on the header', () => {
+    flashbackError(withFlashback('[flashback: week 4, don: moonwalk]'), 8, /Don has no “moonwalk” gesture/);
+    flashbackError(withFlashback('[flashback: week 4, lapel: carnation]'), 8, /lapel is one of: poppy, or none/);
+    flashbackError(withFlashback('[flashback: week 4, cam: wide]'), 8, /takes only don: and lapel:/);
+    flashbackError(withFlashback('[flashback: week 4, ron: stare]'), 8, /takes only don: and lapel:/);
+    assert.deepEqual(errors(withFlashback('[flashback: week 4, don: remembrance-rest, lapel: none]')), []);
+    assert.deepEqual(errors(withFlashback('[flashback: week 4, lapel: Poppy]')), []);
 });

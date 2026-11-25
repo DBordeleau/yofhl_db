@@ -195,6 +195,8 @@ export function compile(script: Script): Timeline {
             clears.push(t);
             if (entering) {
                 flashbacks.push({ line: block.line, source: block.source, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0 });
+                // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
+                if (block.don) { rest.don = block.don; setGesture('don', block.don, t); }
                 t += FLASHBACK_ENTRY_MS;
             } else {
                 const span = flashbacks[flashbacks.length - 1];

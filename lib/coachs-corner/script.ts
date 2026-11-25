@@ -100,6 +100,10 @@ export interface Flashback {
     source: FlashbackSource | null;
     /** how far back the source is, as the tag reads it: "2 WEEKS AGO", "LAST SEASON"; empty when it can't be counted */
     tag: string;
+    /** the header's don: gesture, Don's pose as the block starts; absent when he keeps what he's holding */
+    don?: string;
+    /** the header's lapel: for the block, null for lapel: none; absent when it keeps the episode's */
+    lapel?: Lapel | null;
     /** the events inside it, from `from` up to but not including `to` */
     from: number;
     to: number;
@@ -684,14 +688,31 @@ export function parseScript(source: string): Script {
     const openFlashback = (header: string, line: number) => {
         const report = reporter(line);
         if (flashback) { report('error', `A flashback can’t start inside another. Close the one on line ${flashback.line} with [end flashback] first.`); return; }
-        const source = parseFlashbackSource(header);
+        const [sourceText, ...options] = header.split(',');
+        const source = parseFlashbackSource(sourceText);
         let tag = '';
         if (!source) report('error', 'Name where the lines come from, like [flashback: week 4], [flashback: pilot] or [flashback: 2027 week 4].');
         else {
             const counted = flashbackTag(meta, source);
             if ('error' in counted) report('error', counted.error); else tag = counted.tag;
         }
-        flashback = { line, source, tag, from: events.length, to: events.length };
+        const block: Flashback = { line, source, tag, from: events.length, to: events.length };
+        flashback = block;
+        for (const option of options) {
+            const kv = option.trim().match(/^([a-z]+)\s*:\s*(.+)$/i);
+            const key = kv?.[1].toLowerCase();
+            const value = kv?.[2].trim() ?? '';
+            if (key === 'don') {
+                const gesture = resolveGesture('don', value);
+                if (gesture) block.don = gesture;
+                else report('error', `Don has no “${value}” gesture. Try: ${gestureHelp('don')}`);
+            } else if (key === 'lapel') {
+                const lapel = value.toLowerCase();
+                if (lapel === 'none') block.lapel = null;
+                else if ((LAPELS as readonly string[]).includes(lapel)) block.lapel = lapel as Lapel;
+                else report('error', `A flashback’s lapel is one of: ${LAPELS.join(', ')}, or none.`);
+            } else report('error', `A flashback header takes only don: and lapel:, like [flashback: week 4, don: remembrance-rest, lapel: poppy]. Put “${option.trim()}” on a stage line inside the block.`);
+        }
     };
     const closeFlashback = (block: Flashback) => {
         block.to = events.length;
