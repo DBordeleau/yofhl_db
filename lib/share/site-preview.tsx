@@ -1,68 +1,72 @@
 import React from 'react';
 import { ImageResponse } from 'next/og';
-import { catalogueAward } from '../awards';
-import { BRAND_SLAB, GOLD, Glow, loadPreviewFonts, pngDataUrl, PREVIEW_BACKGROUND, PREVIEW_HEIGHT, PREVIEW_WIDTH,
-    publicArt, RED, Slab, BLUE } from './preview';
+import { BLUE, BRAND_SLAB, Glow, loadPreviewFonts, NAVY, PREVIEW_HEIGHT, PREVIEW_WIDTH, RED } from './preview';
 
-// The image behind every YOFHL link that has none of its own: the share cards' navy and glows, the red YOFHL slab, the
-// Jagr Cup, and what the site holds. It reads no league data, so Next renders it once at build time.
+// The image behind every YOFHL link that has none of its own: the site's wordmark at centre ice, on the slab the home
+// ticker wears. It reads no league data and no art, so Next renders it once at build time.
+//
+// It is the one preview that is light. The episode card and the share cards are navy, which is right when they sit on
+// the page that drew them; a link preview sits in a chat full of other link previews, and the pale sheet is what makes
+// this one get looked at.
 
-const W = PREVIEW_WIDTH, H = PREVIEW_HEIGHT, PAD = 56;
-const CUP_BOX = { left: 800, top: 80, width: 320, height: 440 };
+const W = PREVIEW_WIDTH, H = PREVIEW_HEIGHT;
+const RULE = 17;
+/** centre ice, above the rule along the bottom */
+const CX = W / 2, CY = (H - RULE) / 2;
 
-/** the line the card leads with, and what the image is described as to a screen reader */
-export const SITE_PREVIEW_LINE = 'Every season, team, player and record.';
+const LINE_BLUE = '#2f7fcb', LINE_RED = '#d93850', PAINT = 'rgba(216,50,76,.42)';
+/** the ice itself, and how cool it goes out at the boards */
+const SHEET = 'linear-gradient(166deg, #ffffff 0%, #ffffff 58%, #f8fbfe 100%)';
+const BOARDS = 'radial-gradient(rgba(255,255,255,0) 74%, rgba(158,190,216,.13) 100%)';
 
-/** The Jagr Cup, scaled to fit its box: Satori won't size an image for us, so the art's own shape decides. */
-async function cupImage() {
-    const trophy = catalogueAward('jagr-cup').image;
-    if (!trophy) throw new Error('the Jagr Cup has no art, so the default link preview has no trophy to draw');
-    const art = await publicArt(trophy);
-    const { width = 1, height = 1 } = await art.metadata();
-    const scale = Math.min(CUP_BOX.width / width, CUP_BOX.height / height);
-    const drawn = { width: Math.round(width * scale), height: Math.round(height * scale) };
-    return { src: await pngDataUrl(art), ...drawn,
-        left: CUP_BOX.left + (CUP_BOX.width - drawn.width) / 2, top: CUP_BOX.top + (CUP_BOX.height - drawn.height) / 2 };
-}
+/** a neutral-zone faceoff spot */
+const Spot = ({ x, y }: { x: number; y: number }) =>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'absolute',
+        left: x - 52, top: y - 52, width: 104, height: 104, borderRadius: 104, border: `5px solid ${PAINT}` }}>
+        <div style={{ width: 30, height: 30, borderRadius: 30, backgroundColor: PAINT }} />
+    </div>;
 
 /** the site's 1200×630 PNG link preview */
 export async function renderSitePreview(): Promise<ImageResponse> {
-    const [cup, fonts] = await Promise.all([cupImage(), loadPreviewFonts()]);
     return new ImageResponse(
-        <div style={{ display: 'flex', position: 'relative', width: W, height: H, fontFamily: 'Archivo', color: '#fff',
-            backgroundImage: PREVIEW_BACKGROUND }}>
-            <Glow cx={600} cy={0} rx={560} ry={380} colour="rgba(214,232,255,.07)" />
-            <Glow cx={960} cy={280} rx={340} ry={310} colour="rgba(243,217,149,.28)" />
-            <Glow cx={170} cy={600} rx={430} ry={320} colour="rgba(200,16,46,.3)" />
-            <Glow cx={1090} cy={590} rx={400} ry={300} colour="rgba(61,139,218,.24)" />
+        <div style={{ display: 'flex', position: 'relative', width: W, height: H, fontFamily: 'Archivo',
+            backgroundImage: SHEET }}>
+            {/* the lines a rink is painted with: two blue lines, the red centre line, and four faceoff spots */}
+            <div style={{ position: 'absolute', left: 300, top: 0, width: 17, height: H, background: LINE_BLUE }} />
+            <div style={{ position: 'absolute', left: W - 317, top: 0, width: 17, height: H, background: LINE_BLUE }} />
+            <div style={{ position: 'absolute', left: CX - 8, top: 0, width: 17, height: H, background: LINE_RED }} />
+            <Spot x={158} y={CY - 176} />
+            <Spot x={158} y={CY + 176} />
+            <Spot x={W - 158} y={CY - 176} />
+            <Spot x={W - 158} y={CY + 176} />
 
-            {/* the trophy stands in its own light, as on the award share card */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={cup.src} alt="" width={cup.width} height={cup.height} style={{ position: 'absolute', left: cup.left, top: cup.top }} />
-            <Glow cx={CUP_BOX.left + CUP_BOX.width / 2} cy={cup.top + cup.height + 6} rx={175} ry={20} colour="rgba(0,0,0,.7)" />
+            {/* the house lights on the sheet. A glow that faded to transparent black would grey the ice it sits on. */}
+            <Glow cx={CX} cy={40} rx={900} ry={540} colour="rgba(255,255,255,.72)" fade="rgba(255,255,255,0)" stop={100} />
+            <div style={{ position: 'absolute', left: 0, top: 0, width: W, height: H, backgroundImage: BOARDS }} />
 
-            <div style={{ position: 'absolute', left: PAD, top: 0, width: 700, height: H - 34, display: 'flex',
-                flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', marginLeft: -14, paddingLeft: 14 }}>
-                    <Slab background={BRAND_SLAB} height={132} padding={44}>
-                        <span style={{ fontFamily: 'Archivo SemiExpanded', fontStyle: 'italic', fontWeight: 900, fontSize: 96,
-                            letterSpacing: '-0.05em' }}>YOFHL</span>
-                    </Slab>
-                </div>
-                <div style={{ display: 'block', marginTop: 34, width: 620, fontWeight: 800, fontSize: 46, lineHeight: 1.14,
-                    letterSpacing: '-0.02em', color: '#e8eef6' }}>{SITE_PREVIEW_LINE}</div>
-                <div style={{ display: 'flex', marginTop: 26, fontWeight: 800, fontSize: 21, letterSpacing: '0.16em', color: GOLD }}>
-                    YOFHL.COM
+            <div style={{ position: 'absolute', left: CX - 278, top: CY - 278, width: 556, height: 556,
+                borderRadius: 556, border: `8px solid ${LINE_BLUE}` }} />
+
+            {/* the wordmark on the slab the home ticker wears, standing at centre ice */}
+            <div style={{ position: 'absolute', left: 0, top: CY - 108, width: W, height: 216, display: 'flex',
+                alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', height: 196, padding: '0 72px',
+                    backgroundImage: BRAND_SLAB, transform: 'skewX(-14deg)',
+                    boxShadow: '0 26px 54px rgba(16,29,50,.38)' }}>
+                    <div style={{ display: 'flex', transform: 'skewX(14deg)' }}>
+                        <span style={{ fontFamily: 'Archivo SemiExpanded', fontStyle: 'italic', fontWeight: 900,
+                            fontSize: 126, letterSpacing: '-0.045em', color: '#fff' }}>YOFHL</span>
+                    </div>
                 </div>
             </div>
 
-            {/* the share cards' red, white and blue rule */}
-            <div style={{ position: 'absolute', left: 0, top: H - 17, display: 'flex', flexDirection: 'column', width: W }}>
+            {/* the share cards' rule, with navy in the middle stripe so it reads against the ice */}
+            <div style={{ position: 'absolute', left: 0, top: H - RULE, display: 'flex', flexDirection: 'column', width: W }}>
                 <div style={{ height: 6, background: RED }} />
-                <div style={{ height: 5, background: '#fff' }} />
+                <div style={{ height: 5, background: NAVY }} />
                 <div style={{ height: 6, background: BLUE }} />
             </div>
         </div>,
-        { width: W, height: H, fonts },
+        { width: W, height: H, fonts: await loadPreviewFonts() },
     );
 }

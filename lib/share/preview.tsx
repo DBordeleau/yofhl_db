@@ -36,10 +36,17 @@ type Art = ReturnType<typeof sharp>;
 /** art as a PNG data URL, the only form Satori takes it in */
 export const pngDataUrl = async (art: Art) => `data:image/png;base64,${(await art.png().toBuffer()).toString('base64')}`;
 
-/** a soft ellipse of light centred on cx, cy */
-export const Glow = ({ cx, cy, rx, ry, colour }: { cx: number; cy: number; rx: number; ry: number; colour: string }) =>
+/**
+ * A soft ellipse of light centred on cx, cy.
+ *
+ * It fades to transparent black, which is invisible over the navy the cards sit on. Over a light surface that same
+ * fade greys everything it covers and leaves a visible rim where the gradient stops, so a glow on a light card passes
+ * `fade` as a transparent version of its own colour.
+ */
+export const Glow = ({ cx, cy, rx, ry, colour, fade = 'rgba(0,0,0,0)', stop = 71 }:
+    { cx: number; cy: number; rx: number; ry: number; colour: string; fade?: string; stop?: number }) =>
     <div style={{ position: 'absolute', left: cx - rx, top: cy - ry, width: rx * 2, height: ry * 2,
-        backgroundImage: `radial-gradient(${colour} 0%, rgba(0,0,0,0) 71%)` }} />;
+        backgroundImage: `radial-gradient(${colour} 0%, ${fade} ${stop}%)` }} />;
 
 /** a slanted slab, as on the share card's brand bar */
 export const Slab = ({ background, height = 46, padding = 30, children }:

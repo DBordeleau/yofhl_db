@@ -21,7 +21,7 @@ export const DEFAULT_PREVIEW_IMAGE = {
     url: '/opengraph-image',
     width: 1200,
     height: 630,
-    alt: 'YOFHL: every season, team, player and record.',
+    alt: 'The YOFHL wordmark at centre ice.',
 } as const;
 
 export interface PageMetadata {
