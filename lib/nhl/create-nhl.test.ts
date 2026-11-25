@@ -11,19 +11,23 @@ import searchStutzle from './fixtures/search-stutzle.json';
 import landingAllen from './fixtures/landing-8474596.json';
 import landingOReilly from './fixtures/landing-8475158.json';
 import landingOtherOReilly from './fixtures/landing-8481026.json';
+import gameLogAllen from './fixtures/game-log-8474596-20232024.json';
 
 const SEARCH = 'https://search.d3.nhle.com/api/v1/search/player';
 const LANDING = /^https:\/\/api-web\.nhle\.com\/v1\/player\/(\d+)\/landing$/;
+const GAME_LOG = /^https:\/\/api-web\.nhle\.com\/v1\/player\/(\d+\/game-log\/\d+)\/2$/;
 const loose = (name: string) => name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 
-/** the NHL's recorded answers: searches by the name asked for, profiles by NHL identity */
-function recordedNhl(overrides: { searches?: Record<string, unknown>; profiles?: Record<number, unknown> } = {}) {
+/** the NHL's recorded answers: searches by the name asked for, profiles by NHL identity, regular-season game logs by
+ * `<NHL identity>/game-log/<NHL season ID>` */
+function recordedNhl(overrides: { searches?: Record<string, unknown>; profiles?: Record<number, unknown>; gameLogs?: Record<string, unknown> } = {}) {
     const searches: Record<string, unknown> = {
         [loose("Ryan O'Reilly")]: searchOReilly, [loose('Matt Murray')]: searchMurray,
         [loose('Tim Stutzle')]: searchStutzle, [loose('Sebastian Aho')]: searchAho,
         ...overrides.searches,
     };
     const profiles: Record<number, unknown> = { 8474596: landingAllen, 8475158: landingOReilly, 8481026: landingOtherOReilly, ...overrides.profiles };
+    const gameLogs: Record<string, unknown> = { '8474596/game-log/20232024': gameLogAllen, ...overrides.gameLogs };
     const requests: string[] = [];
     const fetcher = async (url: string) => {
         requests.push(url);
@@ -33,6 +37,8 @@ function recordedNhl(overrides: { searches?: Record<string, unknown>; profiles?:
         }
         const profile = LANDING.exec(url);
         if (profile && profiles[Number(profile[1])] !== undefined) return new Response(JSON.stringify(profiles[Number(profile[1])]));
+        const log = GAME_LOG.exec(url);
+        if (log && gameLogs[log[1]] !== undefined) return new Response(JSON.stringify(gameLogs[log[1]]));
         return new Response('Not found', { status: 404 });
     };
     return { nhl: createNhl({ fetcher }), fetcher, requests };
@@ -189,6 +195,36 @@ test('a failed or unexpected player profile throws', async () => {
     await assert.rejects(profile({ ...landingOReilly, seasonTotals: { season: 20252026 } }), /unexpectedly/);
     await assert.rejects(profile({ ...landingOReilly, seasonTotals: [{ leagueAbbrev: 'NHL', gameTypeId: 2 }] }), /unexpectedly/);
     await assert.rejects(profile({ ...landingOReilly, seasonTotals: [{ leagueAbbrev: 'NHL', gameTypeId: 2, season: 2026 }] }), /unexpectedly/);
+});
+
+test("games before a date count earlier NHL regular seasons and that season's game log, not games on the date", async () => {
+    const { nhl, requests } = recordedNhl();
+    // Jake Allen before November 2, 2023: 395 regular-season games from 2012-13 to 2022-23 (not the playoffs or the
+    // AHL), then 4 for Montreal that October; the November 2 game itself and later seasons don't count
+    assert.equal(await nhl.gamesBefore(8474596, 2024, '2023-11-02'), 399);
+    assert.deepEqual(requests, ['https://api-web.nhle.com/v1/player/8474596/landing', 'https://api-web.nhle.com/v1/player/8474596/game-log/20232024/2']);
+    assert.equal(await nhl.gamesBefore(8474596, 2024, '2023-11-03'), 400);
+    assert.equal(await nhl.gamesBefore(8474596, 2024, '2023-10-01'), 395);
+});
+
+test('games before a date in a season with no NHL games need no game log', async () => {
+    const { nhl, requests } = recordedNhl();
+    // 2013-14 Jake Allen spent in the AHL, after 15 games for St. Louis in 2012-13
+    assert.equal(await nhl.gamesBefore(8474596, 2014, '2013-10-01'), 15);
+    // the other Ryan O'Reilly has never played in the NHL
+    assert.equal(await nhl.gamesBefore(8481026, 2026, '2025-10-01'), 0);
+    assert.ok(requests.every(url => !url.includes('game-log')));
+});
+
+test("games before a date the NHL didn't give are null, and an unexpected game log throws", async () => {
+    const missing = landingAllen.seasonTotals.map(line => line.season === 20142015 && line.gameTypeId === 2 ? { ...line, gamesPlayed: undefined } : line);
+    assert.equal(await recordedNhl({ profiles: { 8474596: { ...landingAllen, seasonTotals: missing } } }).nhl.gamesBefore(8474596, 2024, '2023-11-02'), null);
+    const { seasonTotals: _, ...bare } = landingAllen;
+    assert.equal(await recordedNhl({ profiles: { 8474596: bare } }).nhl.gamesBefore(8474596, 2024, '2023-11-02'), null);
+    const log = (answer: unknown) => recordedNhl({ gameLogs: { '8474596/game-log/20232024': answer } }).nhl.gamesBefore(8474596, 2024, '2023-11-02');
+    await assert.rejects(log({ gameLog: { gameDate: '2023-10-11' } }), /game log answered unexpectedly/);
+    await assert.rejects(log({ gameLog: [{ gameDate: 'Oct 11, 2023' }] }), /game log answered unexpectedly/);
+    await assert.rejects(recordedNhl({ gameLogs: { '8474596/game-log/20232024': undefined } }).nhl.gamesBefore(8474596, 2024, '2023-11-02'), /404/);
 });
 
 test('a request that takes longer than the timeout fails', async () => {
