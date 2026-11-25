@@ -83,8 +83,9 @@ test('same-name players nothing tells apart, or more than one match, are no NHL 
     assert.equal(await nhl.identify({ name: 'Matt Murray', positions: ['G'], nhlTeam: 'TOR' }), null);
     assert.equal(await nhl.identify({ name: "Ryan O'Reilly", positions: ['C'] }), null);
     assert.equal(await nhl.identify({ name: 'Sebastian Aho' }), null);
-    // a team narrows only same-name players: one name match is the identity whatever team it was given
-    assert.equal(await nhl.identify({ name: 'Tim Stutzle', positions: ['C'], nhlTeam: 'TOR' }), 8482116);
+    // a known team always narrows: a lone name match on another current and last team is no identity
+    assert.equal(await nhl.identify({ name: 'Tim Stutzle', positions: ['C'], nhlTeam: 'TOR' }), null);
+    assert.equal(await nhl.identify({ name: 'Tim Stutzle', positions: ['C'], nhlTeam: 'OTT' }), 8482116);
     // a name only, as for a featured player: unique exact-name matching
     assert.equal(await nhl.identify({ name: 'Tim Stützle' }), 8482116);
     assert.equal(await nhl.identify({ name: 'Nobody Atall' }), null);

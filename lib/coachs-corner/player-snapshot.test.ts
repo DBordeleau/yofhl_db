@@ -104,17 +104,27 @@ test('incomplete FPts are reported, and games played is never derived', async t 
     assert.match(snapshotMessage(diagnostics[0], 2026).message, /Broken Line.*2025–26/);
 });
 
-test('a headshot is the one NHL match left after narrowing by team, otherwise the Fantrax portrait', async t => {
+test('a headshot is the NHL identity left after narrowing by position and team, otherwise the Fantrax portrait', async t => {
     const query = await archive(t);
     const refs = [{ name: 'Tom Wilson' }, { name: 'William Nylander' }, { name: 'Nico Hischier' }, { name: 'Prospect Player' }];
     const { players } = await playerSnapshot(2026, refs, { query, nhl: nhl() });
     assert.deepEqual(players.map(p => p.headshot), [
         'https://assets.nhle.com/mugs/8476880.png', // two Tom Wilsons, one in Washington
         FANTRAX.nylander, // both Nylanders are Leafs: never the first match
-        FANTRAX.hischier, // no NHL match
+        FANTRAX.hischier, // no NHL identity
         'https://assets.nhle.com/mugs/8400003.png', // no record, but only one NHL player has the name
     ]);
     assert.equal((await playerSnapshot(2026, [{ name: 'Tom Wilson' }], { query, nhl: noNhl })).players[0].headshot, FANTRAX.wilson);
+});
+
+test("a lone same-name NHL player on another team isn't the player, so the Fantrax portrait stays", async t => {
+    const query = await archive(t);
+    const state = memoryNhlState({ players: {
+        8400004: nhlPlayer({ nhlId: 8400004, name: 'Nico Hischier', team: 'SEA', position: 'C', headshot: 'https://assets.nhle.com/mugs/8400004.png' }),
+    } });
+    // the archive has Hischier in New Jersey
+    const { players } = await playerSnapshot(2026, [{ name: 'Nico Hischier' }], { query, nhl: createMemoryNhl(state) });
+    assert.equal(players[0].headshot, FANTRAX.hischier);
 });
 
 test('every cited player is kept, however many', async t => {

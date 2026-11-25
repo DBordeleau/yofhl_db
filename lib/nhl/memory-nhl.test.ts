@@ -17,8 +17,9 @@ test('the in-memory NHL identifies held players by verified identity, else by th
     assert.equal(await nhl.identify({ name: 'Ryan OReilly', positions: ['C'], nhlTeam: 'NSH' }), 8475158);
     assert.equal(await nhl.identify({ name: "Ryan O'Reilly", positions: ['C'] }), null);
     assert.equal(await nhl.identify({ name: 'Tim Stutzle' }), 8482116);
+    assert.equal(await nhl.identify({ name: 'Tim Stutzle', nhlTeam: 'TOR' }), null);
     assert.equal(await nhl.identify({ name: 'Nobody' }), null);
-    assert.deepEqual(state.identified.map(player => player.name), ["Ryan O'Reilly", 'Ryan OReilly', "Ryan O'Reilly", 'Tim Stutzle', 'Nobody']);
+    assert.deepEqual(state.identified.map(player => player.name), ["Ryan O'Reilly", 'Ryan OReilly', "Ryan O'Reilly", 'Tim Stutzle', 'Tim Stutzle', 'Nobody']);
 });
 
 test('the in-memory NHL reads held players as copies, and fails as told', async () => {

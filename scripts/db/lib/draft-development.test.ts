@@ -29,7 +29,7 @@ test("a pick's draft facts come from the NHL player it identifies, by Player ID,
 
 test("a pick old enough for draft regret counts the NHL games played before its draft date", async () => {
     const state = memoryNhlState({
-        players: { 8480000: nhlPlayer({ position: 'D', birthDate: '2001-05-26', seasons: { 2024: nhlSeason({ games: 60 }), 2025: nhlSeason({ games: 3 }) } }) },
+        players: { 8480000: nhlPlayer({ position: 'D', team: 'MTL', birthDate: '2001-05-26', seasons: { 2024: nhlSeason({ games: 60 }), 2025: nhlSeason({ games: 3 }) } }) },
         gameLogs: { 8480000: { 2025: ['2024-10-01', '2024-10-04', '2024-10-06'] } },
     });
     const facts = await draftFactsLoader(createMemoryNhl(state))(draftPick({ playerName: 'Test Player' }));
@@ -46,9 +46,9 @@ test("a pick's stored NHL identity is read without identifying the pick again", 
 test('an unmatched pick, or an NHL player with no birth date, season history or games, has no draft facts', async () => {
     const state = memoryNhlState({
         players: {
-            1: nhlPlayer({ nhlId: 1, name: 'No Birthday', position: 'D', birthDate: null }),
-            2: nhlPlayer({ nhlId: 2, name: 'No History', position: 'D', seasons: null }),
-            3: nhlPlayer({ nhlId: 3, name: 'No Games', position: 'D', birthDate: '2001-05-26', seasons: { 2024: nhlSeason() } }),
+            1: nhlPlayer({ nhlId: 1, name: 'No Birthday', position: 'D', team: 'MTL', birthDate: null }),
+            2: nhlPlayer({ nhlId: 2, name: 'No History', position: 'D', team: 'MTL', seasons: null }),
+            3: nhlPlayer({ nhlId: 3, name: 'No Games', position: 'D', team: 'MTL', birthDate: '2001-05-26', seasons: { 2024: nhlSeason() } }),
         },
     });
     const load = draftFactsLoader(createMemoryNhl(state));
