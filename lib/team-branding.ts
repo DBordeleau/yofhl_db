@@ -50,6 +50,9 @@ export const suggestedPalettes: Record<number, TeamColours> = {
 };
 
 export const fallbackColours: TeamColours = { primary: '#26365F', secondary: '#C8102E', tertiary: '#FFFFFF', treatment: 'stripes' };
+/** a team's colours: its saved brand, else its suggested palette, else the league's; the share card and link preview both pick this way */
+export const paletteFor = (palettes: Record<number, TeamColours>, team: { id: number | null } | null): TeamColours =>
+    (team?.id ? palettes[team.id] ?? suggestedPalettes[team.id] : null) ?? fallbackColours;
 export const isHexColour = (value: unknown): value is string => typeof value === 'string' && /^#[\da-f]{6}$/i.test(value);
 
 export function parseTeamColours(value: unknown, teamId?: number): TeamColours | null {

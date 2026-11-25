@@ -16,10 +16,12 @@ const nextConfig: NextConfig = {
       { source: '/champions/:year', destination: '/season/:year', permanent: true },
     ];
   },
-  // The episode link preview reads its fonts and the hosts' published art from disk (lib/share/episode-preview.tsx);
-  // public/ is served from the CDN, not bundled, so the function needs both traced in.
+  // Link previews read their fonts and art from disk (lib/share/episode-preview.tsx, lib/share/link-preview.tsx);
+  // public/ is served from the CDN, not bundled, so each function needs both traced in. A player's preview reads their
+  // team's logo when it is a public path rather than an owner's upload.
   outputFileTracingIncludes: {
     '/coachs-corner/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/coachs-corner/media/{don,ron}-*-640.*.avif'],
+    '/player/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/*logo*.png', './public/logos/*'],
   },
   experimental: { serverActions: { bodySizeLimit: '3mb' } },
   images: { remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com', pathname: '/team-logos/**' }] },

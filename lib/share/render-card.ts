@@ -1,5 +1,5 @@
 import { formatFpts, positionNames, seasonLabel } from '../league';
-import { fallbackColours, suggestedPalettes, type TeamColours } from '../team-branding';
+import { paletteFor, type TeamColours } from '../team-branding';
 import { artworkBounds } from '../team-logo';
 import { ART_FRAME, artFor, lapelFor, type CharacterId, type LapelSpot, type Pose } from '../coachs-corner/cast';
 import { POPPY, POPPY_TILT } from '../coachs-corner/poppy';
@@ -38,7 +38,7 @@ const mix = (hex: string, target: string, amount: number) => {
     return `#${a.map((value, i) => Math.round(value + (b[i] - value) * amount).toString(16).padStart(2, '0')).join('')}`;
 };
 const distance = (x: string, y: string) => Math.hypot(...rgbOf(x).map((value, i) => value - rgbOf(y)[i]));
-const teamColours = (kit: Kit, team: ShareTeam | null) => (team?.id ? kit.palettes[team.id] ?? suggestedPalettes[team.id] : null) ?? fallbackColours;
+const teamColours = (kit: Kit, team: ShareTeam | null) => paletteFor(kit.palettes, team);
 
 // ---------- type ----------
 function setFont(kit: Kit, { size, weight = 800, italic = false, stretch = 100, spacing = 0 }: TextStyle) {
