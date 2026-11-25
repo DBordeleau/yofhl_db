@@ -56,6 +56,12 @@ export interface Nhl {
     identify(player: IdentifyRequest): Promise<NhlIdentity | null>;
     /** the NHL's record of the player with this identity */
     player(nhlId: NhlIdentity): Promise<NhlPlayer>;
+    /**
+     * how many NHL regular-season games the player had played before `date` (`YYYY-MM-DD`): every earlier season's,
+     * then the games in `seasonYear`'s game log dated before it (a game on `date` doesn't count). Null when the NHL
+     * gave no season history, or no games for one of the earlier seasons.
+     */
+    gamesBefore(nhlId: NhlIdentity, seasonYear: number, date: string): Promise<number | null>;
 }
 
 /** a person's age in whole years on `on` (`YYYY-MM-DD`), or null for a missing or malformed birth date */

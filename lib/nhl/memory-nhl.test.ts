@@ -44,3 +44,21 @@ test('the in-memory NHL reads held players as copies, and fails as told', async 
     await assert.rejects(nhl.player(8482116), /503/);
     assert.deepEqual(state.read, [8482116, 8482116, 8400000, 8482116, 8482116]);
 });
+
+test("the in-memory NHL counts games before a date from earlier seasons and that season's held game dates", async () => {
+    const state = memoryNhlState({
+        players: { 8482116: nhlPlayer({ nhlId: 8482116, seasons: { 2024: nhlSeason({ games: 79 }), 2025: nhlSeason({ games: 80 }), 2026: nhlSeason({ games: 5 }) } }) },
+        gameLogs: { 8482116: { 2025: ['2024-10-09', '2024-10-12', '2024-10-15'] } },
+    });
+    const nhl = createMemoryNhl(state);
+    // 79 from 2023-24, then two October games; the game on the date doesn't count
+    assert.equal(await nhl.gamesBefore(8482116, 2025, '2024-10-15'), 81);
+    assert.equal(await nhl.gamesBefore(8482116, 2027, '2026-10-01'), 164);
+    state.players[8482116].seasons![2024].games = null;
+    assert.equal(await nhl.gamesBefore(8482116, 2025, '2024-10-15'), null);
+    state.players[8482116].seasons = null;
+    assert.equal(await nhl.gamesBefore(8482116, 2025, '2024-10-15'), null);
+    await assert.rejects(nhl.gamesBefore(8400000, 2025, '2024-10-15'), /404/);
+    state.failing.add(8482116);
+    await assert.rejects(nhl.gamesBefore(8482116, 2025, '2024-10-15'), /503/);
+});
