@@ -1546,8 +1546,8 @@
     background: radial-gradient(ellipse 72% 68% at 50% 46%, transparent 52%, rgba(38, 22, 6, .38) 78%, rgba(18, 10, 2, .78) 100%);
 }
 
-/* Film grain: one fine noise tile, jumped to a new place a few times a second like a film gate.
-   It is the only loop in the flashback, and it stops when the show is paused. */
+/* Film grain: one fine noise tile drifting slowly along an uneven path, so it reads as grain on the
+   film rather than flicker. It is the only loop in the flashback, and it stops when the show is paused. */
 .flashbackGrain {
     position: absolute;
     inset: 0;
@@ -1557,17 +1557,16 @@
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.6 -.3'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
     background-size: 220px 220px;
-    animation: grain .62s steps(1) infinite;
+    animation: grain 9.7s linear infinite;
 }
 .flashbackGrain[data-paused] { animation-play-state: paused; }
 
 @keyframes grain {
-    0% { background-position: 0 0; }
-    17% { background-position: -71px 43px; }
-    31% { background-position: 52px -88px; }
-    52% { background-position: -37px 101px; }
-    68% { background-position: 94px 29px; }
-    86% { background-position: -103px -46px; }
+    0%, 100% { background-position: 0 0; }
+    23% { background-position: -31px 18px; }
+    41% { background-position: -12px 47px; }
+    64% { background-position: 26px 33px; }
+    83% { background-position: 19px -9px; }
 }
 
 /* the rewind blip: tape tracking lines over the picture, and one bright band rolling down it */
