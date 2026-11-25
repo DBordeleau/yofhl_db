@@ -349,10 +349,12 @@ export function compile(script: Script): Timeline {
     const showEnd = t;
     const art = Object.fromEntries(CHARACTERS.map(c => [c, Array.from(new Set(gestures[c].flatMap(key => posesFor(c, key.value))))])) as Timeline['art'];
     // A new reaction replaces the same host's previous one. Neither particles nor
-    // their audio may linger beyond the replacement or the end of the scene.
+    // their audio may linger beyond the replacement, a flashback's edge or the end of the scene.
+    const cuts = flashbacks.flatMap(span => [span.t0, span.leaving]);
     for (let i = 0; i < reactions.length; i++) {
         const next = reactions.slice(i + 1).find(r => r.who === reactions[i].who);
-        reactions[i].duration = Math.max(0, Math.min(reactions[i].duration, (next?.t ?? showEnd) - reactions[i].t, showEnd - reactions[i].t));
+        const edge = cuts.find(cut => cut >= reactions[i].t);
+        reactions[i].duration = Math.max(0, Math.min(reactions[i].duration, (next?.t ?? showEnd) - reactions[i].t, (edge ?? showEnd) - reactions[i].t, showEnd - reactions[i].t));
     }
     return {
         meta, duration: showEnd + OUTRO_MS, showEnd, segment: meta.segment ?? showEnd - INTRO_MS,

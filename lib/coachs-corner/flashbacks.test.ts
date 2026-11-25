@@ -246,3 +246,23 @@ DON (yell): Still that suit!`);
     assert.equal(look(middle(tl.lines[3])).don, 'alternate-4-rest');
     assert.equal(look(middle(tl.lines[4])).don, 'alternate-4-angry');
 });
+
+test('a reaction running into a flashback ends as it starts, and one started inside ends as it ends', () => {
+    const episode = episodeFrom(`${head()}[fx: don happy]
+DON: This week.
+
+[flashback: week 4]
+[fx: ron happy 12s]
+RON: Who's he going to get in a trade?
+[end flashback]
+
+RON: Back to now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const tl = episode.timeline;
+    const [span] = tl.flashbacks!;
+    const reacting = (t: number) => { const { hosts } = frameAt(tl, t); return [!!hosts.don.reaction, !!hosts.ron.reaction]; };
+    assert.deepEqual(reacting(span.t0 - 1), [true, false]);
+    assert.deepEqual(reacting(span.t0), [false, false]);
+    assert.deepEqual(reacting(span.leaving - 1), [false, true]);
+    assert.deepEqual(reacting(span.leaving), [false, false]);
+});
