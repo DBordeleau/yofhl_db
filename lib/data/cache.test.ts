@@ -13,8 +13,8 @@ test('curated edits expire exactly the cached readers that show their data', asy
         select (y-2025)*2+f, y, f, 'Team '||f, 'Team '||f, 'T'||f, 1, f, 10, 5, 0, 1000-f, 500
         from generate_series(2025,2026) y cross join generate_series(1,2) f;
         insert into league.players values ('p1', 'Player One'), ('p2', 'Player Two');
-        insert into league.player_seasons (player_id,season_year,team_season_id,positions,fpts,fpg)
-        select 'p'||f, y, (y-2025)*2+f, array['C'], 100-f, 2
+        insert into league.player_seasons (player_id,season_year,team_season_id,positions,fpts,fpg,games_played)
+        select 'p'||f, y, (y-2025)*2+f, array['C'], 100-f, 2, 50
         from generate_series(2025,2026) y cross join generate_series(1,2) f;
         insert into league.championship_rosters values (2025,'p1'), (2026,'p1');
         insert into league.awards (season_year,award,player_id,team_season_id) values (2026,'hasek','p1',3);

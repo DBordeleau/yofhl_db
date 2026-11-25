@@ -8,6 +8,7 @@ import { readChampionshipRoster } from './championship-roster';
 import type { CurrentSeason } from './current-season';
 import { readBracket } from './playoffs';
 import type { FantraxLeagueInfo, FantraxWeek, SeasonSyncPorts } from './ports';
+import { gamesPlayedByPlayer, playedWithoutPointsRows } from './games-played';
 import { playerSeasonRows, playerSeasonsWrites } from './player-seasons';
 import { withSkaterCategories } from './skater-categories';
 import { readRegularSeason } from './regular-season';
@@ -55,14 +56,18 @@ async function liveSeasonOf(ports: SeasonSyncPorts, season: CurrentSeason, now: 
 /** every other read, checked, as the run's write: the writes that bring the archive up to date and their warnings */
 export async function readSeason(ports: SeasonSyncPorts, season: CurrentSeason, info: FantraxLeagueInfo, now: number): Promise<SyncRunWrite> {
     const live = await liveSeasonOf(ports, season, now);
-    const [standings, players, skaters, regularSeason, bracket] = await Promise.all([
+    const [standings, players, skaters, goalies, regularSeason, bracket] = await Promise.all([
         ports.fantrax.standings(season.leagueId),
         ports.fantrax.players(season.leagueId, season.seasonYear),
         ports.fantrax.skaters(season.leagueId, season.seasonYear),
+        ports.fantrax.goalies(season.leagueId, season.seasonYear),
         readRegularSeason(ports, season, info, live, now),
         readBracket(ports, season, live, now),
     ]);
-    const playerSeasons = withSkaterCategories(playerSeasonRows(season, players), skaters);
+    const games = gamesPlayedByPlayer(skaters, goalies);
+    const listed = playerSeasonRows(season, players, games);
+    const played = await playedWithoutPointsRows(ports, games, new Set(players.map(player => player.id)));
+    const playerSeasons = withSkaterCategories([...listed, ...played], skaters);
     const roster = await readChampionshipRoster(ports, season, info, bracket.champion, new Set(playerSeasons.map(row => row.id)));
     return {
         writes: [

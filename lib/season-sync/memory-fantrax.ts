@@ -1,7 +1,7 @@
 // The season sync's Fantrax reads, in memory. A test changes what Fantrax says by changing `state`, and makes a
 // read fail by adding its name to `down`. Reads of any other league fail, as Fantrax's would.
 import type { WeekScores } from '@/lib/fantrax/live-season';
-import type { FantraxDayRosters, FantraxDirectoryPlayer, FantraxLeagueInfo, FantraxPlayer, FantraxSkater, FantraxStanding, SeasonSyncFantrax } from './ports';
+import type { FantraxDayRosters, FantraxDirectoryPlayer, FantraxGoalie, FantraxLeagueInfo, FantraxPlayer, FantraxSkater, FantraxStanding, SeasonSyncFantrax } from './ports';
 
 export type MemoryFantraxRead = keyof SeasonSyncFantrax;
 
@@ -13,6 +13,8 @@ export interface MemoryFantraxState {
     players: FantraxPlayer[];
     /** Fantrax's whole skater table: every NHL skater, played or not */
     skaters: FantraxSkater[];
+    /** Fantrax's whole goalie table: every NHL goalie, played or not */
+    goalies: FantraxGoalie[];
     /** each roster period's rosters, by roster period number */
     rosters: Record<number, FantraxDayRosters>;
     /** Fantrax's player directory, by player ID */
@@ -38,6 +40,9 @@ export function createMemoryFantrax(state: MemoryFantraxState): SeasonSyncFantra
             : Promise.reject(new Error('Fantrax returned the wrong scoring season')),
         skaters: (leagueId, seasonYear) => seasonYear === state.leagueInfo.seasonYear
             ? read('skaters', leagueId, () => state.skaters)
+            : Promise.reject(new Error('Unexpected Fantrax stats page for another season')),
+        goalies: (leagueId, seasonYear) => seasonYear === state.leagueInfo.seasonYear
+            ? read('goalies', leagueId, () => state.goalies)
             : Promise.reject(new Error('Unexpected Fantrax stats page for another season')),
         dayRosters: (leagueId, rosterPeriod) => state.rosters[rosterPeriod]
             ? read('dayRosters', leagueId, () => state.rosters[rosterPeriod])

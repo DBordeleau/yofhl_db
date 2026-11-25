@@ -8,6 +8,7 @@ import * as schema from '@/db/schema';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import type { Db } from './connect';
 import type { DraftFactsLoader } from './draft-development';
+import { readGamesPlayedHistory } from './games-played';
 import { loadLeagueConfig } from './league-config';
 import { importSeasons, readLegacySeeds, type SeasonImportInput } from './season-import';
 
@@ -45,7 +46,7 @@ async function syncedLeague(t: TestContext, first: Partial<Omit<SeasonImportInpu
     const league = await disposableLeague(t);
     const db = drizzle(league.client, { schema });
     const run = (input: Partial<Omit<SeasonImportInput, 'db'>> = {}) =>
-        importSeasons({ db: db as unknown as Db, config: loadLeagueConfig(path.join(FIXTURE, 'league.yml')), dataDir: path.join(FIXTURE, 'data'), seasons: [], legacy: fixtureLegacy(), loadDraftFacts: draftFacts, ...input });
+        importSeasons({ db: db as unknown as Db, config: loadLeagueConfig(path.join(FIXTURE, 'league.yml')), dataDir: path.join(FIXTURE, 'data'), seasons: [], legacy: fixtureLegacy(), gamesPlayed: readGamesPlayedHistory(path.join(FIXTURE, 'games-played.json')), loadDraftFacts: draftFacts, ...input });
 
     assert.equal((await run(first)).ok, true);
     await league.client.exec(SYNC_WRITES);
@@ -89,13 +90,16 @@ test('a re-import rewrites player seasons from the CSVs, keeping their category 
         `select player_id, fpts::float as fpts, goals, assists, shots, hits, blocks from league.player_seasons
          where season_year = 2026 and player_id in ('0fx01', '0fx02', '0fx04', '0fx0b') order by player_id`,
     ));
-    // Aaron Ashby's points change; Kyle Knox ends the season a free agent with none, so the keep rule drops him
+    // Aaron Ashby's points change; Kyle Knox ends the season a free agent with no points and no games played, so the
+    // keep rule drops him
     const changed = dataCopy(t, PLAYER_STATS, [
         ['"*0fx01*","Aaron Ashby","TOR","C","ASH","300","3.75"', '"*0fx01*","Aaron Ashby","TOR","C","ASH","305","3.81"'],
         ['"*0fx0b*","Kyle Knox","LAK","RW","FA","45","0.9"', '"*0fx0b*","Kyle Knox","LAK","RW","FA","0","0"'],
     ]);
+    const history = readGamesPlayedHistory(path.join(FIXTURE, 'games-played.json'));
+    const withoutKnox = { ...history, coverage: [{ ...history.coverage[0], players: history.coverage[0].players - 1 }], players: history.players.filter((row) => row.id !== '0fx0b') };
 
-    assert.equal((await run({ dataDir: changed })).ok, true);
+    assert.equal((await run({ dataDir: changed, gamesPlayed: withoutKnox })).ok, true);
     assert.deepEqual(await players(), [
         { player_id: '0fx01', fpts: 305, goals: 30, assists: 25, shots: 200, hits: 40, blocks: 10 },
         { player_id: '0fx02', fpts: 150.5, goals: 5, assists: 20, shots: 90, hits: 60, blocks: 80 },

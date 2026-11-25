@@ -102,6 +102,14 @@ _Avoid_: archive ID, Fantrax ID (as if they were different things), slug
 The NHL's own ID for a player (`8475158`), which their NHL profile is read by. Every feature finds it the same way, through the NHL module (`lib/nhl/`): the league's verified identity for the Player ID when `league/nhl-player-ids.json` has one, otherwise the one NHL player whose name matches exactly once accents and punctuation are stripped, narrowed by position group and then by NHL team. No match, or more than one, is no NHL identity, never the closest name, so the two Ryan O'Reillys are never given each other's record.
 _Avoid_: NHL ID (in prose), NHL match, NHL player (when you mean the ID)
 
+**Games played**:
+The NHL regular-season games a player appeared in during a season, as Fantrax counts them, whether or not anyone rostered or started them. Each player season stores it (0 for none): 2019–2026's from a checked-in history file (`league/games-played-history.json`), later seasons' from the season sync. Only career FP/G uses it, and the site never shows it.
+_Avoid_: games (alone), GP (in prose), starts, games rostered
+
+**Career FP/G**:
+A player's FPts across every season they have games played in, divided by their games played across those seasons. Seasons with zero or negative FPts count. A franchise page's FP/G for a player is the same over their seasons with that franchise. A season's FP/G is Fantrax's own.
+_Avoid_: average FP/G, mean FP/G
+
 **Skater categories**:
 A skater's goals, assists, shots, hits and blocks for a season, the record book's player categories. 2019–2026's are in a checked-in history file (`lib/records/player-category-history.json`); from 2027 the season sync writes them onto each skater's player season from Fantrax's skater table. A skater with no games played has zeros; a goalie has none.
 _Avoid_: stats, player stats (FPts and FP/G are stats too), categories (alone, when a team's could be meant)

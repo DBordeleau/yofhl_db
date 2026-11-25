@@ -1,0 +1,25 @@
+{
+  "fetchedAt": "2026-11-25T00:00:00.000Z",
+  "source": "invented for the season import tests",
+  "coverage": [
+    {
+      "year": 2026,
+      "leagueId": "fixture26",
+      "seasonCode": "SEASON_FX_YEAR_TO_DATE",
+      "players": 11
+    }
+  ],
+  "players": [
+    { "id": "0fx04", "year": 2026, "gamesPlayed": 49 },
+    { "id": "0fx0a", "year": 2026, "gamesPlayed": 50 },
+    { "id": "0fx01", "year": 2026, "gamesPlayed": 80 },
+    { "id": "0fx03", "year": 2026, "gamesPlayed": 80 },
+    { "id": "0fx05", "year": 2026, "gamesPlayed": 81 },
+    { "id": "0fx07", "year": 2026, "gamesPlayed": 80 },
+    { "id": "0fx08", "year": 2026, "gamesPlayed": 79 },
+    { "id": "0fx09", "year": 2026, "gamesPlayed": 81 },
+    { "id": "0fx02", "year": 2026, "gamesPlayed": 79 },
+    { "id": "0fx06", "year": 2026, "gamesPlayed": 80 },
+    { "id": "0fx0b", "year": 2026, "gamesPlayed": 50 }
+  ]
+}

@@ -239,6 +239,13 @@
       "when": 1795219740754,
       "tag": "0033_awards_by_catalogue_id",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795620756896,
+      "tag": "0034_career_fpg_games_played",
+      "breakpoints": true
     }
   ]
 }

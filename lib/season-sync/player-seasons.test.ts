@@ -46,7 +46,7 @@ test("a run keeps the season import's players: scorers of either sign, rostered 
     assert.deepEqual([(await season('benched'))!.FPts, (await season('benched'))!.YOFHLTeam], [0, 'C2'], 'a rostered player with no points is stored');
     assert.equal(await read(() => getPlayer('nobody')), null, 'an unrostered player with no points is not stored');
     assert.equal((await read(() => getPlayer('benched')))!.name, 'Name benched', 'a player new to the archive gets a player row');
-    assert.deepEqual(await archived(), ['award', 'ring', 'v1', 'v2'], 'and a player page link once they have points');
+    assert.deepEqual(await archived(), ['award', 'minus', 'ring', 'v1', 'v2'], 'and a player page link once they have games played, negative total included');
 
     // the league owner puts ring on the season's championship roster and award on an award list
     await league.client.exec(`insert into league.championship_rosters values (${SEASON}, 'ring');
@@ -61,7 +61,7 @@ test("a run keeps the season import's players: scorers of either sign, rostered 
         assert.deepEqual([(await season(id))!.FPts, (await season(id))!.FPG, (await season(id))!.YOFHLTeam], [0, 0, 'FA'], `${id} is kept with no points and no roster spot`);
     }
     assert.deepEqual((await read(() => getSingleSeasonLeaderboard('all', 1, '', SEASON))).rows.map(row => [row.ID, row.FPts]), [['benched', 3]]);
-    assert.deepEqual(await archived(), ['benched', 'v1', 'v2']);
+    assert.deepEqual(await archived(), ['benched', 'minus', 'v1', 'v2']);
 });
 
 test("a scoring correction on Fantrax shows after the next run, and a run with nothing changed refreshes no view and expires no tag", async t => {

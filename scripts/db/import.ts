@@ -1,6 +1,7 @@
 import { seasonLabel } from '@/lib/seasons';
 import { connect } from './lib/connect';
 import { loadLeagueConfig } from './lib/league-config';
+import { GAMES_PLAYED_HISTORY, readGamesPlayedHistory } from './lib/games-played';
 import { importSeasons, readLegacySeeds } from './lib/season-import';
 
 // Loads Fantrax CSVs from data/ into the database.
@@ -30,7 +31,7 @@ const main = async () => {
     try {
         // schema first, so the admin panel's bracket corrections can be read and validated with the CSVs
         await migrate();
-        const result = await importSeasons({ db, config, dataDir: DATA_DIR, seasons, legacy });
+        const result = await importSeasons({ db, config, dataDir: DATA_DIR, seasons, legacy, gamesPlayed: readGamesPlayedHistory(GAMES_PLAYED_HISTORY) });
         if (!result.ok) {
             console.error(`Import stopped, nothing was written. Fix these and run it again:\n\n${result.errors.map((e) => `  • ${e}`).join('\n')}\n`);
             process.exitCode = 1;

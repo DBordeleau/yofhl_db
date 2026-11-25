@@ -11,6 +11,7 @@ import { queryRows, refreshViews, type Db } from './connect';
 import { prepareHistory, writeHistory } from './history';
 import { enrichDraftDevelopment, type DraftFactsLoader } from './draft-development';
 import { prepareFantraxTeams, writeFantraxTeams } from './fantrax-teams';
+import { seasonGamesPlayed, type GamesPlayedHistory } from './games-played';
 import { parsePlayerStats, parsePlayoffs, parseStandings, type PlayerStatRow, type StandingRow } from './fantrax';
 import { eraFor, findByAbbreviation, findByName, suggestEra, type LeagueConfig, type TeamMatch } from './league-config';
 
@@ -21,9 +22,11 @@ import { eraFor, findByAbbreviation, findByName, suggestEra, type LeagueConfig, 
 // All or nothing: every season validates before anything is written, then the league configuration,
 // Fantrax teams, every season, the legacy seeds, history and the view refreshes are written in one
 // transaction (docs/adr/0004-season-import-is-one-transaction.md). Standings, player seasons and playoff
-// games are rebuilt from the CSVs; what only the season sync writes (regular-season games, weeks and the
-// skater categories of the player seasons kept) survives. Championship rosters and awards are never
-// touched (the legacy seeds are loaded once for seasons that have none).
+// games are rebuilt from the CSVs, and each player season's games played from the games-played history file
+// (games-played.ts) for the seasons it covers; what only the season sync writes (regular-season games, weeks,
+// and the skater categories of the player seasons kept and, for a season the history file doesn't cover,
+// their games played) survives. Championship rosters and awards are never touched (the legacy seeds are
+// loaded once for seasons that have none).
 //
 // Opening the season being played: a season with a `fantrax` block in league.yml and no CSVs is opened
 // instead, with one team season per mapped franchise, its identity from the franchise's era and zeroed
@@ -291,11 +294,12 @@ const writeLeague = async (db: Db, config: LeagueConfig) => {
     }
 };
 
-const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<string, string> | undefined): Promise<ImportedSeason> => {
+const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<string, string> | undefined, games: ReadonlyMap<string, number>): Promise<ImportedSeason> => {
     const ownerIds = new Map((await db.select().from(schema.owners)).map((o) => [o.name, o.id]));
+    const gamesPlayed = (id: string) => games.get(id) ?? 0;
 
-    // only seasons where the player scored, was rostered, or is on a ring/award list are kept
-    const kept = season.players.filter((p) => p.fpts !== 0 || p.franchiseId !== null || keep?.has(p.id));
+    // only seasons where the player had games played, scored, was rostered, or is on a ring/award list are kept
+    const kept = season.players.filter((p) => gamesPlayed(p.id) > 0 || p.fpts !== 0 || p.franchiseId !== null || keep?.has(p.id));
 
     await db.transaction(async (tx) => {
         const seasonValues = { year: season.year, label: seasonLabel(season.year), playoffStatus: season.playoffStatus };
@@ -351,6 +355,7 @@ const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<str
                         positions: p.positions,
                         fpts: p.fpts,
                         fpg: p.fpg,
+                        gamesPlayed: gamesPlayed(p.id),
                     })),
                 )
                 .onConflictDoUpdate({
@@ -361,6 +366,7 @@ const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<str
                         positions: sql`excluded.positions`,
                         fpts: sql`excluded.fpts`,
                         fpg: sql`excluded.fpg`,
+                        gamesPlayed: sql`excluded.games_played`,
                     },
                 });
         }
@@ -490,6 +496,11 @@ export interface SeasonImportInput {
      */
     seasons: number[];
     legacy: LegacySeeds;
+    /**
+     * The games-played history file (readGamesPlayedHistory, league/games-played-history.json). A season it doesn't
+     * cover keeps the games played its stored player seasons have, the ones the season sync wrote.
+     */
+    gamesPlayed: GamesPlayedHistory;
     /** Looks up a draft pick's NHL facts. Defaults to the NHL's public API; tests pass a stand-in. */
     loadDraftFacts?: DraftFactsLoader;
 }
@@ -504,7 +515,7 @@ export type SeasonImportResult =
      */
     | { ok: true; seasons: ImportedSeason[]; opened: OpenedSeason[]; statuses: SeasonStatus[]; legacyNotes: string[] };
 
-export const importSeasons = async ({ db, config, dataDir, seasons, legacy, loadDraftFacts }: SeasonImportInput): Promise<SeasonImportResult> => {
+export const importSeasons = async ({ db, config, dataDir, seasons, legacy, gamesPlayed, loadDraftFacts }: SeasonImportInput): Promise<SeasonImportResult> => {
     const available = findSeasonFiles(dataDir);
     const openable = (year: number) => !available.has(year) && !!config.seasons[year]?.fantrax;
     const years = seasons.length
@@ -569,6 +580,25 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
         }
     }
 
+    // each season's games played by player ID: the history file's for a season it covers, where every player season
+    // with FPts must have some, or else the ones stored, which the season sync wrote
+    const games = new Map<number, ReadonlyMap<string, number>>();
+    for (const season of prepared) {
+        const covered = seasonGamesPlayed(gamesPlayed, season.year);
+        if (covered) {
+            for (const p of season.players) {
+                if (p.fpts !== 0 && !covered.get(p.id)) errors.push(`${seasonLabel(season.year)}: ${p.name} (${p.id}) has FPts but no games played in the games-played history file`);
+            }
+            games.set(season.year, covered);
+            continue;
+        }
+        const stored = await db
+            .select({ id: schema.playerSeasons.playerId, gamesPlayed: schema.playerSeasons.gamesPlayed })
+            .from(schema.playerSeasons)
+            .where(and(eq(schema.playerSeasons.seasonYear, season.year), sql`${schema.playerSeasons.gamesPlayed} > 0`));
+        games.set(season.year, new Map(stored.map((row) => [row.id, row.gamesPlayed])));
+    }
+
     // every season's Fantrax IDs, including a live season with no CSVs yet
     const fantraxTeams = prepareFantraxTeams(config);
     errors.push(...fantraxTeams.errors);
@@ -583,7 +613,7 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, load
         await writeLeague(tx, config);
         await writeFantraxTeams(tx, fantraxTeams.rows);
         const imported: ImportedSeason[] = [];
-        for (const season of prepared) imported.push(await writeSeason(tx, season, keep.get(season.year)));
+        for (const season of prepared) imported.push(await writeSeason(tx, season, keep.get(season.year), games.get(season.year)!));
         const opened: OpenedSeason[] = [];
         for (const season of opening) opened.push(await writeOpening(tx, season));
         const legacyNotes = await seedLegacy(tx, config, legacy, new Set(prepared.map((s) => s.year)));

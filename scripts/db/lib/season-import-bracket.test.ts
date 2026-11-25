@@ -8,6 +8,7 @@ import * as schema from '@/db/schema';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import type { Db } from './connect';
 import type { DraftFactsLoader } from './draft-development';
+import { readGamesPlayedHistory } from './games-played';
 import { loadLeagueConfig, type LeagueConfig } from './league-config';
 import { importSeasons, readLegacySeeds } from './season-import';
 
@@ -46,7 +47,7 @@ async function variedImport(t: TestContext, { config: vary, data, seed }: Variat
         dataDir,
         seasons: [],
         legacy: readLegacySeeds(path.join(FIXTURE, 'legacy-awards.json'), path.join(FIXTURE, 'legacy-championship-rosters.json')),
-        loadDraftFacts: draftFacts,
+        gamesPlayed: readGamesPlayedHistory(path.join(FIXTURE, 'games-played.json')), loadDraftFacts: draftFacts,
     });
 
     // the imported bracket by franchise id, in drawing order

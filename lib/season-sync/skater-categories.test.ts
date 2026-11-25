@@ -7,24 +7,25 @@ const totals = (goals: number, assists: number, shots: number, hits: number, blo
 test("after a run, each skater with a player season has the skater table's totals, zeros with no games played, and a goalie has none", async t => {
     const { fantrax, run, read, setPlayers, setSkaters, skaterCategories } = await seasonSyncLeague(t);
     const { getPlayer } = await import('@/lib/data/league');
-    setPlayers([['v1', 50, 5, 1], ['v2', 20, 2, null], ['benched', 0, null, 2], ['goalie', 30, 3, 3], ['nobody', 0, 0, null]]);
+    setPlayers([['v1', 50, 5, 1], ['v2', 20, 2, null], ['benched', 0, null, 2], ['goalie', 30, 3, 3], ['played', 0, 0, null, 4], ['nobody', 0, 0, null]]);
     fantrax.players.find(player => player.id === 'goalie')!.positions = ['G'];
     setSkaters([
         ['v1', 10, 12, 80, 30, 15],
         ['v2', 3, 4, 40, 60, 20],
         ['benched', null], // rostered, no games played yet
-        ['nobody', 0, 0, 0, 0, 0], // played, no points, unrostered: no player season
-        ['stranger', 5, 5, 5, 5, 5], // only in the skater table
+        ['played', 0, 1, 2, 0, 3], // played, no points, unrostered: kept for their games played
+        ['nobody', null], // no games played, no points, unrostered: no player season
     ]);
     const { result } = await run(MID_SEASON);
-    assert.equal(result.outcome === 'synced' && result.changed.skaterCategories, 3);
+    assert.equal(result.outcome === 'synced' && result.changed.skaterCategories, 4);
     assert.deepEqual(await skaterCategories(SEASON), {
         benched: totals(0, 0, 0, 0, 0),
         goalie: null,
+        played: totals(0, 1, 2, 0, 3),
         v1: totals(10, 12, 80, 30, 15),
         v2: totals(3, 4, 40, 60, 20),
     });
-    for (const id of ['nobody', 'stranger']) assert.equal(await read(() => getPlayer(id)), null, `${id} gets no player row or player season`);
+    assert.equal(await read(() => getPlayer('nobody')), null, 'nobody gets no player row or player season');
     assert.deepEqual(await skaterCategories(2026), { v1: null, v2: null }, "earlier seasons' player seasons have none");
 });
 
@@ -68,10 +69,18 @@ test('a failing or unexpected skater table writes nothing, standings and player 
 
     setStandings([[1, 1, 1, 0, 0, 100, 90], [2, 2, 0, 1, 0, 90, 100], [3, 3, 0, 0, 0, 0, 0], [4, 4, 0, 0, 0, 0, 0]]);
     setPlayers([['v1', 45, 4.5, 1]]);
+    const skaterTable = Object.getOwnPropertyDescriptor(fantrax, 'skaters')!;
     const failures: [string, () => void, RegExp][] = [
         ['Fantrax is down', () => { setSkaters([['v1', 11, 12, 80, 30, 15]]); fantrax.down.add('skaters'); }, /skaters returned 503/],
-        ['a skater listed twice', () => { fantrax.down.clear(); setSkaters([['v1', 11, 12, 80, 30, 15], ['v1', null]]); }, /v1 more than once/],
-        ['an invalid total', () => { setSkaters([['v1', 11, 12, 80, -1, 15]]); }, /invalid category total for player v1/],
+        ['a skater listed twice', () => {
+            fantrax.down.clear();
+            Object.defineProperty(fantrax, 'skaters', { configurable: true, get: () => [
+                { id: 'v1', gamesPlayed: 20, categories: totals(11, 12, 80, 30, 15) }, { id: 'v1', gamesPlayed: 0, categories: null }] });
+        }, /v1 more than once/],
+        ['an invalid total', () => {
+            Object.defineProperty(fantrax, 'skaters', skaterTable);
+            setSkaters([['v1', 11, 12, 80, -1, 15]]);
+        }, /invalid category total for player v1/],
     ];
     let hour = 1;
     for (const [what, arrange, error] of failures) {

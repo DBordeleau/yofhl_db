@@ -73,8 +73,18 @@ export interface FantraxPlayer {
 export interface FantraxSkater {
     /** bare Fantrax player ID */
     id: string;
+    /** the NHL regular-season games the skater has appeared in so far (GLOSSARY.md), 0 for none */
+    gamesPlayed: number;
     /** goals, assists, shots, hits and blocks, or null for a skater with no games played */
     categories: PlayerCategories | null;
+}
+
+/** one goalie in Fantrax's website goalie table (the games-played export's read), season to date */
+export interface FantraxGoalie {
+    /** bare Fantrax player ID */
+    id: string;
+    /** the NHL regular-season games the goalie has appeared in so far (GLOSSARY.md), 0 for none */
+    gamesPlayed: number;
 }
 
 export interface SeasonSyncFantrax {
@@ -82,8 +92,10 @@ export interface SeasonSyncFantrax {
     standings(leagueId: string): Promise<FantraxStanding[]>;
     /** every player who scored (a non-zero total, negative included) or is rostered, for the season year given */
     players(leagueId: string, seasonYear: number): Promise<FantraxPlayer[]>;
-    /** every NHL skater (goalies are not in it), with skater categories for those who have played, for the season year given */
+    /** every NHL skater (goalies are not in it), with games played and skater categories for those who have played, for the season year given */
     skaters(leagueId: string, seasonYear: number): Promise<FantraxSkater[]>;
+    /** every NHL goalie, with games played, for the season year given */
+    goalies(leagueId: string, seasonYear: number): Promise<FantraxGoalie[]>;
     /** every team's roster on one past (or the current) daily roster period */
     dayRosters(leagueId: string, rosterPeriod: number): Promise<FantraxDayRosters>;
     /** every NHL player Fantrax knows, by bare player ID */

@@ -299,6 +299,10 @@ export const playerSeasons = league.table(
         positions: text('positions').array().notNull(), // ["C", "LW"]
         fpts: fpts('fpts').notNull(),
         fpg: numeric('fpg', { precision: 6, scale: 2, mode: 'number' }).notNull(),
+        // Games played (GLOSSARY.md): the NHL regular-season games the player appeared in that season, as Fantrax counts
+        // them, 0 for none. Only career FP/G uses it: 2019–2026's come from league/games-played-history.json through
+        // the season import, later seasons' from the season sync.
+        gamesPlayed: integer('games_played').notNull().default(0),
         // Skater categories (GLOSSARY.md), written by the season sync. Null when not stored here: goalies, and
         // every season before 2027, whose totals are in lib/records/player-category-history.json.
         goals: integer('goals'),
@@ -311,6 +315,7 @@ export const playerSeasons = league.table(
         primaryKey({ columns: [t.playerId, t.seasonYear] }),
         index('player_seasons_season_fpts').on(t.seasonYear, t.fpts.desc()),
         index('player_seasons_team_season').on(t.teamSeasonId),
+        check('player_seasons_games_played', sql`${t.gamesPlayed} >= 0`),
     ],
 );
 
