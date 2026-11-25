@@ -266,3 +266,22 @@ RON: Back to now.`);
     assert.deepEqual(reacting(span.leaving - 1), [false, true]);
     assert.deepEqual(reacting(span.leaving), [false, false]);
 });
+
+test('the opening wardrobe and the pull quote come from this week’s lines, not the flashback’s', () => {
+    const episode = episodeFrom(`${head()}[flashback: week 4, don: remembrance-rest]
+DON: !!THAT IS THE LONGEST SHOUT IN THE WHOLE EPISODE!!
+[end flashback]
+
+DON (alternate-4-point): !!THIS WEEK'S SHOUT!!
+
+RON: Sure.`);
+    assert.deepEqual(episode.diagnostics, []);
+    assert.equal(episode.openingWardrobe, 'alternate-suit-4');
+    assert.deepEqual(episode.pullQuote, { who: 'don', text: 'THIS WEEK’S SHOUT' });
+});
+
+test('with no line of Don’s outside a flashback, the opening wardrobe is normal', () => {
+    const episode = episodeFrom(`${head()}[flashback: week 4]\nDON (remembrance-point): Back then.\n[end flashback]\n\nRON: Now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    assert.equal(episode.openingWardrobe, 'normal');
+});
