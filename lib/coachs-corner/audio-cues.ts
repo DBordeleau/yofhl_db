@@ -18,6 +18,8 @@ export interface VoiceCue {
     cutoff: boolean;
     /** First syllable when taking over directly from an unfinished line. */
     interrupting: boolean;
+    /** Said inside a flashback, so it plays muffled. Absent everywhere else. */
+    flashback?: true;
 }
 export interface AudioCue {
     t: number;
@@ -54,6 +56,7 @@ export function compileAudioCues(tl: Timeline): AudioCue[] {
                 cutoff: lineEnd && line.cutoff,
                 interrupting: Math.abs(flap[0] - line.t0) < 0.01 && !!previousLine?.cutoff
                     && previousLine.speaker !== who && line.t0 - previousLine.t1 < 1,
+                ...line.flashback && { flashback: true },
             } });
         }
     }
