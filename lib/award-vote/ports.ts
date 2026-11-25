@@ -1,8 +1,9 @@
 // What the award vote module needs from outside it. Production binds these in award-vote.ts; tests use the
-// in-memory Fantrax (memory-fantrax.ts) and NHL lookup (memory-nhl.ts), a fake clock, and the app's own database
-// handle pointed at a disposable league.
+// in-memory Fantrax (memory-fantrax.ts) and NHL module (lib/nhl/memory-nhl.ts), a fake clock, and the app's own
+// database handle pointed at a disposable league.
 import type { rows, writeInOrder } from '@/lib/data/db';
 import type { RangedGoalie, RangedPage, RangedPlayer, RangedSkater } from '@/lib/fantrax/ranged-stats';
+import type { Nhl } from '@/lib/nhl/model';
 // a type only: the owner session reads the award vote for its header nudge (read-ballot-nudge.ts), so importing its
 // value here would be a cycle
 import type { OwnerSession } from '@/lib/owner/create-owner-session';
@@ -47,26 +48,6 @@ export interface AwardVoteFantrax {
     dayRosters(leagueId: string, rosterPeriod: number): Promise<FantraxDayRosters>;
 }
 
-/** a player as Fantrax names them, to find on the NHL's side */
-export interface NhlLookupPlayer {
-    id: string;
-    name: string;
-    positions: string[];
-    nhlTeam: string | null;
-}
-
-/** an NHL player's birth date and NHL regular-season games in each season (e.g. 20252026) */
-export interface NhlPlayerRecord {
-    nhlId: number;
-    birthDate: string;
-    seasons: { season: number; games: number }[];
-}
-
-export interface AwardVoteNhl {
-    /** the NHL's record of a Fantrax player, or null when no NHL player matches */
-    lookup(player: NhlLookupPlayer): Promise<NhlPlayerRecord | null>;
-}
-
 export interface AwardVoteClock {
     now(): number;
     /** wait `ms` milliseconds */
@@ -85,7 +66,8 @@ export type AwardVoteOwnerSession = Pick<OwnerSession, 'currentOwnerTeam' | 'own
 export interface AwardVotePorts {
     clock: AwardVoteClock;
     fantrax: AwardVoteFantrax;
-    nhl: AwardVoteNhl;
+    /** the NHL module: each young player's NHL identity and record, for the Calder rule */
+    nhl: Nhl;
     db: AwardVoteDatabase;
     ownerSession: AwardVoteOwnerSession;
 }
