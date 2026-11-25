@@ -29,6 +29,12 @@ test('a season with no owner on record still names its champion', () => {
         'The 2018–19 YOFHL season: Sens Fan won the Jagr Cup. Final standings, playoff bracket, leaders and draft class.');
 });
 
+test("a season's link leaves the preview to the season's own link preview", () => {
+    const metadata = seasonMetadata({ year: 2026, team: 'Dangle Berries', owner: 'Dillon', playoffStatus: 'complete' });
+    // Next drops the page's opengraph-image file when its metadata names images of its own
+    assert.equal(metadata.openGraph?.images, undefined);
+});
+
 /** a franchise's seasons, of which the one being played is still pending */
 const seasons = (count: number, pending = 0) => [
     ...Array.from({ length: count }, () => ({ playoffStatus: 'complete' as const })),

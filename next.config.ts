@@ -18,11 +18,12 @@ const nextConfig: NextConfig = {
   },
   // Link previews read their fonts and art from disk (lib/share/episode-preview.tsx, lib/share/link-preview.tsx);
   // public/ is served from the CDN, not bundled, so each function needs both traced in. A player's preview reads their
-  // team's logo when it is a public path rather than an owner's upload.
+  // team's logo when it is a public path rather than an owner's upload; a cancelled season's preview reads the Jagr Cup.
   outputFileTracingIncludes: {
     '/coachs-corner/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/coachs-corner/media/{don,ron}-*-640.*.avif'],
     '/player/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/*logo*.png', './public/logos/*'],
     '/teams/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/*logo*.png', './public/logos/*'],
+    '/season/*/opengraph-image': ['./assets/fonts/archivo/*.ttf', './public/*logo*.png', './public/logos/*', './public/trophies/jagr-cup.webp'],
   },
   experimental: { serverActions: { bodySizeLimit: '3mb' } },
   images: { remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com', pathname: '/team-logos/**' }] },

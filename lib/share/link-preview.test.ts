@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import sharp from 'sharp';
-import type { PlayerShareCard, TeamShareCard } from './model';
+import type { PlayerShareCard, SeasonShareCard, TeamShareCard } from './model';
 import { renderLinkPreview } from './link-preview';
 import { fallbackColours, suggestedPalettes } from '../team-branding';
 
@@ -62,5 +62,32 @@ test('a team whose logo is a WebP previews', async () => {
     const honkers = { ...dangleBerries, team: { id: 14, name: 'Hooterville Honkers', abbreviation: 'HH', logo: '/logos/hooterville_honkers.webp' },
         owner: null, defunct: true, cups: 0, finals: 0 };
     assert.deepEqual(await picture(await renderLinkPreview(honkers, fallbackColours)),
+        { format: 'png', width: 1200, height: 630 });
+});
+
+const season2026: SeasonShareCard = {
+    kind: 'season', href: '/season/2026', title: '2025–26', summary: '2025–26 Jagr Cup champions: Dangle Berries.',
+    year: 2026, cancelled: false, owner: 'Dillon',
+    team: { id: 3, name: 'Dangle Berries', abbreviation: 'DB', logo: '/hhlogo.png' },
+    scorers: [
+        { name: 'Connor McDavid', position: 'C', points: 512.4 },
+        { name: 'Cale Makar', position: 'D', points: 401.1 },
+        { name: 'Igor Shesterkin', position: 'G', points: 388 },
+    ],
+};
+
+test("a season's link preview is a landscape PNG in its champion's colours", async () => {
+    assert.deepEqual(await picture(await renderLinkPreview(season2026, suggestedPalettes[3])),
+        { format: 'png', width: 1200, height: 630 });
+});
+
+test('a season whose playoffs were cancelled previews with no champion', async () => {
+    const season2020 = { ...season2026, year: 2020, cancelled: true, team: null, owner: null, scorers: [] };
+    assert.deepEqual(await picture(await renderLinkPreview(season2020, fallbackColours)),
+        { format: 'png', width: 1200, height: 630 });
+});
+
+test('a season with no top scorers on record still previews', async () => {
+    assert.deepEqual(await picture(await renderLinkPreview({ ...season2026, scorers: [] }, suggestedPalettes[3])),
         { format: 'png', width: 1200, height: 630 });
 });

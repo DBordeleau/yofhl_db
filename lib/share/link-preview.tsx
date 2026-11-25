@@ -1,7 +1,7 @@
 import React from 'react';
 import { ImageResponse } from 'next/og';
 import sharp from 'sharp';
-import { formatFpts, positionNames } from '../league';
+import { formatFpts, positionNames, seasonLabel } from '../league';
 import type { TeamColours } from '../team-branding';
 import { BRAND_SLAB, GOLD, Glow, ICE, loadPreviewFonts, pngDataUrl, PREVIEW_BACKGROUND, PREVIEW_HEIGHT, PREVIEW_WIDTH,
     publicArt, Slab } from './preview';
@@ -12,7 +12,8 @@ import { SHARE_SITE, type PlayerShareCard, type SeasonShareCard, type ShareTeam,
 // colours. Chat apps show it as a thumbnail, so nothing on it is smaller than a phone can read at a third of its size.
 
 const W = PREVIEW_WIDTH, H = PREVIEW_HEIGHT, PAD = 60;
-const COLUMN = 720, ART = 380, ART_LEFT = 770, ART_TOP = 118;
+// the picture ends above the stats row's top (about y 480), so a wide row can pass under it
+const COLUMN = 720, ART = 350, ART_LEFT = 790, ART_TOP = 110;
 
 /** what one kind of page puts in the frame */
 export interface PreviewFrame {
@@ -31,6 +32,8 @@ export interface PreviewFrame {
     /** the picture on the right as a PNG data URL, or the abbreviation drawn in its place */
     picture: string | null;
     abbreviation: string | null;
+    /** the picture drawn faint, for a Jagr Cup nobody won */
+    faded?: boolean;
 }
 
 const BLOB_HOST = /\.public\.blob\.vercel-storage\.com$/;
@@ -99,12 +102,31 @@ async function teamFrame(card: TeamShareCard): Promise<PreviewFrame> {
     };
 }
 
+// The season share card's facts: the season and its Jagr Cup champion, the champion's owner and logo, and the top
+// scorers on its roster along the bottom. A season whose playoffs were cancelled has no champion, so it leads with the
+// season itself over a faint Jagr Cup.
+async function seasonFrame(card: SeasonShareCard): Promise<PreviewFrame> {
+    const label = seasonLabel(card.year);
+    return {
+        label: 'Season',
+        tag: label,
+        name: card.team?.name ?? label,
+        subtitle: card.cancelled ? 'Playoffs cancelled' : 'Jagr Cup champions',
+        chips: [],
+        detail: card.owner,
+        stats: card.scorers.map(scorer => ({ value: formatFpts(scorer.points),
+            label: [scorer.name.split(' ').at(-1), scorer.position].filter(Boolean).join(' · ') })),
+        ...(card.team ? await teamPicture(card.team) : { picture: await logoPicture(JAGR_CUP), abbreviation: null, faded: true }),
+    };
+}
+
+const JAGR_CUP = '/trophies/jagr-cup.webp';
+
 function frameFor(card: PlayerShareCard | TeamShareCard | SeasonShareCard): Promise<PreviewFrame> {
     switch (card.kind) {
         case 'player': return playerFrame(card);
         case 'team': return teamFrame(card);
-        // season pages get their link previews in later work on #206
-        default: throw new Error(`No link preview is drawn for a ${card.kind} card yet`);
+        case 'season': return seasonFrame(card);
     }
 }
 
@@ -112,7 +134,18 @@ const rgba = (hex: string, alpha: number) => `rgba(${[1, 3, 5].map(offset => par
 // Satori can't shrink text to fit, so the name steps down with length; lineClamp (block boxes only) catches the rest.
 const nameSize = (name: string) => name.length <= 10 ? 100 : name.length <= 17 ? 88 : name.length <= 24 ? 76 : 62;
 
+// Satori can't shrink text to fit either, so the stat values step down until the row's estimated width clears yofhl.com:
+// a figure is about 0.6em wide at that weight, a spaced uppercase label about 17px a letter. The row still clips
+// rather than overlap if the estimate falls short.
+const STAT_GAP = 34, STAT_ROOM = W - PAD * 2 - 180;
+function statSize(stats: PreviewFrame['stats']) {
+    const width = (size: number) => stats.reduce((sum, stat, index) =>
+        sum + (index ? STAT_GAP * 2 : 0) + Math.max(stat.value.length * size * 0.6, stat.label.length * 17), 0);
+    return [66, 58, 50, 44].find(size => width(size) <= STAT_ROOM) ?? 44;
+}
+
 function Frame({ frame, colours }: { frame: PreviewFrame; colours: TeamColours }) {
+    const size = statSize(frame.stats);
     const slabText = { fontWeight: 800, fontSize: 22, letterSpacing: '0.1em', textTransform: 'uppercase' } as const;
     return (
         <div style={{ display: 'flex', position: 'relative', width: W, height: H, fontFamily: 'Archivo', color: '#fff', backgroundImage: PREVIEW_BACKGROUND }}>
@@ -123,7 +156,7 @@ function Frame({ frame, colours }: { frame: PreviewFrame; colours: TeamColours }
             <div style={{ position: 'absolute', left: ART_LEFT, top: ART_TOP, width: ART, height: ART, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {frame.picture
                     // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={frame.picture} alt="" width={ART} height={ART} style={{ objectFit: 'contain' }} />
+                    ? <img src={frame.picture} alt="" width={ART} height={ART} style={{ objectFit: 'contain', opacity: frame.faded ? 0.18 : 1 }} />
                     : frame.abbreviation && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: ART - 40, height: ART - 40,
                         borderRadius: 999, background: colours.primary, border: `10px solid ${colours.secondary}`,
                         fontFamily: 'Archivo SemiExpanded', fontStyle: 'italic', fontWeight: 900, letterSpacing: '-0.04em',
@@ -155,15 +188,17 @@ function Frame({ frame, colours }: { frame: PreviewFrame; colours: TeamColours }
                 </div>}
             </div>
 
-            <div style={{ position: 'absolute', left: PAD, bottom: 52, display: 'flex' }}>
-                {frame.stats.map((stat, index) => <div key={stat.label} style={{ display: 'flex', flexDirection: 'column',
-                    paddingLeft: index ? 34 : 0, marginLeft: index ? 34 : 0, borderLeft: index ? '2px solid rgba(255,255,255,.14)' : 'none' }}>
-                    <span style={{ fontWeight: 800, fontSize: 66, lineHeight: 1, letterSpacing: '-0.03em' }}>{stat.value}</span>
-                    <span style={{ marginTop: 10, fontWeight: 800, fontSize: 22, letterSpacing: '0.14em', textTransform: 'uppercase', color: ICE }}>{stat.label}</span>
-                </div>)}
+            {/* one row, so the stats can't run into yofhl.com: they step down in size to fit, and yofhl.com never shrinks */}
+            <div style={{ position: 'absolute', left: PAD, right: PAD, bottom: 52, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
+                    {frame.stats.map((stat, index) => <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', flexShrink: 0,
+                        paddingLeft: index ? STAT_GAP : 0, marginLeft: index ? STAT_GAP : 0, borderLeft: index ? '2px solid rgba(255,255,255,.14)' : 'none' }}>
+                        <span style={{ fontWeight: 800, fontSize: size, lineHeight: 1, letterSpacing: '-0.03em', whiteSpace: 'nowrap' }}>{stat.value}</span>
+                        <span style={{ marginTop: 10, fontWeight: 800, fontSize: 22, letterSpacing: '0.14em', textTransform: 'uppercase', color: ICE, whiteSpace: 'nowrap' }}>{stat.label}</span>
+                    </div>)}
+                </div>
+                <span style={{ flexShrink: 0, marginLeft: 40, fontWeight: 800, fontSize: 26, letterSpacing: '0.04em', color: '#e8eef6' }}>{SHARE_SITE}</span>
             </div>
-
-            <span style={{ position: 'absolute', right: PAD, bottom: 52, fontWeight: 800, fontSize: 26, letterSpacing: '0.04em', color: '#e8eef6' }}>{SHARE_SITE}</span>
         </div>
     );
 }

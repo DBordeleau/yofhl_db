@@ -9,7 +9,10 @@ import { pageMetadata } from './site-metadata';
 // and owners, never a standing or a point total that moves week to week. Each page's wording is a function of its own
 // so it can be read and edited here rather than hunted down in app/.
 
-/** A season's page: who won its Jagr Cup, and what else the season left behind. */
+/**
+ * A season's page: who won its Jagr Cup, and what else the season left behind. The page has a link preview of its own
+ * (app/(rafters)/season/[year]/opengraph-image.tsx), which Next only uses when this metadata names no image.
+ */
 export function seasonMetadata(season: Pick<BannerSeason, 'year' | 'team' | 'owner' | 'playoffStatus'>): Metadata {
     const label = seasonLabel(season.year);
     // A published season has a champion unless its playoffs were cancelled (lib/seasons.ts), so there is no third case.
@@ -18,7 +21,7 @@ export function seasonMetadata(season: Pick<BannerSeason, 'year' | 'team' | 'own
         ? `The ${label} YOFHL season: ${champion}${season.owner ? ` (${season.owner})` : ''} won the Jagr Cup.`
             + ' Final standings, playoff bracket, leaders and draft class.'
         : `The ${label} YOFHL season, whose playoffs were cancelled. Final standings, leaders and draft class.`;
-    return pageMetadata({ path: `/season/${season.year}`, name: `${label} Season`, description });
+    return pageMetadata({ path: `/season/${season.year}`, name: `${label} Season`, description, image: 'own' });
 }
 
 /** the player whose page is a memorial */
