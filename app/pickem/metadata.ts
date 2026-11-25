@@ -2,23 +2,17 @@ import type { Metadata } from 'next';
 import { pickemPrize } from '@/components/pickem/prizes';
 import { seasonLabel } from '@/lib/league';
 import type { PickemLeaderboardEntry, PickemWeek } from '@/lib/pickem/create-pickem';
+import { pageMetadata } from '@/lib/site-metadata';
 
 // What each Pick'em page tells search results, the browser tab and a link dropped in the group chat: the week and
-// season it shows, and what there is to do there.
+// season it shows, and what there is to do there. A week's wording is its own; everything else comes from the
+// site-wide helper, so Pick'em links unfurl with the same image and card as the rest of the site.
 
 const lockTime = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
 });
 
-function page(path: string, title: string, description: string): Metadata {
-    return {
-        title: `${title} · YOFHL`,
-        description,
-        alternates: { canonical: path },
-        openGraph: { type: 'website', siteName: 'YOFHL', title, description },
-        twitter: { card: 'summary', title, description },
-    };
-}
+const page = (path: string, name: string, description: string): Metadata => pageMetadata({ path, name, description });
 
 /** A week's page: before the lock it asks for picks; from the lock on it shows how they split */
 export function pickemWeekMetadata(path: string, week: PickemWeek | null, seasonYear: number | null): Metadata {

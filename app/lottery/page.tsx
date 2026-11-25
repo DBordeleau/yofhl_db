@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import LotteryRoom from '@/components/lottery/lottery-room';
 import { getPublicLottery } from '@/lib/lottery/data';
+import { pageMetadata } from '@/lib/site-metadata';
 import './lottery.css';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Draft Lottery · YOFHL', description: 'One pick. A new era. Watch YOFHL draft lottery live and see the full draft order.' };
+export const metadata: Metadata = pageMetadata({ path: '/lottery', name: 'Draft Lottery',
+    description: 'One pick. A new era. Watch YOFHL draft lottery live and see the full draft order.' });
 
 export default async function LotteryPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
     const { id } = await searchParams;

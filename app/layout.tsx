@@ -10,6 +10,7 @@ import { awardSummary } from "@/lib/awards";
 import { seasonLabel } from "@/lib/league";
 import { getPublishedEpisodes } from "@/lib/data/coachs-corner";
 import { episodeSeenKey } from "@/lib/coachs-corner/seen";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site-metadata";
 import "./globals.css";
 
 // variable width axis drives the expanded headings and condensed rank numbers
@@ -20,9 +21,14 @@ const archivo = Archivo({
   display: "swap",
 });
 
+// What a page that sets no metadata of its own says. Every public page should go through pageMetadata (lib/site-metadata.ts)
+// instead; this is the floor under them, and the metadataBase every preview URL is built from.
 export const metadata: Metadata = {
-  title: "YOFHL",
-  description: "An interactive database for YOFHL stats.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  openGraph: { type: "website", siteName: SITE_NAME, title: SITE_NAME, description: SITE_DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SITE_NAME, description: SITE_DESCRIPTION },
 };
 
 const positions = (row: LeaderRow) => row.Position.split(', ').join(' · ');
