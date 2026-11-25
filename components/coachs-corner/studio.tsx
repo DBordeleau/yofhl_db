@@ -1,12 +1,13 @@
 'use client';
 
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import Artwork, { HostArtwork, Poppy } from './artwork';
 import { artFor, CAST, CHARACTERS, gestureAction, lapelFor, type CharacterId, type Lapel } from '@/lib/coachs-corner/cast';
 import type { Episode } from '@/lib/coachs-corner/episode';
 import type { CaptionFrame, Frame, HostFrame, Line } from '@/lib/coachs-corner/timeline';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import type { BumperState } from '@/lib/coachs-corner/transport';
+import { flashbackLook } from '@/lib/coachs-corner/flashback-look';
 import { reactionParticles, reactionStill, type Particle } from '@/lib/coachs-corner/reactions';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import Monitor, { spillColour } from './monitor';
@@ -317,6 +318,22 @@ export function TitleCard({ episode, closing }: { episode: Episode; closing?: bo
     );
 }
 
+// ---------- flashbacks ----------
+
+/** The studio's ripple: horizontal waves that roll through the set while a flashback dissolves in or out. */
+function FlashbackRipple({ id, ripple, progress }: { id: string; ripple: number; progress: number }) {
+    return (
+        <svg className={styles.flashbackFilters} aria-hidden="true">
+            <filter id={id} x="-5%" y="-5%" width="110%" height="110%" colorInterpolationFilters="sRGB">
+                <feTurbulence type="fractalNoise" baseFrequency="0.0015 0.035" numOctaves="1" seed="4" result="waves" />
+                {/* the waves roll down the picture as the transition runs */}
+                <feOffset in="waves" dy={progress * 120} result="rolled" />
+                <feDisplacementMap in="SourceGraphic" in2="rolled" scale={ripple * 46} xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+        </svg>
+    );
+}
+
 // ---------- the studio ----------
 
 /** How far into the segment a line can start and still get the chyron, which runs its own 6 s animation. */
@@ -364,10 +381,18 @@ function Studio({ episode, frame, jumped, teams, players, banners, started, play
     const spill = spillColour(graphic, teams);
     const live = started && frame.phase !== 'intro';
     const overtime = frame.clock < 0;
+    // A jump that lands in a flashback's transition holds as a cut until the transition ends.
+    const cut = useRef<string | null>(null);
+    const look = flashbackLook(frame.flashback, { jumped, cut: cut.current });
+    cut.current = look.cut;
+    const rippleId = `cc-ripple-${useId().replace(/:/g, '')}`;
+    const rewinding = look.blip > 0 || look.ripple > 0;
     const chyron = fullscreen && live && frame.line >= 0 && tl.lines[frame.line].t0 - INTRO_MS < CHYRON_WINDOW_MS && frame.phase === 'segment';
 
     return (
-        <div ref={studioRef} className={styles.studio} data-shot={frame.shot} data-flashback={frame.flashback ? '' : undefined} style={{ '--spill': spill } as React.CSSProperties}>
+        <div ref={studioRef} className={styles.studio} data-shot={frame.shot} data-flashback={frame.flashback ? '' : undefined} data-rewinding={rewinding || undefined}
+            style={{ '--spill': spill, '--fb-grade': look.grade, '--fb-blip': look.blip, '--fb-roll': frame.flashback?.transition?.progress ?? 0, '--fb-ripple': rewinding ? `url(#${rippleId})` : undefined } as React.CSSProperties}>
+            {rewinding && <FlashbackRipple id={rippleId} ripple={look.ripple} progress={frame.flashback?.transition?.progress ?? 0} />}
             {/* alternating animation names restart the punch without remounting the set */}
             <div className={styles.jolt} data-jolt={frame.punch?.who === 'don' ? frame.punch.index % 2 : undefined}>
                 <div className={styles.world}>
@@ -399,6 +424,8 @@ function Studio({ episode, frame, jumped, teams, players, banners, started, play
 
             {frame.flashback && <>
                 <div className={styles.flashbackVignette} aria-hidden="true" />
+                <div className={styles.flashbackGrain} data-paused={!playing || undefined} aria-hidden="true" />
+                {rewinding && <div className={styles.flashbackBlip} aria-hidden="true" />}
                 {live && (
                     <div className={styles.flashbackTag} aria-hidden="true">
                         {['FLASHBACK', frame.flashback.tag].filter(Boolean).join(' · ')}
