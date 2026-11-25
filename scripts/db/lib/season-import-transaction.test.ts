@@ -9,6 +9,7 @@ import * as schema from '@/db/schema';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import type { Db } from './connect';
 import type { DraftFactsLoader } from './draft-development';
+import { readGamesPlayedHistory } from './games-played';
 import { loadLeagueConfig, type LeagueConfig } from './league-config';
 import { importSeasons, readLegacySeeds, type SeasonImportInput } from './season-import';
 
@@ -26,7 +27,7 @@ async function emptyLeague(t: TestContext) {
     const league = await disposableLeague(t);
     const db = drizzle(league.client, { schema });
     const run = (input: Partial<Omit<SeasonImportInput, 'db'>> = {}) =>
-        importSeasons({ db: db as unknown as Db, config: fixtureConfig(), dataDir: path.join(FIXTURE, 'data'), seasons: [], legacy: fixtureLegacy(), loadDraftFacts: draftFacts, ...input });
+        importSeasons({ db: db as unknown as Db, config: fixtureConfig(), dataDir: path.join(FIXTURE, 'data'), seasons: [], legacy: fixtureLegacy(), gamesPlayed: readGamesPlayedHistory(path.join(FIXTURE, 'games-played.json')), loadDraftFacts: draftFacts, ...input });
 
     // every row of every table and materialized view in the league schema, to compare before and after
     const everyRow = async () => {

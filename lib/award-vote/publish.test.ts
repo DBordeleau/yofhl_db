@@ -142,8 +142,8 @@ test('the hand-entry awards editor is read-only and refused for a season whose a
     const { getSeasonAdmin } = await import('@/lib/admin/data');
     const tags: string[] = [];
     const options = { invalidate: (tag: string) => { tags.push(tag); league.expire(tag); } };
-    await league.client.exec(`insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
-        values ('s1', 2026, 1, 'EDM', '{C}', 10, 1)`);
+    await league.client.exec(`insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg, games_played)
+        values ('s1', 2026, 1, 'EDM', '{C}', 10, 1, 10)`);
     assert.equal((await getSeasonAdmin(SEASON))?.awardVotePublished, false);
 
     assert.deepEqual((await publish()).result, { ok: true });

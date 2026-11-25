@@ -281,15 +281,19 @@ test('a player table that is not the requested, complete, season-to-date table i
     for (const [what, edit, error] of invalid) await assert.rejects(playerTable(edit).client.playerTable(LIVE, 2027), error, what);
 });
 
-// Fantrax's skater table (the record book's category export's read): built here, since the season sync reads it
-// with the same call and checks as the export. `pageSize` rows a page, whatever page size is asked for.
-type SkaterPage = { responses: { data: ReturnType<typeof skaterPage> }[] };
-function skaterPage(rows: [string, string[]][], page: number, pageSize: number) {
+// Fantrax's skater and goalie tables (the record book's category export's and the games-played export's reads):
+// built here, since the season sync reads them with the same calls and checks as the exports. `pageSize` rows a
+// page, whatever page size is asked for.
+type PositionPage = { responses: { data: ReturnType<typeof positionPage> }[] };
+type PageEdit = (body: PositionPage, page: number) => unknown;
+const SKATER_COLUMNS = ['GP', 'G', 'A', 'Pts', 'SOG', 'Hit', 'Blk'];
+const GOALIE_COLUMNS = ['GP', 'W', 'OL+ShL', 'SV%', 'SHO'];
+function positionPage(group: string, columns: string[], rows: [string, string[]][], page: number, pageSize: number) {
     return {
-        displayedView: 'STATS', displayedPosOrGroup: 'HOCKEY_SKATING', displayedStatusOrTeam: 'ALL',
+        displayedView: 'STATS', displayedPosOrGroup: group, displayedStatusOrTeam: 'ALL',
         displayedSeasonOrProjection: { name: '2026-27 Reg Season - YTD', code: 'SEASON_93t_YEAR_TO_DATE', timeframeTypeCode: 'YEAR_TO_DATE' },
         paginatedResultSet: { pageNumber: page, totalNumResults: rows.length, totalNumPages: Math.ceil(rows.length / pageSize) },
-        tableHeader: { cells: ['GP', 'G', 'A', 'Pts', 'SOG', 'Hit', 'Blk'].map(shortName => ({ shortName })) },
+        tableHeader: { cells: columns.map(shortName => ({ shortName })) },
         statsTable: rows.slice((page - 1) * pageSize, page * pageSize).map(([scorerId, cells]) => ({ scorer: { scorerId }, cells: cells.map(content => ({ content })) })),
     };
 }
@@ -298,40 +302,74 @@ const SKATERS: [string, string[]][] = [
     ['05ltj', ['20', '1', '9', '10', '41', '22', '38']],
     ['0abcd', ['0', '-', '-', '-', '-', '-', '-']], // no games played yet
 ];
-function skaterTable(edit: (body: SkaterPage, page: number) => unknown = body => body, rows = SKATERS) {
+const GOALIES: [string, string[]][] = [
+    ['02nom', ['18', '11', '3', '.912', '2']],
+    ['04hfl', ['3', '0', '2', '.861', '0']],
+    ['0efgh', ['0', '0', '0', '.000', '0']], // no games played yet
+];
+function positionTable(group: string, columns: string[], rows: [string, string[]][], edit: PageEdit = body => body) {
     const requests: Record<string, string>[] = [];
     const client = createFantraxClient(async (_input, init) => {
         const { data: request } = JSON.parse(String(init?.body)).msgs[0];
         requests.push(request);
         const page = Number(request.pageNumber);
-        return Response.json(edit({ responses: [{ data: skaterPage(rows, page, 2) }] }, page));
+        return Response.json(edit({ responses: [{ data: positionPage(group, columns, rows, page, 2) }] }, page));
     });
     return { client, requests };
 }
+const skaterTable = (edit?: PageEdit) => positionTable('HOCKEY_SKATING', SKATER_COLUMNS, SKATERS, edit);
+const goalieTable = (edit?: PageEdit) => positionTable('HOCKEY_GOALIE', GOALIE_COLUMNS, GOALIES, edit);
+const pagesAsked = (requests: Record<string, string>[]) =>
+    requests.map(request => [request.positionOrGroup, request.statusOrTeamFilter, request.pageNumber, request.seasonOrProjection]);
 
-test('the skater table gives every skater across its pages, with skater categories for those who have played', async () => {
+test('the skater table gives every skater across its pages, with games played and skater categories for those who have played', async () => {
     const { client, requests } = skaterTable();
     assert.deepEqual(await client.skaterTable(LIVE, 2027), [
-        { id: '02un4', categories: { goals: 12, assists: 25, shots: 70, hits: 8, blocks: 5 } },
-        { id: '05ltj', categories: { goals: 1, assists: 9, shots: 41, hits: 22, blocks: 38 } },
-        { id: '0abcd', categories: null },
+        { id: '02un4', gamesPlayed: 20, categories: { goals: 12, assists: 25, shots: 70, hits: 8, blocks: 5 } },
+        { id: '05ltj', gamesPlayed: 20, categories: { goals: 1, assists: 9, shots: 41, hits: 22, blocks: 38 } },
+        { id: '0abcd', gamesPlayed: 0, categories: null },
     ]);
-    assert.deepEqual(requests.map(request => [request.positionOrGroup, request.statusOrTeamFilter, request.pageNumber, request.seasonOrProjection]),
-        [['HOCKEY_SKATING', 'ALL', '1', undefined], ['HOCKEY_SKATING', 'ALL', '2', 'SEASON_93t_YEAR_TO_DATE']], "the second page asks for the first page's season");
+    assert.deepEqual(pagesAsked(requests), [['HOCKEY_SKATING', 'ALL', '1', undefined], ['HOCKEY_SKATING', 'ALL', '2', 'SEASON_93t_YEAR_TO_DATE']],
+        "the second page asks for the first page's season");
 });
 
+test('the goalie table gives every goalie across its pages, with games played', async () => {
+    const { client, requests } = goalieTable();
+    assert.deepEqual(await client.goalieTable(LIVE, 2027), [
+        { id: '02nom', gamesPlayed: 18 },
+        { id: '04hfl', gamesPlayed: 3 },
+        { id: '0efgh', gamesPlayed: 0 },
+    ]);
+    assert.deepEqual(pagesAsked(requests), [['HOCKEY_GOALIE', 'ALL', '1', undefined], ['HOCKEY_GOALIE', 'ALL', '2', 'SEASON_93t_YEAR_TO_DATE']],
+        "the second page asks for the first page's season");
+});
+
+/** what makes either table not the complete regular-season table of the season asked for; `other` is the other table's group */
+const notTheTable = (other: string): [string, PageEdit, RegExp][] => [
+    ['another season', body => { body.responses[0].data.displayedSeasonOrProjection.name = '2025-26 Reg Season - YTD'; return body; }, /Unexpected Fantrax stats page/],
+    ['the other position group', body => { body.responses[0].data.displayedPosOrGroup = other; return body; }, /Unexpected Fantrax stats page/],
+    ['no games played column', body => { body.responses[0].data.tableHeader.cells.shift(); return body; }, /Missing stat columns/],
+    ['an invalid games played', body => { body.responses[0].data.statsTable[0].cells[0].content = '1.5'; return body; }, /Invalid games played/],
+    ['a total that moves between pages', (body, page) => { if (page > 1) body.responses[0].data.paginatedResultSet.totalNumResults += 1; return body; }, /changed between pages/],
+    ['a player on two pages', (body, page) => {
+        if (page > 1) body.responses[0].data.statsTable[0].scorer.scorerId = other === 'HOCKEY_GOALIE' ? '02un4' : '02nom';
+        return body;
+    }, /more than once/],
+    ['a short page', (body, page) => { if (page > 1) body.responses[0].data.statsTable = []; return body; }, /incomplete/],
+    ['no response', () => ({ responses: [] }), /Unexpected Fantrax stats page/],
+];
+
 test('a skater table that is not the complete regular-season table of the season asked for is rejected', async () => {
-    const invalid: [string, (body: SkaterPage, page: number) => unknown, RegExp][] = [
-        ['another season', body => { body.responses[0].data.displayedSeasonOrProjection.name = '2025-26 Reg Season - YTD'; return body; }, /Unexpected Fantrax stats page/],
-        ['goalies', body => { body.responses[0].data.displayedPosOrGroup = 'POS_201'; return body; }, /Unexpected Fantrax stats page/],
-        ['a missing column', body => { body.responses[0].data.tableHeader.cells.pop(); return body; }, /Missing stat columns/],
+    const invalid: [string, PageEdit, RegExp][] = [
+        ...notTheTable('HOCKEY_GOALIE'),
+        ['a missing category column', body => { body.responses[0].data.tableHeader.cells.pop(); return body; }, /Missing stat columns/],
         ['an invalid total', body => { body.responses[0].data.statsTable[0].cells[1].content = '1.5'; return body; }, /Invalid player category total/],
-        ['a total that moves between pages', (body, page) => { if (page > 1) body.responses[0].data.paginatedResultSet.totalNumResults += 1; return body; }, /changed between pages/],
-        ['a player on two pages', (body, page) => { if (page > 1) body.responses[0].data.statsTable[0].scorer.scorerId = '02un4'; return body; }, /more than once/],
-        ['a short page', (body, page) => { if (page > 1) body.responses[0].data.statsTable = []; return body; }, /incomplete/],
-        ['no response', () => ({ responses: [] }), /Unexpected Fantrax stats page/],
     ];
     for (const [what, edit, error] of invalid) await assert.rejects(skaterTable(edit).client.skaterTable(LIVE, 2027), error, what);
+});
+
+test('a goalie table that is not the complete regular-season table of the season asked for is rejected', async () => {
+    for (const [what, edit, error] of notTheTable('HOCKEY_SKATING')) await assert.rejects(goalieTable(edit).client.goalieTable(LIVE, 2027), error, what);
 });
 
 test('directoryPlayer splits comma-separated positions and normalizes (N/A) NHL team sentinels', () => {

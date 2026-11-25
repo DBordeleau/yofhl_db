@@ -14,6 +14,7 @@ export const seasonSync = createSeasonSync({
         standings: leagueId => client.standingsTable(leagueId),
         players: (leagueId, seasonYear) => client.playerTable(leagueId, seasonYear),
         skaters: (leagueId, seasonYear) => client.skaterTable(leagueId, seasonYear),
+        goalies: (leagueId, seasonYear) => client.goalieTable(leagueId, seasonYear),
         dayRosters: (leagueId, rosterPeriod) => client.dayRosters(leagueId, rosterPeriod),
         playerDirectory: async () => Object.fromEntries(Object.entries(await client.playerDirectory()).map(([id, player]) =>
             [id, directoryPlayer(player)])),

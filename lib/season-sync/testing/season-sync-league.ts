@@ -5,10 +5,10 @@
 import type { TestContext } from 'node:test';
 import type { WeekScores } from '@/lib/fantrax/live-season';
 import { createMemoryLiveSeason, type MemoryState } from '@/lib/fantrax/memory-live-season';
-import { SKATER_CATEGORIES } from '@/lib/records/player-stats';
+import { SKATER_CATEGORIES, type PlayerCategories } from '@/lib/records/player-stats';
 import { disposableLeague } from '@/lib/testing/disposable-league';
 import { createMemoryFantrax, type MemoryFantraxState } from '../memory-fantrax';
-import type { FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxSkater, FantraxWeek } from '../ports';
+import type { FantraxGoalie, FantraxPlayer, FantraxRosterPeriod, FantraxRosterSlot, FantraxSkater, FantraxWeek } from '../ports';
 import type { SkaterCategoryTotals } from '../skater-categories';
 
 export const SEASON = 2027;
@@ -49,8 +49,8 @@ export const endOf = (week: number) => Date.parse(WEEKS[week - 1].endDate);
 // franchise 2 in the Final) franchise N went 10-5-1 with 1000.5 points for and 900.25 against. The opened 2026–27
 // season names franchise N "Club N" (CN, /logos/cN.png) in team season 10 + N, all zeros, as the season import
 // opens it. Fantrax team fxN is franchise N.
-// Players: v1 scored 100 (10 FP/G) for franchise 1 in 2025–26 and was franchise 1's first pick in the
-// 2026–27 draft; v2 scored 120 (12 FP/G) for franchise 2.
+// Players: v1 scored 100 (10 FP/G, 10 games played) for franchise 1 in 2025–26 and was franchise 1's first pick
+// in the 2026–27 draft; v2 scored 120 (12 FP/G, 10 games played) for franchise 2.
 const seed = (opened: boolean, franchises: number[]) => `
     insert into league.seasons values (2026, '2025–26', 'complete') ${opened ? `, (${SEASON}, '2026–27', 'complete')` : ''};
     insert into league.franchises (id, display_name, first_season) values ${franchises.map(id => `(${id}, 'Franchise ${id}', 2020)`).join(', ')};
@@ -63,8 +63,8 @@ const seed = (opened: boolean, franchises: number[]) => `
     insert into league.fantrax_teams (season_year, fantrax_league_id, fantrax_team_id, franchise_id)
         values ${franchises.map(id => `(${SEASON}, '${LEAGUE_ID}', 'fx${id}', ${id})`).join(', ')};
     insert into league.players (id, name) values ('v1', 'Name v1'), ('v2', 'Name v2');
-    insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
-        values ('v1', 2026, 1, 'EDM', '{C}', 100, 10), ('v2', 2026, 2, 'TOR', '{LW,RW}', 120, 12);
+    insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg, games_played)
+        values ('v1', 2026, 1, 'EDM', '{C}', 100, 10, 10), ('v2', 2026, 2, 'TOR', '{LW,RW}', 120, 12, 10);
     ${opened ? `insert into league.draft_picks (season_year, overall, round, pick, franchise_id, team_name, player_id, player_name, positions, drafted_on, source_time, source_file)
         values (${SEASON}, 1, 1, 1, 1, 'Club 1', 'v1', 'Name v1', 'C', '2026-10-01', '8:00', 'draft.csv');` : ''}
 `;
@@ -74,17 +74,21 @@ export type StandingRow = [number, number, number, number, number, number, numbe
 const standingsOf = (rows: StandingRow[]) => rows.map(([team, rank, wins, losses, ties, pointsFor, pointsAgainst]) =>
     ({ teamId: `fx${team}`, rank, wins, losses, ties, pointsFor, pointsAgainst }));
 
-/** a player in Fantrax's player stats table: [player ID, FPts, FP/G, Fantrax team number or null for a free agent] */
-export type PlayerRow = [string, number, number | null, number | null];
+/**
+ * a player in Fantrax's player stats table: [player ID, FPts, FP/G, Fantrax team number or null for a free agent,
+ * games played]. Games played defaults to 10 for a player with points and 0 for one without.
+ */
+export type PlayerRow = [string, number, number | null, number | null, number?];
 /** each player as Fantrax lists them: named "Name <id>", a centre for Edmonton unless the test says otherwise */
 const playersOf = (rows: PlayerRow[]): FantraxPlayer[] => rows.map(([id, points, perGame, team]) =>
     ({ id, name: `Name ${id}`, positions: ['C'], nhlTeam: 'EDM', teamId: team === null ? null : `fx${team}`, points, perGame }));
+/** games played by player ID, as `rows` give them */
+const gamesOf = (rows: PlayerRow[]) => new Map(rows.map(([id, points, , , games]) => [id, games ?? (points === 0 ? 0 : 10)]));
 
-/** a skater in Fantrax's skater table: [player ID, goals, assists, shots, hits, blocks], or [player ID, null] for one with no games played */
+/** a skater's categories in Fantrax's skater table: [player ID, goals, assists, shots, hits, blocks], or [player ID, null] for one with no games played */
 export type SkaterRow = [string, number, number, number, number, number] | [string, null];
-const skatersOf = (rows: SkaterRow[]): FantraxSkater[] => rows.map(row => row[1] === null
-    ? { id: row[0], categories: null }
-    : { id: row[0], categories: { goals: row[1], assists: row[2], shots: row[3], hits: row[4], blocks: row[5] } });
+const categoriesOf = (rows: SkaterRow[]) => new Map(rows.map(row => [row[0], row[1] === null
+    ? null : { goals: row[1], assists: row[2], shots: row[3], hits: row[4], blocks: row[5] }]));
 
 /** Fantrax's scores for `games` in week `week`: [away team, home team, away score, home score] each */
 const weekScoresOf = (week: number, games: GameScore[], fetchedAt: string): WeekScores => ({
@@ -102,6 +106,7 @@ export function fantraxState(franchises = FRANCHISES): MemoryFantraxState {
         standings: standingsOf(franchises.map(id => [id, id, 0, 0, 0, 0, 0])),
         players: [],
         skaters: [],
+        goalies: [],
         // every team's roster is empty every day until a test fills it
         rosters: Object.fromEntries(ROSTER_PERIODS.map(period => [period.number, Object.fromEntries(franchises.map(id => [`fx${id}`, []]))])),
         directory: {},
@@ -163,6 +168,20 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     // Modules that touch Next load after the league stands in for it.
     const { createSeasonSync } = await import('../create-season-sync');
     const fantrax = fantraxState(franchises);
+    // Fantrax's skater and goalie tables list every player in its player stats table with their games played, a
+    // goalie (positions G) in the goalie table and anyone else in the skater table, and the skater table also lists
+    // every skater `setSkaters` names. A skater's categories are the ones `setSkaters` gives, none otherwise.
+    let games = new Map<string, number>();
+    let categories = new Map<string, PlayerCategories | null>();
+    Object.defineProperties(fantrax, {
+        skaters: { enumerable: true, get: (): FantraxSkater[] => {
+            const listed = fantrax.players.filter(player => !player.positions.includes('G')).map(player => player.id);
+            return [...new Set([...listed, ...categories.keys()])].map(id =>
+                ({ id, gamesPlayed: games.get(id) ?? (categories.get(id) ? 10 : 0), categories: categories.get(id) ?? null }));
+        } },
+        goalies: { enumerable: true, get: (): FantraxGoalie[] => fantrax.players.filter(player => player.positions.includes('G'))
+            .map(player => ({ id: player.id, gamesPlayed: games.get(player.id) ?? 0 })) },
+    });
     const live = liveSeasonState(franchises);
     // The live season's clock is the run's: it serves a week's scores only once the week has started.
     let clock = Date.now();
@@ -185,10 +204,14 @@ export async function seasonSyncLeague(t: TestContext, options: { opened?: boole
     const read = async <T>(fn: () => Promise<T>) => (await league.runAsRoute('/', fn)).result;
     /** Fantrax's standings table now reads `rows` */
     const setStandings = (rows: StandingRow[]) => { fantrax.standings = standingsOf(rows); };
-    /** Fantrax's player stats table now lists `rows` (every NHL player, scored or not) */
-    const setPlayers = (rows: PlayerRow[]) => { fantrax.players = playersOf(rows); };
-    /** Fantrax's skater table now lists `rows` (every NHL skater, played or not) */
-    const setSkaters = (rows: SkaterRow[]) => { fantrax.skaters = skatersOf(rows); };
+    /** Fantrax's player stats table now lists `rows` (every NHL player, scored or not), each also in Fantrax's player directory */
+    const setPlayers = (rows: PlayerRow[]) => {
+        fantrax.players = playersOf(rows);
+        games = gamesOf(rows);
+        for (const { id, name, positions, nhlTeam } of fantrax.players) fantrax.directory[id] ??= { name, positions, nhlTeam };
+    };
+    /** Fantrax's skater table now gives `rows`' skater categories */
+    const setSkaters = (rows: SkaterRow[]) => { categories = categoriesOf(rows); };
     /**
      * Each player season's stored goals, assists, shots, hits and blocks in `year`, by player ID, or null where none
      * are stored. Read from the table, as the record book shows only the ranked ones.

@@ -14,9 +14,9 @@ test('curated edits against disposable Postgres', async t => {
                (3, 2026, 1, 'Team 1', 'Team 1', 'T1', 1, 1, 10, 5, 0, 999, 500, null),
                (4, 2026, 2, 'Team 2', 'Team 2', 'T2', 1, 2, 10, 5, 0, 998, 500, null);
         insert into league.players values ('p1', 'Player One'), ('p2', 'Player Two'), ('p3', 'Player Three');
-        insert into league.player_seasons (player_id, season_year, team_season_id, positions, fpts, fpg)
-        values ('p1', 2025, 1, array['C'], 99, 2), ('p2', 2025, 2, array['C'], 98, 2),
-               ('p1', 2026, 3, array['C'], 99, 2), ('p2', 2026, 4, array['C'], 98, 2), ('p3', 2026, null, array['D'], 50, 1);
+        insert into league.player_seasons (player_id, season_year, team_season_id, positions, fpts, fpg, games_played)
+        values ('p1', 2025, 1, array['C'], 99, 2, 50), ('p2', 2025, 2, array['C'], 98, 2, 49),
+               ('p1', 2026, 3, array['C'], 99, 2, 50), ('p2', 2026, 4, array['C'], 98, 2, 49), ('p3', 2026, null, array['D'], 50, 1, 50);
         insert into league.championship_rosters values (2025, 'p1'), (2026, 'p1');
         insert into league.awards (season_year, award, player_id, team_season_id) values (2026, 'wayne-gretzky', 'p1', 3);
         insert into league.matchups (id, season_year, stage, round, bracket, slot, away_team_season_id, home_team_season_id, away_score, home_score, winner_team_season_id)

@@ -48,8 +48,9 @@ const CareerTable: FC<CareerTableProps> = ({ careerStats, awardsByYear, careerFp
         setSortKey(key);
     };
 
+    // a negative season counts toward the career, so it is listed; a free agent's scoreless season is not
     const rows = careerStats
-        .filter((stat) => stat.FPts > 0 || stat.YOFHLTeam !== 'FA')
+        .filter((stat) => stat.FPts !== 0 || stat.YOFHLTeam !== 'FA')
         .sort((a, b) => (sortOrder === 'asc' ? a[sortKey] - b[sortKey] : b[sortKey] - a[sortKey]));
 
     const totalFPts = careerStats.reduce((acc, stat) => acc + stat.FPts, 0);

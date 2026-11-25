@@ -1,13 +1,34 @@
-// Fantrax's website skater table: every NHL skater's regular-season totals, season to date, read page by page and
-// checked by the record book's page check (lib/records/player-stats.ts). The season sync reads the live season's
-// skater categories from it, and the record book's category export (scripts/export-record-player-stats.ts) read
-// 2019–2026's.
-import { eachCategory, parseCategoryPage, type PlayerCategories } from '../records/player-stats';
-import { globalFetch, type Fetcher } from './leaders';
+// Fantrax's website skater table: every NHL skater's regular-season games played and totals, season to date, read
+// page by page with the position table's checks (position-table.ts) and each played skater's skater categories
+// (lib/records/player-stats.ts) checked complete. The season sync reads the live season's games played and skater
+// categories from it, and the record book's category export (scripts/export-record-player-stats.ts) and the
+// games-played export (scripts/export-games-played.ts) read 2019–2026's.
+import { eachCategory, PLAYER_STATS, type CategorySeason, type PlayerCategories } from '../records/player-stats';
+import type { Fetcher } from './leaders';
+import { cellCount, loadPositionTable, parsePositionPage, type PositionPage } from './position-table';
+
+/** each skater on the page who has played, with their skater categories, or a rejection when the page lacks a category column or a played skater's total */
+function pageCategories(page: PositionPage, year: number): CategorySeason[] {
+    const columns = eachCategory(category => page.columns.indexOf(PLAYER_STATS.find(stat => stat.id === category)!.column));
+    if (Object.values(columns).some(index => index < 0)) throw new Error(`Missing stat columns for ${page.seasonName}`);
+    return page.rows.filter(row => row.gamesPlayed > 0).map(({ id, cells }) => {
+        const totals = eachCategory(category => cellCount(cells[columns[category]]?.content, 'player category total'));
+        if (Object.values(totals).some(value => value === null)) throw new Error(`Incomplete categories for ${id}, ${page.seasonName}`);
+        return { id, year, ...totals as PlayerCategories };
+    });
+}
+
+/** One page of Fantrax's skater table: its played skaters' categories and every skater's ID, or a rejection when it is not page `pageNumber` of `year`'s regular-season skater table. */
+export function parseCategoryPage(value: unknown, year: number, pageNumber: number) {
+    const page = parsePositionPage(value, year, pageNumber, 'HOCKEY_SKATING');
+    return { players: pageCategories(page, year), allIds: page.rows.map(row => row.id) };
+}
 
 export interface TableSkater {
     /** bare Fantrax player ID */
     id: string;
+    /** the NHL regular-season games the skater has appeared in (GLOSSARY.md), 0 for none */
+    gamesPlayed: number;
     /** goals, assists, shots, hits and blocks, or null for a skater with no games played */
     categories: PlayerCategories | null;
 }
@@ -19,41 +40,14 @@ export interface SkaterTable {
     skaters: TableSkater[];
 }
 
-const MAX_PAGES = 100;
-
-// shortcut: Fantrax's website stats endpoint is undocumented; replace it when a supported player-stats API is available.
 export async function loadSkaterTable(leagueId: string, seasonYear: number, options: {
     fetcher?: Fetcher;
     /** each page's raw response, as Fantrax sent it */
     onPage?: (raw: unknown, page: number) => unknown;
 } = {}): Promise<SkaterTable> {
-    const { fetcher = globalFetch, onPage } = options;
-    const skaters = new Map<string, TableSkater>();
-    let pageCount = 1, total = 0, seasonCode: string | undefined;
-    for (let page = 1; page <= pageCount; page++) {
-        const response = await fetcher(`https://www.fantrax.com/fxpa/req?leagueId=${encodeURIComponent(leagueId)}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(30000),
-            body: JSON.stringify({ msgs: [{ method: 'getPlayerStats', data: {
-                leagueId, view: 'STATS', statusOrTeamFilter: 'ALL', positionOrGroup: 'HOCKEY_SKATING',
-                pageNumber: String(page), maxResultsPerPage: '10000', miscDisplayType: '1', ...(seasonCode ? { seasonOrProjection: seasonCode } : {}),
-            } }] }),
-        });
-        if (!response.ok) throw new Error(`Fantrax skater table returned ${response.status}`);
-        const raw = await response.json();
-        const result = parseCategoryPage(raw?.responses?.[0]?.data, seasonYear, page);
-        await onPage?.(raw, page);
-        if (page > 1 && (total !== result.pagination.totalNumResults || pageCount !== result.pagination.totalNumPages)) {
-            throw new Error(`Fantrax's skater table for ${seasonYear} changed between pages`);
-        }
-        ({ totalNumPages: pageCount, totalNumResults: total } = result.pagination);
-        seasonCode = result.seasonCode;
-        if (pageCount > MAX_PAGES) throw new Error(`Fantrax's skater table for ${seasonYear} has an unexpected ${pageCount} pages`);
-        const played = new Map(result.players.map(player => [player.id, eachCategory(category => player[category])]));
-        for (const id of result.allIds) {
-            if (skaters.has(id)) throw new Error(`Fantrax's skater table for ${seasonYear} has player ${id} more than once`);
-            skaters.set(id, { id, categories: played.get(id) ?? null });
-        }
-    }
-    if (skaters.size !== total) throw new Error(`Fantrax returned an incomplete skater table for ${seasonYear}`);
-    return { seasonCode: seasonCode!, skaters: [...skaters.values()] };
+    const { seasonCode, rows } = await loadPositionTable(leagueId, seasonYear, 'HOCKEY_SKATING', page => {
+        const played = new Map(pageCategories(page, seasonYear).map(skater => [skater.id, eachCategory(category => skater[category])]));
+        return page.rows.map(({ id, gamesPlayed }) => ({ id, gamesPlayed, categories: played.get(id) ?? null }));
+    }, options);
+    return { seasonCode, skaters: rows };
 }

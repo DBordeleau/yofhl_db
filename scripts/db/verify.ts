@@ -72,10 +72,11 @@ const main = async () => {
             ...(await livePlayers('/stats/all-time/all?page=1')).players,
             ...(await livePlayers('/stats/all-time/all?page=2')).players,
         ];
+        // careers as player_careers counts them: every season with games played, career FP/G their FPts ÷ games played
         const ourAllTime = await queryRows<{ player_id: string; total: number; fpg: number; cups: number }>(db, sql`
-            select ps.player_id, sum(ps.fpts)::float as total, round(avg(ps.fpg), 2)::float as fpg,
+            select ps.player_id, sum(ps.fpts)::float as total, round(sum(ps.fpts) / sum(ps.games_played), 2)::float as fpg,
                    (select count(*)::int from league.championship_rosters c where c.player_id = ps.player_id and c.season_year <= ${upTo}) as cups
-            from league.player_seasons ps where ps.fpts > 0 and ps.season_year <= ${upTo}
+            from league.player_seasons ps where ps.games_played > 0 and ps.season_year <= ${upTo}
             group by ps.player_id order by total desc limit ${liveAllTime.length}`);
         report('All-time leaderboard top 50 (order, FPts, FP/G, cups)', liveAllTime.flatMap((p, i) => {
             // players tied on points can be listed in either order
@@ -110,9 +111,10 @@ const main = async () => {
         }), liveSeasons.length);
 
         // leaderboard sizes (live maxPages = rows / 25, rounded up)
+        // the single-season list counts seasons with FPts > 0, the all-time list players with games played
         const [counts] = await queryRows<{ seasons: number; players: number }>(db, sql`
-            select count(*)::int as seasons, count(distinct player_id)::int as players
-            from league.player_seasons where fpts > 0 and season_year <= ${upTo}`);
+            select count(*) filter (where fpts > 0)::int as seasons, count(distinct player_id) filter (where games_played > 0)::int as players
+            from league.player_seasons where season_year <= ${upTo}`);
         const liveAllTimePages = (await live<{ maxPages: number }>('/stats/all-time/all?page=1')).maxPages;
         report('Leaderboard sizes', [
             ...(Math.ceil(counts.seasons / 25) !== liveSingle.maxPages ? [`single-season pages: old ${liveSingle.maxPages}, new ${Math.ceil(counts.seasons / 25)} (${counts.seasons} rows)`] : []),

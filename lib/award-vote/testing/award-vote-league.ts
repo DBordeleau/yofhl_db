@@ -210,8 +210,8 @@ export async function awardVoteLeague(t: TestContext, options: { champion?: bool
     /** the archive has `playerId` on franchise `franchise`'s 2027 roster at the end of the season, or a free agent with null */
     const endedSeasonWith = async (playerId: string, franchise: number | null) => {
         await league.client.exec(`${players([playerId])}
-            insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg)
-            values ('${playerId}', ${SEASON}, ${franchise === null ? 'null' : 10 + franchise}, 'EDM', '{C}', 10, 1);`);
+            insert into league.player_seasons (player_id, season_year, team_season_id, nhl_team, positions, fpts, fpg, games_played)
+            values ('${playerId}', ${SEASON}, ${franchise === null ? 'null' : 10 + franchise}, 'EDM', '{C}', 10, 1, 10);`);
     };
     let transactions = 0;
     /** the archive's 2027 transactions include franchise `from` dropping `playerId` on `on` (`YYYY-MM-DD`) */

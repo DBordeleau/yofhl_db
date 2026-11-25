@@ -6,6 +6,7 @@ import * as schema from '@/db/schema';
 import { disposableLeague, type LeagueOptions } from '@/lib/testing/disposable-league';
 import type { Db } from './connect';
 import type { DraftFactsLoader } from './draft-development';
+import { readGamesPlayedHistory } from './games-played';
 import { loadLeagueConfig } from './league-config';
 import { importSeasons, readLegacySeeds, type LegacySeeds } from './season-import';
 
@@ -27,7 +28,7 @@ async function importFixture(t: TestContext, { league = {}, legacy = fixtureLega
         dataDir: path.join(FIXTURE, 'data'),
         seasons: [],
         legacy,
-        loadDraftFacts: draftFacts,
+        gamesPlayed: readGamesPlayedHistory(path.join(FIXTURE, 'games-played.json')), loadDraftFacts: draftFacts,
     });
     if (!result.ok) throw new Error(`The fixture import failed: ${result.errors.join('; ')}`);
     return { ...result, client };

@@ -374,15 +374,16 @@ const getFranchiseRows = cached(async (id: number): Promise<FranchiseDetail> => 
         where c.id = ${id}`);
     if (!franchise) throw new NotFoundError();
     const [leaders, seasons] = await Promise.all([rows<LeaderRow>(sql`
+        -- the player's seasons with the franchise that have games played, counted as a career counts them (player_careers)
         with stints as (
-            select ps.player_id, ps.season_year, ps.fpts, ps.fpg, ps.positions
+            select ps.player_id, ps.season_year, ps.fpts, ps.games_played, ps.positions
             from league.player_seasons ps
             join league.team_seasons t on t.id = ps.team_season_id
-            where t.franchise_id = ${id} and ps.fpts > 0
+            where t.franchise_id = ${id} and ps.games_played > 0
         )
         select s.player_id as "ID", p.name as "Player",
                (select string_agg(distinct pos, ', ') from stints s2, unnest(s2.positions) pos where s2.player_id = s.player_id) as "Position",
-               sum(s.fpts)::float8 as "FPts", round(avg(s.fpg), 2)::float8 as "FPG",
+               sum(s.fpts)::float8 as "FPts", round(sum(s.fpts) / sum(s.games_played), 2)::float8 as "FPG",
                (select count(*)::int
                   from league.championship_rosters c
                   join league.season_results r on r.season_year = c.season_year

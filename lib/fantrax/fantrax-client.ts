@@ -4,12 +4,14 @@ import { fantraxApiUrl, readLeagueInfo } from './api';
 import { CORRECTION_WINDOW_MS } from './cache-policy';
 import { discoverScoringSeason, globalFetch, loadRosterStats, loadScoringLeaders, type Fetcher } from './leaders';
 import { loadPlayerTable } from './player-table';
+import { loadGoalieTable } from './goalie-table';
 import { loadSkaterTable } from './skater-table';
 import { loadStandingsTable } from './standings-table';
 import { type FantraxPlayoffs, type RosterStats, type ScheduledMatchup, type SeedPairing, type SourceCore, type SourceWeek, type WeekScores } from './live-season-source';
 
 export type { Fetcher } from './leaders';
 export type { TablePlayer } from './player-table';
+export type { TableGoalie } from './goalie-table';
 export type { TableSkater } from './skater-table';
 export type { TableStanding } from './standings-table';
 export type { SourceCore, SourceWeek } from './live-season-source';
@@ -156,8 +158,10 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
     const standingsTable = (leagueId: string) => loadStandingsTable(leagueId, fetcher);
     /** every player who scored (either sign) or is rostered, season to date; the season sync's read */
     const playerTable = (leagueId: string, seasonYear: number) => loadPlayerTable(leagueId, seasonYear, fetcher);
-    /** every NHL skater, with skater categories for those who have played, season to date; the season sync's read */
+    /** every NHL skater, with games played and skater categories for those who have played, season to date; the season sync's read */
     const skaterTable = async (leagueId: string, seasonYear: number) => (await loadSkaterTable(leagueId, seasonYear, { fetcher })).skaters;
+    /** every NHL goalie, with games played, season to date; the season sync's read */
+    const goalieTable = async (leagueId: string, seasonYear: number) => (await loadGoalieTable(leagueId, seasonYear, { fetcher })).goalies;
 
     async function playerDirectory(): Promise<PlayerDirectory> {
         const players = await request<PlayerDirectory>('getPlayerIds', { sport: 'NHL' });
@@ -210,7 +214,7 @@ export function createFantraxClient(fetcher: Fetcher = globalFetch) {
         return { source, leaders, rosterStats: stats, scores: Object.fromEntries(scores.map(score => [score.period, score])) };
     }
 
-    return { league, leagueInfo, dayRosters, standingsTable, playerTable, skaterTable, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
+    return { league, leagueInfo, dayRosters, standingsTable, playerTable, skaterTable, goalieTable, playerDirectory, weekScores, scoringSeason, scoringLeaders, rosterStats, capture };
 }
 
 /** The port's core snapshot from raw responses, fresh or saved: Fantrax's periods become weeks. */
