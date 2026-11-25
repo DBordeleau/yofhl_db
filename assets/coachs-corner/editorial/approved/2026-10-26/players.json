@@ -1,0 +1,75 @@
+[
+  {
+    "name": "Connor Hellebuyck",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/NJD/8476945.png",
+    "nhlTeam": "WPG",
+    "positions": [
+      "G"
+    ],
+    "season": 2026,
+    "fpts": 328,
+    "fpg": 5.75,
+    "games": null
+  },
+  {
+    "name": "Connor McDavid",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/EDM/8478402.png",
+    "nhlTeam": "EDM",
+    "positions": [
+      "C"
+    ],
+    "season": 2026,
+    "fpts": 671.5,
+    "fpg": 8.19,
+    "games": null
+  },
+  {
+    "name": "Leon Draisaitl",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/EDM/8477934.png",
+    "nhlTeam": "EDM",
+    "positions": [
+      "C",
+      "LW"
+    ],
+    "season": 2026,
+    "fpts": 469.5,
+    "fpg": 7.22,
+    "games": null
+  },
+  {
+    "name": "Tom Wilson",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/WSH/8476880.png",
+    "nhlTeam": "WSH",
+    "positions": [
+      "RW"
+    ],
+    "season": 2026,
+    "fpts": 372,
+    "fpg": 5.17,
+    "games": null
+  },
+  {
+    "name": "Arturs Silovs",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/PIT/8481668.png",
+    "nhlTeam": "PIT",
+    "positions": [
+      "G"
+    ],
+    "season": 2026,
+    "fpts": 264,
+    "fpg": 6.77,
+    "games": null
+  },
+  {
+    "name": "William Nylander",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/TOR/8477939.png",
+    "nhlTeam": "TOR",
+    "positions": [
+      "RW"
+    ],
+    "season": 2026,
+    "fpts": 378.25,
+    "fpg": 5.82,
+    "games": null
+  }
+]

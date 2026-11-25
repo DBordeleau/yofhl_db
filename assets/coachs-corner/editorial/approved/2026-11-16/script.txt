@@ -1,0 +1,298 @@
+---
+title: Wake up
+season: 2027
+week: 5
+date: 2026-11-16
+segment: 7:04
+---
+
+# Open: a proper welcome and Don's new suit, then the Week 5 payoff. Both hosts took Hooterville. Don calls it perfect; Ron says they picked the same team.
+[don: alternate-4-rest, ron: rest]
+>> logo
+
+RON: Welcome to Coach's Corner. Week 5 is in the books. [beat] And Don's got a new suit.
+
+DON (alternate-4-thumbs, warm): Blue checkers. [beat] {warm: Sharp, eh?} [alternate-4-point] Not like that thing you've got on.
+
+RON (deadpan): It's a navy suit.
+
+DON (alternate-4-point, deadpan): It's a trainwreck.
+
+RON: Last week, we both picked Hooterville at Paddyville.
+
+DON (alternate-4-point): Put it up. [>> matchup HH 222.75 PVLS 198.85 final "Last week's featured matchup"] Hooterville, by 24. I told you, boy!
+
+RON: [>> list "Featured matchup picks" "Don" "4/4 · 100%", "Ron" "2/4 · 50%"] Don's 4 for 4. I'm 2 for 4.
+
+DON (alternate-4-thumbs): [fx: don happy 3s] 4 for 4. [beat] Perfect. Never missed.
+
+RON (deadpan): We picked the same team.
+
+DON (alternate-4-point, firm): I picked them first. **You copied.**
+
+# Varrock: Don rolls on to the other perfect thing. McDavid 53 points in 22 GP, 202 pace over 84. Hellebuyck 7-0 with NJD, drafted 42nd. Devils lost 4-2 in Winnipeg on Tue. Nov. 10 without him.
+DON (alternate-4-point): Now. [beat] Who else is perfect? [beat] [>> team VWIZ "5–0 · The only unbeaten team"] Varrock.
+
+RON: The only undefeated team remaining.
+
+DON (alternate-4-thumbs): 5 and 0. [beat] And McDavid's [>> numbers VWIZ 53 points, 22 games with "Connor McDavid" "On pace for 202"] still going for 200 points.
+  [alternate-4-point] You know why? [beat] Nobody's checking him. [beat] {firm: Nobody's checking anybody.}
+
+RON: [>> stat "7" "Wins, no losses" "Connor Hellebuyck / Since the trade · drafted 42nd" VWIZ with "Connor Hellebuyck"] And Hellebuyck.
+
+DON (alternate-4-surprised): Drafted 42nd! [beat] [alternate-4-point] 42nd, Ron. 2 Hasek trophies and Varrock drafts him in the 5th round. [beat] That's a steal.
+
+RON: [>> stat "4–2" "Winnipeg over New Jersey" "Tue. Nov. 10 / Hellebuyck sat out"] And the Winnipeg game he sat out? The Devils lost.
+
+DON (alternate-4-lean): {mock: "Expected win probability."} [beat] {firm: Lot of good that did 'em.}
+
+DON (alternate-4-point, firm): I said it last week. You hide from a building, you lose in it. [beat]
+
+RON (deadpan): ...[beat]Right.
+
+# Gauthier: goals in all 8 games since Jagrtown's Nov. 1 claim; 16 in his last 9. Month record 20 (Selänne Mar. 1993, Malone Feb. 1921). 14 in November; Anaheim has 7 November games left (Nov. 17–28). Then Jagrtown: 253–120.75 over New Purrsey (2025–26 Jagr Cup champions) is #2 in the record book's Largest winning margin (weekly), behind Scranton The Electric Gritty's 157 (2018–19, P15; the Hooterville franchise before Jeremy). Jagrtown started 0-2, then won weeks 3, 4 (311.15) and 5.
+RON: [>> stat "16" "Goals in 9 games" "Cutter Gauthier / A goal in every game for Jagrtown" JAGR with "Cutter Gauthier"] Gauthier. A goal in every game since Jagrtown got him.
+
+DON (alternate-4-thumbs, warm): Every game! [alternate-4-point] Now put up the record.
+
+RON: [>> list "Most goals in a month" "Selänne & Malone" 20, "Cutter Gauthier" "14 · Nov. 1–15", "Anaheim games left" 7] 14 in November. Anaheim has 7 games left.
+
+DON (alternate-4-surprised): [alternate-4-point] 6 more ties it. [beat] But he's only getting 1 a game now! Last week it was hat tricks!
+  {firm: Cutter. It's a race. Pick it up.}
+
+RON: [>> matchup JAGR 253 NPD 120.75 final "Week 5 / Final"] Gauthier's team was also chasing a record last week. Jagrtown beat New Purrsey by 132.
+
+DON (alternate-4-surprised): [fx: don shocked 800ms] 132? [alternate-4-point] Over the champs?
+
+RON: [>> list "Largest winning margin" "Scranton · 2018–19" 157, "Jagrtown · Week 5" 132.25, "Semōn Demōns · 2018–19" 130] Second-biggest win in league history.
+
+[don: alternate-4-stare, ron: rest, 1.0s] Don reads the list.
+
+DON (alternate-4-rest, deadpan, slow): Who's Scranton?
+
+RON: Hooterville. Before Jeremy.
+
+DON (alternate-4-rest, deadpan): [beat] Never heard of 'em.
+
+DON (alternate-4-point): But Nick! 0 and 2 to start the year. Now it's 3 straight. 311 last week, and now this. 
+
+DON (alternate-4-rest): That team's heating up, Ron. [beat] {firm: Somebody better stop 'em.} [beat]
+
+# The winless: who hasn't shown up. West Texas 99.7, the week's low by 21. McKenna on West Texas's reserve all 7 days. Tanking is the hosts' speculation only.
+DON (alternate-4-point): Now the other end. [>> standings "Still winless" Lali 0 5 912.65, TEEHAW 0 5 684.70] [beat] The Birdies and Texas [beat] winless!
+
+RON: [>> matchup SKGS 158.25 TEEHAW 99.7 final "Week 5 / Final"] West Texas scored 99. Lowest in the league by 21.
+
+DON (alternate-4-surprised, slow): 99. [beat] That's Wayne's number.
+  [alternate-4-point] The whole league retired it. {firm: West Texas should too.}
+
+RON: [>> list "West Texas, Nov. 9–15" "Gavin McKenna" "Benched all 7 days"] And McKenna sat on their bench all week.
+
+[don: alternate-4-stare, ron: rest, 1.2s] Don reads it twice.
+
+DON (alternate-4-lean, firm): Kaley. [beat] Are you tanking?
+
+RON (warning): That's speculation.
+
+DON (alternate-4-point): It's a question! I'm asking a question.
+
+RON: West Texas hasn't said a word.
+
+DON (alternate-4-angry): Then I'll say it for them, !!IT'S A TOTAL TANK JOB!!!
+
+[ron: down, 600ms] Ron looks down.
+
+DON (alternate-4-point): And they've both got stars! Look.
+
+RON: [>> list "Winless stars · FP/G" "Auston Matthews · West Texas" 7.03, "Connor Bedard · Lalibirdies" 6.14] Matthews. Bedard.
+
+DON (alternate-4-point): One guy can't do it alone.
+  [alternate-4-angry] Matthews is out there alone, !!and the 1st overall pick's on the bench!!!
+  !!Bedard's the same. [beat] Who's going to the net? Who's scoring a big goal for the birdies?!!
+
+Ron (deadpan): Lafreniere?
+
+Don (alternate-4-angry): !!HE'S ON JAGRTOWN!!! [beat]
+
+RON: [>> matchup Lali 203.15 Reapers 214.8 final "Week 5 / Final"] The Lalibirdies lost by 12. To Carolina.
+
+DON (alternate-4-surprised): [fx: don shocked 800ms] To Carolina? [beat] Really? [beat]
+
+[don: alternate-4-stare, ron: rest, 900ms]
+
+# Carolina: the Nov. 2 rant, again, about the same 2 players. Rust last played Oct. 19, Byram Oct. 13; both active all 7 days. Bouchard is 2nd in the league in FPts.
+DON (alternate-4-point, firm): Show me Rust and Byram.
+
+RON: [>> list "Carolina, Nov. 9–15" "Bryan Rust" "Very injured.", "Bowen Byram" "See above", "Days in the lineup" "All of them"] Both started. All week--
+
+DON (alternate-4-angry, yell): !!AGAIN?!!!
+
+[don: alternate-4-pound-ready, 220ms]
+[don: alternate-4-pound, sfx: desk-pound, 480ms]
+
+DON (alternate-4-point, firm): Damn it, Brian, what did I say! [beat] Neither one's played since October!
+  {firm: Brian! You're dressing 10 guys and calling it 12!}
+
+DON (alternate-4-lean, firm): And you know what kills me? [beat] They won anyway.
+  West Texas, Carolina. Both asleep. West Texas, okay. But [alternate-4-point] Carolina's got good bones!
+
+RON: [>> list "Carolina · FP/G" "Evan Bouchard" "9.67 · 2nd in the league", "Tim Stutzle" 6.40] Bouchard's second in the league.
+
+DON (alternate-4-angry, yell): !!AND YOU'RE WASTING HIM!!! [beat]
+
+RON: [>> wire free "Jack Quinn" fpts 103 fpg 5.15 "RW · Buffalo / Free agent"] Rust plays right wing. Jack Quinn's a free agent.
+
+DON (alternate-4-thumbs, warm): Jack Quinn! Ottawa 67's! {warm: Ottawa boy.}
+
+RON: [>> wire free "Jesper Bratt" fpts 97.75 fpg 4.65 "LW/RW · New Jersey / Free agent"] So is Jesper Bratt.
+
+DON (alternate-4-surprised): Jesper what? [beat] [alternate-4-lean] {firm: Brian.} [beat] Wake up. 2 of 'em, right there. Claim one. {firm slow: Today.} Not the jester. Jack Quinn.
+
+# Waiver Wire Watch. The title card follows Don's rename: Waiver Wire Watch, The Wire, Waiver Watch.
+RON: [>> title "Waiver Wire Watch" "Week 5"] Which brings us to Waiver Wire Watch.
+
+[don: alternate-4-stare, ron: rest, 1.0s] Don reads the card.
+
+DON (alternate-4-point, firm): That's too long. W, W, W. Sounds like a website.
+  By the time you say it, the guy's been claimed! You need something punchy. Something people remember.
+  [beat] [>> title "The Wire" "Week 5"] {firm slow: The Wire.}
+
+DON (alternate-4-thumbs, warm): [fx: don happy 6s] The Wire. [beat] Put it on a hat. That's marketing, Ron.
+
+RON (deadpan): The Wire's a TV show.
+
+DON (alternate-4-surprised): What?
+
+RON: A crime drama. [>> stat "94%" "Rotten Tomatoes" "The Wire / HBO, 2002–2008 · 147 reviews"] Critically acclaimed and very famous.
+
+[don: alternate-4-stare, ron: rest, 1.4s] Don stares at Ron.
+
+DON (alternate-4-rest, deadpan, slow): Well I never heard of it.
+
+RON: [>> title "Waiver Watch" "Week 5"] How about Waiver Watch?
+
+DON (alternate-4-rest): Fine. [beat]
+
+# Kent Johnson: Varrock claimed him Wed. Nov. 11. Last week Don told Carolina, the Lalibirdies and West Texas he was "sitting right there". Don takes the credit.
+DON (alternate-4-point): Now. What's on Wire Watch?
+
+RON: [>> wire claim VWIZ "Kent Johnson" fpts 93.5 fpg 5.19 "Wed. Nov. 11 / LW/RW · Columbus"] Varrock claimed Kent Johnson Wednesday.
+
+DON (alternate-4-thumbs, firm): [fx: don happy 8s] That's me. [beat] I said it, right here. Sitting right there. **That's me.**
+
+RON: You said it to Carolina, the Lalibirdies and West--
+
+DON (alternate-4-angry, yell): !!AND WHO'S 5 AND 0, RON?!!! [alternate-4-point] {firm: The guy who listens.}
+
+# Hall Monitors and Skellige, all claimed Sun. Nov. 15. Good moves, and that's what bothers Don. Verhaeghe is 4.93 FP/G at capture, so Ron says "almost 5".
+RON: [>> wire claim HUNG "Mikael Granlund" fpts 116.5 fpg 5.83 "Sun. Nov. 15 / C/RW · Anaheim"] The Hall Monitors found Mikael Granlund.
+
+DON (alternate-4-surprised): Granlin? [beat] He's still playing?
+
+RON: [>> wire claim HUNG "Carter Verhaeghe" fpts 108.5 fpg 4.93 "Sun. Nov. 15 / LW · Florida"] And Carter Verhaeghe.
+  [>> wire claim SKGS "Roope Hintz" fpts 98.5 fpg 4.92 "Sun. Nov. 15 / C · Dallas"] Skellige got Roope Hintz. Smart moves.
+
+DON (alternate-4-rest, deadpan, slow): They're good moves. [beat] That's what bothers me.
+
+DON (alternate-4-point, firm): [>> list "Sunday's pickups · FP/G" "Mikael Granlund · Hall Monitors" 5.83, "Carter Verhaeghe · Hall Monitors" 4.93, "Roope Hintz · Skellige" 4.92] Granlin. 5 a game! Off the wire! Nobody wanted him!
+  When I coached, a guy like that, you'd give up a first-round pick. Now he's lying around for free.
+  [alternate-4-angry] !!BECAUSE NOBODY PLAYS DEFENCE!!! Even the guys nobody wants are scoring!
+
+# Wedgewood: on New Purrsey's 2026 Jagr Cup roster; lost Colorado's net to Blackwood. Dropped Sat. Nov. 14.
+RON: [>> wire drop NPD "Scott Wedgewood" fpts 24.7 fpg 4.12 "Sat. Nov. 14 / Jagr Cup winner, 2025–26"] And New Purrsey dropped Scott Wedgewood.
+
+DON (alternate-4-surprised): [fx: don shocked 800ms] Wedgewood? [alternate-4-point] He won them the Cup! Last year!
+
+RON (sneak): Well, I think MacKinnon had more to do with that--
+
+DON (alternate-4-angry, yell): !!YOU CAN'T WIN IT WITHOUT A GOALIE!!!
+
+[ron: down, 600ms] Ron looks down.
+
+RON: He lost the job in Colorado.
+
+DON (alternate-4-point): Dan had no choice. [beat] Still. [beat] You win a Cup with a fella. [beat]
+  [alternate-4-thumbs] {deadpan: That's The Wire.}
+
+[ron: down, 600ms] Ron looks down.
+
+# Jagrtown and Fox: rumour only, no bidder, no offer details. Keepers: 3 D regular slots, plus one free rookie. Hutson (14 GP in 2025-26) is the free rookie next deadline; the year after he isn't. Don loses count.
+RON: [>> stat "6.24" "FP/G" "Adam Fox / Rumoured on the block" JAGR with "Adam Fox"] Now, a rumour. [beat] Jagrtown's Adam Fox could be on the move.
+
+DON (alternate-4-surprised): Fox? [alternate-4-point] He's elite! Orr trophy territory! You don't trade elite!
+
+RON: [>> list "Jagrtown's D · FP/G" "Matthew Schaefer" 7.04, "Cale Makar" 6.99, "Cole Hutson" 5.40, "Rasmus Dahlin" 4.93] The Ice Fellas have quite the crowded blue line.
+
+DON (alternate-4-point): Makar. Dahlen. The kid Schaefer. The other kid, Hutson. [beat] Fox. [beat] That's 5 elite defensemen.
+
+RON (deadpan): You can keep 3.
+
+DON (alternate-4-angry, yell): !!I CAN COUNT, RON!!! [alternate-4-point] Makar, Dahlen, Schaefer--
+
+[don: alternate-4-tie, ron: down, 1.2s] Adjusts tie. Counts on the desk.
+
+DON (alternate-4-rest, deadpan, slow): What's his plan for Hutson?
+
+RON: Free keep. He's still a rookie.
+
+DON (alternate-4-point): So Fox is the odd man out.
+
+RON: Traded, or back in the draft for nothing. Word is there's at least one firm offer.
+
+DON (alternate-4-lean, firm): Nick. [beat] Don't screw this up.
+  Next year you're doing this all over again!
+
+RON: It's a rumour. But the sense is a defenceman moves before the deadline.
+
+# Pick'em: the call to action. At capture only Varrock had picks; Week 1 locks Monday at noon ET. Recheck after the lock.
+DON (alternate-4-point): Okay let's go we're running out of time. Show the new thing [beat] on the computer.
+
+RON (deadpan): [>> title "Pick'em" "YOFHL.com"] Pick'em.
+
+DON (alternate-4-point): Pick'em. You predict games every week. [beat] What do you win?
+
+RON: [>> stat "Free" "2027–28 league fee" "First place / 2026–27 Pick'em leaderboard"] First place gets next season's fee waived.
+
+DON (alternate-4-thumbs, warm): [fx: don happy 4s] A free year! An amazing opportunity for everyone! [alternate-4-point] Who's made predictions so far?
+
+RON: [>> list "Week 1 picks" VWIZ "Submitted", "Everyone else" Hates Money] Varrock.
+
+DON (alternate-4-surprised): [fx: don shocked 800ms] Varrock. [beat] And?
+
+RON (deadpan, slow): That's it.
+
+DON (alternate-4-angry, yell): !!THE ONE GUY WHO'S ALREADY WINNING!!!
+
+DON (alternate-4-lean, firm): You boys are leaving money on the table. A free year! Right there!
+  Go on the website. Pick the games. {firm: It takes 2 minutes.}
+
+RON: Week 1 locked at noon.
+
+DON (alternate-4-point, firm): Then do Week 2! !!DO SOMETHING!!!
+
+# Week 6 featured matchup: Hall Monitors at Carolina. Ron picks first; same-team rule in force, but they split. Carolina outscored the Hall Monitors in Week 5 with 2 dead spots.
+RON: It's time for our featured matchup. [>> matchup HUNG Reapers "Week 6 / Featured matchup"] [beat] This week: the Hall Monitors at Carolina. Both 2 and 3.
+
+DON: You're picking first.  
+
+RON: I'll take the Hall Monitors. They just added 2 strong wingers to an already dangerous forward group.
+
+DON (alternate-4-point): Carolina.
+
+RON (skeptical): Really? [beat] With Rust and--
+
+DON (alternate-4-point, firm): They scored 214 last week with 2 guys in the trainer's room!
+  Give 'em one winger and they win by 50. [>> list "Week 6 picks" "Ron" "Hall Monitors", "Don" Carolina] Carolina.
+
+RON (skeptical): You think this will be the week Brian fixes his lineup?
+
+Don (alternate-4-thumbs, warm): [fx: don happy 9s] You betcha! [beat] Anyone who listens to me comes up big in this league!
+
+Ron (skeptical, sneak): I'm sure everyone is wishing they drafted Tom Wilson right now.
+
+# Out: Don closes on the episode's own grievance.
+RON: [>> logo] That's Coach's Corner.
+
+DON (alternate-4-lean, firm): Brian. [beat] Wake up. [beat] My record is at stake.
+
+[1.5s]

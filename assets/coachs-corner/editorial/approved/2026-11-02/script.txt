@@ -1,0 +1,282 @@
+---
+title: Pack a bag
+season: 2027
+week: 3
+date: 2026-11-02
+segment: 6:30
+lapel: poppy
+---
+
+# Cold open: tight on Don, poppy on his lapel. The one sincere stretch: no bits, no yells.
+[don: rest, ron: rest, cam: close don]
+>> off
+
+DON (point): You see this? Left side. Over the heart.
+  You put it on now, you wear it right through the eleventh. Every day.
+
+[cam: wide]
+RON (warm): We both are. [>> title "Lest we forget" "Remembrance Day · Wed. Nov. 11"] Remembrance Day is Wednesday the eleventh.
+
+DON (rest, warm): Young fellas. Eighteen, nineteen. Junior age. [beat] They went over there for us, and a lot of them didn't come home.
+  Eleven o'clock, wherever you are, you stop. Two minutes. {firm: You can give two minutes.}
+
+DON (lean, warm): And one of our own. Andrew Halstad. Owns the Hall Monitors. [beat] Andrew serves.
+  Andrew, thank you for your service. From me, from Ron, from everybody in this league.
+
+RON (warm): Thank you, Andrew.
+
+DON (rest, warm, slow): Lest we forget.
+
+[don: rest, ron: rest, 1.2s]
+
+# Hockey. Ron pays off last week's featured pick; Don has been waiting all week for this.
+RON: [>> matchup JAGR 227.95 Lali 194.85 final "Last week's featured matchup"] Last week's featured matchup.
+
+DON (thumbs): [fx: don happy 3s] And?
+
+RON: Jagrtown. By thirty-three. Nick's first win.
+
+DON (point): And who picked Nick?
+
+RON (deadpan): You did.
+
+DON (lean, firm): I saw that coming a mile away, Ron. [beat] You know how?
+
+RON: Nick was owed--
+
+DON (angry, yell): !!THEY DROPPED WILSON!!! [point] You cut a fella like that, it comes back to haunt you. Every time.
+  {firm: That's not luck. That's hockey.}
+
+RON: [>> list "Featured matchup picks" "Don" 2-0, "Ron" 0-2] Don's two and oh. I'm oh and two.
+
+DON (thumbs): Two and oh. [beat] Say it slower.
+
+RON (deadpan): No.
+
+DON (point): Then put up Wilson.
+
+RON: [>> title "Wilson Watch" "Oct 26–Nov 1 / NHL scoring"] Wilson Watch. [>> numbers 0 goals, 0 assists, 9 hits with "Tom Wilson" "Oct 26–Nov 1 · 3 GP"] Three games. No points. Nine hits.
+
+DON (thumbs, warm): Nine hits. Three a night. Like a clock.
+
+RON: And a ten-minute misconduct Sunday. In a five-one loss.
+
+DON (point, firm): Good! Getting beat five-one, you don't go quietly.
+
+RON: No points in nine straight.
+
+DON (rest): He's due.
+
+RON (deadpan): You said that last week.
+
+DON (angry, yell): !!AND NOW HE'S MORE DUE!!!
+
+[ron: down, 700ms] Ron looks down.
+
+DON (point): Who's got him?
+
+RON: [>> stat "FA" "Unclaimed" "Tom Wilson / Dropped Wed. Oct. 21" with "Tom Wilson"] Still nobody.
+
+[don: stare, ron: rest, 1.3s]
+
+DON (deadpan): Twelve days. [beat] Big fella, shows up every night, and nobody wants him.
+  {firm point: Everybody wants the guy who doesn't show up.}
+
+# Larkin: the walk-out. Launches the American rant.
+RON: Speaking of players not showing up. [>> list "Dylan Larkin" "Left Detroit" "Thu. Oct. 29", "Status" Suspended, "Plays again" "When traded"] Dylan Larkin won't be showing up to any more Red Wings games.
+
+DON (surprised, slow): Larkin. [beat] Michigan kid. That's his hometown team!
+
+RON: He asked for a trade this--
+
+DON (angry, yell): !!HIS HOMETOWN, RON!!! [point] You dream about that sweater your whole life, and you won't put it on?
+
+DON (point): And that's three. [>> list "Since the Olympics" "Connor Hellebuyck" "Sat out", "Brady Tkachuk" "Asked out", "Dylan Larkin" "Walked out"] Hellebuyck. Brady. Now Larkin.
+  {firm: Win one gold medal, and now they all get to pick where they live.}
+
+RON: They're allowed to ask for a--
+
+DON (angry, yell): !!ASK!!! [point] When I played, you didn't ask. You got a phone call.
+  {mock: "Pack a bag. You're going to Rochester."} [beat] And you went to Rochester.
+
+DON (lean, firm): No agent. No list. No rights. [beat] {warm: And it was better.}
+
+RON (deadpan): Better for who?
+
+DON (firm): For hockey!
+
+RON (deadpan): You spent most of your career in Rochester.
+
+DON (thumbs, warm): Best years of my life. [beat] {firm point: And nobody asked me.}
+
+[ron: down, 800ms] Ron looks down.
+
+# Turn: Kucherov is the opposite problem. He isn't walking out; he's staying.
+RON: [>> list "Nikita Kucherov" "Requested a trade" "Fri. Oct. 30", "Re-signing" "Says he won't", "Reigning" "Hart Trophy winner"] Nikita Kucherov asked Tampa for a trade Friday.
+
+DON (surprised): [fx: don shocked 800ms] Kutcheroff?
+
+RON: Reigning MVP. Everybody thought he'd finish in Tampa.
+
+DON (point): Now see, that's different.
+
+RON (skeptical): Different how?
+
+DON (firm): Larkin walked out the front door. Fine. You know where you stand.
+  [angry] This fella's still there! Gets on the plane with the boys and tells 'em, {mock slow: "I won't be here next year."}
+
+RON: He had four assists this week.
+
+DON (angry, yell): !!THAT'S EUROPEAN HOCKEY, RON!!! Hang on the half-wall, wait for the pass, cash the cheque,
+  and when it gets hard, you've already got one foot on the plane home--
+
+RON (warning): Don. He came back from hip surgery to win a Cup there.
+
+DON (firm): I'm not talking about twenty-one. I'm talking about Friday.
+
+RON: Plenty of European players never--
+
+DON (angry, yell): !!I'M TALKING ABOUT THIS ONE!!!
+
+[don: tie, ron: rest, 1.1s] Adjusts tie. Looks at the desk.
+
+DON (rest): Who's got him? In our league.
+
+RON: Andrew.
+
+DON (surprised): [fx: don shocked 800ms] Andrew? [beat] The Hall Monitors?
+
+RON (deadpan): Same Andrew.
+
+DON (deadpan): Well. [beat] That's not on Andrew. {warm: Andrew's a good man.} He got stuck with him.
+
+# Andrew's trade, from league transaction history: Dec. 23, 2020, Brady to Varrock for Kucherov (out all 2020-21, hip).
+RON: [>> list "Dec. 23, 2020 trade" "Andrew got" Kucherov, "Dillon got" "Brady Tkachuk"] He traded for him. Brady Tkachuk to Dillon. And Kucherov missed that whole season. The hip.
+
+DON (deadpan): He traded for a fella on crutches.
+
+RON: [>> list "FPts since the trade" "Kucherov" 2757, "Brady Tkachuk" 2466, "League MVP" "Kucherov 2024–25"] And he's still outscored Brady by almost three hundred.
+
+DON (surprised, slow): [fx: don shocked 800ms] After sitting out a whole year?
+
+RON (deadpan): A whole year. And won MVP.
+
+[don: stare, ron: rest, 1.2s]
+
+DON (thumbs): Alright. [beat] Good trade, Andrew. I'll give you that.
+
+DON (lean, firm): But you want to know the best trade? [beat] Neither one of 'em.
+  You take the American, you take the Russian, and you get yourself a good ol' Canadian boy.
+
+RON (deadpan): For who?
+
+DON (angry, yell): !!ANYBODY FROM KINGSTON!!!
+
+# Carolina. Ron hooks Don's "anybody" into Brian's week.
+RON: Brian would've taken anybody this week. [>> matchup SKGS 221.1 Carolina 161.2 final "Week 3 / Final"] Carolina lost to Skellige by sixty.
+
+DON (point): Yeah. Now show what they were **SUPPOSED** to get.
+
+RON: [>> numbers Carolina 198 projected, 161 scored "Week 3"] Projected for one ninety-eight. They scored one sixty-one.
+
+DON (angry, yell): !!THIRTY-SEVEN POINTS!!! [point] Gone! Where'd they go, Ron?
+
+RON: [>> list "Carolina's lineup" "Bryan Rust" "Out since Oct. 19", "Bowen Byram" "Out since Oct. 13"] Bryan Rust and Bowen Byram were in his lineup all week. Neither one played. Both hurt.
+
+[don: stare, ron: rest, 1.5s]
+
+DON (deadpan, slow): He dressed two guys from the trainer's room.
+
+DON (lean, firm): Brian. [beat] Who's running that team? Is anybody in the building?
+  Rust is out six weeks! {firm: He's not coming back Thursday, Brian!}
+
+# West Texas: the kid is doing his part, and Kaley's discard just scored three for Nick.
+RON: [>> matchup PVLS 175.95 TEEHAW 151.15 final "Week 3 / Final"] West Texas lost again. Oh and three.
+
+DON (point): And the kid? McKenney?
+
+RON: [>> numbers TEEHAW 2 goals, 1 assist with "Gavin McKenna" "Oct 26–Nov 1 · 3 GP"] McKenna had three points. Two goals Wednesday against Seattle.
+
+DON (thumbs, warm): [fx: don happy 3s] There he is! Eighteen years old. In the NHL. Doing his part.
+  [point] Kaley, the kid's doing it. {firm: Where the hell is the rest of the team?}
+
+RON: [>> stat "3" "Goals" "Cutter Gauthier / Sun. Nov. 1 vs Ottawa" JAGR with "Cutter Gauthier"] West Texas dropped Cutter Gauthier ten days ago. Nick grabbed him Sunday--
+
+DON (surprised): Gauthier? Sunday?
+
+RON (deadpan): Hat trick that night.
+
+DON (angry, yell): !!THREE GOALS! FIRST NIGHT!!! [point] Kaley, don't look at that. Turn the TV off.
+
+# Vasilevskiy: Don connects the slump to Kucherov's room. Ron undoes the timeline in one line.
+RON: [>> numbers JAGR .877 save pct with "Andrei Vasilevskiy" "10 GP · 3.00 GAA"] But Nick's got a problem in net. Worst start of his career.
+
+DON (point): Vasilinsky. [>> list "Hasek Trophies" "2025–26" Jagrtown, "2020–21" Jagrtown, "2018–19" "WinTurris Coming"] Won the Hasek in this league three times!
+  [lean] {firm: Same dressing room as Kutcheroff.} [beat] You think that's a coincidence?
+
+RON (deadpan): Yes.
+
+DON (angry, yell): !!THE GUY NEXT TO HIM'S PACKING!!!
+
+RON: He's been bad since opening night. The request was Friday.
+
+[don: stare, ron: rest, 1.2s]
+
+DON (point, firm): Then he saw it coming!
+
+[ron: down, 700ms] Ron looks down.
+
+RON: [>> standings "Points for" VWIZ 3 0 830.40, HH 2 1 685.00, NPD 2 1 682.30, JAGR 1 2 673.75] Nick's fourth in points. One and two.
+
+DON (lean, firm): Nick. Listen to me. [beat] You can have Makar, you can have Eichel, you can have Gauthier.
+  No goalie. No Cup. {firm: Flip him for a Canadian before word gets out he sucks this year.}
+
+# Week 4 feature. Ron picks first this week (continuity), takes Nick, and Don is left holding Kucherov.
+RON: [>> matchup HUNG JAGR "Week 4 / Featured matchup"] Week four's featured matchup. Hamhung at Jagrtown. I get to pick first this time.
+
+DON (point): Go ahead. Just don't take--
+
+RON: Jagrtown.
+
+DON (angry, yell): !!THAT'S MY TEAM!!!
+
+RON: Gauthier's hot. And Vasilevskiy won't stay at eight seventy-seven.
+
+DON (surprised, slow): So I've got Andrew. [beat] I've got Kutcheroff.
+
+RON (deadpan): And Jack Hughes.
+
+DON (surprised): [fx: don shocked 800ms] The overtime fella?
+
+RON (deadpan): The overtime fella.
+
+[don: stare, ron: rest, 1.6s]
+
+DON (rest, deadpan): This is a terrible week.
+
+RON: And Sidney Crosby.
+
+DON (thumbs, warm): [fx: don happy 4s] Sid! [beat] Cole Harbour. Rimouski Océanic. Three points Saturday night.
+  [point] Fine. Andrew, I'm with you. I'm with Sid. {deadpan: The other two can come along.}
+
+RON: [>> list "Week 4 picks" "Ron" Jagrtown, "Don" Hamhung] Jagrtown for me. Hamhung for Don.
+
+DON (point): Take Nick. [beat] You're still oh and two.
+
+# Out: Ron signs off; Don gets the Rochester callback, then the episode closes back on the poppies it opened with.
+RON: [>> logo] That's Coach's Corner. Four games tonight. Detroit's in Florida.
+
+DON (point): Without Larkin.
+
+RON (deadpan): Without Larkin.
+
+DON (lean, firm): Dylan. If nobody calls, you call me. [beat] {warm: I know a nice little rink in Rochester.}
+
+[ron: down, 600ms] Ron looks down.
+
+RON (warm): Wear your poppy, everybody.
+
+[cam: close don]
+DON (thumbs, warm): Right through the eleventh.
+
+[1.5s]

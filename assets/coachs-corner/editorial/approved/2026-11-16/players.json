@@ -1,0 +1,148 @@
+[
+  {
+    "id": "02un4",
+    "fpg": 8.19,
+    "fpts": 671.5,
+    "name": "Connor McDavid",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "EDM",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/EDM/8478402.png",
+    "positions": [
+      "C"
+    ]
+  },
+  {
+    "id": "02o7s",
+    "fpg": 5.75,
+    "fpts": 328,
+    "name": "Connor Hellebuyck",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "WPG",
+    "headshot": "https://fantraximg.com/si/headshots/NHL/hs02o7s_96_9.png",
+    "positions": [
+      "G"
+    ]
+  },
+  {
+    "id": "05rjd",
+    "fpg": 5.42,
+    "fpts": 412.25,
+    "name": "Cutter Gauthier",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "ANA",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/ANA/8483445.png",
+    "positions": [
+      "LW",
+      "RW"
+    ]
+  },
+  {
+    "id": "05g42",
+    "fpg": 3.43,
+    "fpts": 281.25,
+    "name": "Jack Quinn",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "BUF",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/BUF/8482097.png",
+    "positions": [
+      "RW"
+    ]
+  },
+  {
+    "id": "042ye",
+    "fpg": 4.37,
+    "fpts": 358,
+    "name": "Jesper Bratt",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "NJD",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/NJD/8479407.png",
+    "positions": [
+      "RW"
+    ]
+  },
+  {
+    "id": "05gda",
+    "fpg": 1.75,
+    "fpts": 133.25,
+    "name": "Kent Johnson",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "CBJ",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/CBJ/8482660.png",
+    "positions": [
+      "LW",
+      "RW"
+    ]
+  },
+  {
+    "id": "01skr",
+    "fpg": 4.01,
+    "fpts": 232.75,
+    "name": "Mikael Granlund",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "ANA",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/ANA/8475798.png",
+    "positions": [
+      "C",
+      "RW"
+    ]
+  },
+  {
+    "id": "031p3",
+    "fpg": 3.96,
+    "fpts": 304.75,
+    "name": "Carter Verhaeghe",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "FLA",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/FLA/8477409.png",
+    "positions": [
+      "LW"
+    ]
+  },
+  {
+    "id": "03rf2",
+    "fpg": 4.48,
+    "fpts": 237.5,
+    "name": "Roope Hintz",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "DAL",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/DAL/8478449.png",
+    "positions": [
+      "C"
+    ]
+  },
+  {
+    "id": "01zs1",
+    "fpg": 10.49,
+    "fpts": 472,
+    "name": "Scott Wedgewood",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "COL",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/COL/8475809.png",
+    "positions": [
+      "G"
+    ]
+  },
+  {
+    "id": "042w4",
+    "fpg": 5.85,
+    "fpts": 321.75,
+    "name": "Adam Fox",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "NYR",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/NYR/8479323.png",
+    "positions": [
+      "D"
+    ]
+  }
+]

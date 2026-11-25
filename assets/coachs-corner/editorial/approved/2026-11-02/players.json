@@ -1,0 +1,49 @@
+[
+  {
+    "name": "Tom Wilson",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/WSH/8476880.png",
+    "nhlTeam": "WSH",
+    "positions": [
+      "RW"
+    ],
+    "season": 2026,
+    "fpts": 372,
+    "fpg": 5.17,
+    "games": 72
+  },
+  {
+    "name": "Gavin McKenna",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/TOR/8486067.png",
+    "nhlTeam": null,
+    "positions": [],
+    "season": null,
+    "fpts": null,
+    "fpg": null,
+    "games": null
+  },
+  {
+    "name": "Cutter Gauthier",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/ANA/8483445.png",
+    "nhlTeam": "ANA",
+    "positions": [
+      "LW",
+      "RW"
+    ],
+    "season": 2026,
+    "fpts": 412.25,
+    "fpg": 5.42,
+    "games": 76
+  },
+  {
+    "name": "Andrei Vasilevskiy",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/TBL/8476883.png",
+    "nhlTeam": "TBL",
+    "positions": [
+      "G"
+    ],
+    "season": 2026,
+    "fpts": 518,
+    "fpg": 8.93,
+    "games": 58
+  }
+]

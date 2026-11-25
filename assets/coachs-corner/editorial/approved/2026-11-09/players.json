@@ -1,0 +1,121 @@
+[
+  {
+    "id": "05rjd",
+    "fpg": 5.42,
+    "fpts": 412.25,
+    "name": "Cutter Gauthier",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "ANA",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/ANA/8483445.png",
+    "positions": [
+      "LW",
+      "RW"
+    ]
+  },
+  {
+    "id": "02un4",
+    "fpg": 8.19,
+    "fpts": 671.5,
+    "name": "Connor McDavid",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "EDM",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/EDM/8478402.png",
+    "positions": [
+      "C"
+    ]
+  },
+  {
+    "id": "03yxp",
+    "fpg": 6.2,
+    "fpts": 310,
+    "name": "Stuart Skinner",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "EDM/PIT",
+    "headshot": "https://fantraximg.com/si/headshots/NHL/hs03yxp_96_9.png",
+    "positions": [
+      "G"
+    ]
+  },
+  {
+    "id": "01f6d",
+    "fpg": 4.68,
+    "fpts": 378.75,
+    "name": "Ryan O'Reilly",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "NSH",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/NSH/8475158.png",
+    "positions": [
+      "C"
+    ]
+  },
+  {
+    "id": "04z51",
+    "fpg": 3.04,
+    "fpts": 213,
+    "name": "Charle-Edouard D'Astous",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "TBL",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/TBL/8480426.png",
+    "positions": [
+      "D"
+    ]
+  },
+  {
+    "id": "03mbn",
+    "fpg": 7.95,
+    "fpts": 310,
+    "name": "Mackenzie Blackwood",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "COL",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/COL/8478406.png",
+    "positions": [
+      "G"
+    ]
+  },
+  {
+    "id": "02b3y",
+    "fpg": 6.67,
+    "fpts": 380,
+    "name": "John Gibson",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "DET",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/DET/8476434.png",
+    "positions": [
+      "G"
+    ]
+  },
+  {
+    "id": "05gda",
+    "fpg": 1.75,
+    "fpts": 133.25,
+    "name": "Kent Johnson",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "CBJ",
+    "headshot": "https://assets.nhle.com/mugs/nhl/20262027/CBJ/8482660.png",
+    "positions": [
+      "LW",
+      "RW"
+    ]
+  },
+  {
+    "id": "02o7s",
+    "fpg": 5.75,
+    "fpts": 328,
+    "name": "Connor Hellebuyck",
+    "games": null,
+    "season": 2026,
+    "nhlTeam": "WPG",
+    "headshot": "https://fantraximg.com/si/headshots/NHL/hs02o7s_96_9.png",
+    "positions": [
+      "G"
+    ]
+  }
+]

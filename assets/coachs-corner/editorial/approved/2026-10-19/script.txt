@@ -1,0 +1,130 @@
+---
+title: It’s complicated
+season: 2027
+week: 1
+date: 2026-10-19
+segment: 4:25
+---
+
+# Ron opens on the completed week. Don wants the record left where he can argue with it.
+[don: alternate-2-rest, ron: rest]
+>> stat "308" "All-time record" "Most points in a single week" VWIZ
+
+RON: Monday's Coach's Corner. Three hundred and eight. The most any YOFHL team has ever scored in one week. Scranton's record stood for more than seven years. Now it's fallen.
+
+DON (alternate-2-point): Leave that up. Dillon. {warm: Hell of a week.} Twenty-two goals! [alternate-2-rest] Still take Scranton, though. Scoring's inflated now. Points everywhere. You don't become a better hockey team by squeaking past it by two.
+
+RON: I disagree. I'd take Varrock. Brady Tkachuk at the net, Connor McDavid driving play, Roman Josi on the blue line. More ways to beat you.
+
+DON (alternate-2-point): The little things, Ron. That's what you miss. Read three names and you think you know a hockey team. Put Brady up.
+
+RON: [>> stat "2x" "Hat tricks" "Brady Tkachuk / Oct 13 and 15" VWIZ with "Brady Tkachuk"] Back-to-back hat tricks. Tuesday and Thursday.
+
+DON (alternate-2-thumbs, warm): [fx: don happy 11.2s] What a player. Big boy. Stick down, somebody hanging off him, doesn't care. Gets another one. I'd take him in a second. Any team. You win with a boy like that.
+
+RON: USA Hockey did.
+
+[don: alternate-2-stare, ron: rest, 650ms]
+
+DON (alternate-2-rest, deadpan): Leave that alone.
+
+RON: You said any team.
+
+DON (alternate-2-point): I meant DILLON! Canada loses the gold medal in overtime, and it's {mock: [>> title "USA! USA!" "Olympic gold / overtime"] USA! USA!} All this trouble with tariffs. [>> list "Canada–U.S. relations" "Trade" Tense, "Olympic gold" USA, "Don and Brady" It’s complicated] Our people getting kicked around. And here I am cheering for their big hero!
+
+RON: [>> stat "2x" "Hat tricks" "Brady Tkachuk / Oct 13 and 15" VWIZ with "Brady Tkachuk"] For his hockey.
+
+DON (alternate-2-rest): {firm: I KNOW.} {warm: Beautiful player.} [beat] Put the Canadian kid up. I need a minute.
+
+RON: [>> stat "1" "Zayne Parekh" "Sunday PP assist / record clincher" VWIZ with "Zayne Parekh"] Zayne Parekh. Dillon's last player Sunday. His power-play assist pushed Varrock past the record.
+
+DON (alternate-2-thumbs, warm): [fx: don happy 5.5s] Parekh. Markham boy. Saginaw Spirit. Memorial Cup winner. Good hands. Still short Sunday night. One kid left, and he does it. [alternate-2-point] Dillon, thank the kid.
+
+RON: [>> matchup VWIZ 308 PVLS 184.9 final "Week 1 / Final"] Paddyville had twelve goals and fourteen special-teams points. Pat still lost by over a hundred.
+
+# Don performs hypothetical sales pitches. These are not quotations from private chat.
+DON (alternate-2-rest): Pat, don't get stupid. You ran into a record. Watch for the sharks in that group chat. {mock: "Rough week, buddy. I can help."} {mock: "Two solid players for your best one."}
+
+RON: Pat might actually need two players.
+
+DON (alternate-2-point): Two GOOD players! {mock: "This fella's due. Give him time."} Then YOU give him time! Keep him!
+
+RON: And if it's a fair offer?
+
+DON (alternate-2-rest): Then take it! I said don't get stupid. I didn't say don't trade.
+
+# The remaining results retain their own hockey details before the Week 2 feature.
+RON: [>> matchup SKGS 230.8 JAGR 222.85 final "Week 1 / Final"] Jagrtown scored two twenty-two point eighty-five and still lost. Third-highest total. Seven teams scored less.
+
+DON (alternate-2-rest, warm): Nick. That's brutal. Thirty-one assists, you do all that work, and Monike puts sixteen in. Lose by eight lousy points.
+
+RON: Seven point nine five.
+
+DON (alternate-2-stare, deadpan): Oh, he'll sleep now.
+
+RON: [>> matchup HH 212.35 NPD 174.2 final "Week 1 / Final"] Hooterville beat New Purrsey. Five goals, thirty assists.
+
+DON (alternate-2-point): Five! They listened. I told them to shoot.
+
+RON: New Purrsey scored seven. Hooterville had sixteen special-teams points to six.
+
+DON (alternate-2-rest): {deadpan: Alright.} Dan, ninety-six shots. That's good. Keep shooting. Jeremy, thirty assists? [alternate-2-point] You still owe me some goals.
+
+RON: [>> matchup Reaper 210.25 TEEHAW 162.1 final "Week 1 / Final"] Carolina takes the southern showdown with West Texas. Fourteen goals to eleven. Forty-four hits to thirty-four.
+
+DON (alternate-2-thumbs, warm): Brian. There you go. Football country, and the hockey boys are throwing their weight around. Love it. {firm alternate-2-point: Kaley, eleven goals isn't nothing. But fifty-four shots all week? Make the goalie work.}
+
+RON: [>> matchup HUNG 202.3 Lali 189.35 final "Week 1 / Final"] Hamhung beat Lalibirdies. Eric led in hits and blocks.
+
+DON (alternate-2-thumbs): Good. That's a team working.
+
+RON: Andrew outscored him fifteen goals to ten.
+
+[don: alternate-2-surprised, ron: rest, fx: don shocked 800ms, 800ms]
+
+DON (alternate-2-rest, deadpan): Fifteen? [beat] {firm: Well, Eric's boys were busy blocking them!} Forty-one hits. Somebody's got to do the work.
+
+RON: Andrew did the scoring.
+
+DON (alternate-2-point): One week! Eric knows what he's doing. Tom Wilson at seventy-six. {warm: [fx: don happy 2s] Genius.} Give the boy a chance.
+
+RON: [>> title "Wilson Watch" "Oct 12-18 / NHL scoring"] Briefly, Wilson Watch. [>> numbers Lali 0 goals, 0 assists, 0 points with "Tom Wilson" "Oct 12–18 · 3 GP"] Tom Wilson. Three games, no goals or assists.
+
+[don: alternate-2-stare, ron: rest, 500ms]
+
+DON (alternate-2-rest, deadpan): Briefly. You said briefly.
+
+RON: That's all.
+
+DON (alternate-2-point): Then why's it still up? [>> off] He's a good player. Eric, don't get stupid with him.
+
+[cam: monitor]
+RON: [>> standings "Week 1 standings" VWIZ 1 0 308.00, SKGS 1 0 230.80, HH 1 0 212.35, Reaper 1 0 210.25, HUNG 1 0 202.30, JAGR 0 1 222.85, Lali 0 1 189.35, PVLS 0 1 184.90, NPD 0 1 174.20, TEEHAW 0 1 162.10] Your week-one standings. Five teams at one-and-oh.
+
+DON (alternate-2-rest): One week. Don't get comfortable. Five fellas coming for you now.
+
+RON: Five looking to get even.
+
+# Last segment. The matchup is unscored and belongs to the coming week.
+[cam: auto]
+RON: [>> matchup VWIZ SKGS "Week 2 / Featured matchup"] Our featured matchup for week two. Varrock and Skellige, the two highest scorers. I'm taking Monike.
+
+DON (alternate-2-point): You said Dillon's better than Scranton!
+
+RON: Better teams lose weeks. Kirill Kaprizov had four goals. Oettinger and Swayman gave Monike three wins and a shutout. I prefer that goalie depth with Hellebuyck on Dillon's injured reserve.
+
+DON (alternate-2-rest): Fair. Brady gives you goals AND goes through people. McDavid had three himself. You've got him coming through the middle, Brady standing on your doorstep. And thirty-seven hits. That's a hockey team.
+
+RON: Six from Brady again is a lot to ask.
+
+DON (alternate-2-point): I didn't ask for six! Get to the net again. Make somebody move you. That's what I want. I'm taking Varrock.
+
+RON: Varrock for Don. Skellige for me. Four NHL games tonight. First puck drop at seven Eastern. We'll see you next Monday.
+
+DON (alternate-2-rest): Pat. If Dillon loses, offer to help.
+
+RON (warning): Leave Dillon alone.
+
+DON (alternate-2-thumbs): {mock: "Rough week, buddy. I can help."}
+
+[ron: down, 900ms]

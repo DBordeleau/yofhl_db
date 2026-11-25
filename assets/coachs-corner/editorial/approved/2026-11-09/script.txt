@@ -1,0 +1,354 @@
+---
+title: Three for three
+season: 2027
+week: 4
+date: 2026-11-09
+segment: 7:20
+lapel: poppy
+---
+
+# Cold open: tight on Don. The sincere stretch: the Memorial Cup (CHL history of Capt. James T. Sutherland). No bits, no yells.
+[don: remembrance-rest, ron: rest, cam: close don]
+>> off
+
+DON (remembrance-point): Ron. Every spring, best junior teams in the country. What do they compete for?
+
+RON (warm): The Memorial Cup.
+
+DON (remembrance-rest, warm): The Memorial Cup. [beat] You ever think about who it's for?
+
+[cam: wide]
+DON (remembrance-rest, warm): [>> title "The Memorial Cup" "First awarded 1919"] Fella named Sutherland.
+  Coached the junior team in Kingston. Won the Ontario league, 1910-1911.
+  Then the war came, and he signed up himself.
+
+RON (warm): [>> list "Kingston, 1910–11" "Scotty Davidson" "Killed in action", "George Richardson" "Killed in action"] 2 of his players didn't come home.
+
+DON (remembrance-rest, warm, slow): So he made a cup. [beat] For every Canadian that didn't.
+  {warm: And that's who it's for. Every one we've lost.}
+
+DON (remembrance-lean, warm): So when some kid lifts it this spring, [beat] {warm slow: that's who he's lifting.}
+
+[don: remembrance-rest, ron: rest, 1.4s]
+
+# The record: Ron gives it the fanfare; Don scoffs that it just fell 3 weeks ago and predicts more, which tips him into the scoring rant.
+RON: [>> stat "311" "All-time record" "Most points in one week" JAGR] 311. The most points in a week in league history.
+
+[don: remembrance-stare, ron: rest, 1.0s] Don reads the number. Unimpressed.
+
+DON (remembrance-rest, deadpan): Again?
+
+RON: Varrock set the old record opening week.
+
+DON (remembrance-point): 3 weeks ago! [beat] Before that, nobody touched it for 7 years.
+
+DON (remembrance-lean, firm): Nick. [beat] Don't frame it.
+  {firm: The way you're going, you'll break it 3, 4 more times this year yourself.}
+
+RON: [>> numbers JAGR 20 goals, 5 game-winners, 35 hits "Week 4"] 20 goals in a week.
+
+DON (remembrance-angry, yell): !!20 GOALS!!! [remembrance-point] Where was the other team?
+
+# Scoring: Don's grievance is the long trend, not this season. NHL goals per game from the NHL stats API.
+RON: [>> list "NHL goals per game" "2015–16" 5.3, "2020–21" 5.8, "This season" 6.3] It's not just us. NHL scoring's the highest in over 30 years.
+
+DON (remembrance-angry, yell): !!30 YEARS!!!
+
+DON (remembrance-point, firm): That's what I'm saying! Every year, more goals. Nobody's checking anybody. Nobody comes back.
+
+DON (remembrance-lean, firm): When I coached Boston, you gave up 4, you didn't eat.
+  We had Bobby. Best there ever was. {firm: Nobody got by him.}
+
+RON (deadpan): Well even he scored 46 goals--
+
+DON (remembrance-angry, yell): !!HE COULD DO BOTH!!!
+
+[don: remembrance-tie, ron: down, 1.1s] Adjusts tie. Looks at the desk.
+
+DON (remembrance-rest, deadpan, slow): What was I saying?
+
+RON (deadpan): Nobody backchecks.
+
+DON (remembrance-point, firm): Nobody backchecks!
+
+# Ron reveals where Jagrtown did it. Ron took Jagrtown first; Don got Hamhung and still hasn't forgiven it.
+RON: [>> matchup HUNG 246.95 JAGR 311.15 final "Last week's featured matchup"] And Jagrtown's 311 came in our featured matchup.
+
+[don: remembrance-stare, ron: rest, 1.1s] It dawns on Don.
+
+DON (remembrance-angry, yell): !!THAT WAS MY PICK!!!
+
+RON (deadpan): You had the Hall Monitors.
+
+DON (remembrance-point): I had Jagrtown! I said it first. {mock: "Just don't take--"}
+
+RON (deadpan): You didn't finish.
+
+DON (remembrance-angry, yell): !!EVERYBODY KNEW HOW IT ENDED!!!
+
+[ron: down, 600ms] Ron looks down.
+
+RON: [>> list "Featured matchup picks" "Don" "2/3 · 67%", "Ron" "1/3 · 33%"] So. Don's 2 for 3. I'm 1 for--
+
+DON (remembrance-point, firm): No. [beat] We both wanted Jagrtown. We both get the point.
+  [>> list "Featured matchup picks" "Don" "3/3 · 100%", "Ron" "1/3 · 33%"] There. 3 for 3.
+
+[ron: surprised, 800ms] Ron turns to the monitor.
+
+RON (skeptical): Who changed the monitor?
+
+DON (remembrance-thumbs, then remembrance-stare): It's fixed.
+
+RON (firm): You picked Hamhung.
+
+DON (remembrance-angry, yell): !!YOU STOLE MY TEAM!!! [remembrance-point] From now on, I like a team, I get the team. I don't care who goes first.
+
+RON: And if we both like the same team?
+
+DON (remembrance-point): Then we both get it!
+
+RON (deadpan): Fine.
+
+DON (remembrance-thumbs, then remembrance-stare): Fine.
+
+# Gauthier: Don praises the scorer he should be blaming, then narrows the claim.
+RON: [>> stat "11" "Nov. goals" "Cutter Gauthier / 3 hat tricks in 5 games" JAGR with "Cutter Gauthier"] Now, the hottest scorer in hockey. Cutter Gauthier. 11 goals in November.
+
+DON (remembrance-thumbs, warm): [fx: don happy 3s] 11! In 8 days! Now that's a hockey player. Goes to the net. Shoots the thing.
+
+RON (skeptical): You just said scoring's the problem.
+
+DON (remembrance-point, firm): He's not the problem! The fellas letting him are the problem.
+
+RON: [>> list "Most goals in a month" "Teemu Selänne" "20 · Mar. 1993", "Joe Malone" "20 · Feb. 1921", "Cutter Gauthier" "11 · Nov. 1–8"] The NHL record for goals in a month is 20.
+
+DON (remembrance-surprised): 20! Who's got that?
+
+RON: Teemu Selanne and Joe Malone. Anaheim has 10 games left this month.
+
+DON (remembrance-thumbs): 10 games. [beat] He'll get there.
+
+RON: Jagrtown got him off the wire 8 days--
+
+DON (remembrance-point): Off the wire! And he sat there a week before that! Everybody in this league walked right past him.
+  {firm: Best pickup of the year. Not close.}
+
+# McDavid: one exchange. He's the exception, then the exceptions pile up. 84-game season: 47 points in 18 games paces 219.
+RON: [>> numbers VWIZ 8 points, 3 games with "Connor McDavid" "Nov. 2–8"] McDavid. On pace for 219.
+
+DON (remembrance-thumbs, warm): McDavid. [beat] He's allowed.
+
+RON (deadpan): So scoring's fine for McDavid.
+
+DON (remembrance-point): And Gauthier. [beat] !!AND THAT'S IT!!!
+
+# Montreal: the defence sermon gets its proof. League ties: New Purrsey's Fowler.
+RON: [>> stat "4–0" "Montreal over Winnipeg" "Tue. Nov. 3 · 2:39 left"] Tuesday. Montreal's up 4-0 on Winnipeg.
+
+DON (remembrance-thumbs): Good. Game's over. Shake hands.
+
+RON: Winnipeg scored 4 in 2 minutes. Won in overtime.
+
+DON (remembrance-surprised): [fx: don shocked 800ms] 4?
+
+RON: [>> list "Down 4+, 3 min. left" "Won" 1, "Lost" "10 300", "Tied" 0] Never happened before.
+
+DON (remembrance-surprised, slow): 1 and 10,300.
+
+DON (remembrance-angry, yell): !!10,000 TEAMS PLAYED DEFENCE FOR 3 MINUTES!!! [remembrance-point] And Montreal couldn't!
+
+RON: New Purrsey's Jacob Fowler stopped the first 37.
+
+DON (remembrance-point, firm): 37! The kid stands on his head. [beat] {warm remembrance-thumbs: That's a young Carey Price.}
+  [remembrance-point] And they leave him out there alone!
+
+RON: And in Winnipeg's net, Stuart Skinner.
+
+DON (remembrance-thumbs, warm): Skinner! Swift Current Broncos. Took 'em to a Memorial Cup.
+
+RON: The Hall Monitors dropped him Saturday.
+
+# Waiver Wire Watch replaces Wilson Watch. Fantrax claims and drops, Nov. 2–9. No Varrock or Lalibirdies corrections.
+RON: [>> title "Waiver Wire Watch" "Week 4"] Which brings us to Waiver Wire Watch.
+
+DON (remembrance-surprised): Where's Wilson Watch?
+
+RON (deadpan): Retired.
+
+[don: remembrance-stare, ron: rest, 1.2s] Don stares at Ron.
+
+DON (remembrance-rest, deadpan, slow): He's still due.
+
+[ron: down, 600ms] Ron looks down.
+
+RON: [>> wire drop HUNG "Stuart Skinner" fpts 71.9 fpg 5.53 "Won both starts, dropped Sat. / Won again Sunday"] Skinner.
+
+[don: remembrance-stare, ron: rest, 1.0s] Don reads the card.
+
+DON (remembrance-point): Won both starts. Dropped. [beat] And he won again Sunday? {firm: He won you both games, Andrew!}
+
+RON: Devon Levi came off injured reserve Saturday and--
+
+DON (remembrance-point, firm): Then drop him Monday!
+
+RON: Levi's averaging 6.82 fantasy points a game. Skinner, 5.53.
+
+[don: remembrance-stare, ron: rest, 1.0s] Don does the math. Loses.
+
+DON (remembrance-rest, deadpan): Who's got Skinner now?
+
+RON (deadpan): Nobody. That's the segment.
+
+DON (remembrance-point, firm): I know that. [beat] Somebody take him.
+
+RON: [>> wire claim JAGR "Ryan O'Reilly" fpts 96.5 fpg 5.68 "Mon. Nov. 9 · C, Nashville"] Jagrtown picked up Ryan O'Reilly this morning.
+
+DON (remembrance-thumbs, warm): O'Reilly! [remembrance-point] Now there's a fella who comes back. Plays both ends.
+  {firm: Somebody over there has to backcheck!}
+
+RON: [>> wire claim PVLS "Charle-Edouard D'Astous" fpts 79 fpg 4.94 "Sun. Nov. 8 · D, Tampa Bay"] Paddyville grabbed Charle-Edouard D'Astous. Never drafted.
+
+DON (remembrance-thumbs, warm): [fx: don happy 3s] Never drafted! Nobody wanted him, and he made it anyway.
+  {firm remembrance-point: And Paddyville went and got a defenceman. Finally. Somebody.}
+
+RON: [>> wire swap HH "Mackenzie Blackwood" "John Gibson" fpg 6.46 fpts 90.4 fpg 3.69 fpts 40.6 "Sun. Nov. 8"] Hooterville changed goalies. Blackwood in, Gibson out.
+
+DON (remembrance-point): Blackwood.
+
+RON: Shut out Detroit Saturday.
+
+DON (remembrance-angry, yell): !!A SHUTOUT! SOMEBODY STOPPED A PUCK!!!
+
+DON (remembrance-thumbs, deadpan): Jeremy. Smart.
+
+RON: [>> wire free "Kent Johnson" fpts 83.75 fpg 5.58 "Columbus · 5th overall, 2021 / 57 points in 2024–25"] Still out there: Kent Johnson. 5th overall pick. 57 points 2 years ago.
+
+DON (remembrance-angry, yell): !!AND NOBODY'S GOT HIM?!!!
+
+RON: 5.58 fantasy points a game. Better than half the forwards on rosters.
+
+DON (remembrance-lean, firm): Brian. Eric. Kaley. [beat] You're all looking for wins. He's sitting right there.
+  {firm: You saw what Jagrtown did with Gauthier.}
+
+# West Texas: speculation only, and labelled as the hosts guessing. Nobody in West Texas has said anything.
+RON: Unless somebody isn't looking for wins.
+
+DON (remembrance-surprised): What's that mean?
+
+RON: [>> matchup TEEHAW 119.55 NPD 198.65 final "Week 4 / Final"] West Texas scored 119. Lowest of the year.
+
+DON (remembrance-stare, deadpan, slow): [>> standings "Bottom of the table" Reapers 1 3 755.60, Lali 0 4 709.50, TEEHAW 0 4 584.50] 0-4. 584.
+
+DON (remembrance-angry, yell): !!NOBODY TANKS IN THIS LEAGUE!!!
+
+RON (deadpan): Nobody said tank.
+
+DON (remembrance-point): You had the face.
+
+[don: remembrance-stare, ron: rest, 1.3s]
+
+DON (remembrance-rest, warm, slow): Another top pick, though. [beat] Next to McKenney. {warm remembrance-thumbs: Sounds exciting, I'd watch that.}
+
+RON: That's speculation. West Texas hasn't said a word.
+
+DON (remembrance-point): Here's some speculation for you, Matthews goes at the deadline!
+
+RON (warning): Harmless speculation.
+
+DON (remembrance-thumbs, firm): I'm usually right.
+
+[ron: down, 700ms] Ron looks down.
+
+# Hellebuyck: Don's case is simple. He doesn't want to face Winnipeg, and the Devils are covering for him.
+RON: [>> stat "5" "Straight wins" "Connor Hellebuyck / New Jersey · Shutout Sunday" VWIZ with "Connor Hellebuyck"] Hellebuyck shut out Toronto last night. Tomorrow, he goes back to Winnipeg.
+
+DON (remembrance-thumbs, firm): Good. Let 'em give it to him.
+
+RON: He's not playing.
+
+DON (remembrance-surprised): [fx: don shocked 500ms] Not playing?
+
+RON: [>> list "Devils GM Sunny Mehta" "Decision" Organizational, "Reason" "Expected win probability", "Hellebuyck" "Wanted to play"] The Devils say it's their call. He wanted to play.
+
+DON (remembrance-lean, firm): Wanted to play. [beat] Come on. He doesn't want to go in there. {firm: And the Devils are covering for him.}
+
+RON: They said it's about expected win probability.
+
+DON (remembrance-angry, yell): !!EXPECTED WIN PROBABILITY!!!
+
+[don: remembrance-pound-ready, 220ms]
+[don: remembrance-pound, sfx: desk-pound, 480ms]
+
+DON (remembrance-point, firm): That's a fancy way of saying he's a coward!
+  11 years those people cheered for him. Winnipeg! Hockey people!
+  You go in there. You take your boos. You tip your cap. {firm: That's what you owe 'em.}
+
+DON (remembrance-lean, firm): Instead he's hiding in the back like a chickensh--
+
+RON (firm, warning): Don.
+
+DON (remembrance-angry, yell): !!CHICKEN!!! [beat] {firm remembrance-point: He's a chicken.}
+
+[ron: down, 700ms] Ron looks down.
+
+# Russia: Don loves the old rivalry, but he's with Canada. His fire goes at the court.
+RON: [>> list "Russia's return" "Ordered by" "Court of Arbitration for Sport", "Won't play them" "Six countries", "World Juniors" "Canada: no visas"] A sports court has ordered Russia back into international hockey.
+
+DON (remembrance-thumbs, warm): The Summit Series. [beat] Canada and the Russians. Henderson scores, and the whole country stops.
+  {warm: I loved beating the Russians. Best hockey there ever was.}
+
+RON: [>> stat "6" "Won't play Russia" "Finland · Sweden · Norway · Denmark · Latvia · Czechia"] 6 countries say they won't play them.
+
+DON (remembrance-point): Then Canada will! We'll beat 'em for everybody--
+
+RON (firm): Don. There's a war on.
+
+[don: remembrance-stare, ron: rest, 1.4s]
+
+RON: World Juniors are in Alberta at Christmas. The Prime Minister says they won't get in.
+
+DON (remembrance-rest, firm, slow): Good. [beat] Canada's right. Not while there's a war on.
+
+DON (remembrance-point): But who let 'em back in? A court! In Switzerland! [beat] {firm: Lawyers.}
+
+RON: The Court of Arbitration for--
+
+DON (remembrance-angry, yell): !!NOBODY IN THAT ROOM EVER BLOCKED A SHOT IN THEIR LIFE!!!
+
+[ron: down, 700ms] Ron looks down.
+
+# Next week's featured matchup. Don picks first. Under Don's own new rule, Ron takes the same team.
+RON: [>> matchup HH PVLS "Week 5 / Featured matchup"] Our featured matchup for the week ahead: Hooterville at Paddyville. Both 3-1. Top 2 get a--
+
+DON (remembrance-point): I pick first.
+
+RON: You pick first.
+
+DON (remembrance-thumbs, firm): Hooterville. They've got a goalie now.
+
+RON: Same.
+
+DON (remembrance-surprised): [fx: don shocked 800ms] What?
+
+RON: Hooterville.
+
+DON (remembrance-angry, yell): !!THAT'S MY TEAM!!!
+
+RON (deadpan): [>> list "Week 5 picks" "Don" Hooterville, "Ron" Hooterville] We both like it. We both get it.
+
+DON (remembrance-point): Who made that rule?
+
+RON (deadpan): You did.
+
+[don: remembrance-stare, ron: rest, 1.5s]
+
+DON (remembrance-rest, deadpan): It's a good rule.
+
+# Out: the scoreboard argument gets the last word.
+RON: [>> logo] That's Coach's Corner.
+
+DON (remembrance-point): 3 for 3.
+
+RON (deadpan): 2 for 3.
+
+[1.5s]
