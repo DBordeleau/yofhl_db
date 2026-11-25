@@ -11,6 +11,7 @@ import { CAST, CHARACTERS, gestureHelp, SHOTS, SOUNDS } from '@/lib/coachs-corne
 import { citationLine, episodeFrom } from '@/lib/coachs-corner/episode';
 import type { PlayerIssue } from '@/lib/coachs-corner/player-snapshot';
 import { refKey, type PlayerRef } from '@/lib/coachs-corner/script';
+import { FX_REFERENCE, GRAPHIC_REFERENCE, LAPEL_REFERENCE } from '@/lib/coachs-corner/script-reference';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 
@@ -33,21 +34,14 @@ const CHEATS: [string, string][] = [
     ['[don: stare, 1.9s] note', 'A stage line: poses, a silent hold, and a note that isn’t shown.'],
     ['>> matchup HH 41.5 NPD 38', 'Cut the monitor to a graphic (also inline as [>> …]).'],
     ['Line ending in --', 'Cut off: the next line starts immediately.'],
+    ['[flashback: week 4] … [end flashback]', 'Replays 1–8 lines copied from a past episode: week N, pilot, or 2027 week N. Optional don: <gesture> sets his starting pose and wardrobe; lapel: <lapel> or none sets the lapel. Without them Don keeps this week’s.'],
+    [`lapel: ${LAPEL_REFERENCE.join(' · ')}`, 'Front matter: worn on both hosts’ lapels all episode.'],
 ];
 
-const GRAPHICS = [
-    'off · bars · static · logo',
-    'title "Big text" "small text"',
-    'team HH "caption"',
-    'matchup HH 41.5 NPD 38 "caption"',
-    'pick 3 HH "Player" "detail"',
-    'stat "76th" "Tom Wilson" "overall pick" Lali',
-    'player "Tom Wilson" Lali hearts "76th overall"',
-    'compare Reapers 158 TEEHAW 114.1, G 12 8, *Hit 29 17',
-    'numbers HH 1 goal, 18 assists',
-    'gap "Tom Wilson" "William Nylander" "Nico Hischier"',
-    'list "Standings" HH 3-0, JAGR 2-1',
-];
+const FLASHBACK_EXAMPLE = `[flashback: week 4, don: remembrance-rest, lapel: poppy]
+RON: Who's he going to get in a trade? Nobody wants--
+DON (remembrance-point): He's sitting right there.
+[end flashback]`;
 
 export default function ScriptEditor({ episode, teams, banners = [] }: { episode: EditableEpisode; teams: StudioTeam[]; banners?: StudioBanner[] }) {
     const router = useRouter();
@@ -242,19 +236,23 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
                             </div>
                         ))}
                     </dl>
+                    <pre className="mt-3 overflow-x-auto rounded-xl bg-ice p-3 font-mono text-[12px] leading-5 text-ink">{FLASHBACK_EXAMPLE}</pre>
                     <div className="mt-4 grid gap-4 text-[13px] sm:grid-cols-2">
                         <div>
                             <p className="mb-1 font-bold">Gestures</p>
                             {CHARACTERS.map(who => (
                                 <p key={who} className="text-ink-soft"><b className="text-ink">{CAST[who].name}:</b> {gestureHelp(who)}</p>
                             ))}
-                            <p className="mt-2 mb-1 font-bold">Camera and sound</p>
+                            <p className="mt-2 mb-1 font-bold">Camera, sound and reactions</p>
                             <p className="text-ink-soft">cam: {SHOTS.join(', ')}</p>
                             <p className="text-ink-soft">sfx: {SOUNDS.join(', ')}</p>
+                            {FX_REFERENCE.map(fx => (
+                                <p key={fx.effect} className="text-ink-soft"><code className="font-mono text-[12px] text-ink">[{fx.example}]</code> lasts {fx.length} unless you add a length like 2s</p>
+                            ))}
                         </div>
                         <div>
                             <p className="mb-1 font-bold">Monitor graphics</p>
-                            {GRAPHICS.map(g => <p key={g}><code className="font-mono text-[12px] text-ink-soft">&gt;&gt; {g}</code></p>)}
+                            {GRAPHIC_REFERENCE.map(g => <p key={g}><code className="font-mono text-[12px] text-ink-soft">&gt;&gt; {g}</code></p>)}
                         </div>
                     </div>
                     <p className="mt-4 mb-1 text-[13px] font-bold">Teams</p>
