@@ -11,7 +11,7 @@ import { CAST, CHARACTERS, gestureHelp, SHOTS, SOUNDS } from '@/lib/coachs-corne
 import { citationLine, episodeFrom } from '@/lib/coachs-corner/episode';
 import type { PlayerIssue } from '@/lib/coachs-corner/player-snapshot';
 import { refKey, type PlayerRef } from '@/lib/coachs-corner/script';
-import { FX_REFERENCE, GRAPHIC_REFERENCE, LAPEL_REFERENCE } from '@/lib/coachs-corner/script-reference';
+import { FLASHBACK_EXAMPLE, FX_REFERENCE, GRAPHIC_REFERENCE, LAPEL_REFERENCE } from '@/lib/coachs-corner/script-reference';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 
@@ -37,11 +37,6 @@ const CHEATS: [string, string][] = [
     ['[flashback: week 4] … [end flashback]', 'Replays 1–8 lines copied from a past episode: week N, pilot, or 2027 week N. Optional don: <gesture> sets his starting pose and wardrobe; lapel: <lapel> or none sets the lapel. Without them Don keeps this week’s.'],
     [`lapel: ${LAPEL_REFERENCE.join(' · ')}`, 'Front matter: worn on both hosts’ lapels all episode.'],
 ];
-
-const FLASHBACK_EXAMPLE = `[flashback: week 4, don: remembrance-rest, lapel: poppy]
-RON: Who's he going to get in a trade? Nobody wants--
-DON (remembrance-point): He's sitting right there.
-[end flashback]`;
 
 export default function ScriptEditor({ episode, teams, banners = [] }: { episode: EditableEpisode; teams: StudioTeam[]; banners?: StudioBanner[] }) {
     const router = useRouter();

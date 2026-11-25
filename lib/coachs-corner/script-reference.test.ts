@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { GRAPHIC_TYPES, parseGraphic, parseScript } from './script';
-import { FX_REFERENCE, GRAPHIC_REFERENCE, LAPEL_REFERENCE } from './script-reference';
+import { FLASHBACK_EXAMPLE, FX_REFERENCE, GRAPHIC_REFERENCE, LAPEL_REFERENCE } from './script-reference';
 
 const head = '---\ntitle: Reference\n---\n';
 
@@ -27,4 +27,17 @@ test('the monitor reference gives a working example of every graphic the parser 
     });
     assert.deepEqual([...new Set(parsed.map(g => g.type))].sort(), [...GRAPHIC_TYPES].sort());
     assert.ok(parsed.some(g => g.type === 'matchup' && g.status === 'final'));
+});
+
+test('the flashback example parses cleanly in an episode a few weeks later', () => {
+    assert.deepEqual(parseScript(`---
+title: Reference
+season: 2027
+week: 6
+---
+DON: Now.
+
+${FLASHBACK_EXAMPLE}
+
+RON: Back.`).diagnostics, []);
 });

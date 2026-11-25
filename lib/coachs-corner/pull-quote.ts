@@ -3,9 +3,13 @@ import type { Script } from './script';
 
 export interface PullQuote { who: CharacterId; text: string }
 
-/** The episode's best shout for a share card: the longest all-caps yell (!!…!!) that fits a plate, then any yell, then a short first line. */
+/**
+ * The episode's best shout for a share card: the longest all-caps yell (!!…!!) that fits a plate, then any yell, then a short first line.
+ * A flashback's lines are another week's material, so they're never quoted.
+ */
 export function pullQuote(script: Script): PullQuote | null {
-    const lines = script.events.flatMap(event => event.kind === 'line' ? [event] : []);
+    const replayed = (index: number) => script.flashbacks.some(block => block.from <= index && index < block.to);
+    const lines = script.events.flatMap((event, index) => event.kind === 'line' && !replayed(index) ? [event] : []);
     const shouts = lines.flatMap(line => {
         const runs: string[] = [];
         let run = '';

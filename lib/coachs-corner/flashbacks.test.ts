@@ -68,7 +68,6 @@ test('the tag needs this episode’s week, and its season when the source names 
 
 test('a header that names no source is an error', () => {
     flashbackError(withFlashback('[flashback: last tuesday]'), 8, /like \[flashback: week 4\]/);
-    flashbackError(withFlashback('[flashback: week 4, cam: wide]'), 8, /like \[flashback: week 4\]/);
 });
 
 test('the tag counts weeks back in this season and seasons back before it; the pilot is week 0 of 2027', () => {
@@ -153,4 +152,136 @@ test('a flashback that opens the episode is played, not part of the opening pict
     assert.equal(episode.openingPicture.flashback, null);
     const [span] = episode.timeline.flashbacks!;
     assert.equal(span.t0, 6000);
+});
+
+test('don: in the header puts Don in that wardrobe for lines naming no gesture, and a prefixed gesture overrides it', () => {
+    const episode = episodeFrom(`${head()}DON: This week.
+
+[flashback: week 4, don: remembrance-rest]
+DON: Back then.
+
+DON (yell): Loud back then!
+
+DON (alternate-4-point): Another suit.
+[end flashback]
+
+RON: Back to now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const [, plain, loud, prefixed] = episode.timeline.lines;
+    const don = (line: { t0: number; t1: number }) => frameAt(episode.timeline, middle(line)).hosts.don.gesture;
+    assert.equal(don(plain), 'remembrance-rest');
+    assert.equal(don(loud), 'remembrance-angry');
+    assert.equal(don(prefixed), 'alternate-4-point');
+});
+
+test('an unknown header gesture or lapel, or any other cue in the header, is an error on the header', () => {
+    flashbackError(withFlashback('[flashback: week 4, don: moonwalk]'), 8, /Don has no “moonwalk” gesture/);
+    flashbackError(withFlashback('[flashback: week 4, lapel: carnation]'), 8, /lapel is one of: poppy, or none/);
+    flashbackError(withFlashback('[flashback: week 4, cam: wide]'), 8, /takes only don: and lapel:/);
+    flashbackError(withFlashback('[flashback: week 4, ron: stare]'), 8, /takes only don: and lapel:/);
+    assert.deepEqual(errors(withFlashback('[flashback: week 4, don: remembrance-rest, lapel: none]')), []);
+    assert.deepEqual(errors(withFlashback('[flashback: week 4, lapel: Poppy]')), []);
+});
+
+test('the header lapel is worn for the flashback, lapel: none drops the episode’s, and leaving it out keeps it', () => {
+    const poppyWeek = `---\ntitle: Test\nseason: 2027\nweek: 6\nlapel: poppy\n---\n`;
+    const lapels = (header: string, front: string) => {
+        const episode = episodeFrom(withFlashback(header, front));
+        assert.deepEqual(episode.diagnostics, []);
+        const { lines, flashbacks } = episode.timeline;
+        const at = (t: number) => frameAt(episode.timeline, t).lapel;
+        return [at(middle(lines[0])), at(flashbacks![0].t0), at(middle(lines[1])), at(flashbacks![0].t1 - 1), at(middle(lines[3]))];
+    };
+    assert.deepEqual(lapels('[flashback: week 4, lapel: poppy]', head()), [null, 'poppy', 'poppy', 'poppy', null]);
+    assert.deepEqual(lapels('[flashback: week 4, lapel: none]', poppyWeek), ['poppy', null, null, null, 'poppy']);
+    assert.deepEqual(lapels('[flashback: week 4]', poppyWeek), ['poppy', 'poppy', 'poppy', 'poppy', 'poppy']);
+    assert.deepEqual(lapels('[flashback: week 4]', head()), [null, null, null, null, null]);
+});
+
+test('the monitor shows static for the whole flashback, ignores cuts in the copied lines, and gets its graphic back after', () => {
+    const episode = episodeFrom(`${head()}>> team HH "This week"
+DON: This week.
+
+[flashback: week 4]
+>> matchup HH 41.5 NPD 38
+RON: Who's he going to get in a trade?
+[end flashback]
+
+RON: Back to now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const tl = episode.timeline;
+    const [span] = tl.flashbacks!;
+    const graphic = (t: number) => tl.monitor[frameAt(tl, t).monitor].value;
+    assert.deepEqual(graphic(middle(tl.lines[0])), { type: 'team', team: 'HH', caption: 'This week' });
+    for (const t of [span.t0, middle(tl.lines[1]), span.t1 - 1]) assert.deepEqual(graphic(t), { type: 'static' });
+    assert.deepEqual(graphic(span.t1), { type: 'team', team: 'HH', caption: 'This week' });
+    assert.ok(!tl.monitor.some(cut => cut.value.type === 'matchup'));
+});
+
+test('after [end flashback] both hosts’ gestures, Don’s wardrobe, the lapel and the shot are what they were before it', () => {
+    const episode = episodeFrom(`---\ntitle: Test\nseason: 2027\nweek: 6\nlapel: poppy\n---\n[don: alternate-4-rest] [ron: down] [cam: don]
+DON: This week.
+
+[flashback: week 4, don: remembrance-rest, lapel: none]
+[cam: close ron]
+RON: Who's he going to get in a trade?
+
+DON (remembrance-point): He's sitting right there.
+[end flashback]
+
+DON: Same suit as before.
+
+DON (yell): Still that suit!`);
+    assert.deepEqual(episode.diagnostics, []);
+    const tl = episode.timeline;
+    const [span] = tl.flashbacks!;
+    const look = (t: number) => {
+        const frame = frameAt(tl, t);
+        return { don: frame.hosts.don.gesture, ron: frame.hosts.ron.gesture, shot: frame.shot, lapel: frame.lapel };
+    };
+    const left = look(span.t0 - 1);
+    assert.deepEqual(left, { don: 'alternate-4-rest', ron: 'down', shot: 'don', lapel: 'poppy' });
+    assert.deepEqual(look(middle(tl.lines[1])), { don: 'remembrance-rest', ron: 'rest', shot: 'close ron', lapel: null });
+    assert.deepEqual(look(span.t1), left);
+    assert.equal(look(middle(tl.lines[3])).don, 'alternate-4-rest');
+    assert.equal(look(middle(tl.lines[4])).don, 'alternate-4-angry');
+});
+
+test('a reaction running into a flashback ends as it starts, and one started inside ends as it ends', () => {
+    const episode = episodeFrom(`${head()}[fx: don happy]
+DON: This week.
+
+[flashback: week 4]
+[fx: ron happy 12s]
+RON: Who's he going to get in a trade?
+[end flashback]
+
+RON: Back to now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const tl = episode.timeline;
+    const [span] = tl.flashbacks!;
+    const reacting = (t: number) => { const { hosts } = frameAt(tl, t); return [!!hosts.don.reaction, !!hosts.ron.reaction]; };
+    assert.deepEqual(reacting(span.t0 - 1), [true, false]);
+    assert.deepEqual(reacting(span.t0), [false, false]);
+    assert.deepEqual(reacting(span.leaving - 1), [false, true]);
+    assert.deepEqual(reacting(span.leaving), [false, false]);
+});
+
+test('the opening wardrobe and the pull quote come from this week’s lines, not the flashback’s', () => {
+    const episode = episodeFrom(`${head()}[flashback: week 4, don: remembrance-rest]
+DON: !!THAT IS THE LONGEST SHOUT IN THE WHOLE EPISODE!!
+[end flashback]
+
+DON (alternate-4-point): !!THIS WEEK'S SHOUT!!
+
+RON: Sure.`);
+    assert.deepEqual(episode.diagnostics, []);
+    assert.equal(episode.openingWardrobe, 'alternate-suit-4');
+    assert.deepEqual(episode.pullQuote, { who: 'don', text: 'THIS WEEK’S SHOUT' });
+});
+
+test('with no line of Don’s outside a flashback, the opening wardrobe is normal', () => {
+    const episode = episodeFrom(`${head()}[flashback: week 4]\nDON (remembrance-point): Back then.\n[end flashback]\n\nRON: Now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    assert.equal(episode.openingWardrobe, 'normal');
 });

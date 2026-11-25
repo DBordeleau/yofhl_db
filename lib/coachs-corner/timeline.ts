@@ -1,4 +1,4 @@
-import { actionInWardrobeOf, CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
+import { actionInWardrobeOf, CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Lapel, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
 import type { Cue, FlashbackSource, Graphic, Meta, Script, Span } from './script';
 import { spokenForm } from './spoken-numbers';
 import { INTRO_MS, phaseAt, type Phase } from './transport';
@@ -80,6 +80,8 @@ export interface FlashbackSpan {
     leaving: number;
     /** the exit transition is over and the present resumes */
     t1: number;
+    /** the lapel worn from t0 to t1, null for none; absent when it's the episode's */
+    lapel?: Lapel | null;
 }
 
 interface Key<T> { t: number; value: T }
@@ -177,7 +179,8 @@ export function compile(script: Script): Timeline {
                 break;
             case 'cam': shots.push({ t, value: cue.shot }); break;
             case 'sfx': sounds.push({ t, value: cue.sound }); break;
-            case 'monitor': monitor.push({ t, value: cue.graphic, line }); break;
+            // a flashback's monitor stays on static: this week's numbers never show in the past
+            case 'monitor': if (!inFlashback) monitor.push({ t, value: cue.graphic, line }); break;
             case 'clear': clears.push(t); break;
         }
         return undefined;
@@ -188,19 +191,32 @@ export function compile(script: Script): Timeline {
     const edges = script.flashbacks.flatMap(block => [{ at: block.from, block, entering: true }, { at: block.to, block, entering: false }]);
     let nextEdge = 0;
     let inFlashback = false;
+    /** the studio as a flashback starts, which its end puts back */
+    let before = { monitor: monitor[0], shot: shots[0].value, rest: { ...rest } };
     const crossEdgesBefore = (index: number) => {
         for (; nextEdge < edges.length && edges[nextEdge].at <= index; nextEdge++) {
             const { block, entering } = edges[nextEdge];
             // plates clear as each transition begins, so the present and the past never share the screen
             clears.push(t);
             if (entering) {
-                flashbacks.push({ line: block.line, source: block.source, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0 });
+                flashbacks.push({
+                    line: block.line, source: block.source, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0,
+                    ...(block.lapel !== undefined ? { lapel: block.lapel } : {}),
+                });
+                before = { monitor: monitor[monitor.length - 1], shot: shots[shots.length - 1].value, rest: { ...rest } };
+                // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
+                if (block.don) { rest.don = block.don; setGesture('don', block.don, t); }
+                monitor.push({ t, value: { type: 'static' }, line: block.line });
                 t += FLASHBACK_ENTRY_MS;
             } else {
                 const span = flashbacks[flashbacks.length - 1];
                 span.leaving = t;
                 t += FLASHBACK_EXIT_MS;
                 span.t1 = t;
+                // the present resumes exactly as it was left
+                monitor.push({ ...before.monitor, t });
+                shots.push({ t, value: before.shot });
+                for (const c of CHARACTERS) { rest[c] = before.rest[c]; setGesture(c, rest[c], t); }
             }
             inFlashback = entering;
         }
@@ -333,10 +349,12 @@ export function compile(script: Script): Timeline {
     const showEnd = t;
     const art = Object.fromEntries(CHARACTERS.map(c => [c, Array.from(new Set(gestures[c].flatMap(key => posesFor(c, key.value))))])) as Timeline['art'];
     // A new reaction replaces the same host's previous one. Neither particles nor
-    // their audio may linger beyond the replacement or the end of the scene.
+    // their audio may linger beyond the replacement, a flashback's edge or the end of the scene.
+    const cuts = flashbacks.flatMap(span => [span.t0, span.leaving]);
     for (let i = 0; i < reactions.length; i++) {
         const next = reactions.slice(i + 1).find(r => r.who === reactions[i].who);
-        reactions[i].duration = Math.max(0, Math.min(reactions[i].duration, (next?.t ?? showEnd) - reactions[i].t, showEnd - reactions[i].t));
+        const edge = cuts.find(cut => cut >= reactions[i].t);
+        reactions[i].duration = Math.max(0, Math.min(reactions[i].duration, (next?.t ?? showEnd) - reactions[i].t, (edge ?? showEnd) - reactions[i].t, showEnd - reactions[i].t));
     }
     return {
         meta, duration: showEnd + OUTRO_MS, showEnd, segment: meta.segment ?? showEnd - INTRO_MS,
@@ -400,6 +418,8 @@ export interface Frame {
     clock: number;
     /** the flashback playing, from the start of its entry transition to the end of its exit */
     flashback: FlashbackFrame | null;
+    /** what both hosts wear on the lapel: the episode's, or a flashback's own while it plays */
+    lapel: Lapel | null;
 }
 
 const flashbackAt = (tl: Timeline, t: number): FlashbackFrame | null => {
@@ -457,12 +477,15 @@ export function frameAt(tl: Timeline, t: number): Frame {
         for (const who of CHARACTERS) if (gestureAction(hosts[who].gesture) === 'lean' && line >= 0 && tl.lines[line].speaker === who) shot = `close ${who}` as Shot;
     }
 
+    const flashback = flashbackAt(tl, t);
+    const spanLapel = flashback ? tl.flashbacks![flashback.span].lapel : undefined;
     return {
         phase, hosts, captions,
         monitor: Math.max(0, lastAt(tl.monitor, t, k => k.t)),
         shot, punch, line,
         clock: tl.segment - Math.max(0, Math.min(t, tl.showEnd) - INTRO_MS),
-        flashback: flashbackAt(tl, t),
+        flashback,
+        lapel: spanLapel !== undefined ? spanLapel : tl.meta.lapel ?? null,
     };
 }
 
@@ -479,7 +502,7 @@ export const frameSignature = (f: Frame) => {
     }
     // transitions publish in steps, like a reaction's particles, then the look holds still
     const fb = f.flashback;
-    if (fb) s += `|flashback:${fb.span}${fb.transition ? `:${fb.transition.edge}:${Math.floor(fb.transition.progress * 24)}` : ''}`;
+    if (fb) s += `|flashback:${fb.span}${fb.transition ? `:${fb.transition.edge}:${Math.floor(fb.transition.progress * 24)}` : ''}|lapel:${f.lapel ?? '-'}`;
     return s;
 };
 

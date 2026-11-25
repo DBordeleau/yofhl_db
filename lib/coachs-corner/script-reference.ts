@@ -22,6 +22,12 @@ export const FX_REFERENCE: FxReference[] = (Object.keys(EFFECTS) as Reaction[]).
 /** every lapel the lapel list holds */
 export const LAPEL_REFERENCE: readonly Lapel[] = LAPELS;
 
+/** a flashback block with both header options; the reference test parses it in a week 6 episode */
+export const FLASHBACK_EXAMPLE = `[flashback: week 4, don: remembrance-rest, lapel: poppy]
+RON: Who's he going to get in a trade? Nobody wants--
+DON (remembrance-point): He's sitting right there.
+[end flashback]`;
+
 /** one example per monitor graphic, written after >> (the reference test holds this to the parser's full list) */
 export const GRAPHIC_REFERENCE: readonly string[] = [
     'off', 'bars', 'static', 'logo',
