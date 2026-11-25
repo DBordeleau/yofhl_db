@@ -7,11 +7,11 @@ import { createShowAudio } from '@/components/coachs-corner/audio';
 import Player from '@/components/coachs-corner/player';
 import { archivoItalic } from '@/components/coachs-corner/fonts';
 import { deleteEpisode, lookupPlayers, saveEpisode, unpublishEpisode } from '@/app/admin/coachs-corner/actions';
-import { CAST, CHARACTERS, gestureHelp, SHOTS, SOUNDS } from '@/lib/coachs-corner/cast';
+import { CAST, CHARACTERS, gestureHelp, LAPELS, SHOTS, SOUNDS } from '@/lib/coachs-corner/cast';
 import { citationLine, episodeFrom } from '@/lib/coachs-corner/episode';
 import type { PlayerIssue } from '@/lib/coachs-corner/player-snapshot';
 import { refKey, type PlayerRef } from '@/lib/coachs-corner/script';
-import { FLASHBACK_EXAMPLE, FX_REFERENCE, GRAPHIC_REFERENCE, LAPEL_REFERENCE } from '@/lib/coachs-corner/script-reference';
+import { FLASHBACK_EXAMPLE, FX_REFERENCE, GRAPHIC_REFERENCE } from '@/lib/coachs-corner/script-reference';
 import { INTRO_MS } from '@/lib/coachs-corner/timeline';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 
@@ -35,7 +35,7 @@ const CHEATS: [string, string][] = [
     ['>> matchup HH 41.5 NPD 38', 'Cut the monitor to a graphic (also inline as [>> …]).'],
     ['Line ending in --', 'Cut off: the next line starts immediately.'],
     ['[flashback: week 4] … [end flashback]', 'Replays 1–8 lines copied from a past episode: week N, pilot, or 2027 week N. Optional don: <gesture> sets his starting pose and wardrobe; lapel: <lapel> or none sets the lapel. Without them Don keeps this week’s.'],
-    [`lapel: ${LAPEL_REFERENCE.join(' · ')}`, 'Front matter: worn on both hosts’ lapels all episode.'],
+    [`lapel: ${LAPELS.join(' · ')}`, 'Front matter: worn on both hosts’ lapels all episode.'],
 ];
 
 export default function ScriptEditor({ episode, teams, banners = [] }: { episode: EditableEpisode; teams: StudioTeam[]; banners?: StudioBanner[] }) {
