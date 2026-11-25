@@ -21,3 +21,23 @@ export const FX_REFERENCE: FxReference[] = (Object.keys(EFFECTS) as Reaction[]).
 
 /** every lapel the lapel list holds */
 export const LAPEL_REFERENCE: readonly Lapel[] = LAPELS;
+
+/** one example per monitor graphic, written after >> (the reference test holds this to the parser's full list) */
+export const GRAPHIC_REFERENCE: readonly string[] = [
+    'off', 'bars', 'static', 'logo',
+    'title "Big text" "small text"',
+    'team HH "caption"',
+    'matchup HH 41.5 NPD 38 "caption"',
+    'matchup HH 141.5 NPD 138 final',
+    'compare Reapers 158 TEEHAW 114.1, G 12 8, *Hit 29 17',
+    'standings "Week 1 standings" HH 1 0 212.35, NPD 0 1 174.20',
+    'list "Standings" HH 3-0, JAGR 2-1',
+    'pick 3 HH "Player" "detail"',
+    'stat "76th" "Tom Wilson" "overall pick" Lali',
+    'numbers HH 1 goal, 18 assists',
+    'player "Tom Wilson" Lali hearts "76th overall"',
+    'gap "Tom Wilson" "William Nylander" "Nico Hischier"',
+    'split "Alexis Lafreniere" "FP/G" Lali 3.00 "2020–25", JAGR 5.11 "This season"',
+    'wire claim JAGR "Ryan O\'Reilly" "Mon. Nov. 9" fpts 83.75 fpg 5.58',
+    'wire swap HH "Mackenzie Blackwood" "John Gibson"',
+];

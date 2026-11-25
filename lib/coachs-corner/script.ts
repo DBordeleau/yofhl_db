@@ -166,7 +166,7 @@ const ID_ERROR = 'Write the Fantrax id without its asterisks, like "Elias Petter
 const fantraxId = (token: string) => /^#([0-9a-z]+)$/i.exec(token)?.[1].toLowerCase();
 const playerRef = (name: string, id: string | undefined): PlayerRef => (id ? { name, id } : { name });
 
-const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'split', 'list', 'standings', 'wire'] as const;
+export const GRAPHIC_TYPES = ['off', 'bars', 'static', 'logo', 'title', 'team', 'matchup', 'compare', 'numbers', 'pick', 'stat', 'player', 'gap', 'split', 'list', 'standings', 'wire'] as const;
 
 export const parseGraphic = (raw: string): { graphic?: Graphic; error?: string; teams: string[] } => {
     const trimmed = raw.trim();

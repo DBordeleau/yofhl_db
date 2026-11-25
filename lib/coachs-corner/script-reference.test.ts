@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseGraphic, parseScript } from './script';
-import { FX_REFERENCE, LAPEL_REFERENCE } from './script-reference';
+import { GRAPHIC_TYPES, parseGraphic, parseScript } from './script';
+import { FX_REFERENCE, GRAPHIC_REFERENCE, LAPEL_REFERENCE } from './script-reference';
 
 const head = '---\ntitle: Reference\n---\n';
 
@@ -17,4 +17,14 @@ test('the lapel reference offers every lapel the front matter accepts', () => {
     for (const lapel of LAPEL_REFERENCE) {
         assert.deepEqual(parseScript(`---\ntitle: Reference\nlapel: ${lapel}\n---\nDON: Good.`).diagnostics, [], lapel);
     }
+});
+
+test('the monitor reference gives a working example of every graphic the parser accepts, final scores included', () => {
+    const parsed = GRAPHIC_REFERENCE.map(example => {
+        const { graphic, error } = parseGraphic(example);
+        assert.equal(error, undefined, example);
+        return graphic!;
+    });
+    assert.deepEqual([...new Set(parsed.map(g => g.type))].sort(), [...GRAPHIC_TYPES].sort());
+    assert.ok(parsed.some(g => g.type === 'matchup' && g.status === 'final'));
 });
