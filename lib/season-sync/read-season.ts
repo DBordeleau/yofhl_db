@@ -64,10 +64,10 @@ export async function readSeason(ports: SeasonSyncPorts, season: CurrentSeason, 
         readRegularSeason(ports, season, info, live, now),
         readBracket(ports, season, live, now),
     ]);
-    const games = gamesPlayedByPlayer(skaters, goalies);
-    const listed = playerSeasonRows(season, players, games);
-    const played = await playedWithoutPointsRows(ports, games, new Set(players.map(player => player.id)));
-    const playerSeasons = withSkaterCategories([...listed, ...played], skaters);
+    const gamesPlayed = gamesPlayedByPlayer(skaters, goalies);
+    const tableRows = playerSeasonRows(season, players, gamesPlayed);
+    const scorelessRows = await playedWithoutPointsRows(ports, gamesPlayed, new Set(players.map(player => player.id)));
+    const playerSeasons = withSkaterCategories([...tableRows, ...scorelessRows], skaters);
     const roster = await readChampionshipRoster(ports, season, info, bracket.champion, new Set(playerSeasons.map(row => row.id)));
     return {
         writes: [

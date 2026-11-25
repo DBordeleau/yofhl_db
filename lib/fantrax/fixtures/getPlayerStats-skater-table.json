@@ -1,0 +1,484 @@
+{
+ "data": {
+  "sDate": 1795621670517
+ },
+ "roles": [
+  "03"
+ ],
+ "responses": [
+  {
+   "data": {
+    "displayedStatusOrTeam": "ALL",
+    "paginatedResultSet": {
+     "totalNumPages": 1,
+     "pageNumber": 1,
+     "maxResultsPerPage": 5000,
+     "totalNumResults": 2
+    },
+    "statsTable": [
+     {
+      "scorer": {
+       "teamName": "Edmonton",
+       "urlName": "connor-mcdavid",
+       "headshotUrl": "https://fantraximg.com/si/headshots/NHL/hs02un4_96_9.png",
+       "scorerId": "02un4",
+       "rank": 1,
+       "posIdsNoFlex": [
+        "206"
+       ],
+       "defaultPosId": "206",
+       "posShortNames": "C",
+       "team": false,
+       "icons": [
+        {
+         "tooltip": "Nov 25, 12:24 AM: McDavid scored a goal on four shots and...",
+         "typeId": "14"
+        }
+       ],
+       "rookie": false,
+       "minorsEligible": false,
+       "posIds": [
+        "206"
+       ],
+       "teamId": "30220",
+       "name": "Connor McDavid",
+       "teamShortName": "EDM",
+       "shortName": "C. McDavid"
+      },
+      "cells": [
+       {
+        "content": "1"
+       },
+       {
+        "content": "VWIZ",
+        "toolTip": "Varrock Dark Wizards",
+        "teamId": "x349hilhmfblkbwz"
+       },
+       {
+        "content": "29"
+       },
+       {
+        "content": ""
+       },
+       {
+        "content": "671.5"
+       },
+       {
+        "content": "8.19"
+       },
+       {
+        "content": "85%"
+       },
+       {
+        "gainColor": -1,
+        "content": "-15%"
+       },
+       {
+        "content": "82"
+       },
+       {
+        "content": "48"
+       },
+       {
+        "content": "90"
+       },
+       {
+        "content": "306"
+       },
+       {
+        "content": "4"
+       },
+       {
+        "content": "56"
+       },
+       {
+        "content": "40"
+       },
+       {
+        "content": "30"
+       }
+      ],
+      "actions": [
+       {
+        "typeId": "7"
+       }
+      ]
+     },
+     {
+      "scorer": {
+       "teamName": "Florida",
+       "urlName": "aleksander-barkov",
+       "headshotUrl": "https://fantraximg.com/si/headshots/NHL/hs02un7_96_10.png",
+       "scorerId": "02un7",
+       "rank": 1332,
+       "posIdsNoFlex": [
+        "206"
+       ],
+       "defaultPosId": "206",
+       "posShortNames": "C",
+       "team": false,
+       "icons": [
+        {
+         "tooltip": "Nov 21, 10:57 AM: Barkov (knee) won't play against...",
+         "typeId": "9"
+        }
+       ],
+       "rookie": false,
+       "minorsEligible": false,
+       "posIds": [
+        "206"
+       ],
+       "teamId": "30120",
+       "name": "Aleksander Barkov",
+       "teamShortName": "FLA",
+       "shortName": "A. Barkov"
+      },
+      "cells": [
+       {
+        "content": "1332"
+       },
+       {
+        "content": "SKGS",
+        "toolTip": "Skellige Sirens",
+        "teamId": "1kav3w3hmfblkbwz"
+       },
+       {
+        "content": "31"
+       },
+       {
+        "content": ""
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "51%"
+       },
+       {
+        "gainColor": -1,
+        "content": "-10%"
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "0"
+       },
+       {
+        "content": "0"
+       }
+      ],
+      "actions": [
+       {
+        "typeId": "7"
+       }
+      ]
+     }
+    ],
+    "scoringCategoryTypes": [
+     {
+      "value": "Tracked",
+      "key": "5"
+     },
+     {
+      "value": "Tracked (Per-Game)",
+      "key": "7"
+     },
+     {
+      "value": "Standard",
+      "key": "1"
+     },
+     {
+      "value": "Extra",
+      "key": "2"
+     }
+    ],
+    "displayedSchedulePageAdj": 0,
+    "numScoringPeriods": 51,
+    "miscDisplayTypes": [
+     {
+      "value": "All",
+      "key": "1"
+     },
+     {
+      "value": "Rookie",
+      "key": "2"
+     }
+    ],
+    "disableGoBackDays": true,
+    "displayedView": "STATS",
+    "displayedTimeStartType": "PERIOD_ONLY",
+    "goBackDays": [
+     1,
+     7,
+     14,
+     30,
+     60
+    ],
+    "playerNewsIconRecencyLegend": [
+     {
+      "PLAYER_NEWS_HOT": "News was posted within the past <b>24</b> hours"
+     },
+     {
+      "PLAYER_NEWS_RECENT": "News was posted within the past <b>7</b> days"
+     },
+     {
+      "PLAYER_NEWS": "News was posted within the past <b>30</b> days"
+     }
+    ],
+    "statisticsViewTypeIds": [
+     "1",
+     "3"
+    ],
+    "numPeriods": 51,
+    "displayedPosOrGroup": "HOCKEY_SKATING",
+    "prevSchedPageAllowed": true,
+    "displayedSortReversed": false,
+    "statisticsTimeframeTypes": [
+     {
+      "id": "1",
+      "code": "YEAR_TO_DATE",
+      "name": "Year to date",
+      "shortName": "YTD"
+     },
+     {
+      "id": "2",
+      "code": "BY_PERIOD",
+      "name": "Period",
+      "shortName": "Period"
+     }
+    ],
+    "displayedSortType": "SCORE",
+    "tableHeader": {
+     "cells": [
+      {
+       "sortDirection": 1,
+       "name": "Ranking based on fantasy points among all players",
+       "width": 4,
+       "shortName": "Rk",
+       "key": "rankOv"
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "STATUS",
+       "sortType": "STATUS",
+       "name": "Status",
+       "width": 8.5,
+       "shortName": "Sta",
+       "key": "status"
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "AGE",
+       "sortType": "AGE",
+       "name": "Age",
+       "width": 3.5,
+       "shortName": "Age",
+       "key": "age"
+      },
+      {
+       "eventStr": true,
+       "sortDirection": 1,
+       "name": "Opponent",
+       "shortName": "Opp",
+       "key": "opponent"
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORE",
+       "sortType": "SCORE",
+       "width": 6.5,
+       "shortName": "FPts",
+       "key": "fpts"
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "FPTS_PER_GAME",
+       "sortType": "FPTS_PER_GAME",
+       "width": 5.5,
+       "shortName": "FP/G",
+       "key": "fptsPerGame"
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "OVERVIEW_PERCENT_OWNED_2",
+       "sortType": "OVERVIEW_PERCENT_OWNED_2",
+       "name": "% of Fantrax leagues that have this player on their roster this week",
+       "shortName": "Ros"
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "OVERVIEW_PLUS_MINUS_PERCENT_OWNED_2",
+       "sortType": "OVERVIEW_PLUS_MINUS_PERCENT_OWNED_2",
+       "name": "Change in percent Rostered from previous week",
+       "shortName": "+/-"
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORING_CATEGORY_2010#2100#-1",
+       "scipId": "2010#2100#-1",
+       "sortType": "SCORING_CATEGORY",
+       "name": "Games Played",
+       "width": 2.5,
+       "shortName": "GP",
+       "key": "2010#2100#-1",
+       "maxWidth": 3
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORING_CATEGORY_2010#2130#-1",
+       "scipId": "2010#2130#-1",
+       "sortType": "SCORING_CATEGORY",
+       "name": "Goals",
+       "width": 2.5,
+       "shortName": "G",
+       "key": "2010#2130#-1",
+       "maxWidth": 3
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORING_CATEGORY_2010#2090#-1",
+       "scipId": "2010#2090#-1",
+       "sortType": "SCORING_CATEGORY",
+       "name": "Assists",
+       "width": 2.5,
+       "shortName": "A",
+       "key": "2010#2090#-1",
+       "maxWidth": 3
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORING_CATEGORY_2010#2270#-1",
+       "scipId": "2010#2270#-1",
+       "sortType": "SCORING_CATEGORY",
+       "name": "Shots on Goal",
+       "width": 3.5,
+       "shortName": "SOG",
+       "key": "2010#2270#-1",
+       "maxWidth": 3
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORING_CATEGORY_2010#2120#-1",
+       "scipId": "2010#2120#-1",
+       "sortType": "SCORING_CATEGORY",
+       "name": "Game-winning Goals",
+       "width": 3.5,
+       "shortName": "GWG",
+       "key": "2010#2120#-1",
+       "maxWidth": 3
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORING_CATEGORY_2010#234m#-1",
+       "scipId": "2010#234m#-1",
+       "sortType": "SCORING_CATEGORY",
+       "name": "Special Teams Points -- Power Play Points + Short-Handed Points",
+       "width": 3.5,
+       "shortName": "STP",
+       "key": "2010#234m#-1",
+       "maxWidth": 3
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORING_CATEGORY_2010#2147#-1",
+       "scipId": "2010#2147#-1",
+       "sortType": "SCORING_CATEGORY",
+       "name": "Hits",
+       "width": 3.5,
+       "shortName": "Hit",
+       "key": "2010#2147#-1",
+       "maxWidth": 3
+      },
+      {
+       "sortDirection": 1,
+       "sortKey": "SCORING_CATEGORY_2010#2092#-1",
+       "scipId": "2010#2092#-1",
+       "sortType": "SCORING_CATEGORY",
+       "name": "Blocks -- A player blocks a shot by an opposing shooter.",
+       "width": 3.5,
+       "shortName": "Blk",
+       "key": "2010#2092#-1",
+       "maxWidth": 3
+      }
+     ]
+    },
+    "labels": {
+     "tab.Schedule": "Schedule",
+     "words.scoringCategory": "Scoring Category",
+     "fantasyAdvisor.label.suggestPickups": "Suggest Pickups",
+     "playersStatistics.label.fromStartOfSeason": "From Start of Season",
+     "word.Name": "Name",
+     "playersStatistics.label.datePlaying": "Date Playing",
+     "words.NumberOfDaysWithParam.plural": "{0} days",
+     "word.From": "From",
+     "type.statisticsTimeframeType.goBackNumDays.shortName": "Days Back",
+     "word.Division": "Division",
+     "fantasy.menu.assistantGm.name": "Ask Victor",
+     "text.transactions.youHavePendingTransactions": "Pending Transactions",
+     "word.Stats": "Stats",
+     "playersStatistics.label.playersTutorials": "Players Tutorials",
+     "playersStatistics.alert.unsavedChanges": "You need to click the <b>Submit</b> button at the bottom right of the screen or your changes will not be saved. Are you sure you want to leave this page?",
+     "playersStatistics.label.findPlayer": "Find Player",
+     "label.downloadAllAsCsv": "Download all as CSV",
+     "playersStatistics.label.periodOnly": "Period Only",
+     "word.Misc": "Misc",
+     "word.To": "To",
+     "playerFilter.miscDisplayType.probableStarters.name": "Probable Starters",
+     "label.moreFilters": "More filters",
+     "label.playerProfile.fantasyStatusOrTeam": "Status/Team"
+    },
+    "nextSchedPageAllowed": false,
+    "displayedPeriod": 51,
+    "displayedSelections": {
+     "datePlaying": "ALL",
+     "searchName": "",
+     "displayedMiscDisplayType": "1",
+     "displayedView": "STATS",
+     "displayedStartDate": 1759809600000,
+     "displayedScoringCategoryType": "5",
+     "displayedEndDate": 1776398399000,
+     "displayedSeasonOrProjection": {
+      "code": "SEASON_31l_YEAR_TO_DATE",
+      "endDate": 1776398399000,
+      "name": "2025-26 Reg Season - YTD",
+      "showGoBackDays": true,
+      "shortName": "2025-26 Reg - YTD",
+      "timeframeTypeCode": "YEAR_TO_DATE",
+      "startDate": 1759809600000
+     }
+    },
+    "displayedMiscDisplayType": "1",
+    "displayedScoringCategoryType": "5",
+    "claimsDropsAllowed": false,
+    "displayedSeasonOrProjection": {
+     "code": "SEASON_31l_YEAR_TO_DATE",
+     "endDate": 1776398399000,
+     "name": "2025-26 Reg Season - YTD",
+     "showGoBackDays": true,
+     "shortName": "2025-26 Reg - YTD",
+     "timeframeTypeCode": "YEAR_TO_DATE",
+     "startDate": 1759809600000
+    }
+   }
+  }
+ ]
+}

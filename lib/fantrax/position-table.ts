@@ -55,14 +55,14 @@ export function parsePositionPage(value: unknown, year: number, pageNumber: numb
         data.paginatedResultSet?.pageNumber !== pageNumber || !Number.isInteger(data.paginatedResultSet.totalNumPages) || data.paginatedResultSet.totalNumPages < 1 ||
         !Number.isInteger(data.paginatedResultSet.totalNumResults) || data.paginatedResultSet.totalNumResults < 1) throw new Error(`Unexpected Fantrax stats page for ${name}`);
     const columns = data.tableHeader.cells.map(cell => cell.shortName);
-    const games = columns.indexOf('GP');
-    if (games < 0) throw new Error(`Missing stat columns for ${name}`);
+    const gamesPlayedColumn = columns.indexOf('GP');
+    if (gamesPlayedColumn < 0) throw new Error(`Missing stat columns for ${name}`);
     const seen = new Set<string>();
     const rows = data.statsTable.map(row => {
         const id = row.scorer?.scorerId;
         if (!id || seen.has(id) || !Array.isArray(row.cells)) throw new Error('Missing or duplicate player in stats page');
         seen.add(id);
-        return { id, gamesPlayed: cellCount(row.cells[games]?.content, `games played for ${id}, ${name}`) ?? 0, cells: row.cells };
+        return { id, gamesPlayed: cellCount(row.cells[gamesPlayedColumn]?.content, `games played for ${id}, ${name}`) ?? 0, cells: row.cells };
     });
     return { rows, columns, pagination: data.paginatedResultSet, seasonCode: data.displayedSeasonOrProjection.code, seasonName: name };
 }

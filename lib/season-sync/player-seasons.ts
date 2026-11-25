@@ -25,10 +25,10 @@ export interface PlayerSeasonRow {
 }
 
 /**
- * The kept players' seasons from Fantrax's table, each with its games played from `games` (games-played.ts), or a
+ * The kept players' seasons from Fantrax's table, each with its games played from `gamesPlayed` (games-played.ts), or a
  * rejection when a player or fantasy team doesn't fit the current season or a scorer has no games played.
  */
-export function playerSeasonRows(season: CurrentSeason, players: FantraxPlayer[], games: ReadonlyMap<string, number>): PlayerSeasonRow[] {
+export function playerSeasonRows(season: CurrentSeason, players: FantraxPlayer[], gamesPlayedById: ReadonlyMap<string, number>): PlayerSeasonRow[] {
     const seen = new Set<string>();
     return players.flatMap(player => {
         if (!player.id || player.id.includes('*') || !player.name) throw new Error(`Fantrax's player table has an invalid player (${JSON.stringify(player.id)}).`);
@@ -40,8 +40,8 @@ export function playerSeasonRows(season: CurrentSeason, players: FantraxPlayer[]
             if (!team) throw new Error(`Fantrax's player table has ${player.name} on team ${player.teamId}, which the league configuration does not map for ${season.seasonYear}.`);
             teamSeasonId = season.teamSeasonId(team);
         }
-        const gamesPlayed = games.get(player.id) ?? 0;
-        // a scorer's games would go uncounted, so their career FP/G would be wrong
+        const gamesPlayed = gamesPlayedById.get(player.id) ?? 0;
+        // a scorer with no games played would drop out of their career, so their career FP/G would be wrong
         if (player.points !== 0 && gamesPlayed === 0) {
             throw new Error(`Player ${player.id} scored but neither Fantrax's skater table nor its goalie table lists games played for them.`);
         }

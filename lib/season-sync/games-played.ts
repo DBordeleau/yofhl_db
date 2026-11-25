@@ -11,31 +11,31 @@ import type { FantraxGoalie, FantraxSkater, SeasonSyncPorts } from './ports';
  * player. A player eligible as a skater and a goalie is in both tables, with the same games played in each.
  */
 export function gamesPlayedByPlayer(skaters: FantraxSkater[], goalies: FantraxGoalie[]): Map<string, number> {
-    const games = new Map<string, number>();
-    const add = (table: string, players: { id: string; gamesPlayed: number }[]) => {
+    const byPlayer = new Map<string, number>();
+    const add = (table: string, players: (FantraxSkater | FantraxGoalie)[]) => {
         const seen = new Set<string>();
         for (const { id, gamesPlayed } of players) {
             if (!id || id.includes('*')) throw new Error(`Fantrax's ${table} table has an invalid player (${JSON.stringify(id)}).`);
             if (seen.has(id)) throw new Error(`Fantrax's ${table} table has player ${id} more than once.`);
             if (!Number.isInteger(gamesPlayed) || gamesPlayed < 0) throw new Error(`Fantrax's ${table} table has invalid games played for player ${id}.`);
-            if (games.has(id) && games.get(id) !== gamesPlayed) {
-                throw new Error(`Fantrax lists player ${id} with ${games.get(id)} games played in its skater table and ${gamesPlayed} in its goalie table.`);
+            if (byPlayer.has(id) && byPlayer.get(id) !== gamesPlayed) {
+                throw new Error(`Fantrax lists player ${id} with ${byPlayer.get(id)} games played in its skater table and ${gamesPlayed} in its goalie table.`);
             }
             seen.add(id);
-            games.set(id, gamesPlayed);
+            byPlayer.set(id, gamesPlayed);
         }
     };
     add('skater', skaters);
     add('goalie', goalies);
-    return games;
+    return byPlayer;
 }
 
 /**
  * The player seasons of players with games played whom Fantrax's player table doesn't list (no points, no roster
  * spot): free agents with no points, named from Fantrax's player directory, which is read only when there are any.
  */
-export async function playedWithoutPointsRows(ports: SeasonSyncPorts, games: Map<string, number>, listed: Set<string>): Promise<PlayerSeasonRow[]> {
-    const unlisted = [...games].filter(([id, gamesPlayed]) => gamesPlayed > 0 && !listed.has(id));
+export async function playedWithoutPointsRows(ports: SeasonSyncPorts, gamesPlayed: ReadonlyMap<string, number>, listed: Set<string>): Promise<PlayerSeasonRow[]> {
+    const unlisted = [...gamesPlayed].filter(([id, gamesPlayed]) => gamesPlayed > 0 && !listed.has(id));
     if (!unlisted.length) return [];
     const directory = await ports.fantrax.playerDirectory();
     return unlisted.map(([id, gamesPlayed]) => {

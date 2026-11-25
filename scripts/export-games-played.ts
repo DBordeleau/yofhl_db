@@ -10,6 +10,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { loadGoalieTable } from '../lib/fantrax/goalie-table';
 import { loadSkaterTable } from '../lib/fantrax/skater-table';
+import { gamesPlayedByPlayer } from '../lib/season-sync/games-played';
 import { parsePlayerStats } from './db/lib/fantrax';
 import { GAMES_PLAYED_HISTORY, matchGamesPlayed, type GamesPlayedHistory } from './db/lib/games-played';
 
@@ -30,7 +31,7 @@ async function main() {
         const skaters = await loadSkaterTable(leagueId, year, { onPage: save('skaters') });
         const goalies = await loadGoalieTable(leagueId, year, { onPage: save('goalies') });
         if (skaters.seasonCode !== goalies.seasonCode) throw new Error(`${year}: the skater and goalie tables are for different seasons`);
-        const rows = matchGamesPlayed(year, archive, [...skaters.skaters, ...goalies.goalies]);
+        const rows = matchGamesPlayed(year, archive, gamesPlayedByPlayer(skaters.skaters, goalies.goalies));
         history.players.push(...rows);
         history.coverage.push({ year, leagueId, seasonCode: skaters.seasonCode, players: rows.length });
         console.log(`${year - 1}-${year}: ${rows.length} of ${archive.length} exported player seasons have games played; ${skaters.skaters.length} skaters and ${goalies.goalies.length} goalies validated`);

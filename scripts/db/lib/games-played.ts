@@ -54,20 +54,13 @@ export function seasonGamesPlayed(history: GamesPlayedHistory, year: number): Re
 
 /**
  * The export's rows for season `year`: each of the season's exported player seasons (`archive`) that has games played
- * in Fantrax's tables (`tables`, skaters and goalies), or a rejection naming the player seasons with FPts that have none.
- * A player eligible as a skater and a goalie is in both tables, with the same games played in each.
+ * in Fantrax's skater and goalie tables (`gamesPlayed`, by player ID, merged by the season sync's gamesPlayedByPlayer),
+ * or a rejection naming the player seasons with FPts that have none.
  */
-export function matchGamesPlayed(year: number, archive: { id: string; fpts: number }[], tables: { id: string; gamesPlayed: number }[]): GamesPlayedRow[] {
-    const games = new Map<string, number>();
-    for (const { id, gamesPlayed } of tables) {
-        if (games.has(id) && games.get(id) !== gamesPlayed) {
-            throw new Error(`Fantrax lists player ${id} with ${games.get(id)} and ${gamesPlayed} games played in ${seasonLabel(year)}'s skater and goalie tables`);
-        }
-        games.set(id, gamesPlayed);
-    }
-    const missing = archive.filter((player) => player.fpts !== 0 && !games.get(player.id));
+export function matchGamesPlayed(year: number, archive: { id: string; fpts: number }[], gamesPlayed: ReadonlyMap<string, number>): GamesPlayedRow[] {
+    const missing = archive.filter((player) => player.fpts !== 0 && !gamesPlayed.get(player.id));
     if (missing.length) {
         throw new Error(`${missing.length} player seasons with FPts in ${seasonLabel(year)} have no games played in Fantrax's tables: ${missing.slice(0, 5).map((p) => p.id).join(', ')}`);
     }
-    return archive.flatMap(({ id }) => (games.get(id) ? [{ id, year, gamesPlayed: games.get(id)! }] : []));
+    return archive.flatMap(({ id }) => (gamesPlayed.get(id) ? [{ id, year, gamesPlayed: gamesPlayed.get(id)! }] : []));
 }

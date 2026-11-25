@@ -1,16 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { gamesPlayedByPlayer } from '@/lib/season-sync/games-played';
 import { GAMES_PLAYED_HISTORY, matchGamesPlayed, readGamesPlayedHistory } from './games-played';
 
-// The games-played export's match of a season's exported player seasons to Fantrax's skater and goalie tables.
+// The games-played export's match of a season's exported player seasons to Fantrax's skater and goalie tables,
+// merged by the rule the season sync uses.
 
-const TABLES = [
-    { id: 'skater', gamesPlayed: 82 },
-    { id: 'goalie', gamesPlayed: 40 },
-    { id: 'scoreless', gamesPlayed: 6 },
-    { id: 'benched', gamesPlayed: 0 },
-    { id: 'elsewhere', gamesPlayed: 70 }, // not in the league's export
+const SKATERS = [
+    { id: 'skater', gamesPlayed: 82, categories: null },
+    { id: 'scoreless', gamesPlayed: 6, categories: null },
+    { id: 'benched', gamesPlayed: 0, categories: null },
+    { id: 'elsewhere', gamesPlayed: 70, categories: null }, // not in the league's export
 ];
+const GOALIES = [{ id: 'goalie', gamesPlayed: 40 }];
+const TABLES = gamesPlayedByPlayer(SKATERS, GOALIES);
 
 test("the export keeps each exported player season's games played, negative and zero totals included, and leaves out one with none", () => {
     const archive = [
@@ -30,12 +33,12 @@ test("the export keeps each exported player season's games played, negative and 
 test('the export fails when a player season with FPts has no games played in either table', () => {
     assert.throws(() => matchGamesPlayed(2026, [{ id: 'skater', fpts: 300 }, { id: 'missing', fpts: 4 }], TABLES), /1 player seasons with FPts in 2025–26 have no games played in Fantrax's tables: missing/);
     assert.throws(() => matchGamesPlayed(2026, [{ id: 'benched', fpts: -1 }], TABLES), /benched/, 'zero games played is none');
-    assert.throws(() => matchGamesPlayed(2026, [], [...TABLES, { id: 'skater', gamesPlayed: 1 }]), /player skater with 82 and 1 games played/);
 });
 
-test("a player eligible as a skater and a goalie, in both tables with the same games played, is matched once", () => {
-    assert.deepEqual(matchGamesPlayed(2026, [{ id: 'both', fpts: 5 }], [{ id: 'both', gamesPlayed: 3 }, { id: 'both', gamesPlayed: 3 }]),
-        [{ id: 'both', year: 2026, gamesPlayed: 3 }]);
+test('a player eligible as a skater and a goalie is in both tables with the same games played, and different counts are refused', () => {
+    const both = (goalieGames: number) => gamesPlayedByPlayer([{ id: 'both', gamesPlayed: 3, categories: null }], [{ id: 'both', gamesPlayed: goalieGames }]);
+    assert.deepEqual(matchGamesPlayed(2026, [{ id: 'both', fpts: 5 }], both(3)), [{ id: 'both', year: 2026, gamesPlayed: 3 }]);
+    assert.throws(() => both(1), /player both with 3 games played in its skater table and 1 in its goalie table/);
 });
 
 test('the checked-in history covers 2018–19 through 2025–26 with one positive games played per player season', () => {

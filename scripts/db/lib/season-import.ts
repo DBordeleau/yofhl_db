@@ -294,9 +294,15 @@ const writeLeague = async (db: Db, config: LeagueConfig) => {
     }
 };
 
-const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<string, string> | undefined, games: ReadonlyMap<string, number>): Promise<ImportedSeason> => {
+// `historyGamesPlayed` is the season's games played from the history file, or null when it doesn't cover the season
+const writeSeason = async (db: Db, season: PreparedSeason, keep: ReadonlyMap<string, string> | undefined, historyGamesPlayed: ReadonlyMap<string, number> | null): Promise<ImportedSeason> => {
     const ownerIds = new Map((await db.select().from(schema.owners)).map((o) => [o.name, o.id]));
-    const gamesPlayed = (id: string) => games.get(id) ?? 0;
+    // the games played the season sync stored, for a season the history file doesn't cover
+    const gamesPlayedById = historyGamesPlayed ?? new Map((await db
+        .select({ id: schema.playerSeasons.playerId, gamesPlayed: schema.playerSeasons.gamesPlayed })
+        .from(schema.playerSeasons)
+        .where(and(eq(schema.playerSeasons.seasonYear, season.year), sql`${schema.playerSeasons.gamesPlayed} > 0`))).map((row) => [row.id, row.gamesPlayed]));
+    const gamesPlayed = (id: string) => gamesPlayedById.get(id) ?? 0;
 
     // only seasons where the player had games played, scored, was rostered, or is on a ring/award list are kept
     const kept = season.players.filter((p) => gamesPlayed(p.id) > 0 || p.fpts !== 0 || p.franchiseId !== null || keep?.has(p.id));
@@ -580,23 +586,15 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, game
         }
     }
 
-    // each season's games played by player ID: the history file's for a season it covers, where every player season
-    // with FPts must have some, or else the ones stored, which the season sync wrote
-    const games = new Map<number, ReadonlyMap<string, number>>();
+    // each covered season's games played by player ID, from the history file, where every player season with FPts
+    // must have some; a season it doesn't cover (null) keeps the stored ones, read inside the transaction
+    const historyGamesPlayed = new Map<number, ReadonlyMap<string, number> | null>();
     for (const season of prepared) {
-        const covered = seasonGamesPlayed(gamesPlayed, season.year);
-        if (covered) {
-            for (const p of season.players) {
-                if (p.fpts !== 0 && !covered.get(p.id)) errors.push(`${seasonLabel(season.year)}: ${p.name} (${p.id}) has FPts but no games played in the games-played history file`);
-            }
-            games.set(season.year, covered);
-            continue;
+        const fromHistory = seasonGamesPlayed(gamesPlayed, season.year);
+        for (const p of fromHistory ? season.players : []) {
+            if (p.fpts !== 0 && !fromHistory!.get(p.id)) errors.push(`${seasonLabel(season.year)}: ${p.name} (${p.id}) has FPts but no games played in the games-played history file`);
         }
-        const stored = await db
-            .select({ id: schema.playerSeasons.playerId, gamesPlayed: schema.playerSeasons.gamesPlayed })
-            .from(schema.playerSeasons)
-            .where(and(eq(schema.playerSeasons.seasonYear, season.year), sql`${schema.playerSeasons.gamesPlayed} > 0`));
-        games.set(season.year, new Map(stored.map((row) => [row.id, row.gamesPlayed])));
+        historyGamesPlayed.set(season.year, fromHistory);
     }
 
     // every season's Fantrax IDs, including a live season with no CSVs yet
@@ -613,7 +611,7 @@ export const importSeasons = async ({ db, config, dataDir, seasons, legacy, game
         await writeLeague(tx, config);
         await writeFantraxTeams(tx, fantraxTeams.rows);
         const imported: ImportedSeason[] = [];
-        for (const season of prepared) imported.push(await writeSeason(tx, season, keep.get(season.year), games.get(season.year)!));
+        for (const season of prepared) imported.push(await writeSeason(tx, season, keep.get(season.year), historyGamesPlayed.get(season.year)!));
         const opened: OpenedSeason[] = [];
         for (const season of opening) opened.push(await writeOpening(tx, season));
         const legacyNotes = await seedLegacy(tx, config, legacy, new Set(prepared.map((s) => s.year)));
