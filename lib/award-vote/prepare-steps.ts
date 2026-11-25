@@ -238,7 +238,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
                 lookedUpThisCall.add(id);
                 try {
                     const nhlId = await nhl.identify({ name, playerId: id, positions, nhlTeam });
-                    // no NHL identity, or a record the Calder rule can't judge, is no NHL match: the admin decides
+                    // a record the Calder rule can't judge counts as no NHL identity, as does none found: the admin decides
                     if (nhlId === null) return [id, null];
                     const eligible = calderEligible(await nhl.player(nhlId), seasonYear);
                     return [id, eligible === null ? null : { nhlId, eligible }];
