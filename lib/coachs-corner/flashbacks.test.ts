@@ -299,6 +299,30 @@ test('a flashback rewinds on the way in and, more softly, on the way out, each o
     ]));
 });
 
+test('the monitor going to static and back at a flashback’s edges makes no TV-switch sound, but a cut cued there still does', () => {
+    const episode = episodeFrom(`${head()}>> team HH "This week"
+DON: This week.
+>> team NPD "Just before"
+
+[flashback: week 4]
+RON: Who's he going to get in a trade?
+[end flashback]
+>> team HH "Just after"
+
+RON: Back to now.
+
+[flashback: week 2]
+DON: Again.
+[end flashback]
+
+RON: Done.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const [first, second] = episode.timeline.flashbacks!;
+    const clicks = episode.audioCues.filter(cue => cue.id === 'monitor').map(cue => cue.t);
+    assert.deepEqual(clicks, [first.t0, first.t1]);
+    assert.ok(!clicks.includes(second.t0) && !clicks.includes(second.t1));
+});
+
 test('a script can’t cue the rewinds itself', () => {
     for (const id of ['flashback-entry', 'flashback-exit']) {
         const found = errors(`${head()}DON: Hi.\n[sfx: ${id}]\nRON: Hello.`);

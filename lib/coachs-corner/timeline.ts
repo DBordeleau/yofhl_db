@@ -98,8 +98,8 @@ export interface Timeline {
     gestures: Record<CharacterId, Key<string>[]>;
     flaps: Record<CharacterId, [number, number][]>;
     voice: Record<CharacterId, { t0: number; t1: number; delivery: Delivery }[]>;
-    /** each cut keeps the script line that cued it, for diagnostics */
-    monitor: (Key<Graphic> & { line: number })[];
+    /** each cut keeps the script line that cued it, for diagnostics; `flashbackEdge` marks the static and restore keys a flashback adds, which make no TV-switch sound */
+    monitor: (Key<Graphic> & { line: number; flashbackEdge?: true })[];
     shots: Key<Shot>[];
     sounds: Key<Sound>[];
     reactions: ReactionBeat[];
@@ -206,7 +206,7 @@ export function compile(script: Script): Timeline {
                 before = { monitor: monitor[monitor.length - 1], shot: shots[shots.length - 1].value, rest: { ...rest } };
                 // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
                 if (block.don) { rest.don = block.don; setGesture('don', block.don, t); }
-                monitor.push({ t, value: { type: 'static' }, line: block.line });
+                monitor.push({ t, value: { type: 'static' }, line: block.line, flashbackEdge: true });
                 t += FLASHBACK_ENTRY_MS;
             } else {
                 const span = flashbacks[flashbacks.length - 1];
@@ -214,7 +214,7 @@ export function compile(script: Script): Timeline {
                 t += FLASHBACK_EXIT_MS;
                 span.t1 = t;
                 // the present resumes exactly as it was left
-                monitor.push({ ...before.monitor, t });
+                monitor.push({ t, value: before.monitor.value, line: before.monitor.line, flashbackEdge: true });
                 shots.push({ t, value: before.shot });
                 for (const c of CHARACTERS) { rest[c] = before.rest[c]; setGesture(c, rest[c], t); }
             }

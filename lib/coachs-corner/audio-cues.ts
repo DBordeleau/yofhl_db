@@ -69,7 +69,7 @@ export function compileAudioCues(tl: Timeline): AudioCue[] {
     for (const span of tl.flashbacks ?? []) cues.push(
         { t: span.t0, id: 'flashback-entry', followsShow: { duration: FLASHBACK_ENTRY_MS } },
         { t: span.leaving, id: 'flashback-exit', followsShow: { duration: FLASHBACK_EXIT_MS } });
-    for (const m of tl.monitor) if (m.t > 0) cues.push({ t: m.t, id: 'monitor' });
+    for (const m of tl.monitor) if (m.t > 0 && !m.flashbackEdge) cues.push({ t: m.t, id: 'monitor' });
     for (const p of tl.punches) if (p.who === 'don') cues.push({ t: p.t, id: 'thud' });
     // Only this physical action gets Foley. Mouth swaps and automatic rest poses stay silent.
     for (const g of tl.gestures.don) if (g.t >= INTRO_MS && gestureAction(g.value) === 'tie') cues.push({ t: g.t, id: 'tie' });
