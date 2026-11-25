@@ -149,7 +149,7 @@ test('sources are exactly the requests that came back OK, in request order, time
     t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-01-09T12:00:00Z') });
     const fantrax = mockFetch(fixtures());
     const nhl: Record<string, unknown> = {
-        'https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=20&q=William+Nylander': [{ name: 'William Nylander', playerId: '88' }],
+        'https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=100&q=William+Nylander': [{ name: 'William Nylander', playerId: '88' }],
         'https://api-web.nhle.com/v1/player/88/landing': { playerId: 88, firstName: { default: 'William' }, lastName: { default: 'Nylander' }, birthCountry: 'SWE' },
     };
     // The league requests answer in reverse, so arrival order isn't request order. Each arrival moves the clock a minute.
@@ -170,7 +170,7 @@ test('sources are exactly the requests that came back OK, in request order, time
         { url: `${fantraxUrl}getStandings?leagueId=liveleague`, fetchedAt: '2026-01-09T12:02:00.000Z' },
         { url: `${fantraxUrl}getPlayerIds?sport=NHL`, fetchedAt: '2026-01-09T12:01:00.000Z' },
         { url: `${fantraxUrl}getMatchupScores?leagueId=liveleague&period=7`, fetchedAt: '2026-01-09T12:05:00.000Z' },
-        { url: 'https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=20&q=William+Nylander', fetchedAt: '2026-01-09T12:06:00.000Z' },
+        { url: 'https://search.d3.nhle.com/api/v1/search/player?culture=en-us&limit=100&q=William+Nylander', fetchedAt: '2026-01-09T12:06:00.000Z' },
         { url: 'https://api-web.nhle.com/v1/player/88/landing', fetchedAt: '2026-01-09T12:07:00.000Z' },
     ]);
     assert.deepEqual(packet.players[0].source, { url: 'https://api-web.nhle.com/v1/player/88/landing', fetchedAt: '2026-01-09T12:07:00.000Z' });
@@ -322,6 +322,12 @@ test('birthplace comes from a uniquely matched NHL landing record, independent o
     assert.equal(player.birthCity, 'Calgary');
     assert.equal(player.fpts, null);
     assert.match(player.source!.url, /\/88\/landing$/);
+    const full = await lookupFeaturedPlayer('William Nylander', async input => new Response(JSON.stringify(String(input).includes('/search/')
+        ? [{ name: 'William Nylander', playerId: '88' }]
+        : { playerId: 88, firstName: { default: 'William' }, lastName: { default: 'Nylander' }, birthCountry: 'SWE', birthCity: { default: 'Calgary' },
+            headshot: 'https://assets.nhle.com/mugs/88.png', currentTeamAbbrev: 'TOR', position: 'R' })));
+    assert.deepEqual([full.nhlId, full.birthCountry, full.bornInNorthAmerica, full.headshot, full.nhlTeam, full.positions],
+        [88, 'SWE', false, 'https://assets.nhle.com/mugs/88.png', 'TOR', ['R']]);
     assert.equal(birthRegion('CHE'), false);
     assert.equal(birthRegion('MEX'), true);
     assert.equal(birthRegion('UNKNOWN'), null);
