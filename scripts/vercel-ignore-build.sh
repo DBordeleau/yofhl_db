@@ -4,6 +4,11 @@
 # Skips pushes that, since the branch's last successful deployment, change only
 # docs, agent notes, tests and their golden fixtures, or Coach's Corner reference
 # files the site never reads.
+#
+# .claude/ is in .vercelignore, so the build never receives it. .gitignore cannot
+# change which tracked files the build sees. Every other path here is read by a
+# person or a test, never by next build. scripts/vercel-ignore-build.test.mjs
+# fails if a path the site reads is added to the list.
 
 base="$VERCEL_GIT_PREVIOUS_SHA"
 # A branch's first deployment, or a base outside Vercel's 10-commit shallow clone: build.
@@ -12,6 +17,8 @@ if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then exit 1
 if git diff --quiet "$base" HEAD -- . \
     ':(exclude)docs/' \
     ':(exclude).agents/' \
+    ':(exclude).claude/' \
+    ':(exclude).gitignore' \
     ':(exclude,glob)**/*.md' \
     ':(exclude,glob)**/*.test.ts' \
     ':(exclude)lib/coachs-corner/goldens/' \
