@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { episodeFrom } from './episode';
-import { frameAt } from './timeline';
+import { FLASHBACK_ENTRY_MS, FLASHBACK_EXIT_MS, frameAt, frameSignature } from './timeline';
 
 const head = (week: number | null = 6, season: number | null = 2027) =>
     `---\ntitle: Test\n${season === null ? '' : `season: ${season}\n`}${week === null ? '' : `week: ${week}\n`}---\n`;
@@ -86,4 +86,62 @@ test('the tag counts weeks back in this season and seasons back before it; the p
     assert.equal(tag('[flashback: pilot]', head(20, 2028)), 'LAST SEASON');
     assert.equal(tag('[flashback: 2027 week 12]', head(2, 2030)), '3 SEASONS AGO');
     assert.equal(tag('[Flashback:  2027  Week 3]'), '3 WEEKS AGO');
+});
+
+test('going in and coming out add their transitions to the runtime, and frames report how far through each one is', () => {
+    const plain = episodeFrom(withFlashback('[beat]').replace('[end flashback]', '[beat]'));
+    const episode = episodeFrom(withFlashback('[flashback: week 4]'));
+    assert.ok(FLASHBACK_ENTRY_MS > FLASHBACK_EXIT_MS && FLASHBACK_EXIT_MS > 0);
+    // the two [beat]s stand in for the markers, so the only difference is the transitions
+    const beats = 2 * 450;
+    assert.equal(episode.summary.runtime - (plain.summary.runtime - beats), FLASHBACK_ENTRY_MS + FLASHBACK_EXIT_MS);
+    assert.equal(episode.summary.segment, episode.summary.runtime - 6000);
+
+    const [span] = episode.timeline.flashbacks!;
+    const [now, first, second, after] = episode.timeline.lines;
+    assert.equal(span.t0, now.end);
+    assert.equal(span.entered - span.t0, FLASHBACK_ENTRY_MS);
+    assert.equal(first.t0, span.entered);
+    assert.equal(span.leaving, second.end);
+    assert.equal(span.t1 - span.leaving, FLASHBACK_EXIT_MS);
+    assert.equal(after.t0, span.t1);
+    assert.deepEqual(episode.timeline.lines.map(line => line.flashback), [undefined, true, true, undefined]);
+
+    const at = (t: number) => frameAt(episode.timeline, t).flashback;
+    assert.equal(at(span.t0 - 1), null);
+    assert.deepEqual(at(span.t0)?.transition, { edge: 'entry', progress: 0 });
+    assert.deepEqual(at(span.t0 + FLASHBACK_ENTRY_MS / 2)?.transition, { edge: 'entry', progress: 0.5 });
+    assert.equal(at(span.entered)?.transition, null);
+    assert.deepEqual(at(span.leaving + FLASHBACK_EXIT_MS / 4)?.transition, { edge: 'exit', progress: 0.25 });
+    assert.equal(at(span.t1), null);
+    // the studio re-renders as a transition moves, and holds still between them
+    const signature = (t: number) => frameSignature(frameAt(episode.timeline, t));
+    assert.notEqual(signature(span.t0 + 100), signature(span.t0 + 400));
+    assert.notEqual(signature(span.t1 - 1), signature(span.t1));
+});
+
+test('the plates clear as the flashback starts and again as it ends', () => {
+    const episode = episodeFrom(withFlashback('[flashback: week 4]'));
+    const [span] = episode.timeline.flashbacks!;
+    const [, first, second, after] = episode.timeline.lines;
+    const plates = (t: number) => frameAt(episode.timeline, t).captions;
+    assert.notEqual(plates(span.t0 - 1).don, null);
+    assert.deepEqual(plates(span.t0), { don: null, ron: null });
+    assert.equal(plates(middle(second)).ron?.line, first.index);
+    assert.notEqual(plates(span.leaving - 1).don, null);
+    assert.deepEqual(plates(span.leaving), { don: null, ron: null });
+    // Don's plate from the past doesn't come back with the present
+    assert.equal(plates(middle(after)).don, null);
+    assert.equal(plates(middle(after)).ron?.line, after.index);
+});
+
+test('a jump into the middle of a flashback lands in it, the same frame every time', () => {
+    const episode = episodeFrom(withFlashback('[flashback: week 4]'));
+    const t = middle(episode.timeline.lines[2]);
+    const landed = frameAt(episode.timeline, t);
+    assert.deepEqual(landed.flashback, { span: 0, tag: '2 WEEKS AGO', transition: null });
+    frameAt(episode.timeline, episode.timeline.flashbacks![0].t0);
+    frameAt(episode.timeline, episode.timeline.showEnd);
+    assert.deepEqual(frameAt(episode.timeline, t), landed);
+    assert.equal(frameSignature(frameAt(episode.timeline, t)), frameSignature(landed));
 });
