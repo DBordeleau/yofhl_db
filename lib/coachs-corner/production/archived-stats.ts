@@ -1,7 +1,6 @@
 import type { SQL } from 'drizzle-orm';
 import { createNhl } from '../../nhl/create-nhl';
-import type { Nhl } from '../../nhl/model';
-import { playerSnapshot, snapshotMessage } from '../player-snapshot';
+import { playerSnapshot, snapshotMessage, type SnapshotNhl } from '../player-snapshot';
 import { refKey, type PlayerRef } from '../script';
 import { unknownPlayer, type FactPacket, type FeaturedPlayer } from './facts';
 
@@ -13,7 +12,7 @@ const STALE = ['Player cards have no archived fantasy statistics in this referen
 export async function captureArchivedStats(packet: FactPacket, refs: PlayerRef[], options: {
     season: number;
     query?: (query: SQL) => Promise<Record<string, unknown>[]>;
-    nhl?: Nhl;
+    nhl?: SnapshotNhl;
     now?: () => Date;
 }): Promise<FactPacket> {
     const { season } = options;

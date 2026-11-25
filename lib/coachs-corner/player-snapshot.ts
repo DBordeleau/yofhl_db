@@ -30,8 +30,11 @@ export interface PlayerSnapshot {
     diagnostics: SnapshotDiagnostic[];
 }
 
+/** the NHL lookups a snapshot makes: who a cited player is, then their headshot */
+export type SnapshotNhl = Pick<Nhl, 'identify' | 'player'>;
+
 /** public pages never call the NHL: nobody has an NHL identity, so every face is the Fantrax portrait */
-export const noNhl: Nhl = {
+export const noNhl: SnapshotNhl = {
     identify: async () => null,
     player: async nhlId => { throw new Error(`No NHL lookups here, so no player ${nhlId}`); },
 };
@@ -50,7 +53,7 @@ const complete = (value: unknown) => (typeof value === 'number' && Number.isFini
 const portraits: Record<string, string> = fantraxPortraits;
 
 /** The NHL headshot when the player has an NHL identity, else the Fantrax portrait. An NHL failure never fails a snapshot. */
-async function headshotFor(player: { name: string; id: string | null; positions?: string[]; nhlTeam?: string | null }, nhl: Nhl): Promise<string | null> {
+async function headshotFor(player: { name: string; id: string | null; positions?: string[]; nhlTeam?: string | null }, nhl: SnapshotNhl): Promise<string | null> {
     const fantrax = player.id ? portraits[player.id] ?? null : null;
     try {
         const nhlId = await nhl.identify({ name: normalizePlayerName(player.name), playerId: player.id, positions: player.positions, nhlTeam: player.nhlTeam });
@@ -67,7 +70,7 @@ const unresolved = (ref: PlayerRef, headshot: string | null): SnapshotRow => ({
 /** Resolve every ref, in order, at exactly `season`. No cap on how many. */
 export async function playerSnapshot(season: number | null, refs: PlayerRef[], { nhl, query = defaultQuery }: {
     /** where headshots come from; its failures are forgiven */
-    nhl: Nhl;
+    nhl: SnapshotNhl;
     query?: Query;
 }): Promise<PlayerSnapshot> {
     const names = [...new Set(refs.map(ref => key(ref.name)))].filter(Boolean);

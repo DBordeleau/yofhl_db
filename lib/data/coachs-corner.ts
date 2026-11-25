@@ -4,9 +4,8 @@ import { PILOT_SCRIPT, PILOT_SLUG } from '@/lib/coachs-corner/pilot';
 import pilotPlayers from '@/lib/coachs-corner/pilot-players.json';
 import pilotTeams from '@/lib/coachs-corner/pilot-teams.json';
 import { episodeFrom, scriptAirDate, type Episode as CompiledEpisode } from '@/lib/coachs-corner/episode';
-import { noNhl, playerSnapshot, type PlayerSnapshot } from '@/lib/coachs-corner/player-snapshot';
+import { noNhl, playerSnapshot, type PlayerSnapshot, type SnapshotNhl } from '@/lib/coachs-corner/player-snapshot';
 import { createNhl } from '@/lib/nhl/create-nhl';
-import type { Nhl } from '@/lib/nhl/model';
 import type { PlayerRef } from '@/lib/coachs-corner/script';
 import type { StudioBanner, StudioPlayer, StudioTeam } from '@/lib/coachs-corner/teams';
 import { fallbackColours } from '@/lib/team-branding';
@@ -106,7 +105,7 @@ const week = 60 * 60 * 24 * 7;
 // an outage rejects inside the cache, so only real answers are kept and the next publish asks again; the snapshot
 // forgives it outside, with the Fantrax portrait
 const liveNhl = createNhl();
-const cachedNhl: Nhl = {
+const cachedNhl: SnapshotNhl = {
     identify: unstable_cache(liveNhl.identify, ['coachs-corner-nhl-identify-v1'], { revalidate: week }),
     player: unstable_cache(liveNhl.player, ['coachs-corner-nhl-player-v1'], { revalidate: week }),
 };
