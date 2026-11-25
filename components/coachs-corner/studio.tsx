@@ -367,7 +367,7 @@ function Studio({ episode, frame, jumped, teams, players, banners, started, play
     const chyron = fullscreen && live && frame.line >= 0 && tl.lines[frame.line].t0 - INTRO_MS < CHYRON_WINDOW_MS && frame.phase === 'segment';
 
     return (
-        <div ref={studioRef} className={styles.studio} data-shot={frame.shot} style={{ '--spill': spill } as React.CSSProperties}>
+        <div ref={studioRef} className={styles.studio} data-shot={frame.shot} data-flashback={frame.flashback ? '' : undefined} style={{ '--spill': spill } as React.CSSProperties}>
             {/* alternating animation names restart the punch without remounting the set */}
             <div className={styles.jolt} data-jolt={frame.punch?.who === 'don' ? frame.punch.index % 2 : undefined}>
                 <div className={styles.world}>
@@ -396,6 +396,15 @@ function Studio({ episode, frame, jumped, teams, players, banners, started, play
                     return c && live ? <Plate key={`${who}${c.line}`} who={who} line={tl.lines[c.line]} caption={c} /> : null;
                 })}
             </div>
+
+            {frame.flashback && <>
+                <div className={styles.flashbackVignette} aria-hidden="true" />
+                {live && (
+                    <div className={styles.flashbackTag} aria-hidden="true">
+                        {['FLASHBACK', frame.flashback.tag].filter(Boolean).join(' · ')}
+                    </div>
+                )}
+            </>}
 
             <div className={styles.bug} aria-hidden="true">YOFHL</div>
             {started && (

@@ -1,5 +1,5 @@
 import { actionInWardrobeOf, CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
-import type { Cue, Graphic, Meta, Script, Span } from './script';
+import type { Cue, FlashbackSource, Graphic, Meta, Script, Span } from './script';
 import { spokenForm } from './spoken-numbers';
 import { INTRO_MS, phaseAt, type Phase } from './transport';
 
@@ -13,6 +13,10 @@ const OUTRO_MS = 1800;
 const LINE_GAP_MS = 180;
 const MIN_SYLLABLE_MS = 80;
 const MOUTH_OPEN_SHARE = 0.58;
+/** show time spent going into a flashback, before its first event */
+export const FLASHBACK_ENTRY_MS = 900;
+/** show time spent coming back out, after its last event; softer and shorter than the way in */
+export const FLASHBACK_EXIT_MS = 500;
 
 export interface Piece { text: string; delivery: Delivery }
 
@@ -57,6 +61,25 @@ export interface Line {
     cutoff: boolean;
     words: Word[];
     text: string;
+    /** copied from an earlier episode and replayed inside a flashback, not this week's writing */
+    flashback?: true;
+}
+
+/** A flashback in show time: the entry transition, its copied lines, then the exit transition. */
+export interface FlashbackSpan {
+    /** the script line of its [flashback: …] header */
+    line: number;
+    source: FlashbackSource | null;
+    /** how far back, as the tag reads it after "FLASHBACK ·": "2 WEEKS AGO", "LAST SEASON"; empty when it can't be counted */
+    tag: string;
+    /** the entry transition starts */
+    t0: number;
+    /** the entry transition is over */
+    entered: number;
+    /** the exit transition starts */
+    leaving: number;
+    /** the exit transition is over and the present resumes */
+    t1: number;
 }
 
 interface Key<T> { t: number; value: T }
@@ -81,6 +104,8 @@ export interface Timeline {
     /** yell onsets: the camera punches in and the listener flinches */
     punches: { t: number; who: CharacterId }[];
     clears: number[];
+    /** Absent when the script has none, so a timeline without flashbacks compiles exactly as it did before them. */
+    flashbacks?: FlashbackSpan[];
     /** every distinct pose each host shows, for preloading and mounting */
     art: Record<CharacterId, Pose[]>;
 }
@@ -126,6 +151,8 @@ export function compile(script: Script): Timeline {
     // cues ahead of the first line set the opening picture
     let first = events.findIndex(e => e.kind === 'line' || e.cues.some(c => c.type === 'pause' || c.type === 'reaction'));
     if (first < 0) first = events.length;
+    // a flashback is played, never part of the opening picture
+    first = Math.min(first, script.flashbacks[0]?.from ?? first);
     let monitorSet = false;
     for (const e of events.slice(0, first)) {
         if (e.kind !== 'stage') continue;
@@ -156,7 +183,32 @@ export function compile(script: Script): Timeline {
         return undefined;
     };
 
-    for (const event of events.slice(first)) {
+    // Each flashback's edges, in show order: a block is entered before its first event and left after its last.
+    const flashbacks: FlashbackSpan[] = [];
+    const edges = script.flashbacks.flatMap(block => [{ at: block.from, block, entering: true }, { at: block.to, block, entering: false }]);
+    let nextEdge = 0;
+    let inFlashback = false;
+    const crossEdgesBefore = (index: number) => {
+        for (; nextEdge < edges.length && edges[nextEdge].at <= index; nextEdge++) {
+            const { block, entering } = edges[nextEdge];
+            // plates clear as each transition begins, so the present and the past never share the screen
+            clears.push(t);
+            if (entering) {
+                flashbacks.push({ line: block.line, source: block.source, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0 });
+                t += FLASHBACK_ENTRY_MS;
+            } else {
+                const span = flashbacks[flashbacks.length - 1];
+                span.leaving = t;
+                t += FLASHBACK_EXIT_MS;
+                span.t1 = t;
+            }
+            inFlashback = entering;
+        }
+    };
+
+    for (let index = first; index < events.length; index++) {
+        crossEdgesBefore(index);
+        const event = events[index];
         if (event.kind === 'stage') {
             for (const cue of event.cues) applyCue(cue, event.line);
             continue;
@@ -274,8 +326,9 @@ export function compile(script: Script): Timeline {
             if (a.t1 < t0) break;
             if (b.t0 - a.t1 < 220 && a.delivery === b.delivery) { a.t1 = b.t1; runs.splice(k, 1); }
         }
-        lines.push({ index: lines.length, sourceLine: event.line, speaker: who, t0, t1, end, cutoff, words, text });
+        lines.push({ index: lines.length, sourceLine: event.line, speaker: who, t0, t1, end, cutoff, words, text, ...(inFlashback ? { flashback: true as const } : {}) });
     }
+    crossEdgesBefore(events.length);
 
     const showEnd = t;
     const art = Object.fromEntries(CHARACTERS.map(c => [c, Array.from(new Set(gestures[c].flatMap(key => posesFor(c, key.value))))])) as Timeline['art'];
@@ -287,7 +340,8 @@ export function compile(script: Script): Timeline {
     }
     return {
         meta, duration: showEnd + OUTRO_MS, showEnd, segment: meta.segment ?? showEnd - INTRO_MS,
-        lines, gestures, flaps, voice, monitor, shots, sounds, reactions: reactions.filter(r => r.duration > 0), punches, clears, art,
+        lines, gestures, flaps, voice, monitor, shots, sounds, reactions: reactions.filter(r => r.duration > 0), punches, clears,
+        ...(flashbacks.length ? { flashbacks } : {}), art,
     };
 }
 
@@ -324,6 +378,15 @@ export interface CaptionFrame {
     knocked: boolean;
 }
 
+/** a flashback on screen */
+export interface FlashbackFrame {
+    /** its index in the timeline's flashbacks */
+    span: number;
+    tag: string;
+    /** going in or coming out, and how far through (0 to 1); null between the two */
+    transition: { edge: 'entry' | 'exit'; progress: number } | null;
+}
+
 export interface Frame {
     phase: Phase;
     hosts: Record<CharacterId, HostFrame>;
@@ -335,7 +398,20 @@ export interface Frame {
     line: number;
     /** ms left in the segment; negative in overtime */
     clock: number;
+    /** the flashback playing, from the start of its entry transition to the end of its exit */
+    flashback: FlashbackFrame | null;
 }
+
+const flashbackAt = (tl: Timeline, t: number): FlashbackFrame | null => {
+    const spans = tl.flashbacks ?? [];
+    const index = lastAt(spans, t, span => span.t0);
+    const span = spans[index];
+    if (!span || t >= span.t1) return null;
+    const transition = t < span.entered ? { edge: 'entry' as const, progress: (t - span.t0) / (span.entered - span.t0) }
+        : t >= span.leaving ? { edge: 'exit' as const, progress: (t - span.leaving) / (span.t1 - span.leaving) }
+        : null;
+    return { span: index, tag: span.tag, transition };
+};
 
 export function frameAt(tl: Timeline, t: number): Frame {
     const phase = phaseAt(t, tl.showEnd);
@@ -386,6 +462,7 @@ export function frameAt(tl: Timeline, t: number): Frame {
         monitor: Math.max(0, lastAt(tl.monitor, t, k => k.t)),
         shot, punch, line,
         clock: tl.segment - Math.max(0, Math.min(t, tl.showEnd) - INTRO_MS),
+        flashback: flashbackAt(tl, t),
     };
 }
 
@@ -400,6 +477,9 @@ export const frameSignature = (f: Frame) => {
         if (who === 'don' && gestureAction(h.gesture) === 'pound') s += `|impact:${Math.min(10, Math.floor(h.gestureMs / 16))}`;
         if (h.reaction) s += `|fx:${h.reaction.effect}:${Math.floor(h.reaction.elapsed / 32)}`;
     }
+    // transitions publish in steps, like a reaction's particles, then the look holds still
+    const fb = f.flashback;
+    if (fb) s += `|flashback:${fb.span}${fb.transition ? `:${fb.transition.edge}:${Math.floor(fb.transition.progress * 24)}` : ''}`;
     return s;
 };
 
