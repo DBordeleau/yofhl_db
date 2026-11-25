@@ -323,3 +323,17 @@ _Avoid_: pin, badge
 **Flashback**:
 A block of a script that replays a few lines from a past episode, with Don's wardrobe and the lapel from that week, before the studio returns to the present.
 _Avoid_: callback (a line that refers back without replaying it), replay, rewind
+
+## Sharing
+
+**Share card**:
+A portrait image of a player, team, season, player comparison, head-to-head, draft steal, award winner or episode that a visitor saves or posts from its page.
+_Avoid_: share image, card (unqualified)
+
+**Link preview**:
+The landscape image a chat app or social site shows when someone posts a page's link. Player, team, season and episode pages have their own; every other page has the site-wide preview.
+_Avoid_: OG image, social card, unfurl image
+
+**Site-wide preview**:
+The one link preview for every page that has none of its own.
+_Avoid_: default image, fallback preview
