@@ -45,7 +45,10 @@ export function cellCount(content: string | undefined, what: string): number | n
     return result;
 }
 
-/** One page of the group's table, or a rejection when it is not page `pageNumber` of `year`'s regular-season table for the group. */
+/**
+ * One page of the group's table, or a rejection when it is not page `pageNumber` of `year`'s regular-season table for
+ * the group, or a row has no games played cell.
+ */
 export function parsePositionPage(value: unknown, year: number, pageNumber: number, group: PositionGroup): PositionPage {
     const data = value as RawPage;
     const name = fantraxSeasonName(year);
@@ -62,7 +65,10 @@ export function parsePositionPage(value: unknown, year: number, pageNumber: numb
         const id = row.scorer?.scorerId;
         if (!id || seen.has(id) || !Array.isArray(row.cells)) throw new Error('Missing or duplicate player in stats page');
         seen.add(id);
-        return { id, gamesPlayed: cellCount(row.cells[gamesPlayedColumn]?.content, `games played for ${id}, ${name}`) ?? 0, cells: row.cells };
+        // a missing cell is not "no games played": reading it as 0 would drop a scoreless player's stored season
+        const gamesPlayed = row.cells[gamesPlayedColumn]?.content;
+        if (typeof gamesPlayed !== 'string') throw new Error(`Missing games played for ${id}, ${name}`);
+        return { id, gamesPlayed: cellCount(gamesPlayed, `games played for ${id}, ${name}`) ?? 0, cells: row.cells };
     });
     return { rows, columns, pagination: data.paginatedResultSet, seasonCode: data.displayedSeasonOrProjection.code, seasonName: name };
 }

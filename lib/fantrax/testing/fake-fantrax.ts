@@ -1,7 +1,12 @@
 // A fake Fantrax for tests of the production live season (a disposable league's `fetch`): a two-team league for
-// 2027, mapped to two franchises by SEED.
+// 2027, mapped to two franchises by SEED. Also the season sync's production goalie read over a page a test gives.
+import { createFantraxClient } from '../fantrax-client';
 
 export const LEAGUE = 'league27';
+
+/** the season sync's production goalie read (the Fantrax client's goalie table), with Fantrax answering every request with `page` */
+export const goalieTableServing = (page: unknown) => (leagueId: string, seasonYear: number) =>
+    createFantraxClient(async () => Response.json(page)).goalieTable(leagueId, seasonYear);
 
 /** the two franchises and the Fantrax team mapping of FAKE_FANTRAX's league */
 export const SEED = `

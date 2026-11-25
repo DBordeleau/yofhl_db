@@ -53,3 +53,11 @@ test("a saved skater table page gives each skater's games played and skater cate
     await assert.rejects(loadSkaterTable('gl4i2lrcmfblkbwq', 2027, { fetcher: async () => savedPage() }), /Unexpected Fantrax stats page for 2026-27/,
         "another season's page");
 });
+
+test('a skater row cut short before its games played cell is rejected rather than read as none', async () => {
+    // games played is cell 8 of the saved page
+    const page = JSON.parse(readFileSync(new URL('./fixtures/getPlayerStats-skater-table.json', import.meta.url), 'utf8'));
+    page.responses[0].data.statsTable[1].cells = page.responses[0].data.statsTable[1].cells.slice(0, 8);
+    await assert.rejects(loadSkaterTable('gl4i2lrcmfblkbwq', 2026, { fetcher: async () => Response.json(page) }),
+        /^Error: Missing games played for 02un7, 2025-26 Reg Season - YTD$/);
+});

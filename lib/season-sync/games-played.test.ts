@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { MID_SEASON, SEASON, seasonSyncLeague } from './testing/season-sync-league';
+import { fantraxSeasonName } from '@/lib/fantrax/season';
+import { goalieTableServing } from '@/lib/fantrax/testing/fake-fantrax';
+import { LEAGUE_ID, MID_SEASON, SEASON, seasonSyncLeague } from './testing/season-sync-league';
 
 // Career FP/G (GLOSSARY.md) is career FPts ÷ games played over every season with games played. In 2025–26 the
 // test league has v1 at 100 FPts in 10 games played for franchise 1 and v2 at 120 in 10 for franchise 2.
@@ -130,4 +133,35 @@ test('a failing or unexpected goalie table, or a scorer neither table lists, wri
     Object.defineProperty(fantrax, 'goalies', goalies);
     await run(MID_SEASON + 86400_000);
     assert.deepEqual(await seen(), [145, 3], 'the next run catches up: g1 at 63 FPts in 21 games played');
+});
+
+test("a goalie table row without a games played cell fails the run and keeps a scoreless, unrostered goalie's season", async t => {
+    const { league, fantrax, run, read, setPlayers } = await seasonSyncLeague(t);
+    const { getPlayer } = await import('@/lib/data/league');
+    const { getSeasonSyncStatus } = await import('@/lib/admin/data');
+    await league.client.exec(goalieSeason('g1', 110, 10));
+    setPlayers([['g1', 0, 0, null, 12]]);
+    fantrax.players.find(player => player.id === 'g1')!.positions = ['G'];
+    await run(MID_SEASON);
+    const seen = async () => {
+        const g1 = (await read(() => getPlayer('g1')))!;
+        return [g1.playerStats.find(season => season.Year === SEASON), g1.totalFPts, g1.fpg, g1.seasons];
+    };
+    const before = await seen();
+    assert.deepEqual(before.slice(1), [110, 5, 2], 'kept for their games played: 110 FPts in 22 games played');
+    assert.ok(before[0], 'with a 2026–27 player season');
+
+    // Fantrax's goalie table, as the real loader reads it, with g1's row cut short before its games played cell (cell 8)
+    const page = JSON.parse(readFileSync(new URL('../fantrax/fixtures/getPlayerStats-goalie-table.json', import.meta.url), 'utf8'));
+    const data = page.responses[0].data;
+    data.displayedSeasonOrProjection.name = fantraxSeasonName(SEASON);
+    data.statsTable[1].scorer.scorerId = 'g1';
+    data.statsTable[1].cells = data.statsTable[1].cells.slice(0, 8);
+    const missing = await goalieTableServing(page)(LEAGUE_ID, SEASON).then(
+        () => assert.fail('the goalie table should be rejected'), (error: unknown) => error);
+    Object.defineProperty(fantrax, 'goalies', { configurable: true, get: () => { throw missing; } });
+    const failed = await run(MID_SEASON + 3600_000);
+    assert.equal(failed.result.outcome, 'failed');
+    assert.match((await getSeasonSyncStatus(SEASON))!.lastError!, /Missing games played for g1, 2026-27 Reg Season - YTD/);
+    assert.deepEqual(await seen(), before, "g1's player season and career stay");
 });
