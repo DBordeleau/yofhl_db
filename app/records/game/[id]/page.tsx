@@ -11,10 +11,9 @@ import { matchupRecordMetadata } from '@/lib/page-metadata';
 
 export const dynamic = 'force-dynamic';
 
-// A game the record book doesn't hold is a 404, which stays out of search results like the pages that do exist.
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
     const found = await getRecordGame((await params).id);
-    return found ? matchupRecordMetadata(found.game) : { title: 'Matchup record · YOFHL', robots: { index: false, follow: false } };
+    return matchupRecordMetadata(found?.game ?? null);
 }
 
 export default async function RecordGame({ params }: { params: Promise<{ id: string }> }) {

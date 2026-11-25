@@ -122,6 +122,8 @@ Player comparisons use repeated IDs: `/compare/players?player=004cq&player=00454
 
 Share opens a browser-generated 1200×630 PNG on player, franchise, season, and comparison pages. Copy link always remains available; supported browsers also expose native image sharing. Award and game pages offer link sharing. Images are created only after Share opens, use local or CORS-enabled artwork with text fallbacks, and are never uploaded or stored by the app. Social networks cannot discover these temporary PNGs as automatic link-preview images; send the image and link together.
 
+Every public page sets its metadata through one helper (`lib/site-metadata.ts`): the canonical address, Open Graph text and X's large-image card. A page without a preview image of its own unfurls with the default 1200×630 YOFHL card, which `app/opengraph-image.tsx` renders once at build time; Coach's Corner episodes keep their own. Page descriptions come from lasting facts only — seasons, Jagr Cups, champions, owners — so a preview a chat app stored months ago is still true.
+
 The browsing feature requires **$0 in additional hosting services**: no new dependencies, search subscription, schema migration, image service, storage writes, or paid plan. Existing Vercel and Neon free-tier quotas still apply to requests and traffic. Keep accounts on their free plans; do not enable paid overflow to support this feature. See the [implementation and verification record](docs/browsing-and-sharing-plan.md#implementation-record) for measured cache size, checks, and remaining device checks.
 
 ## Deployment

@@ -10,15 +10,12 @@ import { pageMetadata } from './site-metadata';
 /** A season's page: who won its Jagr Cup, and what else the season left behind. */
 export function seasonMetadata(season: Pick<BannerSeason, 'year' | 'team' | 'owner' | 'playoffStatus'>): Metadata {
     const label = seasonLabel(season.year);
-    const cancelled = season.playoffStatus === 'cancelled';
-    const champion = cancelled ? null : season.team;
-    // A season with neither a cancellation nor a champion on record is mid-publication: it claims neither.
+    // A published season has a champion unless its playoffs were cancelled (lib/seasons.ts), so there is no third case.
+    const champion = season.playoffStatus === 'cancelled' ? null : season.team;
     const description = champion
         ? `The ${label} YOFHL season: ${champion}${season.owner ? ` (${season.owner})` : ''} won the Jagr Cup.`
             + ' Final standings, playoff bracket, leaders and draft class.'
-        : cancelled
-            ? `The ${label} YOFHL season, whose playoffs were cancelled. Final standings, leaders and draft class.`
-            : `The ${label} YOFHL season: final standings, playoff bracket, leaders and draft class.`;
+        : `The ${label} YOFHL season, whose playoffs were cancelled. Final standings, leaders and draft class.`;
     return pageMetadata({ path: `/season/${season.year}`, name: `${label} Season`, description });
 }
 
@@ -40,7 +37,7 @@ const possessive = (name: string) => `${name}${/s$/i.test(name) ? "'" : "'s"}`;
  * A franchise's page: how long it has been in the league and what it has won. A season being played is still pending,
  * so it isn't counted until it is published.
  */
-export function franchiseMetadata(id: number, team: {
+export function franchiseMetadata(id: number, franchise: {
     name: string;
     seasons: Pick<FranchiseSeason, 'playoffStatus'>[];
     /** the years it won the Jagr Cup */
@@ -48,14 +45,14 @@ export function franchiseMetadata(id: number, team: {
     foldedAfterSeason: number | null;
 } | null): Metadata {
     // A franchise the archive doesn't hold is a 404: its link points at the franchises page instead.
-    if (!team) return pageMetadata({ path: '/teams/stats', name: 'Franchises', description: FRANCHISES_DESCRIPTION });
-    const played = team.seasons.filter(season => season.playoffStatus !== 'pending').length;
+    if (!franchise) return pageMetadata({ path: '/teams/stats', name: 'Franchises', description: FRANCHISES_DESCRIPTION });
+    const played = franchise.seasons.filter(season => season.playoffStatus !== 'pending').length;
     const history = [
-        `${plural(played, 'season')}${team.foldedAfterSeason === null ? '' : ' before folding'}`,
-        team.championships.length ? plural(team.championships.length, 'Jagr Cup') : null,
+        `${plural(played, 'season')}${franchise.foldedAfterSeason === null ? '' : ' before folding'}`,
+        franchise.championships.length ? plural(franchise.championships.length, 'Jagr Cup') : null,
     ].filter(Boolean).join(' and ');
-    return pageMetadata({ path: `/teams/${id}`, name: team.name,
-        description: `${possessive(team.name)} YOFHL history: ${history}, with every season, roster and record.` });
+    return pageMetadata({ path: `/teams/${id}`, name: franchise.name,
+        description: `${possessive(franchise.name)} YOFHL history: ${history}, with every season, roster and record.` });
 }
 
 /** A leaderboard: whether it ranks careers or single seasons, which is what the two modes differ by. */
@@ -70,15 +67,21 @@ export function leaderboardMetadata(mode: 'all-time' | 'single-season', position
     });
 }
 
+/** the record book's own page, and where a matchup the record book doesn't hold sends a reader instead */
+export const RECORD_BOOK_DESCRIPTION = 'League records, franchise milestones, and career scoring chases.';
+
 /**
  * One regular-season game in the record book: the two franchises and the week, which is what the page is evidence of.
- * The page is not indexed, so this is for the group chat rather than for search.
+ * Neither this page nor its 404 is indexed, so this is for the group chat rather than for search.
  */
-export function matchupRecordMetadata(game: { id: number; awayName: string; homeName: string; year: number; round: number }): Metadata {
+export function matchupRecordMetadata(
+    game: { id: number; awayName: string; homeName: string; year: number; round: number } | null): Metadata {
+    const hidden = { robots: { index: false, follow: false } } as const;
+    if (!game) return pageMetadata({ path: '/records', name: 'Record book', description: RECORD_BOOK_DESCRIPTION, ...hidden });
     return pageMetadata({
         path: `/records/game/${game.id}`,
         name: 'Matchup record',
         description: `${game.awayName} vs ${game.homeName}, ${seasonLabel(game.year)} Week ${game.round}: a YOFHL record matchup.`,
-        robots: { index: false, follow: false },
+        ...hidden,
     });
 }

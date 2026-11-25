@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { franchiseMetadata, FRANCHISES_DESCRIPTION, leaderboardMetadata, matchupRecordMetadata,
-    seasonBallotsMetadata, seasonMetadata } from './page-metadata';
+    RECORD_BOOK_DESCRIPTION, seasonBallotsMetadata, seasonMetadata } from './page-metadata';
 
 // What each public page tells the group chat, Discord, Slack, X and a search engine. Every description is built from
 // lasting facts — seasons, Jagr Cups, champions, owners — because a chat app can hold a preview for months.
@@ -25,11 +25,6 @@ test('a season with no owner on record still names its champion', () => {
     const metadata = seasonMetadata({ year: 2019, team: 'Sens Fan', owner: null, playoffStatus: 'complete' });
     assert.equal(metadata.description,
         'The 2018–19 YOFHL season: Sens Fan won the Jagr Cup. Final standings, playoff bracket, leaders and draft class.');
-});
-
-test('a season with no champion on record claims neither a champion nor a cancellation', () => {
-    const metadata = seasonMetadata({ year: 2024, team: null, owner: null, playoffStatus: 'complete' });
-    assert.equal(metadata.description, 'The 2023–24 YOFHL season: final standings, playoff bracket, leaders and draft class.');
 });
 
 /** a franchise's seasons, of which the one being played is still pending */
@@ -83,6 +78,14 @@ test('a matchup record names both teams and the week it was played', () => {
     assert.deepEqual(metadata.alternates, { canonical: '/records/game/412' });
     assert.equal(metadata.description, 'Dangle Berries vs Sens Fan, 2025–26 Week 7: a YOFHL record matchup.');
     // the record book's evidence pages stay out of search results
+    assert.deepEqual(metadata.robots, { index: false, follow: false });
+});
+
+test("a matchup the record book doesn't hold sends a reader to the record book, still unindexed", () => {
+    const metadata = matchupRecordMetadata(null);
+    assert.equal(metadata.title, 'Record book · YOFHL');
+    assert.deepEqual(metadata.alternates, { canonical: '/records' });
+    assert.equal(metadata.description, RECORD_BOOK_DESCRIPTION);
     assert.deepEqual(metadata.robots, { index: false, follow: false });
 });
 

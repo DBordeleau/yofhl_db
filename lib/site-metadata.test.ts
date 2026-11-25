@@ -25,7 +25,7 @@ test("a page's own Open Graph still carries the default preview image", () => {
 });
 
 test('a page with a preview image of its own is left to it', () => {
-    const metadata = pageMetadata({ path: "/coachs-corner/2027-week-6-recap", name: "Week 6: Recap · Coach's Corner",
+    const metadata = pageMetadata({ path: '/coachs-corner/2027-week-6-recap', name: "Week 6: Recap · Coach's Corner",
         description: 'Don and Ron break down the week in the YOFHL.', type: 'article', image: 'own' });
     assert.equal(metadata.openGraph?.images, undefined);
     assert.equal((metadata.openGraph as { type?: string }).type, 'article');
