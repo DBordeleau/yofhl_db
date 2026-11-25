@@ -3,6 +3,8 @@ import test from 'node:test';
 import { episodeFrom } from './episode';
 import { FLASHBACK_ENTRY_MS, FLASHBACK_EXIT_MS, frameAt, frameSignature } from './timeline';
 import { createTransport } from './transport';
+import entryRewind from '../../public/coachs-corner/audio/flashback-entry.json';
+import exitRewind from '../../public/coachs-corner/audio/flashback-exit.json';
 
 const head = (week: number | null = 6, season: number | null = 2027) =>
     `---\ntitle: Test\n${season === null ? '' : `season: ${season}\n`}${week === null ? '' : `week: ${week}\n`}---\n`;
@@ -337,6 +339,11 @@ RON: Done.`);
     const clicks = episode.audioCues.filter(cue => cue.id === 'monitor').map(cue => cue.t);
     assert.deepEqual(clicks, [first.t0, first.t1]);
     assert.ok(!clicks.includes(second.t0) && !clicks.includes(second.t1));
+});
+
+test('each generated rewind lasts exactly as long as its transition', () => {
+    assert.equal(entryRewind.measurements.durationSeconds * 1000, FLASHBACK_ENTRY_MS);
+    assert.equal(exitRewind.measurements.durationSeconds * 1000, FLASHBACK_EXIT_MS);
 });
 
 test('a script can’t cue the rewinds itself', () => {
