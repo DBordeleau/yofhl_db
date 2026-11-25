@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { AFTER_FINAL, awardVoteLeague, goalie, lockInHours, nhlRecord, SEASON, skater } from './testing/award-vote-league';
+import { nhlSeason } from '@/lib/nhl/memory-nhl';
+import { AFTER_FINAL, awardVoteLeague, goalie, lockInHours, SEASON, skater } from './testing/award-vote-league';
 
 const teemu = <T extends { award: string }>(ballot: T[] | null) => ballot!.find(award => award.award === 'teemu-selanne')!;
 
@@ -16,10 +17,10 @@ test('the Teemu Trophy lists every Calder-eligible rookie with no top-50 cut, sk
         // a rookie who never scored is no candidate
         skater('quiet', 0, { age: 20 }),
     ], [goalie('rookie-g', 120, { age: 23, gamesPlayed: 9, wins: 5, goalsAgainst: 20, saves: 240, shutouts: 1 }), goalie('old-g', 130)]);
-    for (const { id } of rookies) nhl.players[id] = nhlRecord([[20252026, 10]]);
-    nhl.players['rookie-g'] = nhlRecord([[20242025, 3], [20252026, 20]], '2003-01-10');
-    nhl.players.veteran = nhlRecord([[20232024, 82], [20242025, 82], [20252026, 82]]);
-    nhl.players.old = nhlRecord();
+    for (const { id } of rookies) nhl.knows(id, [[2026, 10]]);
+    nhl.knows('rookie-g', [[2025, 3], [2026, 20]], '2003-01-10');
+    nhl.knows('veteran', [[2024, 82], [2025, 82], [2026, 82]]);
+    nhl.knows('old');
 
     assert.deepEqual((await prepareFully()).result.ok, true);
     // only players young enough by Fantrax's age are looked up
@@ -43,8 +44,8 @@ test('the rookie review lists the computed rookies and, separately, the young pl
         skater('veteran', 170, { age: 24 }),
         skater('old', 160, { age: 33 }),
     ], [goalie('young-g', 150, { age: 21 })]);
-    nhl.players.rookie = nhlRecord([[20252026, 20]], '2006-06-13', 8484801);
-    nhl.players.veteran = nhlRecord([[20242025, 30]], '2002-01-01', 8482000);
+    nhl.knows('rookie', [[2026, 20]], '2006-06-13', 8484801);
+    nhl.knows('veteran', [[2025, 30]], '2002-01-01', 8482000);
 
     // nothing to review before a prepare finishes
     assert.equal(await act(() => vote.readRookieReview({ seasonYear: SEASON })), null);
@@ -63,12 +64,28 @@ test('the rookie review lists the computed rookies and, separately, the young pl
     });
 });
 
+test('a young player whose NHL record has no birth date, no season history or a season of missing games is left to the admin as unmatched', async t => {
+    const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
+    const ids = ['no-birth', 'no-history', 'no-games', 'rookie'];
+    setRegularSeason(ids.map((id, index) => skater(id, 190 - index * 10, { age: 20 })));
+    for (const id of ids) nhl.knows(id, [[2025, 3]]);
+    const record = (id: string) => nhl.state.players[nhl.state.verified[id]];
+    record('no-birth').birthDate = null;
+    record('no-history').seasons = null;
+    record('no-games').seasons![2026] = nhlSeason();
+    await prepareFully();
+    const review = (await act(() => vote.readRookieReview({ seasonYear: SEASON })))!;
+    assert.deepEqual(review.rookies.map(player => player.playerId), ['rookie']);
+    assert.deepEqual(review.unmatched.map(player => [player.playerId, player.nhlId]).sort(), [['no-birth', null], ['no-games', null], ['no-history', null]]);
+    assert.deepEqual(review.failed, []);
+});
+
 test("the admin's additions and removals change the Teemu Trophy at once and survive preparing again", async t => {
     const { act, vote, setRegularSeason, prepareFully, nhl, clock } = await awardVoteLeague(t);
     setRegularSeason([skater('rookie', 190, { age: 20 }), skater('unknown', 180, { age: 22 }), skater('veteran', 170, { age: 24 }), skater('other', 160, { age: 21 })]);
-    nhl.players.rookie = nhlRecord();
-    nhl.players.other = nhlRecord();
-    nhl.players.veteran = nhlRecord([[20242025, 30]]);
+    nhl.knows('rookie');
+    nhl.knows('other');
+    nhl.knows('veteran', [[2025, 30]]);
     await prepareFully();
     const candidates = async () => teemu((await act(() => vote.readPreview({ seasonYear: SEASON }))).ballot).candidates.map(candidate => candidate.playerId);
     assert.deepEqual(await candidates(), ['rookie', 'other']);
@@ -102,7 +119,7 @@ test('the rookie list can only be changed while the award vote is prepared, and 
     assert.deepEqual(await adjust('unknown'), { ok: false, reason: 'not-prepared' });
 
     setRegularSeason([skater('rookie', 190, { age: 20 }), skater('unknown', 180, { age: 22 })]);
-    nhl.players.rookie = nhlRecord();
+    nhl.knows('rookie');
     await prepareFully();
     assert.deepEqual(await adjust('nobody'), { ok: false, reason: 'unknown-player' });
 
@@ -119,7 +136,7 @@ test("a player whose NHL lookup fails every time is tried three times, then left
     const logged = t.mock.method(console, 'error', () => {});
     const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
     setRegularSeason(Array.from({ length: 12 }, (_, index) => skater(`r${index}`, 200 - index, { age: 21 })));
-    for (let index = 0; index < 12; index++) nhl.players[`r${index}`] = nhlRecord();
+    for (let index = 0; index < 12; index++) nhl.knows(`r${index}`);
     // in the first batch of lookups, and failing every time
     nhl.failing.add('r3');
     assert.equal((await prepareFully()).result.ok, true);
@@ -144,7 +161,7 @@ test('a failed NHL lookup is tried again on a later prepare call, and matches on
     t.mock.method(console, 'error', () => {});
     const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
     setRegularSeason(Array.from({ length: 5 }, (_, index) => skater(`r${index}`, 200 - index, { age: 21 })));
-    for (let index = 0; index < 5; index++) nhl.players[`r${index}`] = nhlRecord();
+    for (let index = 0; index < 5; index++) nhl.knows(`r${index}`);
     nhl.failing.add('r1');
     // call by call, up to the one that first looks the young players up
     let result;
@@ -168,9 +185,9 @@ test("retrying failed lookups looks them up again and rebuilds the candidates, k
     t.mock.method(console, 'error', () => {});
     const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
     setRegularSeason([skater('rookie', 190, { age: 20 }), skater('flaky', 180, { age: 21 }), skater('down', 175, { age: 21 }), skater('unknown', 170, { age: 22 })]);
-    nhl.players.rookie = nhlRecord();
-    nhl.players.flaky = nhlRecord();
-    nhl.players.down = nhlRecord();
+    nhl.knows('rookie');
+    nhl.knows('flaky');
+    nhl.knows('down');
     nhl.failing.add('flaky');
     nhl.failing.add('down');
     const retry = () => act(() => vote.retryFailedLookups({ seasonYear: SEASON }));
@@ -207,7 +224,7 @@ test("retrying failed lookups looks them up again and rebuilds the candidates, k
 test('retrying failed lookups is refused when no lookup failed', async t => {
     const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
     setRegularSeason([skater('rookie', 190, { age: 20 })]);
-    nhl.players.rookie = nhlRecord();
+    nhl.knows('rookie');
     await prepareFully();
     assert.deepEqual(await act(() => vote.retryFailedLookups({ seasonYear: SEASON })), { ok: false, reason: 'nothing-to-retry' });
 });
@@ -215,8 +232,8 @@ test('retrying failed lookups is refused when no lookup failed', async t => {
 test('rookie progress stored before failed lookups were kept apart still reads, a null being no NHL match', async t => {
     const { act, vote, setRegularSeason, prepareFully, nhl, league } = await awardVoteLeague(t);
     setRegularSeason([skater('rookie', 190, { age: 20 }), skater('unknown', 180, { age: 22 })]);
-    nhl.players.rookie = nhlRecord();
-    nhl.players.unknown = nhlRecord();
+    nhl.knows('rookie');
+    nhl.knows('unknown');
     await prepareFully();
     // as an earlier prepare stored it: a matched rookie, and null for a player with no match or a failed lookup
     await league.client.exec(`update league.award_votes
@@ -233,9 +250,9 @@ test('rookie progress stored before failed lookups were kept apart still reads, 
 test('only young players with at least 100 regular-season FPts are looked up, and an added rookie below that is no candidate', async t => {
     const { act, vote, setRegularSeason, prepareFully, nhl } = await awardVoteLeague(t);
     setRegularSeason([skater('rookie', 100, { age: 20 }), skater('short', 99.75, { age: 20 }), skater('veteran', 300, { age: 30 })], [goalie('short-g', 50, { age: 22 })]);
-    nhl.players.rookie = nhlRecord();
-    nhl.players.short = nhlRecord();
-    nhl.players['short-g'] = nhlRecord();
+    nhl.knows('rookie');
+    nhl.knows('short');
+    nhl.knows('short-g');
     await prepareFully();
     assert.deepEqual(nhl.lookups, ['rookie']);
     const review = (await act(() => vote.readRookieReview({ seasonYear: SEASON })))!;

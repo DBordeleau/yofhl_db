@@ -6,8 +6,8 @@
 //  - final rosters, before the Danny Briere Award's stat sets: both finalists' daily rosters over the Final
 //  - move values, one per regular-season day once the dates are known: that day's all-positions fantasy points
 //    (award_vote_daily_points), a page of Fantrax's table at a time, for the players in the season's transactions
-//  - rookies: the NHL's record of each player at the candidate floor young enough by Fantrax's age to be a rookie,
-//    a few at a time with a pause between, and whether the Calder rule (calder.ts) admits them; a player whose
+//  - rookies: the NHL record of each player at the candidate floor young enough by Fantrax's age to be a rookie,
+//    from the NHL module (lib/nhl/), a few at a time with a pause between, and whether the Calder rule (calder.ts) admits them; a player whose
 //    lookup fails is recorded as failed and tried again on a later call, up to NHL_LOOKUP_ATTEMPTS in all
 //  - candidates: each award's eligible players (voted-awards.ts), each with its credited team season, GM of the
 //    Year's team seasons with their summaries and transaction summaries (team-summary.ts, move-value.ts), and the
@@ -16,7 +16,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { calderEligible, mightBeCalderEligible } from './calder';
 import { lookupFailed, type DateRange, type GoalieLine, type PrepareProgress, type RookieAdjustments, type RookieLookup, type SkaterLine, type StatLine, type StatSetName } from './model';
-import type { AwardVotePorts, FantraxDayRosters, NhlLookupPlayer, RangedGoalie, RangedPage, RangedPlayer, RangedSkater } from './ports';
+import type { AwardVotePorts, FantraxDayRosters, RangedGoalie, RangedPage, RangedPlayer, RangedSkater } from './ports';
 import { seasonDates, type SeasonDates } from './season-dates';
 import { readTransactionSummaries, writeTeamSeasons } from './team-summary';
 import { CANDIDATE_FPTS_FLOOR, PLAYER_AWARD_RULES, ROOKIE_STAT_SET, STAT_SETS, type SnapshotPlayer } from './voted-awards';
@@ -217,7 +217,7 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
             const looked = progress.rookies ?? {};
             const today = new Date(clock.now()).toISOString().slice(0, 10);
             // only players at the candidate floor can be Teemu Trophy candidates
-            const young = (await db.rows<NhlLookupPlayer & { age: number | null }>(sql`
+            const young = (await db.rows<{ id: string; name: string; positions: string[]; nhlTeam: string | null; age: number | null }>(sql`
                 select p.player_id as id, p.name, p.positions, p.nhl_team as "nhlTeam", p.age
                 from league.award_vote_players p
                 join league.award_vote_stats s on s.season_year = p.season_year and s.player_id = p.player_id and s.stat_set = ${ROOKIE_STAT_SET}
@@ -237,8 +237,11 @@ export function prepareSteps({ db, fantrax, nhl, clock }: AwardVotePorts, { seas
             const found = await Promise.all(batch.map(async ({ id, name, positions, nhlTeam }): Promise<[string, RookieLookup]> => {
                 lookedUpThisCall.add(id);
                 try {
-                    const record = await nhl.lookup({ id, name, positions, nhlTeam });
-                    return [id, record && { nhlId: record.nhlId, eligible: calderEligible(record, seasonYear) }];
+                    const nhlId = await nhl.identify({ name, playerId: id, positions, nhlTeam });
+                    // no NHL identity, or a record the Calder rule can't judge, is no NHL match: the admin decides
+                    if (nhlId === null) return [id, null];
+                    const eligible = calderEligible(await nhl.player(nhlId), seasonYear);
+                    return [id, eligible === null ? null : { nhlId, eligible }];
                 } catch (error) {
                     // recorded as failed, so one player can't stop the prepare: they are tried again on a later
                     // call, and after the last attempt the admin's rookie review lists them to decide on by hand

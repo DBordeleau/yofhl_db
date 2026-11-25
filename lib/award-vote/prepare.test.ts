@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rangeKey } from './memory-fantrax';
-import { AFTER_FINAL, awardVoteLeague, FINAL, goalie, lockInHours, nhlRecord, PLAYOFF_ROUNDS, REGULAR_SEASON, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
+import { AFTER_FINAL, awardVoteLeague, FINAL, goalie, lockInHours, PLAYOFF_ROUNDS, REGULAR_SEASON, ROSTER_PERIODS, SEASON, skater } from './testing/award-vote-league';
 
 test('preparing refuses a season before the first award vote, other than the rehearsal', async t => {
     const { act, vote, fantrax } = await awardVoteLeague(t);
@@ -95,8 +95,8 @@ test('the regular-season awards need at least 100 regular-season FPts, and the D
         skater('rookie-in', 100, { age: 20 }),
         skater('rookie-out', 99.75, { age: 20 }),
     ], [goalie('g-in', 100), goalie('g-out', 99.75)]);
-    nhl.players['rookie-in'] = nhlRecord();
-    nhl.players['rookie-out'] = nhlRecord();
+    nhl.knows('rookie-in');
+    nhl.knows('rookie-out');
     // short of the floor, but on the champion's roster through the Final
     fantrax.skaters[rangeKey(PLAYOFF_ROUNDS)] = [skater('out', 30)];
     fantrax.skaters[rangeKey(FINAL)] = [skater('out', 10)];
