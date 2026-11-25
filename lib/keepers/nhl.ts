@@ -1,53 +1,68 @@
+// Keeper enrichment: each rostered player's age and previous NHL season from the NHL module (lib/nhl/), and their
+// previous fantasy season from the archive. NHL answers are kept for a day across owners and visits; an unmatched
+// player or an NHL failure is shown as unavailable and never stops the roster loading or keeper choices.
 import { unstable_cache } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { cached, rows } from '@/lib/data/db';
-import { KEEPER_SEASON, type KeeperPlayer } from './model';
-import { matchNhlPlayer, playerAge, profileDetails, type NhlProfile, type NhlSearchPlayer, type PlayerDetails } from './player-details';
+import { splitPositions } from '@/lib/league';
+import { createNhl } from '@/lib/nhl/create-nhl';
+import { ageOn, type Nhl, type NhlIdentity, type NhlPlayer } from '@/lib/nhl/model';
+import { KEEPER_SEASON, type KeeperPlayer, type PlayerDetails } from './model';
 
-async function request<T>(url: string): Promise<T> {
-    const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(6000) });
-    if (!response.ok) throw new Error('NHL player data unavailable');
-    return response.json();
-}
-const identifyPlayer = unstable_cache(async (name: string, position: string, team: string) => {
-    const url = new URL('https://search.d3.nhle.com/api/v1/search/player');
-    url.search = new URLSearchParams({ culture: 'en-us', limit: '100', q: name }).toString();
-    const candidates = await request<NhlSearchPlayer[]>(url.toString());
-    if (!Array.isArray(candidates)) throw new Error('NHL search unavailable');
-    return matchNhlPlayer(name, position, team, candidates)?.playerId ?? null;
-}, ['keeper-nhl-identities-v1'], { revalidate: 86400 });
+const PREVIOUS_SEASON = KEEPER_SEASON - 1;
+const DAY = 86400;
+/** how many players are looked up at once */
+const BATCH = 6;
 
-async function loadProfile(id: string) {
-    if (!/^\d+$/.test(id)) throw new Error('Invalid NHL identity');
-    const profile = await request<NhlProfile>(`https://api-web.nhle.com/v1/player/${id}/landing`);
-    if (profile.playerId !== Number(id) || !profile.firstName?.default || !profile.lastName?.default || !Array.isArray(profile.seasonTotals)) throw new Error('Incomplete NHL profile');
-    return profileDetails(profile, KEEPER_SEASON - 1, new Date().toISOString());
+type NhlDetails = Pick<PlayerDetails, 'nhlId' | 'birthDate' | 'previousSeason' | 'stats' | 'checkedAt'>;
+
+/** the previous season's line as the keeper page shows it; no line in a known season history is no NHL games */
+function previousSeasonDetails(player: NhlPlayer, checkedAt: string): NhlDetails {
+    const line = player.seasons?.[PREVIOUS_SEASON];
+    const stats = !player.seasons ? null : !line
+        ? { games: 0, goals: null, assists: null, points: null, wins: null, gaa: null, savePct: null }
+        : { games: line.games, goals: line.goals, assists: line.assists, points: line.points, wins: line.wins,
+            gaa: line.goalsAgainstAverage, savePct: line.savePercentage };
+    return { nhlId: player.nhlId, birthDate: player.birthDate, previousSeason: PREVIOUS_SEASON, stats, checkedAt };
 }
-const dailyProfile = unstable_cache(loadProfile, ['keeper-nhl-profiles-v1', String(KEEPER_SEASON)], { revalidate: 86400 });
+
 const previousFantasyStats = cached(() => rows<{ id: string; points: number; perGame: number }>(sql`
     select player_id as id, fpts::float8 as points, fpg::float8 as "perGame"
-    from league.player_seasons where season_year = ${KEEPER_SEASON - 1}`), 'keeper-previous-fantasy-stats-2026');
+    from league.player_seasons where season_year = ${PREVIOUS_SEASON}`), `keeper-previous-fantasy-stats-${PREVIOUS_SEASON}`);
 
-export async function enrichKeeperRoster(roster: KeeperPlayer[]): Promise<KeeperPlayer[]> {
-    const fantasy = new Map((await previousFantasyStats()).map(row => [row.id, row]));
-    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-    const enriched: KeeperPlayer[] = [];
-    // Six requests at a time; cached across owners and visits.
-    for (let i = 0; i < roster.length; i += 6) {
-        enriched.push(...await Promise.all(roster.slice(i, i + 6).map(async player => {
-            let nhl: Awaited<ReturnType<typeof loadProfile>> | null = null;
-            try {
-                const id = await identifyPlayer(player.name, player.position, player.nhlTeam);
-                if (id) nhl = await dailyProfile(id);
-            } catch { /* Missing data is shown as unavailable; keeper choices still work. */ }
-            const archived = fantasy.get(player.id);
-            const details: PlayerDetails = {
-                nhlId: null, birthDate: null, previousSeason: KEEPER_SEASON - 1, stats: null, checkedAt: null,
-                ...nhl, age: playerAge(nhl?.birthDate ?? null, today),
-                fantasyPoints: archived?.points ?? null, fantasyPerGame: archived?.perGame ?? null,
-            };
-            return { ...player, details };
-        })));
-    }
-    return enriched;
+/** `YYYY-MM-DD` in Toronto */
+const torontoDate = (date: Date) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+
+/** keeper enrichment over this NHL, its answers kept for a day */
+export function keeperEnrichment(nhl: Nhl, now: () => Date = () => new Date()) {
+    const identify = unstable_cache((name: string, playerId: string, positions: string[], nhlTeam: string) =>
+        nhl.identify({ name, playerId, positions, nhlTeam }), ['keeper-nhl-identities-v2'], { revalidate: DAY });
+    const details = unstable_cache(async (nhlId: NhlIdentity) => previousSeasonDetails(await nhl.player(nhlId), now().toISOString()),
+        ['keeper-nhl-profiles-v2', String(KEEPER_SEASON)], { revalidate: DAY });
+
+    return async function enrich(roster: KeeperPlayer[]): Promise<KeeperPlayer[]> {
+        const fantasy = new Map((await previousFantasyStats()).map(row => [row.id, row]));
+        const today = torontoDate(now());
+        const enriched: KeeperPlayer[] = [];
+        for (let i = 0; i < roster.length; i += BATCH) {
+            enriched.push(...await Promise.all(roster.slice(i, i + BATCH).map(async player => {
+                let found: NhlDetails | null = null;
+                try {
+                    const nhlId = await identify(player.name, player.id, splitPositions(player.position), player.nhlTeam);
+                    if (nhlId !== null) found = await details(nhlId);
+                } catch { /* Missing data is shown as unavailable; keeper choices still work. */ }
+                const archived = fantasy.get(player.id);
+                const shown: PlayerDetails = {
+                    nhlId: null, birthDate: null, previousSeason: PREVIOUS_SEASON, stats: null, checkedAt: null,
+                    ...found, age: ageOn(found?.birthDate ?? null, today),
+                    fantasyPoints: archived?.points ?? null, fantasyPerGame: archived?.perGame ?? null,
+                };
+                return { ...player, details: shown };
+            })));
+        }
+        return enriched;
+    };
 }
+
+export const enrichKeeperRoster = keeperEnrichment(createNhl());
