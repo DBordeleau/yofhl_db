@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import ShowPage from '@/components/coachs-corner/show-page';
 import { episodeFrom } from '@/lib/coachs-corner/episode';
+import { SHOW_DESCRIPTION } from '@/lib/coachs-corner/episode-metadata';
 import { getPublishedEpisode, getPublishedEpisodes, getStudioBanners, getEpisodePlayers, getEpisodeTeams } from '@/lib/data/coachs-corner';
 
 export const metadata: Metadata = {
     title: "Coach's Corner · YOFHL",
-    description: 'Don and Ron break down the week in the YOFHL.',
+    description: SHOW_DESCRIPTION,
 };
 
 // the latest episode
