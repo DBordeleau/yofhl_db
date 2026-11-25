@@ -1,5 +1,5 @@
 import { actionInWardrobeOf, CAST, CHARACTERS, DELIVERIES, gestureAction, gestureAfter, posesFor, type CharacterId, type Lapel, type Pose, type Delivery, type Motion, type Reaction, type Shot, type Sound } from './cast';
-import type { Cue, FlashbackSource, Graphic, Meta, Script, Span } from './script';
+import type { Cue, Graphic, Meta, Script, Span } from './script';
 import { spokenForm } from './spoken-numbers';
 import { INTRO_MS, phaseAt, type Phase } from './transport';
 
@@ -69,7 +69,6 @@ export interface Line {
 export interface FlashbackSpan {
     /** the script line of its [flashback: …] header */
     line: number;
-    source: FlashbackSource | null;
     /** how far back, as the tag reads it after "FLASHBACK ·": "2 WEEKS AGO", "LAST SEASON"; empty when it can't be counted */
     tag: string;
     /** the entry transition starts */
@@ -200,7 +199,7 @@ export function compile(script: Script): Timeline {
             clears.push(t);
             if (entering) {
                 flashbacks.push({
-                    line: block.line, source: block.source, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0,
+                    line: block.line, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0,
                     ...(block.lapel !== undefined ? { lapel: block.lapel } : {}),
                 });
                 before = { monitor: monitor[monitor.length - 1], shot: shots[shots.length - 1].value, rest: { ...rest } };
