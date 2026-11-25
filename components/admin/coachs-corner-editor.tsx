@@ -242,8 +242,9 @@ export default function ScriptEditor({ episode, teams, banners = [] }: { episode
                             <p className="text-ink-soft">cam: {SHOTS.join(', ')}</p>
                             <p className="text-ink-soft">sfx: {SOUNDS.join(', ')}</p>
                             {FX_REFERENCE.map(fx => (
-                                <p key={fx.effect} className="text-ink-soft"><code className="font-mono text-[12px] text-ink">[{fx.example}]</code> lasts {fx.length} unless you add a length like 2s</p>
+                                <p key={fx.effect} className="text-ink-soft"><code className="font-mono text-[12px] text-ink">[{fx.example}]</code> {fx.length}</p>
                             ))}
+                            <p className="text-ink-soft">Add a length to change one: <code className="font-mono text-[12px] text-ink">[fx: don happy 2s]</code></p>
                         </div>
                         <div>
                             <p className="mb-1 font-bold">Monitor graphics</p>
