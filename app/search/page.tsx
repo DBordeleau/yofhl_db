@@ -2,8 +2,10 @@ import { Suspense } from 'react';
 import SearchResults from '@/components/search/search-results';
 import { searchPublicDirectory } from '@/lib/data/search';
 import { parseSearch } from '@/lib/search/model';
+import { pageMetadata } from '@/lib/site-metadata';
 
-export const metadata = { title: 'Search · YOFHL', robots: { index: false, follow: true } };
+export const metadata = pageMetadata({ path: '/search', name: 'Search',
+    description: 'Search every YOFHL player, team and season.', robots: { index: false, follow: true } });
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
     const raw = await searchParams;

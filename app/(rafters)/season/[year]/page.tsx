@@ -21,10 +21,13 @@ import ExploreNext from '@/components/explore-next';
 import ShareButton from '@/components/share/share-button';
 import { seasonShareCard } from '@/lib/share/model';
 import { playerHref } from '@/lib/player-url';
+import { seasonMetadata } from '@/lib/page-metadata';
 
+// A season that isn't published has no page of its own: its link falls back to what the site is (app/layout.tsx).
 export async function generateMetadata({ params }: { params: Promise<{ year: string }> }) {
     const { year } = await params;
-    return { title: `${seasonLabel(Number(year))} Season · YOFHL` };
+    const season = (await getSeasonArchive()).published.find(published => published.year === Number(year));
+    return season ? seasonMetadata(season) : {};
 }
 
 // every published season is built ahead of time

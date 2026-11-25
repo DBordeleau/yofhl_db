@@ -3,10 +3,11 @@ import Leaderboard from '@/components/leaderboard';
 import { clampPage, MAX_LEADERBOARD_PAGE } from '@/lib/data/bounds';
 import { getAllTimeLeaderboard, getSeasonArchive, getSingleSeasonLeaderboard } from '@/lib/data/league';
 import { LEADERBOARD_MODES as MODES, LEADERBOARD_POSITIONS as POSITIONS, seasonLabel } from '@/lib/league';
+import { leaderboardMetadata } from '@/lib/page-metadata';
 
-export async function generateMetadata({ params }: { params: Promise<{ mode: string }> }) {
-    const { mode } = await params;
-    return { title: `${mode === 'single-season' ? 'Single-season' : 'All-time'} leaderboard · YOFHL` };
+export async function generateMetadata({ params }: { params: Promise<{ mode: string; position: string }> }) {
+    const { mode, position } = await params;
+    return leaderboardMetadata(mode === 'single-season' ? 'single-season' : 'all-time', position);
 }
 
 // fantasy point leaderboard at /stats/[mode]/[position]?page=&q=
