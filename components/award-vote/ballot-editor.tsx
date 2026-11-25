@@ -116,7 +116,7 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
     };
 
     return <div>
-        <h1 className="text-2xl font-extrabold">{view.team ? `${view.team.name} ballot` : 'Award vote ballot'}</h1>
+        <h1 className="text-2xl font-extrabold">{view.team.name} ballot</h1>
         <p className="mt-2 text-sm">
             <span className="font-bold">{view.locked ? 'Ballot lock passed ' : 'Ballot lock: '}</span>{eastern(view.ballotLock)}
         </p>
@@ -124,7 +124,7 @@ export default function BallotEditor({ view, saveAction, submitAction }: { view:
             {submittedAt ? `Submitted ${eastern(submittedAt)}.${changed ? ' You have changes that are not submitted.' : ''}` : 'Not submitted yet.'}
             {editable && ' You can change it until the ballot lock.'}
         </p>
-        {!view.ballot && <p className="mt-3 text-sm"><Link href="/owner" className="font-bold text-rink-blue hover:underline">Claim your team</Link> to cast a ballot.</p>}
+        {!view.ballot && <p className="mt-3 text-sm text-ink-soft">{view.team.name} did not take part in this season&apos;s award vote, so this ballot is read-only.</p>}
 
         <div role="tablist" aria-label="Voted awards" className="mt-5 flex flex-wrap gap-2">
             {tabs.map(item => {

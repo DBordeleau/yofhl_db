@@ -13,6 +13,7 @@ import PlayerTrophyShelf, { shelfTrophies } from '@/components/player-trophy-she
 import styles from '@/components/player-page.module.css';
 import TransactionHistory from '@/components/transaction-history';
 import { isPublished } from '@/lib/seasons';
+import { safeDecodeParam } from '@/lib/data/bounds';
 import { getSeasonArchive, getPlayer, getTopPlayerIds } from '@/lib/data/league';
 import { playerHref } from '@/lib/player-url';
 import { getHistory, getHistorySeasons } from '@/lib/data/history';
@@ -30,7 +31,8 @@ const JOHNNY_GAUDREAU_ID = '02b81';
 const JOHNNY_GAUDREAU_HISTORICAL_RANK_NOTE = '#37 on August 29, 2024';
 
 export async function generateMetadata({ params }: { params: Promise<{ ID: string }> }) {
-    const player = await getPlayer(decodeURIComponent((await params).ID));
+    const playerId = safeDecodeParam((await params).ID);
+    const player = playerId ? await getPlayer(playerId) : null;
     if (player?.id === JOHNNY_GAUDREAU_ID) {
         return {
             title: 'Remembering Johnny Gaudreau · YOFHL',
@@ -42,7 +44,8 @@ export async function generateMetadata({ params }: { params: Promise<{ ID: strin
 
 // player stage and trophy shelf, then season-by-season stats, the points chart and transactions at /player/[ID]
 export default async function PlayerPage({ params }: { params: Promise<{ ID: string }> }) {
-    const player = await getPlayer(decodeURIComponent((await params).ID));
+    const playerId = safeDecodeParam((await params).ID);
+    const player = playerId ? await getPlayer(playerId) : null;
     if (!player) notFound();
     const honors = await playerHonors(player.id);
     const isMemorial = player.id === JOHNNY_GAUDREAU_ID;

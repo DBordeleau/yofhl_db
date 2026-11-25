@@ -11,6 +11,7 @@ import TeamBadge from '@/components/team-badge';
 import TeamBranding from '@/components/team-branding/team-branding';
 import { JagrCupIcon } from '@/components/trophy-icons';
 import { awardHref } from '@/lib/awards';
+import { parsePositiveInt4 } from '@/lib/data/bounds';
 import { getFranchise, getFranchiseCards } from '@/lib/data/league';
 import { getFranchiseDraft, getHistory, getHistorySeasons } from '@/lib/data/history';
 import { franchiseHonors } from '@/lib/data/award-archive';
@@ -31,9 +32,9 @@ export async function generateStaticParams() {
 }
 
 export default async function TeamPage({ params }: { params: Promise<{ ID: string }> }) {
-    const id = Number((await params).ID);
-    const team = Number.isInteger(id) ? await getFranchise(id) : null;
-    if (!team) notFound();
+    const id = parsePositiveInt4((await params).ID);
+    const team = id === null ? null : await getFranchise(id);
+    if (!team || id === null) notFound();
     const scope = { franchiseId: id };
     const [honors, draft, transactions, historySeasons, archive] = await Promise.all([
         franchiseHonors(id), getFranchiseDraft(id), getHistory(scope, 'trade'), getHistorySeasons(scope), getSeasonArchive(),

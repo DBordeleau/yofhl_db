@@ -8,6 +8,7 @@ import { readBallotStatus, type BallotStatus } from './ballot-status';
 import type { BallotRankings, PlayerCandidate } from './model';
 import { isoTime } from './iso-time';
 import type { AwardVotePorts } from './ports';
+import { votingFranchise } from './voting-franchises';
 
 export interface ReadOwnerBallotInput {
     /** the season, or the latest season with voting open */
@@ -25,6 +26,8 @@ export interface OwnBallot {
 
 export type OwnerBallotView =
     | { status: 'signed-out' }
+    /** signed in with no active franchise */
+    | { status: 'no-team' }
     /** no award vote is open (for the season asked about) */
     | { status: 'no-vote' }
     | {
@@ -39,9 +42,9 @@ export type OwnerBallotView =
         lists: PlayerCandidate[][];
         /** GM of the Year, ranked last: every franchise taking part but the owner's own; null with no candidate */
         gmOfTheYear: OwnerTeamAward | null;
-        /** the active franchise the owner manages, or null for none */
-        team: { franchiseId: number; name: string; abbreviation: string; logo: string | null } | null;
-        /** the franchise's ballot, or null without a franchise */
+        /** the active franchise the owner manages */
+        team: { franchiseId: number; name: string; abbreviation: string; logo: string | null };
+        /** the franchise's ballot, or null when the franchise did not take part in the season's vote */
         ballot: OwnBallot | null;
         ballotStatus: BallotStatus[];
     };
@@ -50,6 +53,8 @@ export function createReadOwnerBallot({ db, ownerSession }: AwardVotePorts) {
     return async function readOwnerBallot({ seasonYear }: ReadOwnerBallotInput): Promise<OwnerBallotView> {
         const signedIn = await ownerSession.currentOwnerTeam();
         if (!signedIn) return { status: 'signed-out' };
+        const { team } = signedIn;
+        if (!team) return { status: 'no-team' };
         const [vote] = await db.rows<{ seasonYear: number; ballotLock: string; locked: boolean }>(sql`
             select season_year as "seasonYear", ${isoTime(sql`ballot_lock`)} as "ballotLock",
                    clock_timestamp() >= ballot_lock as locked
@@ -58,8 +63,9 @@ export function createReadOwnerBallot({ db, ownerSession }: AwardVotePorts) {
             order by season_year desc limit 1`);
         if (!vote) return { status: 'no-vote' };
 
-        const { team } = signedIn;
-        const [own] = team ? await db.rows<OwnBallot>(sql`
+        const [{ eligible }] = await db.rows<{ eligible: boolean }>(sql`
+            select ${votingFranchise(sql`${team.id}::int`, vote.seasonYear)} as eligible`);
+        const [own] = eligible ? await db.rows<OwnBallot>(sql`
             select draft, submitted, ${isoTime(sql`submitted_at`)} as "submittedAt"
             from league.award_vote_ballots where season_year = ${vote.seasonYear} and franchise_id = ${team.id}`) : [];
         return {
@@ -68,13 +74,13 @@ export function createReadOwnerBallot({ db, ownerSession }: AwardVotePorts) {
             ballotLock: vote.ballotLock,
             locked: vote.locked,
             ...shareCandidateLists(await readBallotAwards(db, vote.seasonYear)),
-            gmOfTheYear: ownerTeamAward(await readTeamBallotAward(db, vote.seasonYear), team?.id ?? null),
-            team: team && { franchiseId: team.id, name: team.name, abbreviation: team.abbreviation, logo: team.logo },
-            ballot: team && {
+            gmOfTheYear: ownerTeamAward(await readTeamBallotAward(db, vote.seasonYear), team.id),
+            team: { franchiseId: team.id, name: team.name, abbreviation: team.abbreviation, logo: team.logo },
+            ballot: eligible ? {
                 draft: own?.draft ?? {},
                 submitted: own?.submitted ?? null,
                 submittedAt: own?.submittedAt ?? null,
-            },
+            } : null,
             ballotStatus: await readBallotStatus(db, vote.seasonYear),
         };
     };

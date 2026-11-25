@@ -19,6 +19,13 @@ export default async function BallotPage() {
                 <h1 className="text-2xl font-extrabold">No award vote is open</h1>
                 <p className="mt-3 text-sm text-ink-soft">The ballot opens here once the league owner opens voting after the Final.</p>
             </section>
-            : <BallotEditor view={view} saveAction={saveBallotDraft} submitAction={submitBallot} />}
+            : view.status === 'no-team'
+                ? <section className="rounded-2xl border border-line bg-white p-8">
+                    <h1 className="text-2xl font-extrabold">No active franchise</h1>
+                    <p className="mt-3 text-sm text-ink-soft">
+                        This account does not manage an active team. <Link href="/owner" className="font-bold text-rink-blue hover:underline">Claim your team</Link> to cast a ballot.
+                    </p>
+                </section>
+                : <BallotEditor view={view} saveAction={saveBallotDraft} submitAction={submitBallot} />}
     </main>;
 }
