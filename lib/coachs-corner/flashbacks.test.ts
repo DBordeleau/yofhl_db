@@ -219,6 +219,22 @@ RON: Back to now.`);
     assert.ok(!tl.monitor.some(cut => cut.value.type === 'matchup'));
 });
 
+test('players cited only by graphics inside a flashback aren’t this episode’s players', () => {
+    const episode = episodeFrom(`${head()}>> player "Tom Wilson" Lali hearts "This week"
+DON: This week.
+
+[flashback: week 4]
+>> player "Nico Hischier" Lali hearts "Back then"
+RON: Who's he going to get in a trade?
+>> player "Tom Wilson" Lali hearts "Back then"
+DON: He's sitting right there.
+[end flashback]
+
+RON: Back to now.`);
+    assert.deepEqual(episode.diagnostics, []);
+    assert.deepEqual(episode.playerRefs, [{ name: 'Tom Wilson' }]);
+});
+
 test('after [end flashback] both hosts’ gestures, Don’s wardrobe, the lapel and the shot are what they were before it', () => {
     const episode = episodeFrom(`---\ntitle: Test\nseason: 2027\nweek: 6\nlapel: poppy\n---\n[don: alternate-4-rest] [ron: down] [cam: don]
 DON: This week.

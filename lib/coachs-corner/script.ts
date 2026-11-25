@@ -119,6 +119,9 @@ export interface Script {
     teamRefs: TeamRef[];
 }
 
+/** whether `script.events[index]` sits inside a flashback, so it's another week's material */
+export const replayed = (script: Script, index: number) => script.flashbacks.some(block => block.from <= index && index < block.to);
+
 export const DEFAULT_PACE = 198;
 const MIN_WPM = 40;
 const MAX_WPM = 500;
@@ -820,10 +823,11 @@ export const graphicPlayers = (graphic: Graphic): PlayerRef[] => {
 /** the same player cited twice: names compare loosely, ids exactly */
 export const refKey = (ref: PlayerRef) => `${normalizePlayerName(ref.name).toLowerCase()}#${ref.id ?? ''}`;
 
-/** players named by graphics, first citation first, for looking up headshots and stats */
+/** players named by graphics, first citation first, for looking up headshots and stats; a flashback's graphics never show, so they cite no one */
 export const playerRefs = (script: Script): PlayerRef[] => {
     const refs = new Map<string, PlayerRef>();
-    for (const e of script.events) {
+    for (const [index, e] of script.events.entries()) {
+        if (replayed(script, index)) continue;
         const cues = e.kind === 'stage' ? e.cues : e.parts.flatMap(p => (p.kind === 'cue' ? [p.cue] : []));
         for (const c of cues) if (c.type === 'monitor') for (const ref of graphicPlayers(c.graphic)) if (!refs.has(refKey(ref))) refs.set(refKey(ref), ref);
     }
