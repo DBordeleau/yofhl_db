@@ -1,4 +1,4 @@
-import { CHARACTERS } from './cast';
+import { CHARACTERS, LAPELS, type Lapel } from './cast';
 import { EFFECTS, scriptLength, type Reaction } from './effects';
 
 // The editor's Script reference, as data. Lists that have a registry (effects, lapels, monitor
@@ -18,3 +18,6 @@ export const FX_REFERENCE: FxReference[] = (Object.keys(EFFECTS) as Reaction[]).
     length: scriptLength(EFFECTS[effect].defaultMs),
     example: `fx: ${CHARACTERS[i % CHARACTERS.length]} ${effect}`,
 }));
+
+/** every lapel the lapel list holds */
+export const LAPEL_REFERENCE: readonly Lapel[] = LAPELS;
