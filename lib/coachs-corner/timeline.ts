@@ -203,8 +203,8 @@ export function compile(script: Script): Timeline {
                     line: block.line, source: block.source, tag: block.tag, t0: t, entered: t + FLASHBACK_ENTRY_MS, leaving: 0, t1: 0,
                     ...(block.lapel !== undefined ? { lapel: block.lapel } : {}),
                 });
-                // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
                 before = { monitor: monitor[monitor.length - 1], shot: shots[shots.length - 1].value, rest: { ...rest } };
+                // Don enters in the header's pose, so lines naming no gesture are worn in its wardrobe
                 if (block.don) { rest.don = block.don; setGesture('don', block.don, t); }
                 monitor.push({ t, value: { type: 'static' }, line: block.line });
                 t += FLASHBACK_ENTRY_MS;
