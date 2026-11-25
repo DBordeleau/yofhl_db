@@ -154,3 +154,22 @@ test('a flashback that opens the episode is played, not part of the opening pict
     const [span] = episode.timeline.flashbacks!;
     assert.equal(span.t0, 6000);
 });
+
+test('a flashback rewinds on the way in and, more softly, on the way out, each over its transition', () => {
+    const episode = episodeFrom(`${withFlashback('[flashback: week 4]')}\n\n[flashback: week 2]\nDON: Again.\n[end flashback]\n\nRON: Done.`);
+    assert.deepEqual(episode.diagnostics, []);
+    const rewinds = episode.audioCues.filter(cue => cue.id === 'flashback-entry' || cue.id === 'flashback-exit');
+    const spans = episode.timeline.flashbacks!;
+    assert.equal(spans.length, 2);
+    assert.deepEqual(rewinds, spans.flatMap(span => [
+        { t: span.t0, id: 'flashback-entry', followsShow: { duration: FLASHBACK_ENTRY_MS } },
+        { t: span.leaving, id: 'flashback-exit', followsShow: { duration: FLASHBACK_EXIT_MS } },
+    ]));
+});
+
+test('a script can’t cue the rewinds itself', () => {
+    for (const id of ['flashback-entry', 'flashback-exit']) {
+        const found = errors(`${head()}DON: Hi.\n[sfx: ${id}]\nRON: Hello.`);
+        assert.ok(found.some(([at]) => at === 7), `sfx: ${id} should be an error: ${JSON.stringify(found)}`);
+    }
+});

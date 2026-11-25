@@ -2,7 +2,10 @@ import { mediaUrl } from './media';
 import type { CharacterId, Sound, SynthSound } from './cast';
 import type { EffectSound } from './effects';
 
-export type SoundId = CharacterId | 'room' | 'tie' | 'monitor' | Sound | EffectSound;
+/** recorded sounds that play over a flashback's entry and exit transitions; scripts can't name them in sfx: */
+export const FLASHBACK_SOUNDS = ['flashback-entry', 'flashback-exit'] as const;
+export type FlashbackSound = typeof FLASHBACK_SOUNDS[number];
+export type SoundId = CharacterId | 'room' | 'tie' | 'monitor' | Sound | EffectSound | FlashbackSound;
 export type SynthId = 'classic-don' | 'classic-ron' | 'robot-don' | 'robot-ron' | 'studio-room' | 'tie-rustle' | 'monitor' | SynthSound;
 export type SoundSource = { synth: SynthId } | { files: readonly string[] };
 export interface SoundSlot { source: SoundSource; gain: number }
@@ -27,6 +30,8 @@ export const CLASSIC_SOUND_BANK: SoundBank = {
     thud: { source: { synth: 'thud' }, gain: 1 },
     'desk-pound': { source: { files: [mediaUrl('/coachs-corner/audio/desk-pound.wav')] }, gain: 0.8 },
     'happy-twinkle': { source: { files: [mediaUrl('/coachs-corner/audio/happy-twinkle.wav')] }, gain: 0.16 },
+    'flashback-entry': { source: { files: [mediaUrl('/coachs-corner/audio/flashback-entry.wav')] }, gain: 0.5 },
+    'flashback-exit': { source: { files: [mediaUrl('/coachs-corner/audio/flashback-exit.wav')] }, gain: 0.5 },
 };
 
 /** Approved studio mix, shared by episodes and the sound-check baseline. */
