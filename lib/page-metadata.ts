@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import type { BannerSeason, FranchiseSeason } from './data/league';
+import { awardHref, type AwardDefinition } from './awards';
 import { seasonLabel } from './league';
+import { playerHref } from './player-url';
 import { pageMetadata } from './site-metadata';
 
 // A description per public page, each one wording that can sit in a chat app for months: seasons, Jagr Cups, champions
@@ -18,6 +20,39 @@ export function seasonMetadata(season: Pick<BannerSeason, 'year' | 'team' | 'own
         : `The ${label} YOFHL season, whose playoffs were cancelled. Final standings, leaders and draft class.`;
     return pageMetadata({ path: `/season/${season.year}`, name: `${label} Season`, description });
 }
+
+/** the player whose page is a memorial */
+export const JOHNNY_GAUDREAU_ID = '02b81';
+
+/**
+ * A player's page, under the player's own name. The page has a link preview of its own (app/player/[ID]/opengraph-image.tsx),
+ * which Next only uses when this metadata names no image.
+ */
+export function playerMetadata(player: { id: string; name: string }): Metadata {
+    const memorial = player.id === JOHNNY_GAUDREAU_ID;
+    return pageMetadata({
+        path: playerHref(player.id),
+        name: memorial ? 'Remembering Johnny Gaudreau' : player.name,
+        description: memorial ? 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.' : undefined,
+        image: 'own',
+    });
+}
+
+// A player comparison and a head-to-head choose their subjects in the query, which unfurlers don't send, and an award's
+// share card names a winner its link doesn't. All three keep the site-wide preview
+// (docs/adr/0011-link-previews-follow-the-page-not-its-query.md).
+
+/** the player comparison page */
+export const playerComparisonMetadata = (): Metadata => pageMetadata({ path: '/compare/players', name: 'Compare players',
+    description: 'Compare up to five players across their shared YOFHL seasons.' });
+
+/** the head-to-head page */
+export const headToHeadMetadata = (): Metadata => pageMetadata({ path: '/compare/teams', name: 'Compare teams',
+    description: 'Compare any two YOFHL franchises head to head, in the regular season and the playoffs.' });
+
+/** an award's page: the catalogue's own wording for it */
+export const awardMetadata = (award: Pick<AwardDefinition, 'name' | 'label' | 'description'>): Metadata =>
+    pageMetadata({ path: awardHref(award.name), name: award.label, description: award.description });
 
 /** A season's award ballots: every franchise's votes for that season's awards. */
 export function seasonBallotsMetadata(year: number): Metadata {

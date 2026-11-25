@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { franchiseMetadata, FRANCHISES_DESCRIPTION, leaderboardMetadata, matchupRecordMetadata,
-    RECORD_BOOK_DESCRIPTION, seasonBallotsMetadata, seasonMetadata } from './page-metadata';
+import { awardMetadata, franchiseMetadata, FRANCHISES_DESCRIPTION, headToHeadMetadata, JOHNNY_GAUDREAU_ID, leaderboardMetadata,
+    matchupRecordMetadata, playerComparisonMetadata, playerMetadata, RECORD_BOOK_DESCRIPTION, seasonBallotsMetadata,
+    seasonMetadata } from './page-metadata';
+import { DEFAULT_PREVIEW_IMAGE } from './site-metadata';
 
 // What each public page tells the group chat, Discord, Slack, X and a search engine. Every description is built from
 // lasting facts — seasons, Jagr Cups, champions, owners — because a chat app can hold a preview for months.
@@ -94,4 +96,26 @@ test("a season's award ballots say whose ballots they are", () => {
     assert.equal(metadata.title, '2025–26 Award Ballots · YOFHL');
     assert.deepEqual(metadata.alternates, { canonical: '/season/2026/ballots' });
     assert.equal(metadata.description, "Every franchise's award ballot for the 2025–26 YOFHL season.");
+});
+
+test("a player's link names the player and leaves the preview to the player's own image", () => {
+    const metadata = playerMetadata({ id: 'abc123', name: 'Connor McDavid' });
+    assert.equal(metadata.title, 'Connor McDavid · YOFHL');
+    assert.deepEqual(metadata.alternates, { canonical: '/player/abc123' });
+    // Next drops the page's opengraph-image file when its metadata names images of its own
+    assert.equal(metadata.openGraph?.images, undefined);
+});
+
+test("Johnny Gaudreau's link remembers him", () => {
+    const metadata = playerMetadata({ id: JOHNNY_GAUDREAU_ID, name: 'Johnny Gaudreau' });
+    assert.equal(metadata.title, 'Remembering Johnny Gaudreau · YOFHL');
+    assert.equal(metadata.description, 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.');
+    assert.equal(metadata.openGraph?.images, undefined);
+});
+
+// Their subjects are chosen in the query, which unfurlers don't send (docs/adr/0011-link-previews-follow-the-page-not-its-query.md).
+test('a player comparison, a head-to-head and an award keep the site-wide preview', () => {
+    const award = { name: 'Wayne_Gretzky_Award', label: 'Wayne Gretzky Award', description: 'The regular season scoring champion.' };
+    for (const metadata of [playerComparisonMetadata(), headToHeadMetadata(), awardMetadata(award)])
+        assert.deepEqual(metadata.openGraph?.images, [DEFAULT_PREVIEW_IMAGE]);
 });

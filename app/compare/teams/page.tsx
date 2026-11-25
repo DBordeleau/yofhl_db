@@ -2,10 +2,9 @@ import type { Metadata } from 'next';
 import RivalryCentre from '@/components/rivalries/rivalry-centre';
 import { getRivalryData } from '@/lib/data/rivalries';
 import { getSeasonArchive } from '@/lib/data/league';
-import { pageMetadata } from '@/lib/site-metadata';
+import { headToHeadMetadata } from '@/lib/page-metadata';
 
-export const metadata: Metadata = pageMetadata({ path: '/compare/teams', name: 'Compare teams',
-    description: 'Compare any two YOFHL franchises head to head, in the regular season and the playoffs.' });
+export const metadata: Metadata = headToHeadMetadata();
 export const dynamic = 'force-dynamic';
 
 export default async function TeamComparisonPage() {
