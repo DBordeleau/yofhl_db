@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
-import type { BannerSeason, FranchiseSeason } from './data/league';
-import { seasonLabel } from './league';
+import { JOHNNY_GAUDREAU_ID, type BannerSeason, type FranchiseSeason } from './data/league';
+import { awardHref, type AwardDefinition } from './awards';
+import { plural, seasonLabel } from './league';
+import { playerHref } from './player-url';
 import { pageMetadata } from './site-metadata';
 
 // A description per public page, each one wording that can sit in a chat app for months: seasons, Jagr Cups, champions
 // and owners, never a standing or a point total that moves week to week. Each page's wording is a function of its own
 // so it can be read and edited here rather than hunted down in app/.
 
-/** A season's page: who won its Jagr Cup, and what else the season left behind. */
+/**
+ * A season's page: who won its Jagr Cup, and what else the season left behind. The page has a link preview of its own
+ * (app/(rafters)/season/[year]/opengraph-image.tsx), which Next only uses when this metadata names no image.
+ */
 export function seasonMetadata(season: Pick<BannerSeason, 'year' | 'team' | 'owner' | 'playoffStatus'>): Metadata {
     const label = seasonLabel(season.year);
     // A published season has a champion unless its playoffs were cancelled (lib/seasons.ts), so there is no third case.
@@ -16,8 +21,38 @@ export function seasonMetadata(season: Pick<BannerSeason, 'year' | 'team' | 'own
         ? `The ${label} YOFHL season: ${champion}${season.owner ? ` (${season.owner})` : ''} won the Jagr Cup.`
             + ' Final standings, playoff bracket, leaders and draft class.'
         : `The ${label} YOFHL season, whose playoffs were cancelled. Final standings, leaders and draft class.`;
-    return pageMetadata({ path: `/season/${season.year}`, name: `${label} Season`, description });
+    return pageMetadata({ path: `/season/${season.year}`, name: `${label} Season`, description, image: 'own' });
 }
+
+/**
+ * A player's page, under the player's own name. The page has a link preview of its own (app/player/[ID]/opengraph-image.tsx),
+ * which Next only uses when this metadata names no image.
+ */
+export function playerMetadata(player: { id: string; name: string }): Metadata {
+    const memorial = player.id === JOHNNY_GAUDREAU_ID;
+    return pageMetadata({
+        path: playerHref(player.id),
+        name: memorial ? 'Remembering Johnny Gaudreau' : player.name,
+        description: memorial ? 'In loving memory of Johnny Gaudreau, 1993–2024. Johnny Hockey, forever part of our game.' : undefined,
+        image: 'own',
+    });
+}
+
+// A player comparison and a head-to-head choose their subjects in the query, which unfurlers don't send, and an award's
+// share card names a winner its link doesn't. All three keep the site-wide preview
+// (docs/adr/0011-link-previews-follow-the-page-not-its-query.md).
+
+/** the player comparison page */
+export const playerComparisonMetadata = (): Metadata => pageMetadata({ path: '/compare/players', name: 'Compare players',
+    description: 'Compare up to five players across their shared YOFHL seasons.' });
+
+/** the head-to-head page */
+export const headToHeadMetadata = (): Metadata => pageMetadata({ path: '/compare/teams', name: 'Compare teams',
+    description: 'Compare any two YOFHL franchises head to head, in the regular season and the playoffs.' });
+
+/** an award's page: the catalogue's own wording for it */
+export const awardMetadata = (award: Pick<AwardDefinition, 'name' | 'label' | 'description'>): Metadata =>
+    pageMetadata({ path: awardHref(award.name), name: award.label, description: award.description });
 
 /** A season's award ballots: every franchise's votes for that season's awards. */
 export function seasonBallotsMetadata(year: number): Metadata {
@@ -29,7 +64,6 @@ export function seasonBallotsMetadata(year: number): Metadata {
 /** every franchise's page, and the fallback for a franchise the archive doesn't hold */
 export const FRANCHISES_DESCRIPTION = "Every YOFHL franchise's all-time record, playoff runs and Jagr Cups.";
 
-const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
 /** "Sens Fan's", "Dangle Berries'" */
 const possessive = (name: string) => `${name}${/s$/i.test(name) ? "'" : "'s"}`;
 
@@ -51,7 +85,7 @@ export function franchiseMetadata(id: number, franchise: {
         `${plural(played, 'season')}${franchise.foldedAfterSeason === null ? '' : ' before folding'}`,
         franchise.championships.length ? plural(franchise.championships.length, 'Jagr Cup') : null,
     ].filter(Boolean).join(' and ');
-    return pageMetadata({ path: `/teams/${id}`, name: franchise.name,
+    return pageMetadata({ path: `/teams/${id}`, name: franchise.name, image: 'own',
         description: `${possessive(franchise.name)} YOFHL history: ${history}, with every season, roster and record.` });
 }
 

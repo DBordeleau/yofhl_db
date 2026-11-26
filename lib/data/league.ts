@@ -10,6 +10,9 @@ import { isPublished, seasonArchive } from '../seasons';
 
 export const PAGE_SIZE = 25;
 
+/** the player whose page is a memorial */
+export const JOHNNY_GAUDREAU_ID = '02b81';
+
 export interface BannerSeason {
     year: number;
     playoffStatus: 'complete' | 'cancelled';

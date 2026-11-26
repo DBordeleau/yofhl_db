@@ -1,5 +1,5 @@
 import { formatFpts, positionNames, seasonLabel } from '../league';
-import { fallbackColours, suggestedPalettes, type TeamColours } from '../team-branding';
+import { paletteFor, rgba, rgbOf, type TeamColours } from '../team-branding';
 import { artworkBounds } from '../team-logo';
 import { ART_FRAME, artFor, lapelFor, type CharacterId, type LapelSpot, type Pose } from '../coachs-corner/cast';
 import { POPPY, POPPY_TILT } from '../coachs-corner/poppy';
@@ -31,14 +31,12 @@ async function loadImage(src: string | null): Promise<HTMLImageElement | null> {
 }
 
 // ---------- colour ----------
-const rgbOf = (hex: string) => [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16));
-const rgba = (hex: string, alpha: number) => `rgba(${rgbOf(hex).join(',')},${alpha})`;
 const mix = (hex: string, target: string, amount: number) => {
     const [a, b] = [rgbOf(hex), rgbOf(target)];
     return `#${a.map((value, i) => Math.round(value + (b[i] - value) * amount).toString(16).padStart(2, '0')).join('')}`;
 };
 const distance = (x: string, y: string) => Math.hypot(...rgbOf(x).map((value, i) => value - rgbOf(y)[i]));
-const teamColours = (kit: Kit, team: ShareTeam | null) => (team?.id ? kit.palettes[team.id] ?? suggestedPalettes[team.id] : null) ?? fallbackColours;
+const teamColours = (kit: Kit, team: ShareTeam | null) => paletteFor(kit.palettes, team);
 
 // ---------- type ----------
 function setFont(kit: Kit, { size, weight = 800, italic = false, stretch = 100, spacing = 0 }: TextStyle) {

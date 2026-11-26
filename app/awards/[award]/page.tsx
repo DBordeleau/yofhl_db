@@ -14,7 +14,7 @@ import { getSeasonArchive } from '@/lib/data/league';
 import PublishedTallyTable from '@/components/award-vote/published-tally';
 import { awardVote } from '@/lib/award-vote/award-vote';
 import { VOTED_AWARD_IDS, type VotedAwardId } from '@/lib/award-vote/model';
-import { pageMetadata } from '@/lib/site-metadata';
+import { awardMetadata } from '@/lib/page-metadata';
 
 export async function generateStaticParams() {
     // raw slugs, not awardHref: Next.js encodes route params itself, so encoded ones would double-encode
@@ -24,8 +24,7 @@ export async function generateStaticParams() {
 // An award the catalogue doesn't hold is a 404: its link falls back to what the site is (app/layout.tsx).
 export async function generateMetadata({ params }: { params: Promise<{ award: string }> }) {
     const definition = findAward(awardFromSlug((await params).award));
-    return definition ? pageMetadata({ path: awardHref(definition.name), name: definition.label,
-        description: definition.description }) : {};
+    return definition ? awardMetadata(definition) : {};
 }
 
 export default async function AwardPage({ params }: { params: Promise<{ award: string }> }) {
