@@ -2,3 +2,6 @@
 db/migrations/meta/*.json linguist-generated=true
 package-lock.json linguist-generated=true
 lib/coachs-corner/goldens/*.json linguist-generated=true
+
+# Hooks run under sh, so a CRLF checkout would break the shebang.
+.githooks/* text eol=lf

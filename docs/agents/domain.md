@@ -1,3 +1,5 @@
+<!-- /setup-workflow wrote this from DBordeleau/skills@126a5a1, fragments/domain.md. Edit it freely: an update merges only what changed upstream. -->
+
 # Domain Docs
 
 How the skills should consume this repo's domain documentation when exploring the codebase.
