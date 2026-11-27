@@ -1,3 +1,5 @@
+<!-- /setup-workflow wrote this from DBordeleau/skills@126a5a1, fragments/conventions.md. Edit it freely: an update merges only what changed upstream. -->
+
 # Conventions
 
 How agents work in this repo. Read this before the first write of a session.
@@ -17,7 +19,7 @@ Two limits. Where a skill or this file specifies an exact format, the format win
 `<type>/<issue>-<slug>`:
 
 - **type**: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`.
-- **issue**: the number of the issue this branch delivers. For `/implement` and for an `/implement-spec` integration branch, that's the spec's number. For an `/implement-spec` ticket branch, it's that ticket's own number, not the spec's.
+- **issue**: the number of the issue this branch delivers. For `/implement` and for an `/implement-spec` integration branch, that's the spec's number. For an `/implement-spec` ticket branch, it's that ticket's own number, not the spec's. On a local tracker, an issue's number is the `<NN>` that opens its name in `.scratch/`: the feature directory's for a spec, the ticket file's for a ticket, and the bug report file's for a bug report.
 - **slug**: 2–5 lowercase hyphenated words naming what the branch changes, in glossary terms where they apply. Someone should be able to guess the change from the name alone. Never positional or generic words: no `part`, `tier`, `step`, `phase`, `slice`, `wip`, `misc`, `update`, and no tool names.
 
 Examples: `feat/42-electrum-wallet-detection`, `fix/149-candidate-floor-and-rookie-lookups`, `refactor/178-nhl-player-module`.
@@ -36,7 +38,7 @@ Clean up as part of finishing, not "later":
 
 - Remove every worktree a session created, then `git worktree prune`.
 - Delete ticket branches once they're merged into their integration branch. They stay local and are never pushed.
-- Only integration branches and `/implement` branches reach the remote.
+- Only integration branches, `/implement` branches and `/diagnose` fix branches reach the remote.
 
 A skill that creates worktrees is not done until they're gone. Say so explicitly in the final report.
 
@@ -53,5 +55,7 @@ Every ticket body opens with `Effort: medium` or `Effort: high`, and each ticket
 - covers code with no existing tests.
 
 `medium` for everything else: UI wiring, styling, copy, new routes, and tickets that copy a pattern another ticket already set up.
+
+A fix spec opens with the effort line too, and `/diagnose` sets it: `high` when no existing test covers the code the fix changes or the root cause crosses modules, `medium` otherwise.
 
 The effort sets how much reasoning a sub-agent gets. In Claude Code, map it to the sub-agent types the machine-level policy defines; in other tools, map it to that tool's reasoning-effort setting. Merger sub-agents and the fix-up after `code-review` follow the same mapping: mergers take the `medium` setting, the post-review fix-up takes `high`.

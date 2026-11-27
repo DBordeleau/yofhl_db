@@ -1,3 +1,5 @@
+<!-- /setup-workflow wrote this from DBordeleau/skills@126a5a1, fragments/environment.md. Edit it freely: an update merges only what changed upstream. -->
+
 # Environment
 
 Things about this machine and repo that cost an agent a wasted turn each time it rediscovers them. Add to this file whenever a session loses a turn to the environment rather than to the problem.
